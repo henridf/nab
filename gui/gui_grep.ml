@@ -91,7 +91,7 @@ let start_stop () = (
 	Gui_gtk.txt_msg "Nodes are moving ";
 	Mob_ctl.start_all();
 	rt := None;
-	Gui_ctl.startmws ~mws_tick:1. ~rt_tick_ms:1000 ~display_cb:refresh;
+	Gui_ctl.startsim ~sim_tick:1. ~rt_tick_ms:1000 ~display_cb:refresh;
 	running := not !running;
 )
 
@@ -106,7 +106,7 @@ let get_route nid = (
 
 
   let routeref = (ref (Route.create())) in
-  Gui_hooks.route_done := false;
+  Gui_hooks.routes_done := 0;
   let in_mhook = Gui_hooks.grep_route_pktin_mhook routeref in
   let out_mhook = Gui_hooks.grep_route_pktout_mhook routeref in
   Nodes.iter (fun n -> n#clear_pkt_mhooks ());
@@ -116,7 +116,7 @@ let get_route nid = (
 
   (Sched.s())#run_until 
   ~continue:(fun () -> 
-    Gui_hooks.route_done = ref false;
+    !Gui_hooks.routes_done = 1;
   );
 
 
@@ -144,21 +144,21 @@ let choose_node () = (
   
 let create_buttons_common() = (
 
-  let ss_tab = (GPack.table ~rows:1 ~columns:3 ~homogeneous:false 
+  let ss_tab = (GPack.table ~rows:8 ~columns:1 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
-    ~packing:(Gui_gtk.packer()) ()) in
+    ~packing:(Gui_gtk.hpacker()) ()) in
 
   start_stop_btn := Some (GButton.toggle_button ~draw_indicator:false
     ~label:"start/stop" ());
   ignore ((ss_btn())#connect#released ~callback:(start_stop));
   ss_tab#attach (ss_btn())#coerce ~left:0 ~top:0 ~right:1 ~bottom:1
-    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
 
   choose_route_btn := Some (GButton.toggle_button ~draw_indicator:false
     ~label:"draw a route" ()) ;
   ignore ((rt_btn())#connect#released ~callback:(choose_node));
-  ss_tab#attach (rt_btn())#coerce ~left:1 ~top:0 ~right:2 ~bottom:1
-    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+  ss_tab#attach (rt_btn())#coerce ~left:0 ~top:1 ~right:1 ~bottom:2
+    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
 
   ss_tab
 )
@@ -207,7 +207,7 @@ let create_buttons_grep() = (
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
     ()) in
 
-  ss_tab#attach checkbox_tab#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
+  ss_tab#attach checkbox_tab#coerce ~left:0 ~top:2 ~right:1 ~bottom:8
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 (*  let box2 = GPack.vbox ~spacing: 0 ~border_width: 10
     ~packing: box1#pack () in*)
@@ -215,15 +215,15 @@ let create_buttons_grep() = (
 
   let checkboxlist = [
     ("Nodes", show_nodes, 0, 0);
-    ("Connectivity", show_connectivity, 1, 0);
-    ("Text", text_entry, 2, 0);
+    ("Connectivity", show_connectivity, 0, 1);
+    ("Text", text_entry, 0, 2);
   ] in
   
   List.iter (fun (txt, boolref, left, top) ->
     let btn = (GButton.check_button ~label:txt
       ()) in
     checkbox_tab#attach btn#coerce ~left ~top ~right:(left + 1) 
-      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`NONE;
     
     ignore (btn#connect#released 
       ~callback:(fun _ -> 
@@ -235,7 +235,7 @@ let create_buttons_grep() = (
   let adj =
     GData.adjustment ~lower:0. ~upper:1001. ~step_incr:1. ~page_incr:100. () in
   let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
-    ~packing:(Gui_gtk.packer()) () in
+    ~packing:(Gui_gtk.vpacker()) () in
     
   ignore (adj#connect#value_changed
     ~callback:(fun () -> 
