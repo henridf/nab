@@ -67,7 +67,7 @@ struct
 				 size = size;
 				 nodes =  Array.make size node;
 				 info = Array.make size [];
-				 hash =  Hash.creat size;
+				 hash =  Hash.create size;
 				 m =  Array.make_matrix size size Nan;
 				 t = gtype}
 				  
