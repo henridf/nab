@@ -43,7 +43,7 @@ let parse_args ?(extra_argspec=[]) ?(anon_fun=(fun _ -> ())) () = (
   Arg.parse (s@extra_argspec) anon_fun "";
 )
 
-let init_sched() = Sched.set_sched (new Sched.schedHeap)
+let init_sched() = Sched.makeSchedHeap()
 
 let init_greedy_world() = 
   World.set_greedy_world (new Crworld.greedy_reflecting_world
@@ -177,11 +177,11 @@ let make_str_nodes metric = (
     n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 
-let make_aodv_nodes () = (
+let make_aodv_nodes ?(localrepair=true) ?(dstonly=false) () = (
   make_nodes();
 
   Nodes.iteri (fun nid n -> 
-    let agent = new Aodv_agent.aodv_agent ~stack:0 n in
+    let agent = Aodv_agent.make_aodv_agent ~stack:0 ~localrepair ~dstonly n in
     n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 

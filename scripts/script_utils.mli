@@ -81,9 +81,14 @@ val make_naked_nodes : ?with_positions:bool -> unit -> unit
     for example if node positions are being restored from a prior run.
  *)
 
-val make_aodv_nodes : unit -> unit 
+val make_aodv_nodes : ?localrepair:bool -> ?dstonly:bool -> unit -> unit 
   (** Create {!Node.node} each with a aodv agent and a mac layer
     of the type specified in {!Params.mac}.
+    @param localrepair corresponds to the local repair operation as defined in
+    the RFC, and is true by default .
+    @param dstonly corresponds to operation with the 'destination only' flag
+    set, as defined in the RFC, and is false by default.
+
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_str_nodes : Str_rtab.metric_t -> unit 
