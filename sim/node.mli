@@ -60,7 +60,12 @@ object
        RREQ via mac_bcast_pkt, and then forward the packet via mac_send_pkt
        once the route is established *)
 
-  method dump_state : node_cnt:int -> node_state_t 
+  method originate_app_pkt : dst:node_t -> unit
+    (* originates a packet from an application on this node to dst:
+       create the packet and shove it down the app_send_pkt_hooks *)
+
+
+  method dump_state : node_state_t 
 end
   
   
