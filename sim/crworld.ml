@@ -593,7 +593,6 @@ class epflworld ~x ~y ~rrange : World.world_t =
 object(s)
   inherit crworld_lazy ~x ~y ~rrange
   method random_pos =  
-  print_endline "random pos";
     let nodeind = Random.int 113 in
-    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
+    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind) 
 end
