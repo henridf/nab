@@ -201,6 +201,16 @@ open Itin
       assert (shortened1 = it1);
       assert (shortened2 = it1);
 
+      graphsize := 25;
+      let it1 = make_itin 14 [|17; 18; 14; 15; 20; 19; 23; 3; 24; 4; 5; 10|] 
+      and it2 = make_itin 11 [|2; 22; 23; 18; 17; 12; 13; 9; 14; 15; 10 |] in
+      let shortened1 = Itinerary.shorten_ ~aux:it1 ~main:it2 
+      and shortened2 = Itinerary.shorten_ ~aux:it2 ~main:it1 in
+	(* shorten_ is not commutative! *)
+	assert (Itinerary.equal_ shortened1 (make_itin 5 [|17; 18; 14; 15; 10|]));
+	assert (Itinerary.equal_ shortened2 (make_itin 8 [|2; 22; 23; 3; 24; 4; 5; 10|]));
+
+	
     (* Itinerary.splice_ *)
     (* splice 3-2-1-0 with 3-2-1-0 at any place -> same itin*)
     let itin = make_itin 4 [|3; 2; 1; 0|]
@@ -261,10 +271,43 @@ open Itin
 	  assert ((Itinerary.hops_to_place_ newitin 3) = 1) ;
 	  assert ((Itinerary.get_ newitin 2) =  0);
 	  assert ((Itinerary.hops_to_place_ newitin 0) = 2) ;
-      end
+      end;
+
+      (*   Itinerary.reverse_ *)
+      assert (Itinerary.equal_ 
+		(Itinerary.reverse_
+		   (make_itin 4 [| 4; 3; 2; 1|])
+		)
+		(make_itin 4 [| 1; 2; 3; 4|])
+	     );	      
+
+      assert (Itinerary.equal_ 
+		(Itinerary.reverse_
+		   (make_itin 4 [| 1|])
+		)
+		(make_itin 4 [| 1|])
+	     );	      
+
+      assert (Itinerary.equal_ 
+		(Itinerary.reverse_
+		   (make_itin 4 [||])
+		)
+		(make_itin 4 [||])
+	     );	      
+
+      assert (Itinerary.equal_ 
+		(Itinerary.reverse_ 
+		   (
+		     (Itinerary.reverse_
+			(make_itin 6 [|1; 2; 3; 4; 5; 2; 3; 4|])
+		     )
+		   )
+		)
+		(make_itin 6 [|1; 2; 3; 4; 5; 2; 3; 4|])
+	     );
   )
-
-
-
-
+		   
+		   
+		   
   let _ = test_ ()
+		

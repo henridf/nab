@@ -19,10 +19,12 @@ sig
   val has_place_ : t -> int -> bool   
   val sub_ : t -> int -> t             (* sub itin up to place specified by int *)
   val unroll_ : t -> t                 
+  val reverse_ : t -> t
   val shorten_ : aux:t -> main:t -> t  
   val splice_ : leftitin:t -> rightitin:t -> int -> t (* replaces rightitin's itinerary upto given place with leftitin's *)
   val equal_ : t -> t -> bool          (* semantic equality *)
-  val print_ : t -> int -> unit
+  val print_ : t -> unit
+  val printi_: t -> int -> unit
 end;;
 
 module  Itinerary : Itinerary_t = 
@@ -57,7 +59,15 @@ struct
     itin.counter <- itin.counter + 1
   )
 			       
-
+  let reverse_ itin = (
+    let res = {cbuf=CircBuf.make_ (CircBuf.maxlength_ itin.cbuf) ;
+	       graphsize=itin.graphsize;
+	       arr=Array.make itin.graphsize (max_int);
+	       counter=0
+	      } in
+      CircBuf.iter_ (fun place -> addplace_ res place) itin.cbuf;
+      res
+  )
 
 	
   let get_ itin offset = 
@@ -85,7 +95,7 @@ struct
     try (ignore (hops_to_place_ itin place); true ) with
 	_ -> false
     
-  let print_ itin l = (
+  let printi_ itin l = (
     for i = 0 to l - 1 do
       Printf.printf "%d " (get_ itin i)
     done;
@@ -93,6 +103,7 @@ struct
     Printf.printf "\n"; flush stdout
   )
 
+  let print_ itin  = printi_ itin (length_ itin)
   
   let splice_ ~leftitin ~rightitin p = (
     assert (leftitin.graphsize = rightitin.graphsize);
@@ -138,7 +149,10 @@ struct
       done;
       match !opt_place with
 	  None -> main
-	| Some integer -> splice_ aux main integer
+	| Some integer -> 
+	    let res = splice_ aux main integer in
+	      assert (length_ res <= length_ main);
+	      res
   )
 
   let sub_ itin target = (
