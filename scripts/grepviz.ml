@@ -70,13 +70,13 @@ let do_one_run() = (
   init_sched();
 
 (*  init_epfl_world();*)
-  init_lazy_world();
+  init_lazy_taurus_world();
 
   begin match agenttype with
     | AODV -> make_aodv_nodes()
     | GREP -> make_grep_nodes();
-	Array.iter (fun grep_agent -> grep_agent#start_hello ())
-	  !Grep_agent.agents_array
+	Hashtbl.iter (fun _ grep_agent -> grep_agent#start_hello ())
+	  (Grep_agent.agents ())
   end;
 
 (*  Mob_ctl.make_epfl_waypoint_mobs();*)
@@ -95,9 +95,7 @@ let () =
 
   Param.set Params.mac "null";
 
-  let s = Param.make_argspeclist () 
-  in
-  Arg.parse s (fun s -> ()) "You messed up!";
+  Script_utils.parse_args();
 
   Gui_gtk.init();
 

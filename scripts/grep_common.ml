@@ -34,7 +34,6 @@
 
 open Printf
 open Misc
-open Script_utils
 
 type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
 type agent_type = AODV | GREP

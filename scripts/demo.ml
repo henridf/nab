@@ -76,7 +76,7 @@ let check_all_routes () = (
 	Gui_hooks.route_done = ref false;
       );
       
-      Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
+      Printf.printf "Route:\n %s\n" (Route.sprint (Route.i2c !routeref));flush stdout;
       (*  ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
 	  srcnode)#pos);*)
     )
@@ -163,7 +163,6 @@ let _ =
   Gui_ctl.create_buttons_ease();
   Gui_ops.draw_all_boxes();
   do_one_run();
-
 
   Main.main();
 
