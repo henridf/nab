@@ -70,6 +70,8 @@ class type aodv_agent_t =
       l3pkt:L3pkt.l3packet_t -> 
       fresh:bool -> unit
     method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
+    method private recv_l3pkt_ : l3pkt:L3pkt.l3packet_t ->
+      sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
     method private send_rerr : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
@@ -211,29 +213,10 @@ object(s)
       | _ -> raise (Misc.Impossible_Case "Aodv_agent.packet_fresh()")
   )
     
-   
-  (* as recv_packet in paper *)
-  method private recv_l2pkt_hook l2pkt = (
 
-    let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
-    assert (L3pkt.l3ttl ~l3pkt >= 0);
-    (* create or update 1-hop route to previous hop *)
-    let sender = L2pkt.l2src l2pkt in
-    if (sender <> (L3pkt.l3src ~l3pkt)) then (
-      let sender_seqno = 
-	match Rtab.seqno ~rt ~dst:sender with
-	  | None -> 1
-	  | Some n -> n + 1
-      in
-      let update =  
-	s#newadv 
-	  ~dst:sender
-	  ~sn:sender_seqno
-	  ~hc:1
-	  ~nh:sender
-      in
-      assert (update);
-    );
+
+  method private recv_l3pkt_ ~l3pkt ~sender = (
+    
     (* update route to source if packet came over fresher route than what we
        have *)
     let pkt_fresh = (s#packet_fresh ~l3pkt)
@@ -257,6 +240,37 @@ object(s)
 	  -> raise (Failure "Aodv_agent.recv_l2pkt_hook");
     end
   ) 
+
+
+  (* as recv_packet in paper *)
+  method private recv_l2pkt_hook l2pkt = (
+
+    let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
+    assert (L3pkt.l3ttl ~l3pkt >= 0);
+
+    (* create or update 1-hop route to previous hop, unless the packet was
+       originated by the previous hop, in which case this will happen in l3
+       processing.
+    *)
+    let sender = L2pkt.l2src l2pkt in
+    if (sender <> (L3pkt.l3src ~l3pkt)) then (
+      let sender_seqno = 
+	match Rtab.seqno ~rt ~dst:sender with
+	  | None -> 1
+	  | Some n -> n + 1
+      in
+      let update =  
+	s#newadv 
+	  ~dst:sender
+	  ~sn:sender_seqno
+	  ~hc:1
+	  ~nh:sender
+      in
+      assert (update);
+    );
+
+    s#recv_l3pkt_ ~l3pkt ~sender
+  )
 
   method private process_radv_pkt ~l3pkt ~sender = 
     raise Misc.Not_Implemented
