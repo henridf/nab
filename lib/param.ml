@@ -260,5 +260,5 @@ module Persist = struct
     List.iter (fun (name, value) -> strset_by_name name value) configlist;
     if verbose then 
       Log.log#log_notice (lazy (sprintconfig()));
-    Log.log#log_notice (lazy "Done.");
+    Log.log#log_notice (lazy "Done (restoring param state).");
 end
