@@ -1,0 +1,106 @@
+<html> 
+<head>
+<title>NAB Tutorial Lesson II</title>
+<link href="emns.css" 
+type=text/css 
+rel=stylesheet>
+
+</head>
+<body BGCOLOR ="#FFFFFF"> 
+
+
+<h1>Lesson 2: Investigating simple flooding dynamics</h1>
+<p>
+In this second lesson, we will run the same flooding protocol as lesson
+1. However this time our objective is to compare flooding behavior for
+different MAC layers and different MAC parameters. In so doing, we will see:
+<ul>
+<li> How to configure parallel protocol stacks running on each node.
+<li> How to extract MAC layer statistics.
+<li> How to use hooks to reconstruct high-level network states, such as the
+sequence of nodes in a flood.
+<li> How to use the above data to compute some statistics on flooding behavior
+(namely the number of <a href="lesson2-bwlinks.html">backward links</a>)
+</ul>
+
+It is also a good idea to look at the script file 
+<a href="lesson2.ml">lesson2.ml</a> which shows how one might write this up in a script.
+<br>
+<font size="-1">Note: This tutorial is packaged with the <code>nab</code>
+distribution, and also available <a href="http://nab.epfl.ch">here</a>. If you
+are browsing the tutorial files which came in the <code>nab</code> tarball, it
+might be a good idea to check if a more recent version is available
+online. This file has revision $Revision$.</font>
+
+<p>
+
+0. <a href="#0">Prerequisites</a><br>
+1. <a href="#1">Simulation setup</a><br>
+2. <a href="#2">Using parallel stacks</a><br>
+3. <a href="#3">Launching the flood and viewing the statistics<code>nab</code> toplevel</a><br>
+<p>
+
+<hr>
+<h2><a name="0">0. Prerequisites</a></h2>
+
+This lesson requires the following:
+<ul>
+<li> You have gone through lesson 1 in the tutorial.
+</ul>
+
+<h2><a name="1">1. Simulation setup</a></h2>
+<p>
+To be filled in... for now, please see <a href="lesson2.ml">lesson2.ml</a> for the full
+commented script.
+<p>
+
+<h2><a name="2">2. Using parallel stacks</a></h2>
+<p>
+To be filled in... for now, please see <a href="lesson2.ml">lesson2.ml</a> for the full
+commented script.
+<p>
+
+
+<h2><a name="3">3. Launching the flood and viewing the statistics</a></h2>
+
+Now that everything is set up, we can originate the flood and view the
+results! <br>
+For each MAC, the first line shows the total number of packets send and
+received. Unsurprisingly the highest numbers are for the null mac: since there
+are no collisions, every node receives the flood packet once and reforwards
+it. <p>
+The number of overall transmissions is reduced for contention MACS due to
+collisions. The breakdown of collision types is given in the second line (for
+stacks 1 and 2). Please see <a href="gen/Mac_contention.html">here</a> for a
+more detailed explanation of the collision types.<p>
+Finally the number of backward links is given in the third line. As expected,
+we see a correlation between collisions and backward links.
+
+
+
+<pre class=example>
+# do_flood();;
+# print_info();;
+
+Stack 0 (Null MAC, 100Kbps) 
+
+	RX: 8506 pkts. TX: 900 pkts
+	27 backward links
+
+
+Stack 1 (Contention MAC, 100Kbps, 0.1s jitter) 
+
+	RX: 1973 pkts. TX: 429 pkts
+	4 RX/RX colls, 216 RX/TX colls, 0 TX/TX drops, 419 TX/RX drops
+	297 backward links
+
+
+Stack 2 (Contention MAC, 200Kbps, 3s jitter) 
+
+	RX: 6615 pkts. TX: 800 pkts
+	4 RX/RX colls, 10 RX/TX colls, 0 TX/TX drops, 101 TX/RX drops
+	133 backward links
+
+
+</pre>
+</html>

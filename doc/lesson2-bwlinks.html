@@ -1,0 +1,37 @@
+<html> 
+<head>
+<title>NAB Tutorial Lesson II</title>
+<link href="emns.css" 
+type=text/css 
+rel=stylesheet>
+
+</head>
+<body BGCOLOR ="#FFFFFF"> 
+
+
+<h1>Backward links in wireless flooding</h1>
+
+Many protocols in ad hoc and sensor networks make use of an underlying
+flooding primitive. For example a routing protocol might use flooding to disseminate a route
+request, or a data gathering protocol in a sensor network might use flooding
+to disseminate interest in a particular piece of information.<br>
+In the simplest form of flooding, a node rebroadcasts a flood packet which it
+receives for the first time, and quenches duplicates.
+<p>
+In an ideal model of wireless connectivity and propagation, the flood moves
+<i>away</i> from the destination, meaning that each successive node which
+receives a flood packet is further than the previous ones. But in practice
+(see reference below), it will often happen that there are <i>backward
+links</i>, in which the recipient of the flood packet is closer to the
+originator than the transmitter. 
+<p>
+
+
+
+Deepak Ganesan, Bhaskar Krishnamachari, Alec Woo, David Culler, Deborah Estrin
+and Stephen Wicker, Complex Behavior at Scale: An Experimental Study of
+Low-Power Wireless Sensor Networks , UCLA Computer Science Technical Report
+UCLA/CSD-TR 02-0013. 
+
+
+</html>
