@@ -13,11 +13,13 @@ type traffic_generator_t = (unit -> float option)
 
 
 val make_cbr : ?num_pkts:int -> pkts_per_sec:float -> unit -> traffic_generator_t
-  (** Returns a traffic_generator_t which will originate num_pkts, at a rate
-    of pkts_per_sec *)
+  (** Returns a traffic generator which originates packets, at a fixed rate
+    of [pkts_per_sec]. If [num_pkts] is provided, traffic generator will stop
+    after [num_pkts], otherwise generates packets indefinitely. *)
 
 val make_poisson :  ?num_pkts:int -> lambda:float -> unit -> traffic_generator_t
-  (** Returns a {!Tsource.traffic_generator_t} which will originate num_pkts, spaced
+  (** Returns a traffic generator which will originate num_pkts, spaced
     with an exponential distribution of parameter lambda (mean 1/lambda).
-    If num_pkts is not provided, 
+    If [num_pkts] is provided, traffic generator will stop after [num_pkts],
+    otherwise generates packets indefinitely.
   *)
