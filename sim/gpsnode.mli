@@ -6,8 +6,8 @@
 
   
 class gpsnode : 
-  pos_init:Coord.coordf_t -> 
-  id:Common.nodeid_t ->
+  ?pos_init:Coord.coordf_t -> 
+  Common.nodeid_t ->
 	  
 object
   inherit Simplenode.simplenode

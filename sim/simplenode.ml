@@ -20,11 +20,10 @@ type node_state_t = {
 }
 
 exception Mac_Send_Failure
-exception Mac_Bcast_Failure
 
 let coordmult = Coord.( ***. )
 
-class simplenode  ~id   = 
+class simplenode id   = 
 
 object(s)
   

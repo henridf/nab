@@ -9,9 +9,9 @@ type node_state_t = {
 }
 
 exception Mac_Send_Failure
-exception Mac_Bcast_Failure
 
-class simplenode : id:Common.nodeid_t ->
+
+class simplenode : Common.nodeid_t ->
 	  
 object ('a)
     
@@ -27,8 +27,7 @@ object ('a)
     (* Same as above except will accept sending pkt to any destination *)
 
   method mac_bcast_pkt : l3pkt:Packet.l3packet_t -> unit
-    (* Broadcast packet to all neighbors. Should raise Mac_Bcast_Failure if
-       node has no neighbors *)
+    (* Broadcast packet to all neighbors. *)
 
   method add_recv_pkt_hook : hook:(Packet.l3packet_t -> unit) -> unit
     (* Any agent (routing, application, etc) on this node who might

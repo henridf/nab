@@ -6,14 +6,16 @@ open Printf
 open Misc
 
 
-class gpsnode  ~pos_init ~id   = 
+class gpsnode ?pos_init id   = 
 
 object(s)
   
-  inherit Simplenode.simplenode ~id
+  inherit Simplenode.simplenode id
 
 
-  val mutable pos = pos_init
+  val mutable pos = 
+    if pos_init <> None then (Misc.o2v pos_init) else
+    (Gworld.world())#random_pos
 
   val mutable mob_mhooks = []
 
