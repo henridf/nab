@@ -11,7 +11,6 @@ endif
 
 MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
-NAML_DIR = naml
 MISC_DIR = misc
 MK_DIR = mk
 GUI_DIR = gui
