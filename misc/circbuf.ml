@@ -8,6 +8,7 @@ module type CircBuffer_t =
     val get_ : 'a circbuf -> int -> 'a (* offset counts backward from latest element inserted *)
     val push_ : 'a circbuf -> 'a -> unit
     val test_ : unit -> unit
+    val fromarray_ : 'a array -> 'a circbuf (* head will be at array.(0) *)
     val toarray_ : 'a circbuf -> 'a array (* array.(0) will be most recently pushed item *)
   end ;;
 
@@ -58,7 +59,8 @@ module CircBuffer : CircBuffer_t =
 	arr
     )
 
-
+    let fromarray_ arr = {buf = arr; head = 0}
+	
 			  
     let test_ () = ( 
       let cb = create_ 5 1.0 in
@@ -69,17 +71,18 @@ module CircBuffer : CircBuffer_t =
 	  done;
 	assert (length_ cb = 5);
 	assert (toarray_ cb = [|4.0; 3.0; 2.0; 1.0; 0.0|]);
+	assert (cb = fromarray_ [|4.0; 3.0; 2.0; 1.0; 0.0|]);
 	  
-	  for i = 0 to 4 do 
-	    assert ((get_ cb i) = i2f (4 - i))
-	  done;
+	for i = 0 to 4 do 
+	  assert ((get_ cb i) = i2f (4 - i))
+	done;
 	
 	for i = 0 to 2 do 
 	  push_ cb (i2f (i + 5));
 	done;
 	assert (toarray_ cb = [| 7.0; 6.0; 5.0; 4.0; 3.0 |]);
 	(* internal representation = [| 4.0; 3.0; 7.0; 6.0; 5.0 |]);*)
-	(*  head                                   ^^^              *)
+	(*  head                                  ^^^              *)
 	assert ((get_ cb 0) = 7.0);
 	assert ((get_ cb 1) = 6.0);
 	assert ((get_ cb 2) = 5.0);
