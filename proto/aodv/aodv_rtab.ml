@@ -203,7 +203,9 @@ let add_entry_rreq rt rreq sender =
     -. 2.0 *. (float rreq.rreq_hopcount) *. aodv_NODE_TRAVERSAL_TIME
   and currentLT = lifetime rt rreq.rreq_orig in
   let new_lifetime = Time.time() +. (max minimalLT currentLT) in
-  
+  assert (rreq.rreq_hopcount > 0);
+  (* if this assert fails, then i need to look at how/when rreq hopcounts are
+     being incremented *)
   replace_entry rt rreq.rreq_orig 
     {nexthop=sender; 
     hopcount=rreq.rreq_hopcount;

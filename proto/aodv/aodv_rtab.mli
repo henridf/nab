@@ -56,7 +56,7 @@ val lifetime : t -> Common.nodeid_t -> Time.t
   (** [lifetime rtab dst] returns the remaining lifetime of the entry for [dst]
      if the entry exists and is valid, 0.0 otherwise. *)
 
-val seqno : t -> Common.nodeid_t -> int option
+val seqno : t -> Common.nodeid_t -> Aodv_pkt.seqno_t option
   (** [seqno rt dst] Returns the sequence number for dst in rt. Returns None
     if no entry. *)
 
