@@ -1,5 +1,10 @@
 open Coord
 
+(* changelog: 
+   + coords are now expressed in meters, so no need to 
+     use one_meter
+*)
+
 class virtual mobility (abbrevname:string) = 
 object(s)
   val abbrev = abbrevname
@@ -33,12 +38,12 @@ object
     let target = waypoint_targets_.(node#id) in
     let pos = node#pos in
     assert (((Gworld.world())#boundarize pos) = pos);
-    if ((Gworld.world())#dist_coords target pos) <= Gworld.one_meter then (
-      (* arrived at target *)
+    if ((Gworld.world())#dist_coords target pos) <= 1.0 then (
+      (* arrived within 1[m] of target *)
       waypoint_targets_.(node#id) <- (Gworld.world())#random_pos;
       target
     ) else (
-      let direction =  (Coord.normalize (target ---. pos))  ***. Gworld.one_meter in
+      let direction =  (Coord.normalize (target ---. pos))   in
       (pos +++. direction)
     )
   )
