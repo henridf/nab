@@ -53,3 +53,4 @@ val set_enc_age : t -> Time.time_t -> unit
 val set_anchor_pos : t -> Coord.coordf_t -> unit
 
 val clone : t -> t
+val size : t -> int
