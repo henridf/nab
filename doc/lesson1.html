@@ -11,13 +11,23 @@ rel=stylesheet>
 
 <h1>Lesson 1: Getting Started with NAB</h1>
 <p>
-In this first lesson, we will see how to start and setup the <code>NAB</code> toplevel,
+In this first lesson, we will see how to start and setup the <code>nab</code> toplevel,
 configure basic simulator parameters, and run a simple flooding protocol
-over a network of static nodes.
+over a network of static nodes. The instructions below show how to do this
+step-by-step with the interactive <code>nab</code> toplevel. It is also a good
+idea to look at the script file <a href="lesson1.ml">lesson1.ml</a> which
+shows how one might write this up in a script.
+<br>
+<font size="-1">Note: This tutorial is packaged with the <code>nab</code>
+distribution, and also available <a href="http://nab.epfl.ch">here</a>. If you
+are browsing the tutorial files which came in the <code>nab</code> tarball, it
+might be a good idea to check if a more recent version is available
+online. This file has revision $Revision$.</font>
+
 <p>
 
 0. <a href="#0">Prerequisites</a><br>
-1. <a href="#1">Launching and setting up the <code>NAB</code> toplevel</a><br>
+1. <a href="#1">Launching and setting up the <code>nab</code> toplevel</a><br>
 2. <a href="#2">Configuring basic simulation parameters</a><br>
 3. <a href="#3">Running a simple flooding protocol.</a><br>
 4. <a href="#4">Using hooks to record packet statistics</a><br>
@@ -29,9 +39,9 @@ over a network of static nodes.
 This lesson requires the following:
 <ul>
 <li> You have installed the Objective Caml distribution (see <a
-href="../README">README</a> from <code>NAB</code> distribution)
-<li> You have built the <code>NAB-top</code> interactive toplevel (see <a
-href="../README">README</a> from <code>NAB</code> distribution)
+href="../README">README</a> from the <code>nab</code> distribution)
+<li> You have built the <code>nab-top</code> interactive toplevel (see <a
+href="../README">README</a>)
 </ul>
 It is recommended that:
 <ul>
@@ -42,44 +52,43 @@ will run fine, but some of the links to source documentation will not work.
 </ul>
 
       
-<h2><a name="1">1. Launching and setting up the <code>NAB</code> toplevel</a></h2>
+<h2><a name="1">1. Launching and setting up the <code>nab</code> toplevel</a></h2>
 
 
-You launch the <code>NAB</code> toplevel by simply typing bin/fake-top at the prompt:
+We launch the <code>nab</code> toplevel by simply typing bin/nab-top at the prompt:
 <pre class=example>
-[henridf@lilblue: ~/work/NAB] bin/fake-top 
+[henridf@lilblue: ~/work/nab] bin/nab-top 
 
-   Multihop Wireless Simulator (NAB) version 0.1
-          Objective Caml version 3.07+2
+     Network in a Box (nab) version 0.6pre
+        Objective Caml version 3.07+2
 
 # 
 </pre>
 
 
-Now, you have the <code>NAB</code> command-line - similar in all aspects to the ocaml
-toplevel, except that all <code>NAB</code> libraries and functionality are
-linked in.<br>
-Before calling API functions exported by <code>NAB</code>, we must inform the
+Now, we are in <code>nab</code> command-line. This has all the functionality
+of a full ocaml toplevel, with additional <code>nab</code> libraries linked in.<br>
+Before calling API functions exported by <code>nab</code>, we must inform the
 toplevel about a few paths where source and compiled
 files are to be found. This can be done manually, using the #directory
-command:
+command, as in:
 <br>
 
 <pre class=example>
-# #directory "/home/henridf/work/NAB/lib";;
+# #directory "/home/henridf/work/nab/lib";;
 </pre>
-
 
 Since there are several directories to add to the path, it is simpler to 
 place these in a .ocamlinit file (which should go in your homedir). See 
 the included <a href="ocamlinit">.ocamlinit</a> for an example.
 Once you have your .ocamlinit file edited and
-in the right place, you should exit (<code>exit 0;;</code>
+in the right place, you should exit (<code>exit 0;;</code><!--test_ignore-->
 ) and restart the caml toplevel, or type 
 <pre class=example>
-# #use "/path/to/homedir/.ocamlinit";;
+# #use "/home/henridf/.ocamlinit";;
 </pre>
- to reload the .ocamlinit file without restarting.
+ to reload the .ocamlinit file without restarting (of course, replace
+ <code>/home/henridf</code> with your own home dir path).
 <p>
 
 <font  size="-1">
@@ -105,39 +114,34 @@ for more info</a>).
       
 <h2><a name="2">2. Configuring basic simulation parameters</a></h2>
 
-
-
-Let's start by configuring a few basic parameters such as the number of nodes
-in the simulation, the MAC layer involved, etc. In <code>NAB</code>, these key parameters
-are represented using Param values. Param offers a simple interface to get/set
+Let's start by configuring a few basic 
+<a href="gen/Params.html">parameters</a> such as the number of nodes
+in the simulation, the MAC layer involved, etc. In <code>nab</code>, these key parameters
+are represented using Param values. <a href="gen/Param.html">Param</a> offers a simple interface to get/set
 values, as well as helpful functionality to such as defaults, range checking,
-or parsing these values as command-line arguments to <code>NAB</code>. <br>
+or parsing these values as command-line arguments to <code>nab</code>. <br>
 
 Let's first set the number of nodes. First we might want to see what the
 default number is:<br>
 
 <pre class=example>
-# Param.get Params.nodes;;
+# open Params;;
+# Param.get nodes;;
 - : int = 500
 </pre>
 
 Maybe we would like more nodes, say 800:
 
 <pre class=example>
-# Param.set Params.nodes 800;;
+# Param.set nodes 800;;
 - : unit = ()
 </pre>
-
-<font  size="-1">
-<b>Note:</b> If you've compiled the documentation (see README), the Param API can be
-viewed <a href="gen/Param.html">here</a>
-</font><p>
 
 Now, let's move on and configure some other basic parameters.
 We'll say the nodes' radio range is 12 meters:<br>
 
 <pre class=example>
-# Param.set Params.rrange 12.;;
+# Param.set radiorange 12.;;
 - : unit = ()
 </pre>
 
@@ -154,43 +158,43 @@ val size : float = 212.640541760032193
 </pre>
 
 
-<b>Note:</b> <Font  Size="-1"><i>The file scripts/script_utils.ml
+<Font  Size="-1"><B>Note:</B> The file scripts/script_utils.ml
 (doc <a href="gen/Script_utils.html">here</a>) contains many useful
 helper functions designed to be used in the toplevel or from scripts. Take a
-look there, you may find that what you need is already implemented. And if you
-write other helpers, please consider contributing them back so they make their
-way into the next release!</i>
+look there, you may find that what you need is already implemented. 
 </font><br><p>
 
 <pre class=example>
-# Param.set Params.x_size size;;
+# Param.set x_size size;;
 - : unit = ()
-# Param.set Params.y_size size;;
+# Param.set y_size size;;
 - : unit = ()
 </pre>
 
 
-We now instantiate the global world object - this is where all operations requiring
+We now instantiate the global <a href="gen/Worldt.lazy_world_t.html">world</a>
+object - this is where all operations requiring
 global network knowledge (computing neighborhoods, etc) are done. The world
-object must be instantiated *after* the proper values for rrange and world
+object must be instantiated *after* the proper values for radiorange and world
 size have been set. 
 
 <pre class=example>
 # Script_utils.init_lazy_world();;
-0.000000 /global World: size (212.64, 212.64), rrange 12.0,  800 nodes
+0.000000 /global World: 212.64 x 212.64 [m],  12.00 radio range [m], 800 nodes
 - : unit = ()
 </pre>
 
 
+
 We choose to use a null mac layer - this is a 'perfect' mac where all packets
 sent by a node within radio range are received, with no collisions or loss.
-<Font  Size="-1">
-<B>Note:</B> : for an overview of other MAC layers available, see
+<Font  Size="-1"><br>
+<B>Note:</B> for an overview of other MAC layers available, see
 <a href="gen/Mac.html">here</a>
 </font><br>
 
 <pre class=example>
-# Param.set Params.mac "nullmac";;
+# Param.set mac "nullmac";;
 - : unit = ()
 </pre>
 
@@ -219,14 +223,23 @@ first time.
 Ok! Let's pick a node in the middle of the area to flood from:
 
 <pre class=example>
-# let originator = Opt.get 
-    ((World.w())#find_closest ~pos:(size /. 2.0, size /. 2.0) ());;
+# let originator = Opt.get ((World.w())#find_closest ~pos:(size /. 2.0, size /. 2.0) ());;
   val originator : Common.nodeid_t = 397
 </pre>
 
-Now we inject a packet to flood at that node :
+Now we inject a packet to flood at that node. We retrieve the <a
+href="gen/Simplenode.simplenode.html">node</a> object corresponding to a given
+node id with the <a href="gen/Nodes.html">Nodes.node</a> call. We then invoke the method
+<code>originate_app_pkt</code>, which has the effect of injecting a packet
+into the node's routing stack (as if an application layer agent on the node
+had generated the packet). Our routing agent will flood every packet, so the
+destination address is ignored (we set it to the broadcast address for
+consistency). Also, in this example we do not realy care about
+what is transported in the packet - so we simply indicate that the packet has
+no payload by passing an <code>`EMPTY</code> layer 4 packet. 
+
 <pre class=example>
-# (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+# (Nodes.node originator)#originate_app_pkt ~l4pkt:`EMPTY ~dst:L3pkt.l3_bcast_addr;;
 - : unit = ()
 </pre>
 
@@ -238,11 +251,11 @@ running. To make the simulation run, we need to start the event loop:
 - : unit = ()
 </pre>
 
-[This call simply tells the event loop to run until there are no more events
+This call simply tells the event loop to run until there are no more events
 to process. One can also run for a fixed amount of simulated seconds, or run
 untils a condition is met, etc. To see the scheduler interface, see
-(<a href="gen/Scheduler.t.html">here</a>)
-
+<a href="gen/Scheduler.t.html">here</a>.
+<p>
 So, we've run the simulator, the flood has happened, but there's not much to
 see at this point. We can see that a little time has elapsed, knowing that the
 simulator clock always starts at 0.0:
@@ -328,7 +341,7 @@ Let's set the log level back to INFO for now:
 <h2><a name="4"> 4. Using hooks to record packet statistics</a></h2>
 Now, let's say we wanted to compute a very simple statistic on this flood: the
 total number of packets transmitted. To do this, we will use 'hooks', which
-is mechanism in <code>NAB</code> to extract packet-level information as a simulation runs. A
+is mechanism in <code>nab</code> to extract packet-level information as a simulation runs. A
 hook is simply a variable holding one or more function(s) to be called at a
 specific occasion (this customization mechanism will be familiar to emacs
 users). The type of 'occasion' where one would like the hook to call a
@@ -341,14 +354,21 @@ is called:
 <pre class=example>
 # let pkt_count = ref 0;;
 val pkt_count : int ref = {contents = 0}
-# let hook pkt node = incr pkt_count;;
-val hook : 'a -> 'b -> unit = <fun>
+# let pkt_count_hook pkt node = incr pkt_count;;
+val pkt_count_hook : 'a -> 'b -> unit = <fun>
 </pre>
 
-Then we add our hook to every node:
+Then we add our hook to every node, by calling the method
+<code>add_pktout_mhook</code> on each node, giving as parameter to this method
+the function <code>pkt_count_hook</code>. (For those used to c or java, notice
+how in ocaml, functions can be constructed and passed around just like any
+value!). We have used the method <code>add_pktout_mhook</code> because we want
+our hook to be called each time a packet is <i>transmitted</i> by a node;
+one can also use <code>add_pktin_mhook</code> for a hook which we want to
+invoke each time a packet is <i>received</i> at a node.
 
 <pre class=example>
-# Nodes.iter (fun n -> n#add_pktout_mhook hook);;
+# Nodes.iter (fun n -> n#add_pktout_mhook pkt_count_hook);;
 - : unit = ()
 </pre>
 
@@ -366,8 +386,8 @@ And we can see how many packets have been transmitted:
 - : int = 1601
 </pre>
 
-Note that this example represents the most basic use of hooks. Our hook in
-fact does not do anything with the two parameters it is passed, which are the
+Note that this example represents a very basic use of hooks. Our hook function
+<code>pkt_count_hook</code> increments a counter and does not do anything with the two parameters it is passed, which are the
 packet being sent and the node transmitting the packet. <br>
 Hooks are a very powerful and generic mechanism to extract just about any
 information from ongoing protocol interactions, without having to put any

@@ -1,0 +1,401 @@
+<html> 
+
+<head>
+<title>NAB Tutorial Lesson III</title>
+<link href="emns.css" 
+type=text/css 
+rel=stylesheet>
+
+</head>
+<body BGCOLOR ="#FFFFFF"> 
+
+
+<h1>Lesson 3: Simulating and visualizing FRESH and EASE</h1>
+<p>
+In this lesson, we will see how to set up the FRESH, EASE and GREASE protocols,
+compute routes, and visualize them with nabviz. The instructions below show how to do this
+step-by-step with the interactive <code>nab</code> toplevel. It is also a good
+idea to look at the script file <a href="lesson3.ml">lesson3.ml</a> which
+shows how one might write this up in a script.<br>
+<font  size="-1">Note: This tutorial is packaged with the <code>nab</code> distribution, and
+also available <a href="http://nab.epfl.ch">here</a>. If you are browsing the
+tutorial files which came in the <code>nab</code> tarball, it might be a good
+idea to check if a more recent version is available online. This file has
+revision $Revision$.
+</font>
+
+<p>
+0. <a href="#0">Prerequisites</a><br>
+1. <a href="#1">Simulation setup</a><br>
+2. <a href="#2">Using parallel stacks</a><br>
+3. <a href="#3">Making nodes move.</a><br>
+4. <a href="#4">Computing a few routes and statistics.</a><br>
+5. <a href="#5">Visualizing the routes.</a><br>
+<p>
+
+<hr>
+<h2><a name="1">0. Prerequisites</a></h2>
+
+This lesson requires the following:
+<ul>
+<li> You have installed lablgtk 1.2 (see <a
+href="../README">README</a> from the <code>NAB</code> distribution)
+<li> You have built the <code>nabviz-top</code> interactive toplevel (see <a
+href="../README">README</a>). The difference between
+<code>nabviz-top</code> and the <code>nab-top</code> used in lessons 1 and 2 is
+that <code>nabviz-top</code> links in the gtk libraries.
+<li> You have gone through lessons 1 and 2 in the tutorial. 
+</ul>
+
+      
+<h2><a name="1">1. Simulation setup</a></h2>
+
+As always, we start off by launching the <code>nab</code> toplevel - except
+that this time we invoke nabviz-top rather than nab-top, since we will be
+needing the visualization libraries.
+<pre class=example>
+[henridf@lilblue: ~/work/nab] bin/nabviz-top 
+
+     Network in a Box (nab) version 0.6pre
+        Objective Caml version 3.07+2
+
+# 
+</pre>
+
+We first configure the usual parameters and create the world object. This has
+already been done in lessons 1 and 2 and is explained in more detail there..
+
+<pre class=example>
+# open Params;;
+# let n = 1000 and range = 12.0 and avg_degree = 10;;
+val n : int = 1000
+val range : float = 12.
+val avg_degree : int = 10
+# Param.set nodes n;;
+- : unit = ()
+# Param.set radiorange range;;
+- : unit = ()
+# let size = Script_utils.size ~rrange:range  ~nodes:(Param.get nodes) ~avg_degree ();; 
+  val size : float = 212.640541760032193
+# Param.set x_size size; Param.set y_size size;;
+- : unit = ()
+# Script_utils.init_greedy_world();;
+0.000000 /global World: 212.64 x 212.64 [m],  12.00 radio range [m], 1000 nodes
+- : unit = ()
+# Param.set Params.mac "cheatmac";
+- : unit = ()
+</pre>
+
+Now we create the nodes. We use <code>make_naked_nodes</code> function rather
+than the <code>make_nodes</code> because we will manually configure them
+afterwards. <br>
+Note that we create <a href="gen/Gpsnode.html">position-aware</a> nodes by passing the optional
+<code>~pos_aware</code> parameter with value true <code>true</code>; this is
+necessary for the EASE and GREASE algorithms. 
+
+<pre class=example>
+# Script_utils.make_naked_nodes ~pos_aware:true ();;
+- : unit = ()
+</pre>
+
+
+
+<p>
+<h2><a name="2">2. Using parallel stacks.</a></h2>
+It is possible with nab to run several independent protocol stacks on each
+node. Each stack is a complete entity with its own routing agent and mac
+layer; each stack runs in parallel with <i>no interference</i> between
+different stacks. More information on the use of stacks is in the <a
+href="gen/Simplenode.simplenode.html">simplenode</a> documentation.
+Note that all the logic for dealing with stacks is factored out into the base
+classes for <a href="gen/Mac_base.html">mac layers</a> and <a
+href="gen/Rt_agent_base.html">routing agents</a>, so protocol implementations
+do not have to be aware that any of this is going on. 
+<p>
+Stacks are identified by an <code>int</code> (stack 0, stack 1, etc). In all
+functions and methods which take a stack parameter, this parameter is optional
+and defaults to 0. That is why we have never had to specify a stack id in
+lessons 1 and 2.
+<p>
+We will use 3 parallel stacks in this simulation, which will run GREASE, EASE,
+and <a href="#FRESH">FRESH</a> respectively. This allows us to compare the different routes
+obtained by the three protocols in an identical situation. (Easy comparison of
+multiple protocols or configurations is one advantage of parallel
+stacks. Another is efficiency: costly computations such as node neighborhoods
+are done only once, rather than once for each stack if we had to run them
+sequentially).
+<p>
+
+To start off let's install a mac layer on each node, on all three
+stacks. Installing a mac layer on a particular stack is as simple as in
+installing a mac layer in lessons 1 and 2, with the added <code>~stack</code>
+parameter that we must pass to <code>Script_utils.install_macs</code>.
+
+<pre class=example>
+# let nstacks = 3;;
+val nstacks : int = 3
+# for stack = 0 to nstacks - 1 do Script_utils.install_macs ~stack () done;;
+- : unit = ()
+</pre>
+
+Now we are going to install the GREASE, EASE, and FRESH routing agents. These
+protocols can be configured with the number of possible destinations to route
+to. The possible destinations are chosen starting from node 0, so if we set n
+targets, we can route to destinations 0..n-1.
+ Selecting a smaller number of destinations allows the simulation to warmup (see
+below) faster. 
+
+<pre class=example>
+# Param.set Ler_agent.ntargets 1;;
+- : unit = ()
+# Script_utils.make_ler_agents ~stack:0 Ler_agent.GREASE;;
+- : unit = ()
+# Script_utils.make_ler_agents ~stack:1 Ler_agent.EASE;;
+- : unit = ()
+# Script_utils.make_ler_agents ~stack:2 Ler_agent.FRESH;;
+- : unit = ()
+</pre>
+
+<h2><a name="3">3. Making nodes move.</a></h2>
+In simple terms, the defining characteristic of EASE and FRESH is that they
+take advantage of node mobility. More specifically, the EASE protocol on a node
+remembers <i>when and where</i> it has encountered other nodes; FRESH
+remembers only <i>when</i> it has met other nodes. Therefore we will make
+nodes move around until we have reached a given <i>encounter ratio</i>
+(proportion of source-destination pairs which have been one-hop neighbors at
+least once since the simulation started).<p>
+
+Before creating the node mobility processes, we set the <i>mobility
+granularity</i>: this governs the step size at which nodes move. There is a
+tradeoff between granularity and efficiency: at one extreme, if we set a tiny
+granularity, the mobility processes will be close to continuous, but this will
+load the scheduler with large numbers of 'node movement' events. It often
+makes sense to pick the granularity in function of the radio range, and it
+should always be smaller than the radio range (otherwise to nodes which cross
+each other while moving in opposite directions might make jumps big enough that
+they do come within radio range).<p>
+
+When the mobility processes are created, they are initially in 'stopped'
+state. We start them with the call to <code>start_all</code>. Note that after
+this call, their <code>state</code> is 'moving' - but nothing will happen
+until we start the scheduler event loop.
+
+<pre class=example>
+# Param.set mob_gran ((Param.get radiorange) /. 4.);;
+- : unit = ()
+# Mob_ctl.make_billiard_mobs();;
+- : unit = ()
+# Mob_ctl.start_all();;
+- : unit = ()
+</pre>
+
+In the following lines, we write a simple loop that makes nodes move for 60
+(simulated) seconds, checks if we have reached the desired encounter ratio,
+and repeats if not.
+
+<pre class=example>
+# let enc_ratio = 0.5;;
+  val enc_ratio : float = 0.5
+# let finished = ref false;;
+- : val finished : bool ref = {contents = false}
+# while (not !finished) do                               <!--test_keep-->
+      (Sched.s())#run_for ~duration:60.0;                   <!--test_keep-->
+      let p = Ler_agent.proportion_met_nodes() in          <!--test_keep-->
+      Log.log#log_always (lazy (Printf.sprintf "Warming up: encounter ratio %f" p));<!--test_keep-->
+      if  (p > enc_ratio) then   finished := true;          <!--test_keep-->
+  done;;                                                  <!--test_keep-->
+60.000000 /global Warming up: encounter ratio 0.041000
+120.000000 /global Warming up: encounter ratio 0.073000
+180.000000 /global Warming up: encounter ratio 0.121000
+240.000000 /global Warming up: encounter ratio 0.154000
+300.000000 /global Warming up: encounter ratio 0.187000
+360.000000 /global Warming up: encounter ratio 0.231000
+420.000000 /global Warming up: encounter ratio 0.260000
+480.000000 /global Warming up: encounter ratio 0.286000
+540.000000 /global Warming up: encounter ratio 0.322000
+600.000000 /global Warming up: encounter ratio 0.359000
+660.000000 /global Warming up: encounter ratio 0.382000
+720.000000 /global Warming up: encounter ratio 0.401000
+780.000000 /global Warming up: encounter ratio 0.428000
+840.000000 /global Warming up: encounter ratio 0.448000
+900.000000 /global Warming up: encounter ratio 0.473000
+960.000000 /global Warming up: encounter ratio 0.491000
+1020.000000 /global Warming up: encounter ratio 0.505000
+- : unit = ()
+# Mob_ctl.stop_all();;
+- : unit = ()
+</pre>
+
+
+<h2><a name="4">4. Computing a few routes and statistics.</a></h2>
+Before moving to the route visualization proper, we will see how one might go
+about computing some routes, and a few statistics on these routes. To initiate
+a route computation, we must inject an application packet at a node, as we
+have done in previous lessons. For example to route a packet from source node
+123 to destination node 0, we would do:
+
+<pre class=example>
+# Log.set_log_level Log.LOG_INFO;;
+- : unit = ()
+# (Nodes.gpsnode 123)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
+183.000315 /node/123/grease_agent/0 received pkt with src 123, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <121.272, 45.552>
+183.000315 /node/123/ease_agent/1 received pkt with src 123, dst 0, enc_age  17976931348 ... 99881250404026184124858368.000000, anchor_pos <121.272, 45.552>
+183.000315 /node/123/fresh_agent/2 received pkt with src 123, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <121.272, 45.552>
+
+# (Sched.s())#run();;
+183.000320 /node/163/fresh_agent/2 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <104.911, 45.905>
+183.000320 /node/163/ease_agent/1 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000320 /node/163/grease_agent/0 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000325 /node/849/grease_agent/0 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000325 /node/849/fresh_agent/2 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <104.911, 45.905>
+183.000325 /node/849/ease_agent/1 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000330 /node/677/ease_agent/1 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000330 /node/677/grease_agent/0 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000330 /node/677/fresh_agent/2 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <104.911, 45.905>
+183.000335 /node/217/fresh_agent/2 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <104.911, 45.905>
+183.000335 /node/217/ease_agent/1 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000335 /node/217/grease_agent/0 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000340 /node/21/grease_agent/0 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000340 /node/21/fresh_agent/2 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <104.911, 45.905>
+183.000340 /node/21/ease_agent/1 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000345 /node/552/ease_agent/1 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000345 /node/552/grease_agent/0 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <36.373, 26.419>
+183.000345 /node/552/fresh_agent/2 received pkt with src 123, dst 0, enc_age 66.000315, anchor_pos <104.911, 45.905>
+183.000350 /node/925/fresh_agent/2 received pkt with src 123, dst 0, enc_age 48.000345, anchor_pos <92.801, 42.843>
+
+# Log.set_log_level Log.LOG_INFO;;
+- : unit = ()
+</pre>
+
+One point to note that if you have followed this lesson verbatim, and have set ntargets to
+1, the only possible destination is node 0 - you can try with another
+destination but will get an exception, since routing tables only have 
+entries to <code>Ler_agent.ntargets</code> nodes.  <p>
+
+Now, once we have routed the packet using the two commands above, we see some
+output (of course we could get even more by setting loglevel to DEBUG, or less
+by leaving it at NOTICE). This type of output can be very useful to figure out
+what sort of protocol interactions are going on, but of course is not the
+ideal output to compute statistics for plots etc. So we are going to use hooks
+once again, in order to keep track of the statistics we are interested in.
+<br>
+In this case, let's say we're interested in the <i>search cost</i> required to
+establish a route. The search cost is the cumulative cost of successive anchor
+searches in a route discovery; and we approximate it by the square of the
+search disk radii (for more details see the <a href="#FRESH">publications</a>
+cited below). 
+<p>
+We now are going to define and insert the hooks to measure search costs
+(remember, a hook is simply a function which takes as
+parameter a packet and a node, and which is invoked whenever a packet leaves
+(or arrives at, depending on where the hook is inserted) a node).<br>
+For this we do three things: First define three variables <code>grease_cost, ease_cost, and
+fresh_cost</code> to store the cumulative search cost of the routes. Second we
+define the hook function (<code>route_cost_hook</code>) itself. Third we add
+the hooks to each stack. Notice that in the calls to add_pktout_mhook we 
+partially apply the hook function to its cost argument (for example 
+<code>(route_cost_hook grease_cost)</code>). 
+
+<pre class=example>
+# let grease_cost = ref 0.0 and ease_cost = ref 0.0 and fresh_cost = ref 0.0;;
+val grease_cost : float ref = {contents = 0.}
+val ease_cost : float ref = {contents = 0.}
+val fresh_cost : float ref = {contents = 0.}
+
+# let route_cost_hook tot_cost l2pkt node =      <!--test_keep-->
+  let l3pkt = L2pkt.l3pkt l2pkt in               <!--test_keep-->
+  let ease_hdr =  L3pkt.ease_hdr l3pkt in        <!--test_keep-->
+  tot_cost := !tot_cost +. ((Ease_pkt.search_dist ease_hdr) ** 2.0);;
+val route_cost_hook : float ref -> L2pkt.t -> 'a -> unit = <fun>
+
+# Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:0 (route_cost_hook grease_cost));;
+- : unit = ()
+# Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:1 (route_cost_hook ease_cost));;
+- : unit = ()
+# Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:2 (route_cost_hook fresh_cost));;
+</pre>
+
+The last three lines above might seem unusual to users
+who are new to functional languages. They make use of a very powerful feature: the
+ability to partially apply functions, and pass them around as first-class
+citizens of the language. In this case we use the
+<code>route_cost_hook</code> function defined above, which takes as first
+argument a reference to the cost variable to be updated. Since we want to
+update a different cost variable for each protocol, we construct a partially
+applied function by applying <code>route_cost_hook</code> to the cost
+variable. Note that without higher-order functions, we would have to
+explicitly define one function for every hook! 
+
+<pre class=example>
+# let src = (World.w())#find_closest ~pos:(Nodes.gpsnode 0)#pos ~f:(fun nid -> (World.w())#dist_nodeids 0 nid > 100.) ();;
+- : Common.nodeid_t option = Some 632
+<!-- 
+assert (((World.w())#dist_nodeids 0 632) > 100.);;
+ -->
+# (Nodes.gpsnode 632)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
+1023.000000 /node/632/grease_agent/0 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
+1023.000000 /node/632/ease_agent/1 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
+1023.000000 /node/632/fresh_agent/2 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
+- : unit = ()
+
+# (Sched.s())#run();;
+1023.000005 /node/571/fresh_agent/2 received pkt with src 632, dst 0, enc_age 864.000000, anchor_pos <97.945, 154.952>
+1023.000005 /node/571/ease_agent/1 received pkt with src 632, dst 0, enc_age 864.000000, anchor_pos <61.264, 7.087>
+1023.000005 /node/571/grease_agent/0 received pkt with src 632, dst 0, enc_age 864.000000, anchor_pos <61.264, 7.087>
+1023.000010 /node/32/grease_agent/0 received pkt with src 632, dst 0, enc_age 864.000000, anchor_pos <61.264, 7.087>
+1023.000010 /node/32/fresh_agent/2 received pkt with src 632, dst 0, enc_age 840.000005, anchor_pos <100.168, 150.963>
+1023.000010 /node/32/ease_agent/1 received pkt with src 632, dst 0, enc_age 864.000000, anchor_pos <61.264, 7.087>
+1023.000015 /node/571/fresh_agent/2 received pkt with src 632, dst 0, enc_age 297.000010, anchor_pos <92.802, 150.425>
+
+. 
+.
+.
+
+1023.000503 /node/0/ease_agent/1 received pkt with src 632, dst 0, enc_age 0.000000, anchor_pos <170.414, 86.955>
+- : unit = ()
+</pre>
+
+Now the routes have been computed, you can examine the cost variables, for example:
+<pre class=example>
+# !ease_cost;;
+- : float = 433.088817056665334
+</pre>
+
+Of course measuring performance on a single route is not representative - as
+an exercise one could write a little script which would compute routes from
+every possible source to the destination, and compare the average cost.
+
+<h2><a name="5">5. Visualizing the routes.</a></h2>
+OK, we've spent enough time typing commands into the toplevel now!! Let's
+launch the GUI. This is done by simply typing the three commands below.
+The first two commands initialize nab's general gui code and the LER-specific
+functions respectively. Once this is done we are ready to go; the call to
+<code>Main.main </code> enters the GTK event loop. <br>
+Have fun!!!
+
+<pre class=example>
+# Gui_gtk.init();;
+- : unit -> unit = <fun>
+# Gui_ease.setup_easeviz_app();; 
+- : unit = ()
+# Main.main();;<!--test_ignore-->
+- : unit = ()
+</pre>
+
+
+
+
+<p>
+
+
+<hr>
+<a name="FRESH">
+H. Dubois-Ferri&egrave;re, M. Grossglauser and M. Vetterli. 
+<b>Age Matters: Efficient Route Discovery in Mobile Ad Hoc Networks Using
+Encounter Ages</b>. 
+In <i> Proc ACM International Symposium on Mobile Ad Hoc Networking
+and Computing (MobiHOC), 2003</i> 
+Annapolis, MD, USA, June 2003. 
+
+
+</html>

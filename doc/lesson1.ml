@@ -23,19 +23,19 @@
 (* $Id$ *)
 
 
-let nodes = 800
-let radiorange = 12.0
+let n = 800
+let range = 12.0
 let avg_degree = 8
 
 let pkt_count = ref 0
 
 let setup() = (
-  Param.set Params.nodes nodes;
+  Param.set Params.nodes n;
 
   (* Set the transmission range (range within which nodes are neighbors). *)
-  Param.set Params.radiorange radiorange;
+  Param.set Params.radiorange range;
 
-  let size = Script_utils.size ~rrange:radiorange ~nodes ~avg_degree () in
+  let size = Script_utils.size ~rrange:range ~nodes:n ~avg_degree () in
 
   Param.set Params.x_size size;
   Param.set Params.y_size size;
@@ -64,7 +64,7 @@ let do_flood() = (
   let originator = 
     Opt.get ((World.w())#find_closest ~pos:(center_x, center_y) ())
   in
-  (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;
+  (Nodes.node originator)#originate_app_pkt ~l4pkt:`EMPTY ~dst:L3pkt.l3_bcast_addr;
   (Sched.s())#run()
 )
 

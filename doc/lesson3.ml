@@ -31,7 +31,7 @@ open Script_utils
 let nodes = 1000
 let radiorange = 12.0
 let avg_degree = 10
-let nstacks = 2
+let nstacks = 3
 
 (* Configure default parameters.
    For some parameters, like # nodes, these can also be provided on the
@@ -39,8 +39,9 @@ let nstacks = 2
    Script_utils.parse_args() below.
  *)
 let () = 
-  Param.set Params.nodes nodes; 
-  Param.set Params.x_pix_size 900;
+  Param.set Params.nodes nodes; (* number of nodes *)
+
+  Param.set Params.x_pix_size 900; (* size of gui window *)
   Param.set Params.y_pix_size 900;
 
   (* Set the transmission range (range within which nodes are neighbors). *)
@@ -52,7 +53,7 @@ let () =
   Param.set Params.mob_gran (radiorange /. 2.);
 
   (* Set the number of targets in each nodes last-encounter table. *)
-  Param.set Params.ntargets 1
+  Param.set Ler_agent.ntargets 1
 
 let encounter_ratio = 
   (* We could simply define this as a float (as for radiorange above) - 
@@ -87,71 +88,49 @@ let setup () = (
   (* Make "naked" (no mac, routing agents) nodes*)
   Script_utils.make_naked_nodes ~pos_aware:true ();
 
-  (* Create macs on both stacks. *)
-  Script_utils.install_macs ~stack:0 ();
-  Script_utils.install_macs ~stack:1 ();
+  (* Create macs on all stacks. *)
+  for stack = 0 to nstacks - 1 do 
+    Script_utils.install_macs ~stack ()
+  done;
 
-
-(* Create routing agents. On stack 0, they run GREASE, on stack 1 they run
-   EASE. *)
-  Script_utils.make_grease_agents ~ease:false ~stack:0 ();
-  Script_utils.make_grease_agents ~ease:true ~stack:1 ();
+  (* Create GREASE, EASE, and FRESH routing agents on stacks 0, 1, and 2.*)
+  Script_utils.make_ler_agents ~stack:0 Ler_agent.GREASE;
+  Script_utils.make_ler_agents ~stack:1 Ler_agent.EASE;
+  Script_utils.make_ler_agents ~stack:2 Ler_agent.FRESH;
   
   (* Create billiard mobility processes (see mob_ctl.mli, mobs.mli).*)
   Mob_ctl.make_billiard_mobs();
-
-)
-
-
-
-let do_one_route src = (
-
-  let routeref = ref (Route.create()) in
-
-  let in_mhook = Gui_hooks.ease_route_pktin_mhook routeref in
-  let out_mhook = Gui_hooks.ease_route_pktout_mhook routeref in
-  Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ());
-  Nodes.gpsiter (fun n -> n#add_pktin_mhook in_mhook);
-  Nodes.gpsiter (fun n -> n#add_pktout_mhook out_mhook);
-
-  (Nodes.gpsnode src)#originate_app_pkt ~dst:0;
-  (Sched.s())#run();
-
-  !routeref;
 )
 
 (* Move nodes until the required encounter ratio is reached *)
 let warmup enc_ratio = (
   let finished = ref false in 
   
-  while (not !finished) do 
-
-    (* make nodes move for 60 seconds. *)
-    (Sched.s())#run_for ~duration:60.0;
-    
-    let p = Script_utils.proportion_met_nodes() in
-    Log.log#log_always (lazy (Printf.sprintf "Warming up: enc. ratio %f" p));
-
-    if  (p > enc_ratio) then   finished := true;
-
-  done;
+  if enc_ratio > 0.0 then
+    while (not !finished) do 
+      
+      (* make nodes move for 60 seconds. *)
+      (Sched.s())#run_for ~duration:60.0;
+      
+      let p = Ler_agent.proportion_met_nodes() in
+      Log.log#log_always (lazy (Printf.sprintf "Warming up: enc. ratio %f" p));
+      
+      if  (p > enc_ratio) then   finished := true;
+      
+    done;
 
   Log.log#log_always (lazy "Done warming up");
   Log.log#log_always (lazy (Printf.sprintf "Average density is %f."
     (Script_utils.avg_neighbors_per_node())));
-
-
 )
 
 
 
 let main() = 
 
-  (* Parse command-line arguments, inform user *)
+  (* Parse command-line arguments. *)
   Script_utils.parse_args();
-
   set_values();
-
   Script_utils.print_header();
   Param.printconfig stdout;
 
@@ -167,26 +146,6 @@ let main() =
   (* Stop the mobility processes. *)
   Mob_ctl.stop_all();
   
-  (*
-    Uncomment this if you want max debug output just during the route
-    computation
-    
-    Log.set_log_level ~level:Log.LOG_DEBUG;
-  *)
-  repeat 0 (
-    fun () -> 
-      let src = (Random.int ((Param.get Params.nodes) - 1)) + 1
-      in 
-      Log.log#log_always (lazy (Printf.sprintf "Route from source %d" src));
-      let route = do_one_route src   in ()
-(*      Log.log#log_always (lazy (Route.sprintnid route));
-      if Route.ease_route_valid route 
-	~src
-	~dst:0
-      then print_endline "ok\n" 
-*)
-  )
-
 let () = 
   main();
   Gui_gtk.init ();
