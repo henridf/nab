@@ -33,6 +33,8 @@ let (-=) a b = a := !a - b
 let (+=.) a b = a := !a +. b
 let (-=.) a b = a := !a -. b
 
+(* xor *)
+let (|||) a b = (a || b) && not (a && b)
 
 let isint x = (floor x) = x
 let round x = if (x -. floor x) < 0.5 then (floor x) else (ceil x)
