@@ -35,16 +35,25 @@ let size nodes =
   side = sqrt(area)
 *)
 
+let seed = ref 12
+let nextseed() = (
+  seed := !seed + 14;
+  !seed
+)
 
 let res_summary = ref []
 
 let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_recv = (
+    (* this assumes that we alternate btw grep and aodv.*)
     if agenttype = GREP then 
-      Random.self_init();
+      Random.init (nextseed())
+    else
+      Random.init !seed;
+
   incr run;
 
-  Log.set_log_level ~level:Log.LOG_NOTICE;
+  Log.set_log_level ~level:Log.LOG_INFO;
   Param.set Params.nodes nodes;
   Param.set Params.rrange rrange;
   Param.set Params.x_size (size nodes);
