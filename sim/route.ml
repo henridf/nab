@@ -1,3 +1,12 @@
+(* *** ********* *)
+(* LER Simulator *)
+(* *** ********* *)
+
+(* Simple list-based representation of a LER route. *)
+   
+   
+
+
 open Common
 
 type 'a hop = {hop:'a; anchor:'a; searchcost:float}
@@ -28,16 +37,18 @@ let i2c data routei = (
 
 let route_valid route ~src ~dest= (
 
-  (* length at least 2 *)
-  (length route > 1)
+  (* length >= 1 *)
+  (length route >= 1)
   &&
-(*  (Printf.printf "length OK\n"; true)
+  (if length route = 1 then (src = dest) else true)
+  &&
+  (*  (Printf.printf "length OK\n"; true)
   &&*)
   (* start at source *)
   ((nth_hop route 0).hop = src)
   &&
-(*    (Printf.printf "1st hop ok\n"; true) *)
-(*    && *)
+  (*    (Printf.printf "1st hop ok\n"; true) *)
+  (*    && *)
   (* end at dest *)
   ((nth_hop route (length route - 1)).hop = dest)
   &&
@@ -68,6 +79,19 @@ let route_valid route ~src ~dest= (
   advance [] route)
 )
 	  
+let eucl_length ~dist_f route = (
+  let rec recurse_ r len = 
+    match r with 
+      | [dst] -> len
+      | a::b::c -> recurse_ (b::c) (len +. (dist_f a.hop b.hop))
+      | [] -> raise Misc.Impossible_Case
+  in
+recurse_ route 0.0
+)
+
+let anchor_cost route = 
+  List.fold_left (fun cost hop -> cost +. hop.searchcost) 0.0 route
+
 let sprint route = (
   String.concat 
   ("\n")

@@ -1,3 +1,7 @@
+(* *** ********* *)
+(* LER Simulator *)
+(* *** ********* *)
+
 open Common
 
 (* A route between src and dest should start at the src and finish at the dest.
@@ -41,4 +45,11 @@ val route_valid : 'a t -> src:'a -> dest:'a -> bool
      - starts at src, ends at dst
   *)
 
+val eucl_length : dist_f:(Coord.coordf_t -> Coord.coordf_t -> float) -> Coord.coordf_t t -> float
+  (* Compute Euclidean length of route given a distance function *)
+
+val anchor_cost : 'a t -> float 
+  (* Sum of all search radii *)
+
 val sprint : Coord.coordf_t t -> string  
+
