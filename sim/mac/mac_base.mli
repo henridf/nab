@@ -227,11 +227,16 @@ end
 
 
 type mac_queue_stats = 
-    { nDrops : int } (* xxx/qmac : add more stats if necessary *)
+    { nDrops : int } 
 (** 
   A null backend with a packet queue. Like the plain null backend, this backend
   has no medium-access logic. However, it has an outgoing packet queue, for buffering
   packets when the frontend is busy.
+    It models the following behavior:
+    - nodes can only transmit one packet at the time. If this node is
+    already transmitting, the new packet is sent to the queue.
+    - nodes can receive at the same time from multiple neighbors
+    - nodes can transmit and receive simultaneously
 *)
 class virtual queue_backend : ?stack:int -> ?buffer:int -> bps:float -> #Node.node ->
 object
