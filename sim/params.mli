@@ -2,7 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Globally accessible parameters.  *)
+(** Globally accessible parameters.  
+  @author Henri Dubois-Ferriere.
+*)
 
 (* These parameters have not (yet?) been examined to figure out if they  *)
 (* really need to be globally acessible.                                 *)
@@ -33,3 +35,5 @@ val ntargets : int Param.t
     Last-Encounter table depends on this value *)
     
 
+val log_level : string Param.t
+  (** Logging level. *)

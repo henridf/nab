@@ -52,5 +52,7 @@ let ntargets =
     ~doc:"Number of targets in Simulation"
     ()
 
+let log_level = 
+  Param.stringcreate ~name:"loglevel" ~default:"warn" ~cmdline:true
+    ~doc:"Log level"  ~checker:(fun s -> Log.strset_log_level s) ()
 
-(* These two lists contain the params that should be cmdline specifyable *)
