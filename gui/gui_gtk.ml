@@ -124,6 +124,19 @@ let txt_msg msg = (
   (txt())#set_text msg
 )
 
+let boundarize pos = (
+  let width = (Param.get Params.x_pix_size) 
+  and height = (Param.get Params.y_pix_size)  in
+
+  let newx = ref (xx pos) and newy = ref (yy pos) in 
+  newx := (max 0 !newx);
+  newx := (min (width - 1) !newx);
+
+  newy := (max 0 !newy);
+  newy := (min (height - 1) !newy);
+  (!newx, !newy)
+)
+
 let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
 
 
@@ -137,8 +150,8 @@ let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
 	  (drawing())#set_line_attributes ~width:1 ();
 
 	in
-	let (g1x, g1y) = p1 /// res
-	and (g2x, g2y) = p2 /// res
+	let (g1x, g1y) = (boundarize p1) /// res
+	and (g2x, g2y) = (boundarize p2) /// res
 	in
 	match (g1x, g1y) = (g2x, g2y) with
 	  | true -> !draw_array.(g1x).(g1y) <- f::!draw_array.(g1x).(g1y)

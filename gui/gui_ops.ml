@@ -5,7 +5,7 @@
 open Graph
 open Coord
 
-let draw_node_time nid t = 
+let draw_node_time nid t = (
   let cols = [| 
     `RGB ( 40, 60, 60);
     `RGB ( 30, 40, 40);
@@ -18,14 +18,13 @@ let draw_node_time nid t =
   in 
   let pos = Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos nid)
   in
-
   Gui_gtk.draw_node ~col ~target pos
-  
+)
+
 let draw_nodes_time nidlist t = 
   List.iter (fun nid -> draw_node_time nid t) nidlist
 
 let draw_node nid = 
-
   draw_node_time nid (Common.get_time())
 
 let draw_nodes nidlist = 
