@@ -62,8 +62,8 @@ type l3hdr_t = {
   ext : l3hdr_ext_t
 } 
 
-(** A l3packet_t contains a l3hdr and a l4pkt *)
-type l3packet_t 
+(** A t contains a l3hdr and a l4pkt *)
+type t 
 
 
 (** {2 Network Layer (L3) Packet Constructors} *)
@@ -94,11 +94,11 @@ val make_ease_l3hdr_ext :
   anchor_pos:Coord.coordf_t -> 
   l3hdr_ext_t
 
-val make_app_pkt : l3hdr:l3hdr_t -> l3packet_t
-val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:l4pkt_t -> l3packet_t
+val make_app_pkt : l3hdr:l3hdr_t -> t
+val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:l4pkt_t -> t
 
 val make_bler_l3pkt :
-  srcid:Common.nodeid_t -> dstid:Common.nodeid_t -> l3packet_t
+  srcid:Common.nodeid_t -> dstid:Common.nodeid_t -> t
 
 val make_ease_l3pkt :
   srcid:Common.nodeid_t ->
@@ -106,53 +106,53 @@ val make_ease_l3pkt :
   anchor_pos:Coord.coordf_t -> 
   enc_age:Common.time_t -> 
   l4pkt:l4pkt_t ->
-  l3packet_t
+  t
 
 val make_dsdv_l3pkt :
   srcid:Common.nodeid_t ->
   ttl:int ->
-  originator:Common.nodeid_t -> seqno:int -> nhops:int -> l3packet_t
+  originator:Common.nodeid_t -> seqno:int -> nhops:int -> t
 
 (** {2 Network Layer (L3) Packet Deconstructors} *)
 
-val l4pkt : l3pkt:l3packet_t -> l4pkt_t
-val l3hdr : l3pkt:l3packet_t -> l3hdr_t
-val l3src : l3pkt:l3packet_t -> Common.nodeid_t
-val l3dst : l3pkt:l3packet_t -> Common.nodeid_t
-val l3ttl : l3pkt:l3packet_t -> int
+val l4pkt : l3pkt:t -> l4pkt_t
+val l3hdr : l3pkt:t -> l3hdr_t
+val l3src : l3pkt:t -> Common.nodeid_t
+val l3dst : l3pkt:t -> Common.nodeid_t
+val l3ttl : l3pkt:t -> int
 
-val l3grepflags : l3pkt:l3packet_t -> grep_flags_t
-val ssn : l3pkt:l3packet_t -> int
-val shc : l3pkt:l3packet_t -> int
-val dsn : l3pkt:l3packet_t -> int
-val dhc : l3pkt:l3packet_t -> int
-val osrc : l3pkt:l3packet_t -> Common.nodeid_t
-val ohc : l3pkt:l3packet_t -> int
-val osn : l3pkt:l3packet_t -> int
-val rdst : l3pkt:l3packet_t -> Common.nodeid_t
+val l3grepflags : l3pkt:t -> grep_flags_t
+val ssn : l3pkt:t -> int
+val shc : l3pkt:t -> int
+val dsn : l3pkt:t -> int
+val dhc : l3pkt:t -> int
+val osrc : l3pkt:t -> Common.nodeid_t
+val ohc : l3pkt:t -> int
+val osn : l3pkt:t -> int
+val rdst : l3pkt:t -> Common.nodeid_t
 
 
-val l3anchor : l3pkt:l3packet_t ->  Coord.coordf_t
-val l3enc_age : l3pkt:l3packet_t ->  Common.time_t
-val l3search_dist : l3pkt:l3packet_t ->  float
+val l3anchor : l3pkt:t ->  Coord.coordf_t
+val l3enc_age : l3pkt:t ->  Common.time_t
+val l3search_dist : l3pkt:t ->  float
 
-val dsdv_pkt : pkt:l3packet_t -> dsdv_payload_t
+val dsdv_pkt : pkt:t -> dsdv_payload_t
 
 
 
 
 (** {2 L3 Header Manipulators} *)
-val incr_shc_pkt : l3pkt:l3packet_t -> unit
-val decr_shc_pkt : l3pkt:l3packet_t -> unit
+val incr_shc_pkt : l3pkt:t -> unit
+val decr_shc_pkt : l3pkt:t -> unit
 
 
-val l3pkt_size : l3pkt:l3packet_t -> int
-val clone_l3pkt : l3pkt:l3packet_t -> l3packet_t
+val l3pkt_size : l3pkt:t -> int
+val clone_l3pkt : l3pkt:t -> t
 
-val set_l3ttl : l3pkt:l3packet_t -> ttl:int -> unit
-val decr_l3ttl : l3pkt:l3packet_t -> unit
+val set_l3ttl : l3pkt:t -> ttl:int -> unit
+val decr_l3ttl : l3pkt:t -> unit
 
-val succ_dsdv_pkt : pkt:l3packet_t -> src:Common.nodeid_t -> l3packet_t
+val succ_dsdv_pkt : pkt:t -> src:Common.nodeid_t -> t
 
 val set_search_dist : l3hdr:l3hdr_t -> float -> unit
 val set_enc_age : l3hdr:l3hdr_t -> Common.time_t -> unit

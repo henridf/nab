@@ -8,25 +8,25 @@
    represented as nodes *)
 val ease_route_pktin_mhook : 
   Coord.coordf_t Route.ease_route_t ref ->
-  L2pkt.l2packet_t ->
+  L2pkt.t ->
   Gpsnode.gpsnode -> 
   unit
 
 val ease_route_pktout_mhook : 
   Coord.coordf_t Route.ease_route_t ref ->
-  L2pkt.l2packet_t ->
+  L2pkt.t ->
   Gpsnode.gpsnode -> 
   unit
 
 val grep_route_pktin_mhook : 
   Common.nodeid_t Route.grep_route_t ref ->
-  L2pkt.l2packet_t ->
+  L2pkt.t ->
   Simplenode.simplenode -> 
   unit
 
 val grep_route_pktout_mhook : 
   Common.nodeid_t Route.grep_route_t ref ->
-  L2pkt.l2packet_t ->
+  L2pkt.t ->
   Simplenode.simplenode -> 
   unit
 

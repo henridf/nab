@@ -113,7 +113,7 @@ object(s)
     s#recv_bler_pkt_ (Packet.make_bler_l3pkt ~srcid:owner#id ~dstid:dst)
 
 
-  method private recv_bler_pkt_ (pkt:Packet.l3packet_t) = (
+  method private recv_bler_pkt_ (pkt:Packet.t) = (
     s#log_info (lazy (sprintf "%d received pkt with src %d, dst %d"
       owner#id (Packet.l3src pkt) (Packet.l3dst pkt)));
 

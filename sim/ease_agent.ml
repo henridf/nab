@@ -17,10 +17,10 @@ class type ease_agent_t =
     method add_neighbor : Common.nodeid_t -> unit
     method app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
     method db : NodeDB.nodeDB
-    method mac_recv_hook : L3pkt.l3packet_t -> unit
+    method mac_recv_hook : L3pkt.t -> unit
     method objdescr : string
     method set_db : NodeDB.nodeDB -> unit
-    method private recv_ease_pkt_ : L3pkt.l3packet_t -> unit
+    method private recv_ease_pkt_ : L3pkt.t -> unit
   end
 
 let agents_array = ref ([||]: ease_agent_t array)

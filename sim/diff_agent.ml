@@ -31,7 +31,7 @@ class type diff_agent_t =
     method seqno : unit -> int
     method  is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
     method subscribe : ?delay:float -> ?ttl:int -> unit -> unit
-    method private hand_upper_layer : l3pkt:L3pkt.l3packet_t -> unit
+    method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
     method get_rtab : Rtab.rtab_t
     method newadv : 
@@ -39,13 +39,13 @@ class type diff_agent_t =
       sn:int -> hc:int -> nh:int ->
       bool
     method objdescr : string
-    method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
-    method private process_data_pkt : l3pkt:L3pkt.l3packet_t -> unit
+    method private packet_fresh : l3pkt:L3pkt.t -> bool
+    method private process_data_pkt : l3pkt:L3pkt.t -> unit
     method private process_radv_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
+      l3pkt:L3pkt.t -> 
       l2sender:Common.nodeid_t -> unit
-    method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
-    method private send_out : l3pkt:L3pkt.l3packet_t -> unit
+    method private recv_l2pkt_hook : L2pkt.t -> unit
+    method private send_out : l3pkt:L3pkt.t -> unit
 
     method closest_sinks : unit -> Common.nodeid_t list 
       (** Returns closest sink (or sinks, if more than one at closest
@@ -242,7 +242,7 @@ object(s)
 
 
   method private process_data_pkt 
-    ~(l3pkt:L3pkt.l3packet_t) =  (
+    ~(l3pkt:L3pkt.t) =  (
       
       let dst = (L3pkt.l3dst ~l3pkt) in
       begin try

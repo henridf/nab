@@ -39,23 +39,23 @@ let packet_buffer_size = 50
 class type aodv_agent_t =
   object
     method private app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
-    method private buffer_packet : l3pkt:L3pkt.l3packet_t -> unit
-    method private hand_upper_layer : l3pkt:L3pkt.l3packet_t -> unit
+    method private buffer_packet : l3pkt:L3pkt.t -> unit
+    method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
     method newadv : 
       dst:Common.nodeid_t -> 
       sn:int -> hc:int -> nh:int ->
       bool
     method objdescr : string
-    method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
+    method private packet_fresh : l3pkt:L3pkt.t -> bool
     method private queue_size : unit -> int
     method private packets_waiting : dst:Common.nodeid_t -> bool
-    method private process_data_pkt : l3pkt:L3pkt.l3packet_t -> unit
+    method private process_data_pkt : l3pkt:L3pkt.t -> unit
     method private process_radv_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
+      l3pkt:L3pkt.t -> 
       sender:Common.nodeid_t -> unit
     method private process_rrep_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
+      l3pkt:L3pkt.t -> 
       sender:Common.nodeid_t ->
       fresh:bool ->
       unit
@@ -64,15 +64,15 @@ class type aodv_agent_t =
       dst:Common.nodeid_t -> 
       bool
     method private process_rerr_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
+      l3pkt:L3pkt.t -> 
       sender:Common.nodeid_t -> unit
     method private process_rreq_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
+      l3pkt:L3pkt.t -> 
       fresh:bool -> unit
-    method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
-    method private recv_l3pkt_ : l3pkt:L3pkt.l3packet_t ->
+    method private recv_l2pkt_hook : L2pkt.t -> unit
+    method private recv_l3pkt_ : l3pkt:L3pkt.t ->
       sender:Common.nodeid_t -> unit
-    method private send_out : l3pkt:L3pkt.l3packet_t -> unit
+    method private send_out : l3pkt:L3pkt.t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
     method private send_rerr : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
     method private send_rreq :
@@ -163,7 +163,7 @@ object(s)
 
   (* DATA packets are buffered when they fail on send, 
      or if there are already buffered packets for that destination *)
-  method private buffer_packet ~(l3pkt:L3pkt.l3packet_t) = (
+  method private buffer_packet ~(l3pkt:L3pkt.t) = (
     match s#queue_size() < packet_buffer_size with 
       | true ->
 	  let dst = L3pkt.l3dst ~l3pkt in
@@ -377,7 +377,7 @@ object(s)
 
 
   method private process_data_pkt 
-    ~(l3pkt:L3pkt.l3packet_t) =  (
+    ~(l3pkt:L3pkt.t) =  (
       let dst = (L3pkt.l3dst ~l3pkt) and 
 	src = (L3pkt.l3src ~l3pkt) in
       begin try
@@ -519,7 +519,7 @@ object(s)
     
 
   method private process_rrep_pkt 
-    ~(l3pkt:L3pkt.l3packet_t) 
+    ~(l3pkt:L3pkt.t) 
     ~(sender:Common.nodeid_t) 
     ~(fresh:bool)
     = (
@@ -550,7 +550,7 @@ object(s)
     )
 
   method private process_rerr_pkt 
-    ~(l3pkt:L3pkt.l3packet_t) 
+    ~(l3pkt:L3pkt.t) 
     ~(sender:Common.nodeid_t) = (
       
       let invalid_dst = (L3pkt.rdst ~l3pkt) in
