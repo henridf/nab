@@ -7,8 +7,9 @@
 **             
 
 To compile and run mws, you must have ocaml installed. The latest version of
-ocaml (3.07+2) is recommended (though mws should run fine on prior 3.0* ocaml
-releases). The official site to get ocaml is http://caml.inria.fr.
+ocaml (3.07+2) is recommended. The official site to get ocaml is 
+http://caml.inria.fr. 
+
 
 In order to build and use the gui functionality, you must also install
 lablgtk. Lablgtk is available from XXXX.
