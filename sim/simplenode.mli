@@ -53,9 +53,7 @@ type node_state_t = Coord.coordf_t
   the MAC layer, multiple stacks will not interfere with each other in terms
   of contention/collisions.
 
-  
-
- *)  
+ *)
 class simplenode : Common.nodeid_t ->
 
 object ('a)
@@ -71,6 +69,8 @@ object ('a)
 
   method install_rt_agent : ?stack:int -> Rt_agent.t -> unit
     (** Install a {!Rt_agent.t} object in the given [stack] (stack 0 if not specified). *)
+
+  method remove_rt_agent : ?stack:int -> unit -> unit
 
   method mac : ?stack:int -> unit -> Mac.t
     (** Returns the node's {!Mac.t} object from the given [stack] (stack 0 if not specified). *)

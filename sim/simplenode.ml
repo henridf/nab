@@ -53,6 +53,10 @@ object(s)
     assert(rt_agents.(stack) = None);
     rt_agents.(stack) <- Some theagent
 
+  method remove_rt_agent ?(stack=0) () = 
+    assert(rt_agents.(stack) <> None);
+    rt_agents.(stack) <- None
+
 
   method mac_recv_pkt ?(stack=0) l2pkt = (
     
