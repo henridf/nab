@@ -600,9 +600,8 @@ object(s)
      the node *)
   method private hand_upper_layer ~l3pkt = (
     Grep_hooks.recv_data();
-    (*    s#log_notice (sprintf "Received app pkt from src %d"
-	  (L3pkt.l3src ~l3pkt));
-    *)
+    s#log_info (lazy (sprintf "Received app pkt from src %d"
+	  (L3pkt.l3src ~l3pkt)));
   )
 
   (*

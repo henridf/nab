@@ -457,6 +457,7 @@ object(s)
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
+      | L3pkt.GREP_DATA
       | L3pkt.GREP_RREP ->
 	  begin if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
 	    if (L3pkt.l3src ~l3pkt) = owner#id then
@@ -490,7 +491,7 @@ object(s)
      the node *)
   method private hand_upper_layer ~l3pkt = (
     Grep_hooks.recv_data();
-     s#log_notice (lazy (sprintf "Received app pkt from src %d"
+     s#log_info (lazy (sprintf "Received app pkt from src %d"
 	  (L3pkt.l3src ~l3pkt)));
     
   )

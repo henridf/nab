@@ -58,7 +58,6 @@ let set_stop_thresh thepkts_to_recv = (
 
 let recv_data() = (
   incr data_pkts_recv;
-  Printf.printf "recv : %d\n" !data_pkts_recv;
   flush stdout;
   if !data_pkts_recv = !pkts_to_recv then
     (Gsched.sched())#stop_in 0.1;
