@@ -1,3 +1,5 @@
+(* should send_out distinguish exceptions between no nexthop and xmit failure ?*)
+
 (*                                  *)
 (* mws  multihop wireless simulator *)
 (*                                  *)
@@ -6,7 +8,7 @@ open Packet
 open Printf
 open Misc
 
-let packet_buffer_size = 1
+let packet_buffer_size = 50
 
 class type grep_agent_t =
   object
@@ -132,9 +134,11 @@ object(s)
 	  let dst = Packet.get_l3dst ~l3pkt:l3pkt in
 	  assert (dst != Packet._L3_BCAST_ADDR);
 	  Queue.push l3pkt pktqs.(dst);
-      | false ->
-	  s#log_notice (sprintf "Dropped packet for dst %d" 
-	    (Packet.get_l3dst ~l3pkt:l3pkt))
+      | false -> (
+	  Grep_hooks.drop_data();
+(*	  s#log_notice (sprintf "Dropped packet for dst %d" 
+	    (Packet.get_l3dst ~l3pkt:l3pkt))*)
+	)
   )
 
   (* wrapper around Rtab.newadv which additionally checks for 
@@ -254,6 +258,7 @@ object(s)
       | Packet.GREP_RADV -> s#process_radv_pkt ~l3pkt:l3pkt ~sender:sender;
       | Packet.GREP_RREP -> s#process_rrep_pkt ~l3pkt:l3pkt ~sender:sender;
       | Packet.NOT_GREP -> raise (Failure "Grep_agent.recv_l2pkt_hook");
+      | Packet.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
     end
   ) 
 
@@ -371,9 +376,9 @@ object(s)
 	    | Send_Out_Failure -> 
 		begin
 		  let dst = (Packet.get_l3dst ~l3pkt:l3pkt) in
-		  s#log_notice 
+(*		  s#log_notice 
 		    (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-		      dst);
+		      dst);*)
 		  (* important to buffer packet first because send_rreq checks for
 		     this *)
 		  s#buffer_packet ~l3pkt:l3pkt;
@@ -443,7 +448,9 @@ object(s)
 	   is that we use ttl, not (ttl + 2).
 	   This is ok while we use a simple MAC, and ok since our AODV impl 
 	   will use the same values*)
-	if next_rreq_ttl < 100 then
+	
+	
+	if next_rreq_ttl < ((Param.get Params.nodes)/10) then
 	  (Gsched.sched())#sched_in ~handler:next_rreq_event ~t:next_rreq_timeout;
       with
 	| Simplenode.Mac_Bcast_Failure -> 
@@ -467,11 +474,11 @@ object(s)
 	try 
 	  s#send_out ~l3pkt:l3pkt
 	with 
-	  | Send_Out_Failure -> 
-	      s#log_notice 
+	  | Send_Out_Failure -> ()
+(*	      s#log_notice 
 	      (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
 		(Packet.get_l3dst ~l3pkt:l3pkt) 
-		(adv.Packet.adv_dst));
+		(adv.Packet.adv_dst));*)
       else ()
     )
     
@@ -508,6 +515,8 @@ object(s)
 
       | Packet.NOT_GREP -> 
 	  raise (Failure "Grep_agent.send_out")
+      | Packet.GREP_RERR ->
+	  raise (Misc.Impossible_Case "Grep_agent.send_out")
       | Packet.GREP_RADV 
       | Packet.GREP_RREQ -> 
 	  if (decr_and_check_ttl()) then (
@@ -517,10 +526,13 @@ object(s)
 	  )
       | Packet.GREP_DATA 
       | Packet.GREP_RREP ->
-	  if (Packet.get_l3grepflags ~l3pkt:l3pkt) = Packet.GREP_DATA then (
-	    Grep_hooks.sent_data();
+	  if ((Packet.get_l3grepflags ~l3pkt:l3pkt) = Packet.GREP_DATA) then (
+	    if (Packet.get_l3src ~l3pkt:l3pkt) = owner#id then
+	      Grep_hooks.orig_data()
+	    else 
+	      Grep_hooks.sent_data();
 	  ) else (
-	    Grep_hooks.sent_rrep();
+	    Grep_hooks.sent_rrep_rerr();
 	  );
 	  let (nexthop, ttl) = 
 	    match Rtab.nexthop ~rt:rtab ~dst:dst  with
@@ -547,8 +559,10 @@ object(s)
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
   method private hand_upper_layer ~l3pkt = (
-    s#log_notice (sprintf "Received app pkt from src %d"
-      (Packet.get_l3src ~l3pkt:l3pkt));
+    Grep_hooks.recv_data();
+    (*    s#log_notice (sprintf "Received app pkt from src %d"
+	  (Packet.get_l3src ~l3pkt:l3pkt));
+    *)
   )
 
   (*
@@ -593,11 +607,11 @@ object(s)
 	with 
 	  | Send_Out_Failure -> 
 	      begin
-		s#log_notice 
+(*		s#log_notice 
 		  (sprintf 
 		    "Originating DATA pkt to dst %d failed, buffering."
 		    dst);
-
+*)
 		let dst = (Packet.get_l3dst ~l3pkt:l3pkt) in
 		(* important to buffer packet first because send_rreq checks for
 		   this *)
