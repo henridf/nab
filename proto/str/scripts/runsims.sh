@@ -65,16 +65,19 @@ for node in $nodes
 	    statefile=$basename".dat"
 	    resultfile=$basename".res"
 	    if [ $action == "warmup" ]; then
-		echo ""
-		echo " [bin/nab -nodes $node -agent $proto -warmup mob -mob $mob -run $run -move $mover -dumpfile $statefile]"
-		echo ""
-		bin/nab -nodes $node -agent $proto -warmup mob -mob $mob -run $run -move $mover -dumpfile $statefile
+		cmd="bin/nab -nodes $node -agent $proto -warmup mob -mob $mob -run $run -move $mover -dumpfile $statefile"
+
 	    elif [ $action == "route" ]; then
-		echo ""
-		echo " [bin/nab -pkts_orig $pkts_orig $statefile -detach $resultfile]"
-		echo ""
-		bin/nab -pkts_orig $pkts_orig $statefile -detach $resultfile
+
+		cmd="bin/nab -pkts_orig $pkts_orig $statefile  -dumpfile $resultfile $statefile"
+
 	    fi
+
+	    
+	    echo ""
+	    echo " [ $cmd ]"
+	    echo ""
+	    $cmd
 
 	    run=$(($run+1))
 	    echo ""

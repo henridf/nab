@@ -36,13 +36,13 @@ let () =
   Warmup_utils.setup_or_restore();
 
   Pervasives.at_exit (fun () ->
-    let stats = Warmup_utils.get_added_stats() in
+    let stats = Warmup_utils.sprint_added_stats() in
     print_string "\n\n";
     print_string stats;
   );
 
 
-  Warmup_utils.maybe_warmup();
+(*  Warmup_utils.maybe_warmup();*)
   
   
   (* (Sched.s())#run();
