@@ -226,6 +226,7 @@ mws: bin/mws
 bin/mws: $(MWS_OBJS) $(MWS_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJS) $(MWS_SCRIPT) -o $@ 
 
+
 mwsgrep: bin/mwsgrep
 bin/mwsgrep: $(MWS_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
@@ -254,7 +255,10 @@ bin/mwsviz-top: $(GUI_OBJS) $(MWS_SCRIPT)
 
 
 htmldoc: $(GUI_OBJS)
-	$(OCAMLDOC) -html -sort -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES)
+	-$(OCAMLDOC) -html -sort -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES)
+	@echo "*"
+	@echo "* Note: it is ok if there are warnings/errors above as a result of generating documentation. "
+	@echo "*"
 
 dotdoc:
 	$(OCAMLDOC) -dot -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
