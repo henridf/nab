@@ -2,12 +2,6 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** 
-  MAC layer class type and helper functions.
-  @author Henri Dubois-Ferriere.
-*)
-
-
 class type mac_t  = 
 object
   method objdescr : string
@@ -17,9 +11,16 @@ end
     
 type mactype = Nullmac | Contmac
 
+let mac_ = ref Nullmac
 
-val strset_mac : string -> unit
-  (** Set the default mac via a string (for example provided as cmdline argument). *)
+let str2mac s = 
+  match s with 
+    | "null" |  "nullmac" -> Nullmac
+    | "contention" | "cont" | "contmac" -> Contmac
+    | _ -> raise (Failure "Invalid format for mac type")
 
-val mac : unit -> mactype
-  (** Returns the mac type employed. *)
+
+let strset_mac s = 
+  mac_ := str2mac s
+
+let mac() = !mac_

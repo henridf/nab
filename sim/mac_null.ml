@@ -3,8 +3,7 @@
 (*                                  *)
 
 (** 
-  Class nullmac : incoming and outgoing packets get passed in without any
-  losses, only the transmission delayis applied.
+  Null MAC Layer: no losses, no collisions, only transmission delay is applied.
 *)
 
 
@@ -29,7 +28,7 @@ object(s)
     if (dst = L2_BCAST || dst = L2_DST ownerid) then 
       let recvtime = 
 	Common.get_time() 
-	+. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	+. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
       let recv_event() =  owner#mac_recv_pkt ~l2pkt in
       (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
 

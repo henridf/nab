@@ -3,8 +3,7 @@
 (*                                  *)
 
 (** 
-  Class contentionmac: 
-  A simple MAC layer with high level collision modeling.
+  Contention MAC: A simple MAC layer with high level collision modeling.
   This MAC can either be sending or receiving.
   If a packet is received while already received, both are dropped
   (collision).
@@ -50,6 +49,7 @@ object(s)
     receiving -> interfering   
     interfering -> cannot receive 
   *)
+
   (* Check if a packet transmission is ongoing in our radio range.
      This could be us transmitting, or a neighbor transmitting.  *)
   method private interfering =  
@@ -78,27 +78,28 @@ object(s)
     (* If we're already in rx, set the collision flag so that when
        we know to drop the packet when ongoing rx completes. *)
     if receiving then (
-
 	collision <- true;
 	s#log_notice (lazy 
 	  (sprintf "Pkt from %d collided with already receiving  packet for %d"
 	    (l2src ~pkt:l2pkt) receiving_from))
-    )
-    else (
+    ) else (
       assert (collision = false);
 
       (* if we're not in tx/rx, and not already under interference, then mark that 
 	 we're receiving, and schedule the full packet reception event. *)
-      if  not s#sending && not s#interfering && not receiving then (
+      if  not s#sending && not s#interfering then (
 	receiving <- true;
-	s#log_debug (lazy "RX packet ");
+	s#log_debug (lazy (sprintf "RX packet of (%d bytes)" (l2pkt_size ~l2pkt)));
 	
 	let end_rx_time = 
 	  Common.get_time() 
-	  +. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	  +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+
 	receiving_from <- l2src ~pkt:l2pkt;
+
 	let recv_event() =  s#end_rx l2pkt  in
 	(Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time end_rx_time);
+
 	(* Finally, mark that we're being interfered for the duration of this packet.*)
 	interfering_until <- max end_rx_time interfering_until;
       )
@@ -115,11 +116,11 @@ object(s)
     )
     else (
       if not s#sending && not receiving then (
-	s#log_debug (lazy "TX packet ");
+	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
 	let end_xmit_time = 
 	  Common.get_time() 
-	  +. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
-	sending_until <- sending_until;
+	  +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
 	Ether.emit ~nid:ownerid ~l2pkt
       ) else (
