@@ -6,18 +6,10 @@
 (* These parameters have not (yet?) been examined to figure out if they  *)
 (* really need to be globally acessible.                                 *)
 
-let gui = 
-  Param.create 
-    ~name:"gui" 
-    ~default:true 
-    ~doc:"launch UI"
-    ~reader:bool_of_string 
-    ~checker:None
-
 let warmup_percent = 
   Param.create 
     ~name:"warmup" 
-    ~default:0.4 
+    ~default: (Some 0.4)
     ~doc:"encounter ratio required to exit warmup" 
     ~reader:float_of_string
     ~checker:(Some 
@@ -30,7 +22,7 @@ let warmup_percent =
 let minrange = 
   Param.create 
     ~name:"minrange" 
-    ~default:0.0 
+    ~default: (Some 0.0)
     ~doc:"minumum range of routes to compute" 
     ~reader:float_of_string
     ~checker:(Some
@@ -43,7 +35,7 @@ let minrange =
 let maxrange = 
   Param.create 
     ~name:"maxrange" 
-    ~default:0.0 
+    ~default: None
     ~doc:"maximum range of routes to compute" 
     ~reader:float_of_string
     ~checker:(Some
@@ -53,26 +45,18 @@ let maxrange =
       )
     )
 
-let dowarmup = 
+let warmup = 
   Param.create 
     ~name:"warmup" 
-    ~default:true 
+    ~default: (Some false)
     ~doc:"Warmup (move nodes around)"
-    ~reader:bool_of_string 
-    ~checker:None
-
-let dorouting = 
-  Param.create 
-    ~name:"warmuponly" 
-    ~default:true 
-    ~doc:"Exit after warmup"
     ~reader:bool_of_string 
     ~checker:None
 
 let nodes = 
   Param.create 
     ~name:"nodes" 
-    ~default:100 
+    ~default: (Some 100)
     ~doc:"Number of nodes in Simulation"
     ~reader:int_of_string 
     ~checker:None
@@ -80,7 +64,7 @@ let nodes =
 let ntargets = 
   Param.create 
     ~name:"ntargets" 
-    ~default:1 
+    ~default: (Some 1)
     ~doc:"Number of targets in Simulation"
     ~reader:int_of_string 
     ~checker:None
@@ -88,7 +72,7 @@ let ntargets =
 let algo = 
   Param.create 
     ~name:"algo" 
-    ~default:Common.GRADIENT 
+    ~default: (Some Common.GRADIENT)
     ~doc:"Routing algorithm to use"
     ~reader:Common.algo_of_string 
     ~checker:None
@@ -96,7 +80,7 @@ let algo =
 let mob = 
   Param.create 
     ~name:"mob" 
-    ~default:Common.RANDOMWALK 
+    ~default: (Some Common.RANDOMWALK)
     ~doc:"Mobility pattern to use in warmup"
     ~reader:Common.mobility_of_string 
     ~checker:None
@@ -104,15 +88,23 @@ let mob =
 let top = 
   Param.create 
     ~name:"top" 
-    ~default:Common.DISCRETE 
+    ~default: (Some Common.DISCRETE)
     ~doc:"Topology to use"
     ~reader:Common.topology_of_string 
+    ~checker:None
+
+let action = 
+  Param.create 
+    ~name:"action" 
+    ~default: (Some Common.SHOW_ROUTES)
+    ~doc:"What to do!!"
+    ~reader:Common.action_of_string 
     ~checker:None
 
 let nodes_file = 
   Param.create 
     ~name:"nodes_file" 
-    ~default:"ler-sim.mld" 
+    ~default: (Some "ler-sim.mld")
     ~doc:"File containing warmed up node positions"
     ~reader:Misc.id 
     ~checker:None
