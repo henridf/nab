@@ -9,7 +9,7 @@ open Script_utils
 open Grep_common
 
 let avg_degree = 12
-let rrange = 100.
+let rrange = 20.
 
 
 
@@ -34,7 +34,9 @@ let do_one_run() = (
   let agenttype = Config.agent_of_string (Param.get Config.agent)
   and sources = (Param.get Config.sources) 
   and speed = (Param.get Config.speed)
-in
+  and rrange = (Param.get Params.rrange)
+  in
+
   Randoms.change_seed ~newseed:(Param.get Config.run) () ;
 
   Param.set Params.x_size 
@@ -50,12 +52,12 @@ in
     | GREP -> make_grep_nodes();
   end;
 
-  Mob_ctl.make_waypoint_mobs ~gran:((Param.get Params.rrange) /. 10.) ();
+  Mob_ctl.make_waypoint_mobs ~gran:(rrange /. 10.) ();
   Mob_ctl.set_speed_mps speed;
   Mob_ctl.start_all();
 
 
-  Grep_common.install_tsources();
+(*  Grep_common.install_tsources();*)
     
 
   
@@ -94,15 +96,14 @@ let _ =
   
   (*  Read_coords.check_conn();*)
   Param.set Params.nodes 100;
-  Param.set Params.rrange 20.0;
+  Param.set Params.rrange rrange;
   Param.set Params.x_size 800.0;
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();
   Log.set_log_level ~level:Log.LOG_DEBUG;
   Gui_ctl.create_buttons_ease();
-  Gui_ops.draw_all_boxes();
+(*  Gui_ops.draw_all_boxes();*)
   do_one_run();
-
 
   Main.main();
 

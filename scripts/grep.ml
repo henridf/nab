@@ -26,6 +26,7 @@ let do_one_run ()  = (
   and sources = (Param.get Config.sources) 
   and speed = (Param.get Config.speed)
   and pkts_to_send = (Param.get Config.pktssend)
+  and rrange = (Param.get Params.rrange)
   in
 
   Randoms.change_seed ~newseed:(Param.get Config.run) () ;
@@ -44,7 +45,7 @@ let do_one_run ()  = (
   end;
 
   (* Attach a random waypoint mobility process to each node *)
-  Mob_ctl.make_waypoint_mobs ~gran:((Param.get Params.rrange) /. 10.) ();
+  Mob_ctl.make_waypoint_mobs ~gran:(rrange /. 10.) ();
   Mob_ctl.set_speed_mps speed;
   Mob_ctl.start_all();
 
