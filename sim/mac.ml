@@ -22,6 +22,12 @@ let str2mac s =
     | "contention" | "cont" | "contmac" -> Contmac
     | _ -> raise (Failure "Invalid format for mac type")
 
+
+let mac_of_string s = match s with 
+  | "null" | "nullmac" -> Mac.Nullmac
+  | "contention" | "contmac" | "contentionmac" -> Mac.Contmac
+  | _ -> raise (Failure ("Invalid mactype "^s))
+
 let strset_mac s = 
   mac_ := str2mac s
 
