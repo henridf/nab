@@ -33,11 +33,6 @@
    either - should be looked into.
 *)
 
-
-
-
-
-
 open Printf
 open Misc
 
@@ -67,7 +62,10 @@ object(s)
 
   method id = id
 
-  method mac ?(stack=0) () = o2v macs.(stack)
+  method mac ?(stack=0) () = 
+    match macs.(stack) with
+      | None -> failwith ("Simplenode.mac: No mac on stack "^(string_of_int stack))
+      | Some mac -> mac
 
   method install_mac ?(stack=0) themac = 
     if (macs.(stack) <> None) then 
@@ -86,11 +84,13 @@ object(s)
       failwith "Simplenode.install_rt_agent: agent already there!";
     rt_agents.(stack) <- Some theagent
 
-  method agent ?(stack=0) () = o2v rt_agents.(stack)
+  method agent ?(stack=0) () = 
+    match rt_agents.(stack) with
+      | None -> failwith ("Simplenode.agent No rtagent on stack "^(string_of_int stack))
+      | Some rtagent -> rtagent
 
   method remove_rt_agent ?(stack=0) () = 
     rt_agents.(stack) <- None
-
 
   method mac_recv_pkt ?(stack=0) l2pkt = (
     
@@ -105,7 +105,6 @@ object(s)
       (fun mhook -> mhook l2pkt s)
       pktin_mhooks.(stack);
     
-
       (Opt.may (fun agent -> agent#mac_recv_l3pkt l3pkt))
       rt_agents.(stack);
     
@@ -162,8 +161,6 @@ object(s)
     List.iter 
     (fun mhook -> mhook l2pkt s )
       pktout_mhooks.(stack);
-
-(*    Printf.printf "\ngot a bcast on stack %d\n" stack;*)
     (s#mac ~stack ())#xmit ~l2pkt;
   )
 
@@ -194,20 +191,3 @@ object(s)
 end
 
 
-
-
-
-
-
-
-
-(*
-method next_position ~node ~mob = (
-    match mob with
-      | RANDOMWALK -> 
-	  s#reflect_ (
-	    node#pos +++. ([|Random.float 2.0; Random.float 2.0|] ---. [|1.0; 1.0|])
-	  )
-      | WAYPOINT -> raise Misc.Not_Implemented
-  )
-  *)
