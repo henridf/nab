@@ -238,7 +238,7 @@ type mac_queue_stats =
     - nodes can receive at the same time from multiple neighbors
     - nodes can transmit and receive simultaneously
 *)
-class virtual queue_backend : ?stack:int -> ?buffer:int -> bps:float -> #Node.node ->
+class virtual queue_backend : ?stack:int -> ?queuesize:int -> bps:float -> #Node.node ->
 object
   inherit [mac_queue_stats] backend
   inherit [mac_queue_stats] Mac.backend_t
