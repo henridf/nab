@@ -195,7 +195,7 @@ GUI_OBJ_ONLY_CMOS = $(filter %.cmo, $(GUI_OBJ_FILES))
 GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
 DOC_DIR = doc
 
-htmldoc:
+htmldoc: $(GUI_OBJ_FILES)
 	$(OCAMLDOC) -html -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
