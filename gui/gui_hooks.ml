@@ -49,7 +49,7 @@ let ease_route_pktin_mhook routeref l2pkt (node:Node.node_t) = (
   and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in
 
   match l2pkt.l2hdr.l2src <> node#id with
-    | true -> 	(* Packet arriving at a node *)
+    | _ -> 	(* Packet arriving at a node *)
 (*	(Log.log)#log_info (Printf.sprintf "Arriving t node %d\n" node#id);	  *)
 
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
@@ -61,7 +61,10 @@ let ease_route_pktin_mhook routeref l2pkt (node:Node.node_t) = (
 	    Route.searchcost=0.0; (* hack see general_todo.txt *)
 	  }
 	)
-    | false ->  assert(false)
+(* this should not be a failure. ie, a node can send a packet to itself, if 
+   it was closest to the previous anchor, searches for a new anchor, and is
+   closest to this anchor too *)
+(*    | false ->  assert(false)*)
 )
 
 let ease_route_pktout_mhook routeref l2pkt (node:Node.node_t) = (
