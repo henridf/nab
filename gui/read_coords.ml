@@ -6,11 +6,12 @@ let gr = ref None
 let g () = o2v !gr
 
 
+
 let box_centeri i = 
   let pts = Graph.getinfoi_ (g()) i in
   match pts with 
     | x1::y1::x2::y2::x3::y3::x4::y4::[] -> 
-	(((x1, y1) +++ (x3, y3)) /// 2 )
+	(((coord_i2f (x1, y1)) +++. (coord_i2f (x3, y3))) ///. 2.)
    | _ -> raise (Misc.Impossible_Case "Read_coords.box_center")
 
 let box_center n = 
@@ -22,37 +23,41 @@ let make_graph() = (
 
   let re = Str.regexp "[ \t]+" in
 
-  gr := Some (Graph.make_ "" (List.length Epflcoords.l_pix) Graph.Directed);
+  gr := Some (Graph.make_ "" (List.length Epflcoords.l_mtr) Graph.Directed);
 
 
   List.iter (fun line ->
-    let arr = Array.of_list (Str.split re line) in
+    let arr = Array.of_list line in
     let node = arr.(0) in
     Graph.add_node_ (g()) node;
+
+
+    (* right now, because graph library is stupid and only takes int lists for
+       node info, we convert positions (mtrs) into ints. *)
     let info = Array.map 
-      (fun s -> int_of_string s) 
+      (fun s -> f2i (float_of_string s)) 
       (Array.sub arr 1 8) in
     Graph.setinfo_ (g()) node (Array.to_list info)
-  ) Epflcoords.l_pix;
+  ) Epflcoords.l_mtr;
   
 
   List.iter (fun line ->
 
-    let arr = Array.of_list (Str.split re line) in
+    let arr = Array.of_list line in
     let node = arr.(0) in
     Array.iteri 
       (fun i ngbr -> 
 	if i > 8 then (
 (*	  Printf.printf "%s\n" ngbr;*)
 	  let d = 
-	    sqrt (float (Coord.disti_sq (box_center node) 
-	      (box_center ngbr)))
+	    sqrt (Coord.dist_sq (box_center node) 
+	      (box_center ngbr))
 	  in
 	  
 	  Graph.add_edge_ (g()) node ngbr d;
 	)
       ) arr
-  ) Epflcoords.l_pix;
+  ) Epflcoords.l_mtr;
 
 )
 
