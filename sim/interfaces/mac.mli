@@ -38,6 +38,16 @@
   @author Henri Dubois-Ferriere.
 *)
 
+type basic_stats = 
+    { bits_RX : int;
+      bits_TX : int}
+    (** The stats every MAC layer *must* maintain. As basic as it gets.
+      Of course, most MACs will want to maintain other stats as well - this is
+      not specified in the common MAC interface, since the specific stats will
+      vary depending on the characteristics of the MAC. For an example, see
+      [method other_stats] in mac_base.mli. *)
+
+
 
 (**  The interface which a MAC layer must implement.
 
@@ -62,8 +72,16 @@ object
     *)
       
   method xmit : l2pkt:L2pkt.t -> unit
+    (** [xmit] is called by the upper layers on the node containing this MAC
+      to send a packet out. *)
 
   method bps : float
+    (** Return this MAC's bps speed. *)
+  method basic_stats : basic_stats
+    (** Return stats for this MAC object. *)
+
+  method reset_stats : unit
+    (** Reset stats for this MAC object. *)
 end
     
 (** The types of MAC that are available. *)

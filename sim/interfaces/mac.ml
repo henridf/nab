@@ -27,20 +27,21 @@
 *)
 
 
-
-
-
-
+type basic_stats = 
+    { bits_RX : int;
+      bits_TX : int}
 
 open Misc 
 
-class type t  = 
+class type  t  = 
 object
 
   inherit Log.inheritable_loggable 
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method xmit : l2pkt:L2pkt.t -> unit
   method bps : float
+  method basic_stats : basic_stats
+  method reset_stats : unit
 end
     
 type mactype = Nullmac | Contmac | Cheatmac

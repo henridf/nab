@@ -44,11 +44,11 @@ open Ether
 open L2pkt
 open Printf 
 
-class cheatmac ?(stack=0) theowner : Mac.t = 
+class cheatmac ?(stack=0) bps theowner  = 
 object(s)
 
 
-  inherit Mac_null.nullmac ~stack theowner as super
+  inherit Mac_null.nullmac ~stack bps theowner as super
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/cheatmac";
   )
