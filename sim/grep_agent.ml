@@ -1,6 +1,10 @@
 (* should send_out distinguish exceptions between no nexthop and xmit failure ?*)
 (* when we get a rrep, do we also update route to replying node (if different
    from destination node)?? we should. *)
+(* 19may / removed code in simplenode that decrs shopcount when bcast has no
+   neighbors. should check throughout grep_agent that there are no places
+   where we reuse a packet, and where it would be necessary to correct a
+   needlessly changed (ttl or hopcount) field *)
 
 (*                                  *)
 (* mws  multihop wireless simulator *)
@@ -453,7 +457,7 @@ object(s)
 	    ~dseqno:dseqno
 	    ~dhopcount:dhopcount)
       in	
-      try 
+
 	s#send_out ~l3pkt:l3pkt;
 	(* we say that maximum 1-hop traversal is 20ms, 
 	   ie half of value used by AODV. Another difference relative to AODV
@@ -464,9 +468,6 @@ object(s)
 	
 	if next_rreq_ttl < ((Param.get Params.nodes)/10) then
 	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
-      with
-	| Simplenode.Mac_Bcast_Failure -> 
-	    s#log_error (lazy "bcast failure")
     )
   )
     

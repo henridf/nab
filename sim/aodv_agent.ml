@@ -521,7 +521,6 @@ object(s)
 	    ~dhopcount:dhopcount
 	    ~rerr:rerr)
       in	
-      try 
 	s#send_out ~l3pkt:l3pkt;
 	(* we say that maximum 1-hop traversal is 20ms, 
 	   ie half of value used by AODV. Another difference relative to AODV
@@ -532,9 +531,7 @@ object(s)
 
 	if next_rreq_ttl < ((Param.get Params.nodes)/10) then
 	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
-      with
-	| Simplenode.Mac_Bcast_Failure -> 
-	    s#log_error (lazy "bcast failure")
+
     )
   )
     
