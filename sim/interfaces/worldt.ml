@@ -58,12 +58,14 @@ object
   method nodepos : Common.nodeid_t -> Coord.coordf_t 
     (** Return the position of a node. *)
 
-  method find_closest : pos:Coord.coordf_t -> f:(Common.nodeid_t -> bool) ->
+  method find_closest : pos:Coord.coordf_t -> 
+    ?f:(Common.nodeid_t -> bool) ->
+    unit ->
     Common.nodeid_t option
-    (** Returns the closest node to pos which satisfies the boolean f, or None 
-      if f never satisfied. 
-      A common use is to pass the function [~f:(fun _ -> true)] in order to
-      find the node closest to a point.
+    (** Returns the closest node to position [pos] which satisfies the boolean
+      function [f], or None if no node satisfies [f].
+
+      [f] is optional: if not provided, the closest node to [pos] is returned.
     *)
 
   method is_connected : unit -> bool

@@ -86,7 +86,7 @@ class virtual world_common ~x ~y ~rrange  = (
       node_positions_ <- Array.make (Param.get Params.nodes) initial_pos;
 
       Log.log#log_notice (lazy 
-	(sprintf "New World : size <%f,%f>, rrange %f, #nodes %d" 
+	(sprintf "World: %2f[m]x%2f[m] size,  %2f[m] radio range, %d nodes" 
 	  x y rrange (Param.get Params.nodes))
       );
       ignore (tile_size_x)
@@ -314,7 +314,7 @@ class virtual world_common ~x ~y ~rrange  = (
     )
 
 
-    method find_closest ~pos ~f = (
+    method find_closest ~pos ?(f=(fun _ -> true)) ()= (
       let diagonal_length = 
 	(ceil 
 	  (sqrt

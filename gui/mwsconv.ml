@@ -31,7 +31,7 @@ let pos_pix_to_mtr pos =
 
 let closest_node_at pix_pos = 
   let pos = pos_pix_to_mtr pix_pos in
-    (o2v ((World.w())#find_closest ~pos ~f:(fun _ -> true)))
+    o2v ((World.w())#find_closest ~pos ())
 
 let route_mtr_to_pix r = 
   List.map 
