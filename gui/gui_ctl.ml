@@ -28,8 +28,6 @@ let run() = (
   let continue() = ((Common.get_time()) < !t +. 1.0) in
   (Gsched.sched())#run_until~continue;
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
-(*	Gui_ops.draw_all_routes(); 
-	Gui_ops.draw_all_boxes(); *)
   Gui_gtk.draw ~clear:true ();
   true
 )
@@ -38,6 +36,10 @@ let run() = (
 
 let refresh ?(clear=false) ()  = (
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
+  (*
+  Gui_ops.draw_all_routes(); 
+  Gui_ops.draw_all_boxes(); 
+*)
   Gui_gtk.draw ~clear ();
   if (!rt <> None) then
     Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route (o2v !rt));
@@ -183,6 +185,20 @@ let create_buttons() = (
       ignore (refresh ~clear:true ()) ;
     ));
 
+  
+  let adj =
+    GData.adjustment ~lower:0. ~upper:100. ~step_incr:1. ~page_incr:10. () in
+  let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
+    ~packing:(Gui_gtk.packer()) () in
+    
+  let counter = new GUtil.variable 0 in
+
+  ignore (adj#connect#value_changed
+    ~callback:(fun () -> counter#set (truncate adj#value)));
+
+
+  ignore (counter#connect#changed ~callback:(fun n -> 
+    Gui_gtk.txt_msg (Printf.sprintf "New value %s.." (string_of_int n))));
 
   )    
 (* to kill: window#destroy ()*)
