@@ -1,3 +1,7 @@
+(* wierd: decrementing shopcount when packet not send seems necessary, 
+   ie omission was a bug, but not sure if it changes anything.
+   anyway current solution is a bit of a quick hack *)
+
 (*                                  *)
 (* mws  multihop wireless simulator *)
 (*                                  *)
@@ -23,8 +27,6 @@ object(s: #Node.node_t)
   val mutable speed = 0.0
 
   val id = id
-  val mutable db = new NodeDB.nodeDB ntargets
-  val ntargets = ntargets
 
   val agents = Hashtbl.create 1
 
@@ -38,9 +40,6 @@ object(s: #Node.node_t)
   method id = id
   method x = Coord.xx pos
   method y = Coord.yy pos
-
-  method db = db
-  method set_db thedb = db <- thedb
 
   initializer (
     objdescr <- (sprintf "/node/%d" id);
@@ -79,7 +78,7 @@ object(s: #Node.node_t)
   method add_neighbor n = (
     assert (not (List.mem n#id neighbors));
     if n#id < ntargets then (
-      db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
+(*      db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);*)
     );
     neighbors <- n#id::neighbors
   )
@@ -174,12 +173,14 @@ object(s: #Node.node_t)
   method mac_send_pkt ~l3pkt ~dstid = (
     let dst = (Nodes.node(dstid)) in
       if not (s#is_neighbor dst) then (
-	s#log_notice (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid);
+(*	s#log_notice (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid);*)
+	let l3hdr = Packet.get_l3hdr l3pkt in
+	l3hdr.Packet.grep_shopcount <- l3hdr.Packet.grep_shopcount - 1;
 	raise Mac_Send_Failure
       ) else
 	s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
   )
-
+    
   method cheat_send_pkt ~l3pkt ~dstid = s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
 
   method mac_bcast_pkt ~l3pkt = (
@@ -194,8 +195,11 @@ object(s: #Node.node_t)
       ~l3pkt:l3pkt in
     mhook l2pkt (s :> Node.node_t);
 
-    if (List.length neighbors = 0) then 
-      raise Mac_Bcast_Failure;
+    if (List.length neighbors = 0) then (
+      let l3hdr = Packet.get_l3hdr l3pkt in
+      l3hdr.Packet.grep_shopcount <- l3hdr.Packet.grep_shopcount - 1;
+(*      raise Mac_Bcast_Failure;*)
+    );
     List.iter (fun nid -> 
       let n = (Nodes.node(nid)) in
     let recvtime = 
@@ -220,9 +224,8 @@ object(s: #Node.node_t)
   method originate_app_pkt ~dstid = 
     app_send_pkt_hook Packet.APP_PLD ~dst:dstid
 
-  method dump_state   = {
+  method dump_state = {
     Node.node_pos=s#pos;
-    Node.db_state=db#dump_state
   } 
 
 end
