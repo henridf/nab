@@ -1,10 +1,10 @@
 (* 
    do we really need the double addressability of nodes (by int, and by 'a ) ?
 *)
+
 open Misc
 open Set
 open Hashtbl
-
 
 module type Graph_t = 
 sig
@@ -13,27 +13,33 @@ sig
   type graphtype_t = Directed | Undirected
 
   val make_ : 'a -> int -> graphtype_t -> 'a t
+
+(*
   val make_wrap_lattice_ : dim:int -> side:int -> Coord.coordi_t t
   val make_lattice_ : dim:int -> side:int -> Coord.coordi_t t
     
   val lattice_dim_ : maxsize:int -> side:int -> int
+*)
 
   val neigbors_  : 'a t -> 'a -> 'a list
   val neigborsi_ : 'a t -> int -> int list
 
+
+(*
   val neigbors_lattice_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
   val neigborsi_lattice_  : Coord.coordi_t t -> index:int -> side:int -> int list
 
   val neigbors_lattice_wrap_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
   val neigborsi_lattice_wrap_  : Coord.coordi_t t -> index:int -> side:int -> int list
-
-    (* common *)
+*)
+   
+  (* common *)
   val nhop_neigbors_  : 'a t -> node:'a -> radius:int -> 'a list
   val nhop_neigborsi_ : 'a t -> index:int -> radius:int -> int list
   val nhop_and_less_neigbors_ : 'a t -> node:'a -> radius:int -> 'a list
   val nhop_and_less_neigborsi_ : 'a t -> index:int -> radius:int -> int list
 
-    (* common *)
+  (* common *)
   val size_      : 'a t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
   val index_     : 'a t -> 'a -> int
   val node_      : 'a t -> int -> 'a
@@ -64,13 +70,15 @@ sig
   val disti_      : 'a t -> src:int -> dest:int -> int
   
 (* optimized for lattices *)
+(*
   val lattice_dist_       : Coord.coordi_t t -> src:Coord.coordi_t -> dest:Coord.coordi_t -> int
   val lattice_disti_      : Coord.coordi_t t -> src:int -> dest:int -> int
+*)
 
   val iteri_ : (int -> unit) -> 'a t -> unit
   val itern_ : ('a  -> unit) -> 'a t -> unit
   val print_ : 'a t -> unit
-  val print_lattice_ : Coord.coordi_t t -> unit
+(*  val print_lattice_ : Coord.coordi_t t -> unit*)
 end;;
 
 
