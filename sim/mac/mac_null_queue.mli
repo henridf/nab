@@ -36,7 +36,7 @@
 
 class nullmac_q :
   ?stack:int ->
-  ?buffer:int ->
+  ?queuesize:int ->
   bps:float ->
   #Node.node ->
   object

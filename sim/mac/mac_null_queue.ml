@@ -52,12 +52,12 @@ let mac ?(stack=0) i =
   Hashtbl.find macs_array_.(stack) i
 
 
-class nullmac_q ?(stack=0) ?(buffer=2) ~bps owner  = 
+class nullmac_q ?(stack=0) ?(queuesize=2) ~bps owner  = 
   let myid = owner#id in
 object(s)
   inherit Log.inheritable_loggable
   inherit Mac_base.null_frontend ~stack ~bps owner as frontend
-  inherit Mac_base.queue_backend ~stack ~buffer ~bps owner as backend
+  inherit Mac_base.queue_backend ~stack ~queuesize ~bps owner as backend
 
   val rnd = Random.State.make [|!rndseed|]
 

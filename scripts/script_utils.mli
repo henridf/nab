@@ -123,10 +123,17 @@ val install_null_macs : ?stack:int ->  ?bps:float -> unit -> unit
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Node.node}. *)
 
-val install_queue_null_macs : ?stack:int -> ?buffer:int -> ?bps:float -> unit -> unit
+val install_queue_null_macs : ?stack:int -> ?queuesize:int -> ?bps:float -> unit -> unit
   (** Installs a Null Mac with sendqueue (see {!Mac_null_queue.nullmac_q}) on each node.
     Nodes should be created before calling this.
-    Optional [stack] is explained in {!Node.node}. *)
+    Optional [stack] is explained in {!Node.node}. 
+    Optional [queuesize] is the maximum storage of packets in the nodes*)
+  
+val install_queue_cts_macs : ?stack:int -> ?queuesize:int -> ?bps:float -> unit -> unit
+  (** Installs a Cts Mac with sendqueue (see {!Mac_cts_queue.nullmac_q}) on each node.
+    Nodes should be created before calling this.
+    Optional [stack] is explained in {!Node.node}. 
+    Optional [queuesize] is the maximum storage of packets in the nodes*)
 
 val install_cheat_macs : ?stack:int ->  ?bps:float -> unit -> unit
   (** Installs a Cheatmac layer on each node.
