@@ -257,10 +257,6 @@ grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grepviz$(CMO) -o $@ 
 
-strtest: bin/strtest
-bin/strtest: $(GUI_OBJS) $(PROTO_STR_DIR)/scripts/strtest$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(PROTO_STR_DIR)/scripts/strtest$(CMO) -o $@ 
-
 nab-top: bin/nab-top
 bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS)  $(SIM_SCRIPT) -o $@
