@@ -28,6 +28,11 @@ let f2s f = string_of_float f
 
 (** Arithmetic and related *)
 
+let (+=) a b = a := !a + b
+let (-=) a b = a := !a - b
+let (+=.) a b = a := !a +. b
+let (-=.) a b = a := !a -. b
+
 
 let isint x = (floor x) = x
 let round x = if (x -. floor x) < 0.5 then (floor x) else (ceil x)
@@ -170,14 +175,16 @@ let equal_or_print a b ~equal ~print =
     ignore (read_line())
   )
 
-
-
-
 (** String Handling *)
 
   let padto ?(ch=' ') s len = 
     let l = len - (String.length s) in 
     if l <= 0 then s else s ^ String.make l ch
+
+  let chopper = (Str.regexp "[ \t]+$")
+
+  let chop s = Str.global_replace chopper "" s
+
 
 (** I/O *)
 
@@ -216,5 +223,18 @@ let file_map_list fname f =
     end 
   end
 
+let list_to_chan chan l = 
+  List.iter (output_string chan) l
+
+let list_to_chan_endline chan l = 
+  List.iter (fun line -> output_string chan (line^"\n")) l
+
 let file_map_array fname f = 
   Array.of_list (file_map_list fname f)
+
+let dirstack = Stack.create()
+let pushd dir = 
+  let curdir = Sys.getcwd() in  
+  Sys.chdir dir; 
+  Stack.push curdir dirstack 
+let popd () = let dir = Stack.pop dirstack in Sys.chdir dir
