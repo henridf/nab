@@ -1,86 +1,84 @@
 (* Open things:
-   t.info is hardwired to be int lists. Maybe should be flexible (like nodes are type elt)
+   t.info is hardwired to be int lists. Maybe should be flexible (like nodes are type 'a)
 *)
 open Misc
 open Set
 open Hashtbl
 
-module type GraphType = HashedType
 
-module type S = 
+module type Graph_t = 
 sig
-  type elt
-  type t
+
+  type 'a t
   type graphtype_t = Directed | Undirected
 
-  val make_ : elt -> int -> graphtype_t -> t
+  val make_ : 'a -> int -> graphtype_t -> 'a t
+  val make_lattice_ : dim:int -> side:int -> int array t
 
-  val neigbors_  : t -> elt -> elt list
-  val neigborsi_ : t -> int -> int list
-  val nhop_neigbors_  : t -> node:elt -> radius:int -> elt list
-  val nhop_neigborsi_ : t -> index:int -> radius:int -> int list
+  val neigbors_  : 'a t -> 'a -> 'a list
+  val neigborsi_ : 'a t -> int -> int list
+  val nhop_neigbors_  : 'a t -> node:'a -> radius:int -> 'a list
+  val nhop_neigborsi_ : 'a t -> index:int -> radius:int -> int list
 
 
-  val size_      : t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
-  val index_     : t -> elt -> int
-  val node_      : t -> int -> elt
-  val contains_  : t -> elt -> bool
-  val containsi_ : t -> int -> bool
+  val size_      : 'a t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
+  val index_     : 'a t -> 'a -> int
+  val node_      : 'a t -> int -> 'a
+  val contains_  : 'a t -> 'a -> bool
+  val containsi_ : 'a t -> int -> bool
     
 
-  val setinfo_   : t -> elt -> int list -> unit (* convenience functions to allow client to associate 'info' with each node *)
-  val setinfoi_  : t -> int -> int list -> unit (* Graph module blindly manipulates 'info' *)
-  val getinfo_   : t -> elt -> int list         
-  val getinfoi_  : t -> int -> int list
-  val getinfosi_ : t -> int list -> int list    
+  val setinfo_   : 'a t -> 'a -> int list -> unit (* convenience functions to allow client to associate 'info' with each node *)
+  val setinfoi_  : 'a t -> int -> int list -> unit (* Graph module blindly manipulates 'info' *)
+  val getinfo_   : 'a t -> 'a -> int list         
+  val getinfoi_  : 'a t -> int -> int list
+  val getinfosi_ : 'a t -> int list -> int list    
 
-  val add_node_  : t -> elt -> unit
-  val add_edge_  : t -> elt -> elt  -> float ->  unit
-  val add_edgei_ : t -> int -> int  -> float -> unit
+  val add_node_  : 'a t -> 'a -> unit
+  val add_edge_  : 'a t -> 'a -> 'a  -> float ->  unit
+  val add_edgei_ : 'a t -> int -> int  -> float -> unit
 
-  val route_dij_  : t -> src:elt -> dest:elt -> elt list (* all of these can raise (Failure "No_route") *)
-  val routei_dij_ : t -> src:int -> dest:int -> int list
-  val dist_       : t -> src:elt -> dest:elt -> int
-  val disti_      : t -> src:int -> dest:int -> int
+  val route_dij_  : 'a t -> src:'a -> dest:'a -> 'a list (* all of these can raise (Failure "No_route") *)
+  val routei_dij_ : 'a t -> src:int -> dest:int -> int list
+  val dist_       : 'a t -> src:'a -> dest:'a -> int
+  val disti_      : 'a t -> src:int -> dest:int -> int
 
-  val iteri_ : (int  -> unit) -> t -> unit
-  val itern_ : (elt  -> unit) -> t -> unit
-  val print_ : t -> unit
+  val iteri_ : (int  -> unit) -> 'a t -> unit
+  val itern_ : ('a  -> unit) -> 'a t -> unit
+  val print_ : 'a t -> unit
 end;;
 
 
 
-module Make(G: GraphType) : S with type elt = G.t = 
+module Graph : Graph_t = 
 struct
 
-  module Hash = Hashtbl.Make (G) 
-
-  type elt = G.t
   type cost_t = Nan | Cost of float     
   type adj_mat_t = cost_t array array   
 
   type graphtype_t = Directed | Undirected 
-  type t = { mutable ind : int;  (* index of next new node in nodes array. Equal to maxsize when full *)
+  type 'a t = { mutable ind : int;  (* index of next new node in nodes array. Equal to maxsize when full *)
 	     maxsize : int;         (* max # nodes in graph *)
-	     nodes : elt array;   
+	     nodes : 'a array;   
 	     info : int list array; (* allows client to store info in the graph, like which walkers are at a node *)
-	     hash : int Hash.t;
+	     hash : ('a, int) Hashtbl.t;
 	     m : adj_mat_t;
 	     t : graphtype_t
 	   }
 
 
-  let index_ g n = Hash.find g.hash n (* throws Not_found *)
+  let index_ g n = Hashtbl.find g.hash n (* throws Not_found *)
   let node_ g i = g.nodes.(i)
   
-  let make_ node size gtype = {ind = 0; 
-			       maxsize = size;
-			       nodes =  Array.make size node;
-			       info = Array.make size [];
-			       hash =  Hash.create size;
-			       m =  Array.make_matrix size size Nan;
-			       t = gtype}
-				  
+  let make_ node size gtype = {
+    ind = 0; 
+    maxsize = size;
+    nodes =  Array.make size node;
+    info = Array.make size [];
+    hash =  Hashtbl.create size;
+    m =  Array.make_matrix size size Nan;
+    t = gtype}
+
 				  
   let iteri_ f g = for i = 0 to (g.ind - 1) do f i done
   let itern_ f g = for i = 0 to (g.ind - 1) do f g.nodes.(i) done
@@ -148,7 +146,7 @@ struct
     if contains_ g n then raise (Invalid_argument "Graph.add_node_: node already exists")
     else (
       g.nodes.(g.ind) <- n; 
-      Hash.add g.hash n g.ind;
+      Hashtbl.add g.hash n g.ind;
       g.ind <- g.ind + 1;
     )
   )
@@ -314,6 +312,72 @@ struct
 	Not_found -> raise (Invalid_argument "Graph.nhop_neigbors_: node does not exist")
   )
 				   
+(* val tuple : side:int -> dim:int -> index:int -> int array 
+   Returns the d-tuple of coordinates (represented as int array of length d) 
+   for the indexth point in a d-dimensional hypercube of side length s *)
+  let tuple__ ~side ~dim ~index = (
+    let ith i = (
+      let rec _div j num = if j = 0 then num else (_div (j - 1) num/side) in
+	(_div i index) mod side
+    ) in
+      Array.init dim ith
+  )
+
+  (* val wrap_tuple : t -> int -> int array -> int array 
+     Wrap a tuple around the borders of hypercube of side s. 
+     Assumes that coordinates of the tuple are at out of boundaries by at most "s"
+     (otherwise we should do modulos ) *)
+  let wrap_tuple__ g s t = (
+
+    let at_edge = ref false in
+      Array.iter  (
+	fun coord -> 
+	  if ((coord >= s ) || (coord < 0)) then at_edge := true
+      ) t;
+      if (!at_edge) then (
+	index_ g (
+	  Array.map (
+	    fun coord -> 
+	      if coord >= s then coord - s 
+	      else if coord < 0 then s + coord else coord
+	  ) t
+	)
+      ) else index_ g t
+  )
+
+
+  (* val lattice_neigborsi__ : t -> int array -> int -> int array list *)
+  let lattice_neigborsi__ g point side = (
+    (* somewhat contorted because we're  avoiding allocating local structures here *)
+    let ngbrs = Array.make (2 * (Array.length point)) 0 in
+      for i = 0 to (Array.length point - 1) do
+	let twoi = 2 * i and twoiplus1 = (2 * i) + 1 in
+	  point.(i) <- point.(i) + 1;
+	  ngbrs.(twoi) <- wrap_tuple__ g side point;
+	  point.(i) <- point.(i) - 2;
+	  ngbrs.(twoiplus1) <- wrap_tuple__ g side point;
+	  point.(i) <- point.(i) + 1;
+      done;
+      ngbrs
+  )
+
+  let make_lattice_ ~dim ~side = (
+
+    let size = (powi side dim) in
+    let g = make_ (Array.make dim 0) size Undirected in
+      for i = 1 to size do
+	add_node_ g (tuple__ ~side:side ~dim:dim ~index:i)
+      done;
+      (* for each node, compute its neigbors and connect them *)
+      itern_ (
+	fun node -> 
+	  let ngbrsi = lattice_neigborsi__ g node side 
+	  and nodei = index_ g node in
+	    Array.iter (fun ngbr -> add_edgei_ g ngbr nodei 1.0) ngbrsi
+      ) g;
+      g;
+  )				  
+
   let print_ g = (
     iteri_ (fun i -> 
 	      let ngbrs = neigborsi_ g i in
