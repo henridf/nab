@@ -98,17 +98,17 @@ object
     
      let pos = (Gworld.world())#nodepos owner#id in
      assert (((Gworld.world())#boundarize pos) = pos);
-    if ((Gworld.world())#dist_coords target_ pos) <= gran then (
-      (* arrived within gran[m] of target *)
-      let oldtarget = target_ 
-      in
-      target_ <- (Gworld.world())#random_pos;
-      oldtarget
-    ) else (
-      let direction =  (Coord.normalize (target_ ---. pos))   in
-      (pos +++. (direction ***. gran))
-    )
-  )
+     if ((Gworld.world())#dist_coords target_ pos) <= gran then (
+       (* arrived within gran[m] of target *)
+       let oldtarget = target_ 
+       in
+       target_ <- (Gworld.world())#random_pos;
+       oldtarget
+     ) else (
+       let direction =  (Coord.normalize (target_ ---. pos))   in
+       (pos +++. (direction ***. gran))
+     )
+   )
 
 
 end
