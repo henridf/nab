@@ -42,9 +42,10 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/cmac";
-    Mac.setbps bps;
     incr rndseed
   )
+
+  method bps = bps
 
   (*
     sending -> interfering

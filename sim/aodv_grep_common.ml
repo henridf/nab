@@ -6,7 +6,7 @@ let _ERS_START_TTL = 2
 let _ERS_MULT_FACT = 2
 let _ERS_MAX_TTL = 64
 
-let  xmitdelay ~bytes = (i2f (bytes * 8)) /. (Mac.bps())
+let  xmitdelay ~bytes ~bps = (i2f (bytes * 8)) /. bps
 
 
 (* we say that maximum 1-hop traversal is 20ms, 
@@ -15,10 +15,10 @@ let  xmitdelay ~bytes = (i2f (bytes * 8)) /. (Mac.bps())
    This is ok while we use a simple MAC, and ok since our AODV impl 
    will use the same values*)
   
-let hop_traversal_time() = 
+let hop_traversal_time bps = 
   max 0.2
   ((Param.get Params.rrange) /. Ether.speed_of_light
-  +.xmitdelay 2000)
+  +.xmitdelay ~bytes:2000 ~bps)
 
 
 let next_rreq_ttl ttl = 

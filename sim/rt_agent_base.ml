@@ -18,4 +18,6 @@ object(s : #Rt_agent.t)
   method virtual mac_recv_l2pkt : L2pkt.t -> unit
   method virtual app_recv_l4pkt : L4pkt.t -> Common.nodeid_t -> unit
 
+  method private bps = (owner#mac ~stack ())#bps
+
 end

@@ -10,6 +10,7 @@ object
   inherit Log.inheritable_loggable 
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method xmit : l2pkt:L2pkt.t -> unit
+  method bps : float
 end
     
 type mactype = Nullmac | Contmac
@@ -34,14 +35,3 @@ let strset_mac s =
 let mac() = !mac_
 
 
-let bps_ = ref None
-let setbps bps = 
-  match !bps_ with
-    | None -> bps_ := Some bps
-    | Some x -> 
-	if x <> bps then 
-	  failwith "setbps, odd that two MACs have different speed"
-
-
-
-let bps() = o2v !bps_

@@ -45,4 +45,8 @@ object
       directly to any node. This is a wrapper around [method cheat_send_pkt] in
       {!Simplenode.simplenode}. *)
 
+  method private bps : float
+    (** Returns the speed of the underlying MAC layer for the node this agent
+      is running on. *)
+
 end

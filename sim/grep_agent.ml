@@ -191,7 +191,7 @@ object(s)
   method get_state () = 
       {seqno=seqno;
       hello_period = hello_period_;
-      rt = rt} 
+      rt = rt}
 
   method set_state state = 
     seqno <- state.seqno;
@@ -587,7 +587,7 @@ object(s)
       in
       let next_ttl = next_rreq_ttl ttl in
       let next_rreq_timeout = 
-	((i2f (2 * next_ttl)) *. (hop_traversal_time())) in
+	((i2f (2 * next_ttl)) *. (hop_traversal_time s#bps)) in
       let next_rreq_event() = 
 	  (s#send_rreq 
 	    ~ttl:next_ttl

@@ -25,8 +25,9 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/nullmac";
-    Mac.setbps bps;
   )
+
+  method bps = bps
 
   method recv ?snr ~l2pkt () = (
 

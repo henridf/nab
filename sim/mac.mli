@@ -30,6 +30,7 @@ object
       
   method xmit : l2pkt:L2pkt.t -> unit
 
+  method bps : float
 end
     
 type mactype = Nullmac | Contmac
@@ -40,12 +41,4 @@ val strset_mac : string -> unit
 val mac : unit -> mactype
   (** Returns the mac type employed. *)
 
-(**/**)
-val setbps : float -> unit
-val bps : unit -> float
-  (** Returns the transmission rate (in bits per second) of the MAC layer
-    employed. 
-    
-    HACK. Will change, because this should be a per-node quantity (or even
-    per-MAC, if we allow a node to have multiple network interfaces).
-  *)
+
