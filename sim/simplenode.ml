@@ -153,17 +153,17 @@ object(s)
     ) neighbors
   )
 
-  method trafficsource ~num_pkts ~dstid ~pkts_per_sec  = 
-    s#originate_app_pkt ~dstid:dstid;
+  method trafficsource ~num_pkts ~dst ~pkts_per_sec  = 
+    s#originate_app_pkt ~dst;
     let time_to_next_pkt = 1.0 /. (i2f pkts_per_sec) in
     let next_pkt_event() = 
-      s#trafficsource ~num_pkts:(num_pkts - 1) ~dstid:dstid ~pkts_per_sec:pkts_per_sec     in
+      s#trafficsource ~num_pkts:(num_pkts - 1) ~dst ~pkts_per_sec:pkts_per_sec     in
     if (num_pkts >= 0) then 
       (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       
       
-  method originate_app_pkt ~dstid = 
-    app_send_pkt_hook `APP_PKT ~dst:dstid
+  method originate_app_pkt ~dst = 
+    app_send_pkt_hook `APP_PKT ~dst
 
   method dump_state = {
     node_pos=(Gworld.world())#nodepos id

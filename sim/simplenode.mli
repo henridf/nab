@@ -68,13 +68,13 @@ object ('a)
 
 
 
-  method originate_app_pkt : dstid:Common.nodeid_t -> unit
+  method originate_app_pkt : dst:Common.nodeid_t -> unit
     (* originates a packet from an application on this node to dst:
        create the packet and shove it down the app_send_pkt_hooks *)
 
   method trafficsource  : 
     num_pkts:int ->
-    dstid:Common.nodeid_t -> 
+    dst:Common.nodeid_t -> 
     pkts_per_sec:int -> unit
 
   method dump_state : node_state_t 
