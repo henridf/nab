@@ -32,12 +32,13 @@ open Printf
 open Misc
 
 type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
-type agent_type = AODV | GREP
+type agent_type = AODV | GREP | STR
 
 module Config = 
 struct
   let agent_of_string = function
     | "aodv" | "AODV" -> AODV
+    | "str" | "STR" -> STR
     | "grep" | "GREP" -> GREP
     | _ -> raise (Failure "Invalid format for agent type")
 
@@ -69,7 +70,7 @@ struct
       ()
 
   let sources = 
-    Param.intcreate  ~name:"sources" ~default:1
+    Param.intcreate  ~name:"sources" ~default:50
       ~cmdline:true
       ~doc:"Number of sources"  ()
       
@@ -78,7 +79,7 @@ struct
     ~doc:"Run number" ()
 
   let packet_rate = 
-    Param.floatcreate ~name:"rate" ~default:4.
+    Param.floatcreate ~name:"rate" ~default:1.
       ~cmdline:true
       ~doc:"Orig rate [pkt/s]"  ()
 
