@@ -8,8 +8,12 @@
    seems wrong: if we originating a packet when the route is invalid, we
    should simply buffer rather than drop ?
 
+   check if we should to local_repair or not - and if so, needs to be correct
+   
+   we are not doing GRAT RREP - this does not even enter into acct if we have
+   no local repair. If we do, then it should at 1st order be ok since the
+   reverse path will get setup when the DATA packet travels forward. 
 
-   check behavior in process_rreq_pkt on deciding whether or not to answer
 *)
 
 (*                                  *)
@@ -28,9 +32,6 @@ class type aodv_agent_t =
     method private buffer_packet : l3pkt:L3pkt.l3packet_t -> unit
     method private hand_upper_layer : l3pkt:L3pkt.l3packet_t -> unit
     method private incr_seqno : unit -> unit
-    method private inv_packet_upwards :
-      nexthop:Common.nodeid_t -> l3pkt:L3pkt.l3packet_t -> unit
-    method private inv_ttl_zero : l3pkt:L3pkt.l3packet_t -> unit
     method newadv : 
       dst:Common.nodeid_t -> 
       rtent:Rtab.rtab_entry_t ->
@@ -57,10 +58,6 @@ class type aodv_agent_t =
     method private process_rreq_pkt :
       l3pkt:L3pkt.l3packet_t -> 
       fresh:bool -> unit
-    method private newadv_rrep :
-      adv:L4pkt.grep_adv_payload_t ->
-      sender:Common.nodeid_t -> 
-      shc:int -> bool
     method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
@@ -117,12 +114,13 @@ object(s)
     assert(update);
   )
 
-  method private local_repair ~src ~dst = 
+  method private local_repair ~src ~dst = false
+(*
     let fwhops = o2v (Rtab.hopcount ~rt:rtab ~dst)
     and bwhops = o2v (Rtab.hopcount ~rt:rtab ~dst:src)
     in 
     if ((i2f fwhops) /. (i2f bwhops) < 0.5) then true else false
-
+*)
 
   method private packets_waiting ~dst = 
     not (Queue.is_empty pktqs.(dst))
@@ -198,29 +196,6 @@ object(s)
     )
 
 
-  (* wrapper around Grep_agent.newadv for those that come in 
-     radv/rrep packets *)
-  (* route replies, we accept a route with same seqno even if it has more
-     hops. This is to allow rreps from intermediate nodes which would have the
-     same route as us but which were between us and the break. This does not
-     introduce loops because an intermediate node only answers if 
-     (its hopcount < packet.shc + packet.dhopcount).
-     Therefore, a node which is 'behind' us on the route would not satisfy this.
-  *)
-  method private newadv_rrep
-    ~(adv:L4pkt.grep_adv_payload_t)
-    ~(sender:Common.nodeid_t) 
-    ~(shc:int)  = (
-      s#newadv 
-      ~ignorehops:false
-      ~dst:(adv.L4pkt.adv_dst)
-      ~rtent:{
-	Rtab.seqno = Some (adv.L4pkt.adv_seqno);
-	Rtab.hopcount = Some ((adv.L4pkt.adv_hopcount) + shc);
-	Rtab.nexthop = Some sender 
-      }
-      ()
-    )
 
   (* as in paper *)
   method private packet_fresh ~l3pkt = (
@@ -308,12 +283,9 @@ object(s)
 	      | None -> false
 	      | Some s when (Rtab.invalid ~rt:rtab ~dst:rdst)
 		  -> false
-	      | Some s when  (s > dsn) 
+	      | Some s when  (s >= dsn) (* Assume Destination-Only Flag always
+					   set *)
 		  -> true
-	      | Some s when (s = dsn) ->
-		  (o2v (Rtab.hopcount ~rt:rtab ~dst:rdst) 
-		  <
-		  (L3pkt.dhc ~l3pkt) + L3pkt.shc ~l3pkt)
 	      | Some s when (s < dsn) -> false
 	      | _ -> raise (Misc.Impossible_Case "Aodv_agent.answer_rreq()") end
 	  in
@@ -379,7 +351,6 @@ object(s)
       L3pkt.make_l3hdr
 	~srcid:owner#id
 	~dstid:dst
-	~ttl:0 (* will be set by send_out *)
 	~ext:grep_l3hdr_ext
 	()
     in
@@ -395,78 +366,54 @@ object(s)
 	  (lazy (sprintf "Sending RERR pkt to dst %d, obo %d failed, dropping"
 	    dst obo));
   )
-  method private inv_packet_upwards ~nexthop ~l3pkt = (
-    (* this expects to be called just prior to sending l3pkt
-       and so assumes that ttl has already been decremented on l3pkt *)
 
-    let agent_nexthop = agent nexthop 
-    and dst = (L3pkt.l3dst ~l3pkt) in
-    assert (
-      (agent_nexthop#newadv
-	~dst
-	~rtent:{
-	  Rtab.seqno = (Rtab.seqno ~rt:rtab ~dst);
-	  Rtab.hopcount = Some ((L3pkt.l3ttl ~l3pkt) + 1);
-	  Rtab.nexthop = Some 0 (* this rtent will be ignored anyway *)
-	}
-	()) = false
-    )
-  )
-    
-  method private inv_ttl_zero ~l3pkt = (
-    assert ((L3pkt.l3ttl l3pkt)  = 0);
-  )
-    
+
   method private process_data_pkt 
     ~(l3pkt:L3pkt.l3packet_t) =  (
       
       if ((L3pkt.l3dst ~l3pkt) = owner#id) then (   (* for us *)
-	begin match L3pkt.l3grepflags ~l3pkt with
-	  | L3pkt.GREP_DATA | L3pkt.GREP_RREP -> s#inv_ttl_zero ~l3pkt
-	  | _ -> raise (Misc.Impossible_Case "Aodv_agent.process_data_pkt");
-	end;
 	s#hand_upper_layer ~l3pkt;
       ) else (
-      if (Rtab.invalid ~rt:rtab ~dst:(L3pkt.l3dst ~l3pkt)) then (
-	Grep_hooks.drop_data_rerr()
-      ) else (
-
-	if (s#packets_waiting ~dst:(L3pkt.l3dst ~l3pkt)) then (
-	  s#buffer_packet ~l3pkt
+	if (Rtab.invalid ~rt:rtab ~dst:(L3pkt.l3dst ~l3pkt)) then (
+	  Grep_hooks.drop_data_rerr()
 	) else (
-	  try 
-	    s#send_out ~l3pkt
-	  with 
-	    | Send_Out_Failure -> 
-		begin
-		  let dst = (L3pkt.l3dst ~l3pkt) in
-		  s#log_notice 
-		    (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-		      dst));
-		  (* important to buffer packet first because send_rreq checks for
-		     this *)
-		  if (s#local_repair ~dst ~src:(L3pkt.l3dst ~l3pkt)
-		  ) then (
-		    s#buffer_packet ~l3pkt;
-		    let (dseqno,dhopcount) = 
-		      begin match (Rtab.seqno ~rt:rtab ~dst) with
-			| None -> (0, max_int)
-			| Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
-		    in
-		    s#send_rreq 
-		      ~ttl:_ERS_START_TTL 
-		      ~dst 
-		      ~dseqno:dseqno
-		      ~dhopcount:dhopcount
-		  ) else (
-		    s#invalidate_route ~dst;
-		    s#send_rerr
-		    ~dst:(L3pkt.l3src ~l3pkt)
-		    ~obo:(L3pkt.l3dst ~l3pkt)
-		  )
-		end
+	  
+	  if (s#packets_waiting ~dst:(L3pkt.l3dst ~l3pkt)) then (
+	    s#buffer_packet ~l3pkt
+	  ) else (
+	    try 
+	      s#send_out ~l3pkt
+	    with 
+	      | Send_Out_Failure -> 
+		  begin
+		    let dst = (L3pkt.l3dst ~l3pkt) in
+		    s#log_notice 
+		      (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+			dst));
+		    (* important to buffer packet first because send_rreq checks for
+		       this *)
+		    if (s#local_repair ~dst ~src:(L3pkt.l3dst ~l3pkt)) then (
+		      s#buffer_packet ~l3pkt;
+		      let (dseqno,dhopcount) = 
+			begin match (Rtab.seqno ~rt:rtab ~dst) with
+			  | None -> (0, max_int)
+			  | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
+		      in
+		      s#send_rreq 
+			~ttl:_ERS_START_TTL 
+			~dst 
+			~dseqno:dseqno
+			~dhopcount:dhopcount
+		    ) else (
+		      s#invalidate_route ~dst;
+		      Grep_hooks.drop_data_rerr();
+		      s#send_rerr
+			~dst:(L3pkt.l3src ~l3pkt)
+			~obo:(L3pkt.l3dst ~l3pkt)
+		    )
+		  end
 	  )
-      )
+	)
       )
     )
 
@@ -597,78 +544,53 @@ object(s)
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     assert (L3pkt.ssn ~l3pkt >= 1);
 
-    let decr_and_check_ttl() = (
-      L3pkt.decr_l3ttl ~l3pkt;
-      if ((L3pkt.l3ttl ~l3pkt) > ((Param.get Params.nodes)/10)) then (
-(*	s#log_warning (sprintf "Packet with ttl %d" (L3pkt.l3ttl
-	  ~l3pkt));*)
-	false 
-      ) else (
-      if ((L3pkt.l3ttl ~l3pkt) < 0) then (
-	(*	s#log_info (sprintf "Dropping packet (negative ttl)");*)
-	if (not(
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RADV ||
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RERR ||
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RREQ
-	)) then (
-	  s#log_error (lazy (sprintf "negative ttl on data or rrep!"))
-	);
-(*	assert(
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RADV ||
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RERR ||
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RREQ
-	);*)
-	false
-      ) else true
-      )
-    )
-    in
+    let failed() = (
+      L3pkt.decr_shc_pkt ~l3pkt;
+      raise Send_Out_Failure
+    ) in
+
     s#incr_seqno();
     L3pkt.incr_shc_pkt ~l3pkt;
     assert (L3pkt.shc ~l3pkt > 0);
     begin match (L3pkt.l3grepflags ~l3pkt) with
-      | L3pkt.NOT_GREP | L3pkt.EASE 
-	  ->  raise (Failure "Aodv_agent.send_out")
+
       | L3pkt.GREP_RADV 
       | L3pkt.GREP_RREQ -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
-	  if (decr_and_check_ttl()) then (
-	    Grep_hooks.sent_rreq() ;
-	    owner#mac_bcast_pkt ~l3pkt;
-	  )
+	  L3pkt.decr_l3ttl ~l3pkt;
+	  begin
+	    match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
+	      | true -> 
+		  Grep_hooks.sent_rreq() ;
+		  owner#mac_bcast_pkt ~l3pkt;
+	      | false ->
+		  s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
+	  end
+
       | L3pkt.GREP_DATA 
       | L3pkt.GREP_RERR 
       | L3pkt.GREP_RREP ->
-
-	  if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
-	      if (L3pkt.l3src ~l3pkt) = owner#id then
-		Grep_hooks.orig_data()
-	      else 
-		Grep_hooks.sent_data();
+	  begin if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
+	    if (L3pkt.l3src ~l3pkt) = owner#id then
+	      Grep_hooks.orig_data()
+	    else 
+	      Grep_hooks.sent_data();
 	    ) else (
 	      Grep_hooks.sent_rrep_rerr();
 	    );
-	    let (nexthop, ttl) = 
+	    let nexthop = 
 	      match Rtab.nexthop ~rt:rtab ~dst  with
-		| None -> raise Send_Out_Failure
-		| Some nh -> (nh, o2v (Rtab.hopcount ~rt:rtab ~dst)) 
+		| None -> failed()
+		| Some nh -> nh
 	    in 
-	    if (ttl <= 0 ) then (
-	      s#log_warning (lazy (sprintf "zero/neg ttl for dst %d : %d" dst ttl));
-	    );
-	    L3pkt.set_l3ttl ~l3pkt ~ttl:ttl;
-	    if (decr_and_check_ttl()) then (
-	      (* since we accept rreps with same seqno but more hops, this invariant does
-		 not work*)
-	      (*	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;*)
 	      try begin
-		assert((L3pkt.l3ttl ~l3pkt) >= 0);
 		owner#mac_send_pkt ~l3pkt ~dstid:nexthop; end
-	      with Simplenode.Mac_Send_Failure ->
- 		raise Send_Out_Failure
-	    )
-    end
+	      with Simplenode.Mac_Send_Failure -> failed()
+	  end
 
+      | _ ->
+	  raise (Failure "AODV_agent.send_out: unexpected packet type")
+    end
   )
 		
 	
@@ -716,7 +638,6 @@ object(s)
 	    ~shc:0
 	    ()
 	  )
-	  ~ttl:0 (* will be set by send_out *)
 	  ()
       in
       let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
@@ -732,11 +653,10 @@ object(s)
 	with 
 	  | Send_Out_Failure -> 
 	      begin
-(*		s#log_notice 
-		  (sprintf 
+		s#log_notice 
+		  (lazy (sprintf 
 		    "Originating DATA pkt to dst %d failed, buffering."
-		    dst);
-*)
+		    dst));
 		let dst = (L3pkt.l3dst ~l3pkt) in
 		(* important to buffer packet first because send_rreq checks for
 		   this *)

@@ -43,7 +43,7 @@ type grep_l3hdr_ext_t = {
   mutable dhc : int; (* Destination hopcount: RREQ *)
   osrc : Common.nodeid_t; (* OBO Source: RREP *)
   osn : int;              (* OBO Seqno: RREP *)
-  mutable ohc : int;      (* OBO Hopcount: RREP *)
+  ohc : int;      (* OBO Hopcount: RREP *)
   rdst : Common.nodeid_t; (* Route request destination : RREQ *)
 }
 
@@ -140,7 +140,12 @@ let rdst ~(l3pkt:l3packet_t) =
 
 let incr_shc_pkt ~l3pkt  = 
   let ext = (get_grep_l3ext l3pkt) in
+  ext.shc <- ext.shc + 1
+
+let decr_shc_pkt ~l3pkt  = 
+  let ext = (get_grep_l3ext l3pkt) in
   ext.shc <- ext.shc - 1
+
 
 let get_ease_l3ext (l3hdr:l3hdr_t) = 
   match l3hdr.ext with

@@ -1,29 +1,11 @@
 (* should send_out distinguish exceptions between no nexthop and xmit failure ?*)
 
-(* 19may / removed code in simplenode that decrs shc when bcast has no
-   neighbors. should check throughout grep_agent that there are no places
-   where we reuse a packet, and where it would be necessary to correct a
-   needlessly changed (ttl or hopcount) field *)
-(* check that when pkt.src = pkt.l2src, we don't get confused with both
-   incrementing the seqno and updating it (though even if we do so, in this
-   order it shouldn't pose a problem *)
-
 (* can't there be races or other unexpected interactions when newadv
    immediately sends buffered packets? maybe safer to do this after haveing
    processed teh incoming packets (and also it would be more 'correct' since 
-   the currently processed packet shouldn't get preempted by this one *)
+   the currently processed packet shouldn't get preempted by this one) *)
 
-(*
-  are we incrementing p.ohc at each hop?? not right now, because we set the
-  hopcount to be p.ohc + p.shc (unlike RTR 3 which sets it as p.ohc).
-  Both are equivalent, need to see which is 'cleaner' and more consistent.
-  
-  we basically need to go over whole protocol spec from paper and verify
-  code...
-
-  go through ttl handling at all levels and check ok (ttl only used on flood packets)
-*)
-
+(* RTR 4 not implemented (updating entry to destination node) *)
 
 (*                                  *)
 (* mws  multihop wireless simulator *)
@@ -43,7 +25,7 @@ class type grep_agent_t =
     method private incr_seqno : unit -> unit
     method private inv_packet_upwards :
       nexthop:Common.nodeid_t -> l3pkt:L3pkt.l3packet_t -> unit
-    method private inv_ttl_zero : l3pkt:L3pkt.l3packet_t -> unit
+    method get_rtab : Rtab.rtab_t
     method newadv : 
       dst:Common.nodeid_t -> 
       rtent:Rtab.rtab_entry_t ->
@@ -62,10 +44,6 @@ class type grep_agent_t =
     method private process_rreq_pkt :
       l3pkt:L3pkt.l3packet_t -> 
       fresh:bool -> unit
-    method private newadv_rrep :
-      adv:L4pkt.grep_adv_payload_t ->
-      sender:Common.nodeid_t -> 
-      shc:int -> bool
     method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
@@ -104,6 +82,8 @@ object(s)
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()
   )
+
+  method get_rtab = rtab
 
   method private incr_seqno() = (
     seqno <- seqno + 1;
@@ -181,22 +161,6 @@ object(s)
       update
     )
 
-  (* wrapper around Grep_agent.newadv for those that come in 
-     radv/rrep packets *)
-  method private newadv_rrep
-    ~(adv:L4pkt.grep_adv_payload_t)
-    ~(sender:Common.nodeid_t) 
-    ~(shc:int)  = (
-      s#newadv 
-      ~dst:(adv.L4pkt.adv_dst)
-      ~rtent:{
-	Rtab.seqno = Some (adv.L4pkt.adv_seqno);
-	Rtab.hopcount = Some ((adv.L4pkt.adv_hopcount) + shc);
-	Rtab.nexthop = Some sender 
-      }
-      ()
-    )
-
   method private packet_fresh ~l3pkt = (
     let pkt_ssn = L3pkt.ssn ~l3pkt in
     match (Rtab.seqno ~rt:rtab ~dst:(L3pkt.l3src l3pkt)) with
@@ -265,13 +229,13 @@ object(s)
     raise Misc.Not_Implemented
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
-
+    
     let rdst = (L3pkt.rdst ~l3pkt) 
     and dsn =  (L3pkt.dsn ~l3pkt) 
-in
+    in
     s#log_info 
-    (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
-      (L3pkt.l3src ~l3pkt) rdst));
+      (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
+	(L3pkt.l3src ~l3pkt) rdst));
     match fresh with 
       | true -> 
 	  let answer_rreq = 
@@ -333,35 +297,25 @@ in
   )
 
   method private inv_packet_upwards ~nexthop ~l3pkt = (
-    (* this expects to be called just prior to sending l3pkt
-       and so assumes that ttl has already been decremented on l3pkt *)
+    (* this expects to be called just prior to sending l3pkt*)
+    let dst = (L3pkt.l3dst ~l3pkt) in
+    let  next_rt = (agent nexthop)#get_rtab in
+    let this_sn = Rtab.seqno ~rt:rtab ~dst
+    and this_hc = Rtab.hopcount ~rt:rtab ~dst
+    and next_sn = Rtab.seqno ~rt:next_rt ~dst
+    and next_hc = Rtab.hopcount ~rt:next_rt ~dst
 
-    let agent_nexthop = agent nexthop 
-    and dst = (L3pkt.l3dst ~l3pkt) in
+    in
     assert (
-      (agent_nexthop#newadv
-	~dst
-	~rtent:{
-	  Rtab.seqno = (Rtab.seqno ~rt:rtab ~dst);
-	  Rtab.hopcount = Some ((L3pkt.l3ttl ~l3pkt) + 1);
-	  Rtab.nexthop = Some 0 (* this rtent will be ignored anyway *)
-	}
-	()) = false
+      (this_sn < next_sn) || 
+      ((this_sn = next_sn) && (this_hc >= next_hc))
     )
-  )
-    
-  method private inv_ttl_zero ~l3pkt = (
-    assert ((L3pkt.l3ttl l3pkt)  = 0);
   )
     
   method private process_data_pkt 
     ~(l3pkt:L3pkt.l3packet_t) =  (
       
       if ((L3pkt.l3dst ~l3pkt) = owner#id) then (   (* for us *)
-	begin match L3pkt.l3grepflags ~l3pkt with
-	  | L3pkt.GREP_DATA | L3pkt.GREP_RREP -> s#inv_ttl_zero ~l3pkt
-	  | _ -> raise (Misc.Impossible_Case "Grep_agent.process_data_pkt");
-	end;
 	s#hand_upper_layer ~l3pkt;
       ) else (
 	if (s#packets_waiting ~dst:(L3pkt.l3dst ~l3pkt)) then (
@@ -372,16 +326,6 @@ in
 	  with 
 	    | Send_Out_Failure -> 
 		begin
-		  (* taken out of simplenode#mac_send_pkt, should not be
-		     there. 
-		     let l3hdr = L3pkt.l3hdr l3pkt in
-		     l3hdr.L3pkt.grep_shc <- l3hdr.L3pkt.grep_shc - 1;
-		     probably also need to check if other fields need to be
-		     set back to their proper values (esp ttl)
-		  *)
-		  raise (Failure "Grep_agent.process_data_pkt: fix packet");
-
-
 		  let dst = (L3pkt.l3dst ~l3pkt) in
 		  s#log_notice 
 		    (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
@@ -493,45 +437,28 @@ in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     assert (L3pkt.ssn ~l3pkt >= 1);
 
-    let decr_and_check_ttl() = (
-      L3pkt.decr_l3ttl ~l3pkt;
-
-      if ((L3pkt.l3ttl ~l3pkt) > ((Param.get Params.nodes)/10)) then (
-	s#log_warning (lazy (sprintf "Packet with ttl %d" (L3pkt.l3ttl
-	~l3pkt)));
-	let n_ngbrs = (List.length ((Gworld.world())#neighbors owner#id)) in
-	s#log_warning (lazy (sprintf "we have %d neighbors" n_ngbrs));
-      );
-
-      if ((L3pkt.l3ttl ~l3pkt) < 0) then (
-	s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));
-	
-	assert(
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RADV ||
-	  L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_RREQ
-	);
-	false
-      ) else true
-    )
-    in
+    let failed() = (
+      L3pkt.decr_shc_pkt ~l3pkt;
+      raise Send_Out_Failure
+    ) in
     s#incr_seqno();
     L3pkt.incr_shc_pkt ~l3pkt;
+    assert (L3pkt.shc ~l3pkt > 0);
     begin match (L3pkt.l3grepflags ~l3pkt) with
 
-      | L3pkt.NOT_GREP | L3pkt.EASE ->
-	  raise (Failure "Grep_agent.send_out")
-      | L3pkt.GREP_RERR ->
-	  raise (Misc.Impossible_Case "Grep_agent.send_out")
       | L3pkt.GREP_RADV 
       | L3pkt.GREP_RREQ -> 
-	  if (decr_and_check_ttl()) then (
-	    assert (dst = L3pkt._L3_BCAST_ADDR);
-	    Grep_hooks.sent_rreq() ;
-	    owner#mac_bcast_pkt ~l3pkt;
-	  )
-      | L3pkt.GREP_DATA 
+	  assert (dst = L3pkt._L3_BCAST_ADDR);
+	  L3pkt.decr_l3ttl ~l3pkt;
+	  begin match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
+	    | true -> 
+		Grep_hooks.sent_rreq() ;
+		owner#mac_bcast_pkt ~l3pkt;
+	    | false ->
+		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
+	  end
       | L3pkt.GREP_RREP ->
-	  if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
+	  begin if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
 	    if (L3pkt.l3src ~l3pkt) = owner#id then
 	      Grep_hooks.orig_data()
 	    else 
@@ -539,24 +466,22 @@ in
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
 	  );
-	  let (nexthop, ttl) = 
-	    match Rtab.nexthop ~rt:rtab ~dst  with
-	      | None -> raise Send_Out_Failure
-	      | Some nh -> (nh, o2v (Rtab.hopcount ~rt:rtab ~dst)) 
-	  in 
-	  L3pkt.set_l3ttl ~l3pkt ~ttl:ttl;
-	  if (decr_and_check_ttl()) then (
-	    (* since we accept rreps with same seqno but more hops, this invariant does
-	       not work*)
+	    let nexthop = 
+	      match Rtab.nexthop ~rt:rtab ~dst  with
+		| None -> failed()
+		| Some nh -> nh 
+	    in 
 	    (*	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;*)
 	    try begin
-	      assert((L3pkt.l3ttl ~l3pkt) >= 0);
 	      owner#mac_send_pkt ~l3pkt ~dstid:nexthop; end
-	    with Simplenode.Mac_Send_Failure ->
- 	      raise Send_Out_Failure
-	  )
+	    with Simplenode.Mac_Send_Failure -> failed()
+
+	  end
+      | _ ->
+	  raise (Failure "Grep_agent.send_out: unexpected packet type")
+
     end
- )
+  )
 		
 	
 
@@ -603,7 +528,6 @@ in
 	    ~shc:0
 	    ()
 	  )
-	  ~ttl:0 (* will be set by send_out *)
 	  ()
       in
       let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in

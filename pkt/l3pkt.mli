@@ -43,7 +43,7 @@ type grep_l3hdr_ext_t = {
   mutable dhc : int; (* Destination hopcount: RREQ *)
   osrc : Common.nodeid_t; (* OBO Source: RREP *)
   osn : int;              (* OBO Seqno: RREP *)
-  mutable ohc : int;      (* OBO Hopcount: RREP *)
+  ohc : int;      (* OBO Hopcount: RREP *)
   rdst : Common.nodeid_t; (* Route request destination : RREQ *)
 }
 
@@ -137,6 +137,7 @@ val dsdv_pkt : pkt:l3packet_t -> dsdv_payload_t
 
 (** {2 L3 Header Manipulators} *)
 val incr_shc_pkt : l3pkt:l3packet_t -> unit
+val decr_shc_pkt : l3pkt:l3packet_t -> unit
 
 
 val l3pkt_size : l3pkt:l3packet_t -> int
