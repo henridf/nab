@@ -181,8 +181,21 @@ bin/guitop: $(GUI_OBJ_FILES)
 	$(MLTOP) $(INCLUDE) $(GTK_STUFF) \
 	$(GUI_OBJ_FILES)  -o $@ 
 
-doc: $(GUI_OBJ_FILES)
-	$(OCAMLDOC) $(INCLUDE) $(GTK_STUFF) 	$(GUI_OBJ_FILES) 
+DOC_FILES = \
+	$(MWS_DIR)/*.ml \
+	$(MWS_DIR)/*.mli \
+	$(GUI_DIR)/*.ml \
+	$(GUI_DIR)/*.mli \
+	$(MISC_DIR)/*.ml \
+	$(MISC_DIR)/*.mli
+
+GUI_OBJ_ONLY_CMOS = $(filter %.cmo, $(GUI_OBJ_FILES))
+GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
+DOC_DIR = doc
+
+htmldoc:
+	$(OCAMLDOC) -html -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
+
 
 camlgtk-th: bin/camlgtk-th
 bin/camlgtk-th: 
