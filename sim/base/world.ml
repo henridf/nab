@@ -39,4 +39,5 @@ let str2mac s =
 	  -> Greedy_reflecting
       | "epfl" |  "epfl_world" 
 	  -> Epfl
+      | _ -> raise (Failure ("Invalid worldtype "^s))
 
