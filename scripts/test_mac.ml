@@ -32,7 +32,7 @@ let test_2_nodes ()=
   make_grep_nodes();
 
   let y_pos = (Param.get (Params.y_size)) /. 2.0 in
-  Nodes.iteri (fun nid -> 
+  Nodes.iteri (fun nid _ -> 
     let newpos = ( (float nid) *. node_spacing, y_pos ) in
     (Gworld.world())#movenode ~nid ~newpos 
   );
@@ -68,7 +68,7 @@ let test_long_string ()=
   make_grep_nodes();
 
   let y_pos = (Param.get (Params.y_size)) /. 2.0 in
-  Nodes.iteri (fun nid -> 
+  Nodes.iteri (fun nid _ -> 
     let newpos = ( (float nid) *. node_spacing, y_pos ) in
     (Gworld.world())#movenode ~nid ~newpos 
   );
