@@ -63,12 +63,11 @@ let strset_log_level s = current_log_level := loglevel_of_string s
 
  *)
 
-
 class inheritable_loggable = 
 object(s) 
   val mutable objdescr = ""
   method private set_objdescr 
-    ?(owner:#inheritable_loggable option) 
+    ?(owner : inheritable_loggable option)
     s = 
     let base = 
       match owner with 

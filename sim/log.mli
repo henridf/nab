@@ -25,10 +25,13 @@ val set_log_level : level:log_level_t -> unit
 
 val strset_log_level : string -> unit
   (** Set the log level via a string (for example provided as cmdline argument). *)
-  
+
 (** This class provides a bunch of straightforward logging methods, and is
-  designed to be inherited anywhere. Methods are private so that inheriting
-  classes do not need to explicitly list all these method in the interface. *)
+  designed to be inherited by any class which needs to log messages. 
+
+  [log_*] methods are private so that only the object itself can use them, and
+  so that inheriting classes do not need to explicitly list all these method
+  in the interface *)
 class inheritable_loggable :
 
   object
@@ -56,7 +59,7 @@ class inheritable_loggable :
     method objdescr : string
       (** Returns this object's objdescr *)
 
-    method private set_objdescr : ?owner:#inheritable_loggable -> string -> unit
+    method private set_objdescr : ?owner:inheritable_loggable -> string -> unit
       (** This should be used by an inheriting class to set the objdescr. If
 	the object is "owned" by another object, it can pass along the owner
 	so that the objdescr will be built as the concatenation of the owner's
