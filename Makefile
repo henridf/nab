@@ -12,7 +12,6 @@ endif
 
 LER_SUBDIR = ler
 LLER_SUBDIR = ller
-BLER_SUBDIR = bler
 MISC_SUBDIR = misc
 TEST_SUBDIR = test
 BIN_SUBDIR = bin
@@ -20,7 +19,7 @@ LIB_SUBDIR = /usr/lib/ocaml
 CAMLIMAGES_SUBDIR = $(LIB_SUBDIR)/camlimages
 
 
-INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LLER_SUBDIR) -I $(CAMLIMAGES_SUBDIR) 
+INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(LLER_SUBDIR) -I $(CAMLIMAGES_SUBDIR) 
 
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
@@ -29,18 +28,17 @@ SUBDIRS = \
 	$(MISC_SUBDIR) \
 	$(TEST_SUBDIR) \
 	$(LER_SUBDIR) \
-	$(LLER_SUBDIR) \
-	$(BLER_SUBDIR)
+	$(LLER_SUBDIR) 
+
 
 DEPEND = .depend
 
 DEPENDS = \
 	$(LER_SUBDIR)/*.ml \
 	$(LER_SUBDIR)/*.mli \
+	$(TEST_SUBDIR)/*.mli \
 	$(LLER_SUBDIR)/*.ml \
 	$(LLER_SUBDIR)/*.mli \
-	$(BLER_SUBDIR)/*.ml \
-	$(BLER_SUBDIR)/*.mli \
 	$(MISC_SUBDIR)/*.ml \
 	$(MISC_SUBDIR)/*.mli
 
@@ -62,38 +60,30 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 
 
 
-LER_OBJ_FILES = $(CAMLIMAGES_LIB) \
+LER_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_OBJ_FILES) \
-		$(LER_SUBDIR)/ler_utils$(CMO) \
 		$(MISC_SUBDIR)/graph$(CMO) \
-		$(MISC_SUBDIR)/lattice$(CMO) \
+		$(LER_SUBDIR)/ler$(CMO) \
+		$(MISC_SUBDIR)/ler_graphics$(CMO) \
+		$(LER_SUBDIR)/movements$(CMO) \
 		$(LLER_SUBDIR)/larray$(CMO) \
 		$(LLER_SUBDIR)/circbuf$(CMO) \
 		$(LLER_SUBDIR)/itin$(CMO) \
-		$(LER_SUBDIR)/ler$(CMO) \
-		$(MISC_SUBDIR)/ler_graphics$(CMO) \
+		$(LER_SUBDIR)/ease$(CMO) \
+		$(LER_SUBDIR)/abf$(CMO) \
 		$(LER_SUBDIR)/ler_main$(CMO)
 
 LLER_OBJ_FILES = $(MISC_OBJ_FILES) \
 		 $(MISC_SUBDIR)/data$(CMO) \
 		 $(MISC_SUBDIR)/graph$(CMO) \
-	  	 $(MISC_SUBDIR)/lattice$(CMO) \
 		 $(LLER_SUBDIR)/larray$(CMO) \
 		 $(LLER_SUBDIR)/circbuf$(CMO) \
 		 $(LLER_SUBDIR)/itin$(CMO) \
 	  	 $(LLER_SUBDIR)/ller$(CMO) \
 		 $(LLER_SUBDIR)/ller_main$(CMO)
 
-
-BLER_OBJ_FILES = $(GFX_LIB) \
-		$(MISC_OBJ_FILES) \
-		$(BLER_SUBDIR)/ler_graphics$(CMO) \
-		$(BLER_SUBDIR)/bler$(CMO) \
-		$(BLER_SUBDIR)/bler_main$(CMO) 
-
 MODULE_OBJ_FILES = \
 	$(MISC_SUBDIR)/graph$(CMO) \
-	$(MISC_SUBDIR)/lattice$(CMO) \
 	$(LLER_SUBDIR)/larray$(CMO) \
 	$(LLER_SUBDIR)/circbuf$(CMO) \
 	$(LLER_SUBDIR)/itin$(CMO)
@@ -109,7 +99,8 @@ DOPLOTS_OBJ_FILES = \
 		$(MISC_SUBDIR)/doplots$(CMO) 	
 
 
-MISC_OBJ_FILES = $(MISC_SUBDIR)/misc$(CMO) 
+MISC_OBJ_FILES = $(MISC_SUBDIR)/misc$(CMO) \
+		 $(MISC_SUBDIR)/coord$(CMO)
 
 GRAPH_OBJ_FILES = \
 		$(MISC_OBJ_FILES) \
@@ -118,8 +109,8 @@ GRAPH_OBJ_FILES = \
 
 TEST_OBJ_FILES = \
 	$(TEST_SUBDIR)/testUtils$(CMO) \
+	$(MISC_SUBDIR)/coord$(CMO) \
 	$(TEST_SUBDIR)/graph-test$(CMO) \
-	$(TEST_SUBDIR)/lattice-test$(CMO) \
 	$(TEST_SUBDIR)/itin-test$(CMO) \
 	$(TEST_SUBDIR)/circbuf-test$(CMO)
 
@@ -133,21 +124,16 @@ TEST_OBJ_FILES = \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
+im2png: misc/im2png$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(CAMLIMAGES_LIBS) misc/im2png$(CMO)
+
 exp: bin/exp
 bin/exp:  $(LER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(CAMLIMAGES_LIBS) $(LER_OBJ_FILES) -o $@ 
-
-bler:  $(BLER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(LER_OBJ_FILES) -o $@ 
+#	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(CAMLIMAGES_LIBS) $(LER_OBJ_FILES) -o $@ 
 
 doplots: $(DOPLOTS_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(DOPLOTS_OBJ_FILES) $(DOPLOTS_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
-
-graph-test: $(GRAPH_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(GRAPH_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
-
-proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
 
 testmodules:  $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES) $(TEST_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
@@ -159,7 +145,7 @@ bin/ller: $(LLER_OBJ_FILES)
 ocamlgfx: 
 	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
 
-all: bler exp doplots graph-test
+all: exp doplots graph-test
 
 CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out); done
 EMACSCLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *~; rm -f .*~); done
