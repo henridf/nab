@@ -24,7 +24,7 @@
 
 let avg_degree = 9
 type warmup_type = TRAFFIC | MOB  | NONE
-type agent_type = AODV | GREP | STR_MAX | STR_AGE | STR_AODV
+type agent_type = AODV | STR_MAX | STR_AGE | STR_AODV | LER_FRESH | LER_GREASE | LER_EASE
 
 
 module Config = 
@@ -81,7 +81,9 @@ struct
     | "str"  | "str-max" | "str_max" -> STR_MAX
     | "str-age" | "str_age" -> STR_AGE
     | "str-aodv" | "str_aodv" -> STR_AODV
-    | "grep" | "GREP" -> GREP
+    | "ler_fresh" | "ler-fresh" -> LER_FRESH
+    | "ler_ease" | "ler-ease" -> LER_EASE
+    | "ler_grease" | "ler-grease" -> LER_GREASE
     | _ -> raise (Failure "Invalid format for agent type")
 
   let string_of_agent = function
@@ -89,7 +91,9 @@ struct
     | STR_MAX -> "str_max" 
     | STR_AGE -> "str_age"
     | STR_AODV -> "str_aodv"
-    | GREP -> "grep"
+    | LER_FRESH -> "ler-fresh"
+    | LER_GREASE -> "ler-grease" 
+    | LER_EASE -> "ler-grease" 
 
   let agent = Param.create
     ~name:"agent"
@@ -117,7 +121,7 @@ let sprint_added_stats() =
       Aodv_agent.Aodv_stats.sprint_stats tot
     | STR_AODV | STR_MAX | STR_AGE -> let tot = Str_agent.total_stats() in
       Str_agent.sprint_stats tot
-    | GREP -> ""
+    | LER_FRESH | LER_EASE | LER_GREASE -> ""
 
 let sprint_added_jdbstats() = 
   match Param.get Config.agent with
@@ -125,7 +129,7 @@ let sprint_added_jdbstats() =
     | STR_AODV | STR_MAX | STR_AGE -> 
 	let tot = Str_agent.total_stats() in
 	Str_agent.sprint_jdbstats tot
-    | GREP -> ""
+    | LER_FRESH | LER_EASE | LER_GREASE -> ""
 
 let encounter_ratio() = 
 
@@ -229,8 +233,10 @@ let setup_sim () =
     | STR_AGE -> Script_utils.make_str_nodes Str_rtab.STR_AGE;
     | STR_MAX -> Script_utils.make_str_nodes Str_rtab.STR_MAX;
     | STR_AODV -> Script_utils.make_str_nodes Str_rtab.STR_AODV;
-    | GREP -> failwith "grep not working no more"
-  end;
+    | LER_FRESH -> Script_utils.make_ler_agents Ler_agent.FRESH 
+    | LER_EASE -> Script_utils.make_ler_agents Ler_agent.EASE
+    | LER_GREASE -> Script_utils.make_ler_agents Ler_agent.GREASE
+end;
 
   Script_utils.install_mobs ()
 

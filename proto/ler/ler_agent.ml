@@ -31,7 +31,7 @@
 type ler_proto_t = EASE | GREASE | FRESH
 
 open Printf
-
+let sp = Printf.sprintf
 
 let ntargets = 
   Param.intcreate 
@@ -40,6 +40,10 @@ let ntargets =
     ~doc:"Number of targets in Simulation"
     ()
 
+
+type persist_t =  
+    {le_state : Le_tab.le_tab_state_t;
+    proto:ler_proto_t}
 
 let agents_array_ = 
   Array.init Node.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
@@ -58,20 +62,21 @@ let proportion_met_nodes ?(stack=0) () =
   (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
 
 
+
 class ler_agent ?(stack=0) ~proto theowner = 
 object(s)
   
   (* We inherit from the base routing agent class. This is documented in
      rt_agent_base.ml and rt_agent.mli. *)
-  inherit [unit] Rt_agent_base.base ~stack theowner 
+  inherit [unit, persist_t] Rt_agent_base.base_persist ~stack theowner 
     
   val mutable le_tab = new Le_tab.le_tab ~ntargets:(Param.get ntargets)
 
-  val fresh = if proto = FRESH then true else false 
-  val grease = if proto = GREASE then true else false (* EASE or GREASE? *)
+  val mutable fresh = if proto = FRESH then true else false 
+  val mutable grease = if proto = GREASE then true else false (* EASE or GREASE? *)
     
   method le_tab = le_tab
-  method set_le_tab tab = le_tab <- tab
+
 
   initializer (
     let agent = match proto with 
@@ -246,15 +251,15 @@ object(s)
       
       if closest_id = myid then (
 	
-	s#log_debug (lazy (sprintf "We are closest to anchor"));
-	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
+	s#log_debug (lazy (sp "We are closest to anchor"));
+	s#log_debug (lazy (sp "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
 	  (Coord.sprintf (Nodes.node dst)#pos)));
 	
 	s#recv_ler_pkt_ pkt
       ) else (   
 	(* geographically forward toward anchor  *)
-	s#log_debug (lazy (sprintf "Forwarding geographically to %d" closest_id));
-	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
+	s#log_debug (lazy (sp "Forwarding geographically to %d" closest_id));
+	s#log_debug (lazy (sp "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
 	  (Coord.sprintf (Nodes.node dst)#pos)))
       );
 
@@ -271,7 +276,7 @@ object(s)
     let ler_hdr = L3pkt.ler_hdr pkt in
 
     s#log_info 
-      (lazy (sprintf "received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
+      (lazy (sp "received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
 	(L3pkt.l3src pkt)
 	(L3pkt.l3dst pkt)
  	(Ler_pkt.enc_age ler_hdr)
@@ -283,7 +288,7 @@ object(s)
     match myid = dst with
 	
       | true -> (* We are destination. *)
-	  s#log_debug (lazy (sprintf "packet has arrived"));
+	  s#log_debug (lazy (sp "packet has arrived"));
 
       | false ->  (* We are src or intermediate hop *)
 
@@ -321,9 +326,60 @@ object(s)
 	  s#fw_pkt_ pkt
   )
     
-    
   method stats = ()
+    
+  method dump_state () = 
+    {le_state = le_tab#dump_state;
+    proto=proto;
+    }
 
+  method read_state (s : persist_t) = 
+    let new_tab = new Le_tab.le_tab ~ntargets:(Param.get ntargets) in
+    new_tab#load_state s.le_state;
+    le_tab <- new_tab
 
 end
 
+module Persist : Persist.t = 
+struct
+  type description = int array
+      (* array indexed by stack #, contains the number of agents to be read
+	 for each stack. *)
+      
+  let save oc = 
+    Log.log#log_notice (lazy "Saving LER agent states..");
+
+    let descr : description = 
+      Array.init Node.max_nstacks 
+	(fun stack -> Misc.hashlen agents_array_.(stack))
+    in
+    Marshal.to_channel oc descr [];
+
+    for stack = 0 to Node.max_nstacks - 1 do
+      let agents = agents_array_.(stack) in
+      Hashtbl.iter (fun nid agent -> 
+	Marshal.to_channel oc (nid, agent#dump_state()) []) agents
+    done;
+    Log.log#log_notice (lazy "Done.")
+
+
+  let restore ic = 
+
+    Log.log#log_notice (lazy (sp "Restoring LER agent states..."));
+    let descr = (Marshal.from_channel ic : description) in
+
+    Array.iteri (fun stack n_agents -> 
+      for i = 0 to n_agents - 1 do
+	let (nid, state) = 
+	  (Marshal.from_channel ic : Common.nodeid_t * persist_t) in
+	let node = Nodes.node nid in
+	let agent = 
+	  (new ler_agent ~stack ~proto:state.proto node) in 
+	agent#read_state state;
+	node#install_rt_agent ~stack ( agent :> Rt_agent.t);
+      done;
+    ) descr;
+
+    Log.log#log_notice (lazy "Done. (restoring LER agent states)")
+
+end

@@ -42,7 +42,7 @@ module Persist_Nodes : Persist.t = struct
     Log.log#log_notice (lazy "Done saving node state.")
 
 
-  let restore ?(verbose=false) ic = 
+  let restore ic = 
 
     Log.log#log_notice (lazy (sp "Restoring node state..."));
     let n_nodes = (Marshal.from_channel ic : int) in
@@ -64,7 +64,7 @@ end
 
 module Persist_World : Persist.t = struct
   
-  let restore ?(verbose=false) ic = 
+  let restore ic = 
     Script_utils.init_world()
   let save oc = ()
 end
@@ -79,7 +79,7 @@ type persistable_item =
     | `World 
     | `Nodes 
     | `Mobs
-    | `Str_agents]
+    | `Rt_agents]
 
 let save_item oc item = 
   Marshal.to_channel oc item [];
@@ -89,29 +89,29 @@ let save_item oc item =
     | `Nodes -> Persist_Nodes.save oc
     | `Mobs -> Mob_ctl.Persist.save oc
     | `World -> Persist_World.save oc
-    | `Str_agents -> Str_agent.Persist.save oc
+    | `Rt_agents -> Rt_agent_persist.Persist.save oc
   end
   
 
-let restore_item ~verbose ic = 
+let restore_item ic = 
   let item = 
     (Marshal.from_channel ic : persistable_item) in
   begin match item with
     | `Params -> 
-	Param.Persist.restore ~verbose ic;
+	Param.Persist.restore ic;
 	(* cmdline args overwrite config state*)
 	Arg.current := 0;
 	Script_utils.parse_args ();
     | `Time -> Time.Persist.restore ic;
 	Log.log#log_notice (lazy (sp "Time restored to: %f" (Time.time())));
-    | `Nodes -> Persist_Nodes.restore ~verbose ic
-    | `Mobs -> Mob_ctl.Persist.restore ~verbose ic
-    | `World -> Persist_World.restore ~verbose ic
-    | `Str_agents -> Str_agent.Persist.restore ~verbose ic
+    | `Nodes -> Persist_Nodes.restore ic
+    | `Mobs -> Mob_ctl.Persist.restore ic
+    | `World -> Persist_World.restore ic
+    | `Rt_agents -> Rt_agent_persist.Persist.restore ic
   end
 
 let save_sim_items = 
-  ([`Params; `Time; `World; `Nodes; `Mobs; `Str_agents] : 
+  ([`Params; `Time; `World; `Nodes; `Mobs; `Rt_agents] : 
   [> persistable_item ] list)
   (* this cast is to 'open' the type, since when it is read back the type may
      have grown. not sure if not doing this would be dangerous, but playing it
@@ -125,7 +125,7 @@ let save_sim oc =
 let restore_sim ?(verbose=true) ic = 
   let n_items = (Marshal.from_channel ic : int) in
   for i = 0 to n_items - 1 do 
-    restore_item ~verbose ic
+    restore_item ic
   done
     
 

@@ -44,6 +44,7 @@ open Aodv_defaults
 open Printf
 open Misc
 
+let sp = Printf.sprintf
 
 module Aodv_stats = struct 
   type stats = {
@@ -125,6 +126,13 @@ let sprint_stats s =
 
 end
 
+type persist_t = {
+  localrepair:bool;
+  dstonly:bool;
+  seqno:int;
+  rt:Aodv_rtab.t
+}
+
 let agents_array_  =  Array.init Node.max_nstacks 
   (fun _ -> Hashtbl.create (Param.get Params.nodes))
 
@@ -136,7 +144,7 @@ class aodv_agent ?(stack=0) ?(localrepair=true) ?(dstonly=false) theowner  =
 object(s)
 
 
-  inherit [S.stats] Rt_agent_base.base ~stack theowner 
+  inherit [S.stats, persist_t] Rt_agent_base.base_persist ~stack theowner 
 
   (* 
    *  Instance Variables. 
@@ -150,7 +158,7 @@ object(s)
 
   val default_rreq_flags = {g=true; d=dstonly; u=false}
 
-  val rt = Aodv_rtab.create 100
+  val mutable rt = Aodv_rtab.create 100
     (* our routing table *)
 
   val pktqs : (Common.nodeid_t, L3pkt.t Queue.t) Hashtbl.t = 
@@ -258,7 +266,7 @@ object(s)
 	while true do
 	  let l3pkt = Queue.pop pktqueue in
 	  s#log_info 
-	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+	    (lazy (sp "Sending buffered DATA pkt from src %d to dst %d."
 	      (L3pkt.l3src l3pkt) dst));
 	  
 	  Aodv_rtab.set_lifetime rt dst aodv_ACTIVE_ROUTE_TIMEOUT;
@@ -293,7 +301,7 @@ object(s)
 	end
       | false -> 
 	  stats.S.data_drop_overflow <- stats.S.data_drop_overflow + 1;
-	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" dst));
+	  s#log_notice (lazy (sp "Dropped packet for dst %d" dst));
   )
 
 
@@ -410,7 +418,7 @@ object(s)
   method private process_rreq_pkt src ttl rreq = (
     (* Follows the steps from rfc 6.5 *)
 
-    s#log_info (lazy (sprintf "Received RREQ pkt (originator %d), dst %d"
+    s#log_info (lazy (sp "Received RREQ pkt (originator %d), dst %d"
 	rreq.rreq_orig rreq.rreq_dst));
 
     (* 0. Increment hopcount on packet. *)
@@ -430,7 +438,7 @@ object(s)
 
     Hashtbl.replace rreq_cache (rreq.rreq_orig, rreq.rreq_id) (Time.time());
     if discard then 
-      s#log_debug (lazy (sprintf "Dropping RREQ pkt (originator %d), dst %d"
+      s#log_debug (lazy (sp "Dropping RREQ pkt (originator %d), dst %d"
 	rreq.rreq_orig rreq.rreq_dst))
     else (
       (* 3. Otherwise, continue RREQ processing. 
@@ -519,7 +527,7 @@ object(s)
     Hashtbl.replace ers_uids dst ers_uid;
 
     Aodv_rtab.repair_start rt dst;
-    s#log_info (lazy (sprintf "Originating RREQ for dst %d" dst));
+    s#log_info (lazy (sp "Originating RREQ for dst %d" dst));
     let start_ttl = match Aodv_rtab.hopcount_opt rt dst with 
       | Some hc -> aodv_TTL_INCREMENT + hc
       | None -> aodv_TTL_START in
@@ -535,7 +543,7 @@ object(s)
     Hashtbl.replace ers_uids dst ers_uid;
 
     Aodv_rtab.repair_start rt dst;
-    s#log_info (lazy (sprintf "Originating RREQ for dst %d (local repair)" dst));
+    s#log_info (lazy (sp "Originating RREQ for dst %d (local repair)" dst));
 
     let aodv_MIN_REPAIR_TTL = Opt.default 0 (Aodv_rtab.hopcount_opt rt dst)
     and bw_hops = Opt.default 0 (Aodv_rtab.hopcount_opt rt src) in
@@ -683,7 +691,7 @@ object(s)
     *)
     
     if beb lsr aodv_RREQ_RETRIES = 1 then (
-      s#log_info (lazy (sprintf "Reached RREQ_RETRIES for dst %d, abandoning" dst));
+      s#log_info (lazy (sp "Reached RREQ_RETRIES for dst %d, abandoning" dst));
       s#drop_buffered_packets ~dst;
       Aodv_rtab.repair_end rt dst
     ) else if s#ers_uid dst ers_uid && (Aodv_rtab.repairing rt dst) then
@@ -691,7 +699,7 @@ object(s)
 	
 	(* If we are done repairing this route (maybe a rreq from that node
 	   arrived in the meantime) then we would not emit a new RREQ.*)
-	s#log_info (lazy (sprintf 
+	s#log_info (lazy (sp 
 	  "ERS RREQ pkt for dst %d with radius %d" dst radius));
 	
 	rreq_id <- rreq_id + 1;
@@ -736,7 +744,7 @@ object(s)
       ) else (
 	(* we cannot send the RREQ immediately, because if so we would not be
 	   respecting RREQ_RATELIMIT. So, we will try again in a little bit.*)
-	s#log_info (lazy (sprintf 
+	s#log_info (lazy (sp 
 	  "Delaying RREQ to %d by 0.2 due to rreq ratelimiting" dst));
 	let evt() = s#send_rreq ~local ~beb ~radius ~dst ~ers_uid ()
 	in (Sched.s())#sched_in ~f:evt ~t:0.2;
@@ -747,7 +755,7 @@ object(s)
   method private process_rrep_pkt src ttl rrep  = (
     (* Follows the steps from rfc 6.7 *)
 
-    s#log_info (lazy (sprintf "Received RREP pkt (originator %d, dst %d)"
+    s#log_info (lazy (sp "Received RREP pkt (originator %d, dst %d)"
 	rrep.rrep_orig rrep.rrep_dst));
 
     (* 1. Update route to previous hop.*)
@@ -895,13 +903,13 @@ object(s)
      the node *)
   method private hand_upper_layer ~l3pkt = (
     stats.S.data_recv <- stats.S.data_recv + 1;
-    s#log_info (lazy (sprintf "Received app pkt from src %d" (L3pkt.l3src l3pkt)));
+    s#log_info (lazy (sp "Received app pkt from src %d" (L3pkt.l3src l3pkt)));
   )
 
   
   method private recv_pkt_app (l4pkt : L4pkt.t) dst = (
     stats.S.data_orig <- stats.S.data_orig + 1;
-    s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
+    s#log_info (lazy (sp "Originating app pkt with dst %d" dst));
     let l3pkt = (s#make_l3aodv ~dst DATA) in
     if dst = myid then
       s#hand_upper_layer ~l3pkt
@@ -911,6 +919,17 @@ object(s)
 
   method stats = stats
 
+  method read_state s = 
+    myseqno <- s.seqno;
+    rt <- s.rt
+    
+  method dump_state() = {
+  localrepair=localrepair;
+  dstonly=dstonly;
+  seqno=myseqno;
+  rt=rt
+  }
+
 end
 
 let total_stats ?(stack=0) () = 
@@ -919,3 +938,46 @@ let total_stats ?(stack=0) () =
     agents_array_.(stack)
     (S.create_stats())
 
+module Persist : Persist.t = struct
+  
+  type description = int array
+      (* array indexed by stack #, contains the number of agents to be read
+	 for each stack. *)
+      
+  let save oc = 
+    Log.log#log_notice (lazy "Saving AODV agent states..");
+
+    let descr : description = 
+      Array.init Node.max_nstacks 
+	(fun stack -> Misc.hashlen agents_array_.(stack))
+    in
+    Marshal.to_channel oc descr [];
+
+    for stack = 0 to Node.max_nstacks - 1 do
+      let agents = agents_array_.(stack) in
+      Hashtbl.iter (fun nid agent -> 
+	Marshal.to_channel oc (nid, agent#dump_state()) []) agents
+    done;
+    Log.log#log_notice (lazy "Done.")
+
+
+  let restore ic = 
+
+    Log.log#log_notice (lazy (sp "Restoring AODV agent states..."));
+    let descr = (Marshal.from_channel ic : description) in
+
+    Array.iteri (fun stack n_agents -> 
+      for i = 0 to n_agents - 1 do
+	let (nid, state) = 
+	  (Marshal.from_channel ic : Common.nodeid_t * persist_t) in
+	let node = Nodes.node nid in
+	let agent = 
+	  (new aodv_agent ~stack ~localrepair:state.localrepair ~dstonly:state.dstonly node) in 
+	agent#read_state state;
+	node#install_rt_agent ~stack (agent :> Rt_agent.t);
+      done;
+    ) descr;
+
+    Log.log#log_notice (lazy "Done. (restoring AODV agent states)")
+
+end

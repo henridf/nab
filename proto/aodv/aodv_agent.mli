@@ -86,11 +86,22 @@ val total_stats : ?stack:int -> unit -> Aodv_stats.stats
     (default stack is 0). *)
   
 
+type persist_t = {
+  localrepair:bool;
+  dstonly:bool;
+  seqno:int;
+  rt:Aodv_rtab.t
+}
+
 class aodv_agent : ?stack:int -> ?localrepair:bool -> ?dstonly:bool -> #Node.node -> 
 object
 
   inherit Rt_agent.t 
 
   method stats : Aodv_stats.stats
+  method read_state : persist_t -> unit
+  method dump_state : unit -> persist_t
 
 end
+
+module Persist : Persist.t 

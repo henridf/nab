@@ -6,10 +6,11 @@
 ifdef OPT
 	include mk/ocamlopt.mk
 else
-	include  mk/ocaml.mk	
+	include mk/ocaml.mk	
 endif
 
-CAML_BIN_DIR	= $(dir $(shell which ocamlc))
+CAML_BIN_DIR =/home/henridf/local/bin/
+# $(dir $(shell which ocamlc))
 
 OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc
 OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
@@ -27,12 +28,11 @@ SIM_DIRS = $(SIM_BASE_DIR) $(SIM_INTF_DIR) $(SIM_MAC_DIR) $(SIM_MOB_DIR) $(SIM_P
 
 PROTO_DIR = proto
 PROTO_LER_DIR = $(PROTO_DIR)/ler
-PROTO_GREP_DIR = $(PROTO_DIR)/grep
 PROTO_STR_DIR = $(PROTO_DIR)/str
 PROTO_AODV_DIR = $(PROTO_DIR)/aodv
 PROTO_DIFF_DIR = $(PROTO_DIR)/diff
 PROTO_MISC_DIR = $(PROTO_DIR)/misc
-PROTO_DIRS = $(PROTO_GREP_DIR) $(PROTO_STR_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
+PROTO_DIRS = $(PROTO_STR_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
 	$(PROTO_MISC_DIR) $(PROTO_LER_DIR) 
 
 SIM_LIB_DIR = lib
@@ -142,7 +142,6 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_PKT_DIR)/pkt_common$(CMO) \
 		$(SIM_PKT_DIR)/l4pkt$(CMO) \
 		$(PROTO_LER_DIR)/ler_pkt$(CMO) \
-		$(PROTO_GREP_DIR)/grep_pkt$(CMO) \
 		$(PROTO_STR_DIR)/str_pkt$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
@@ -175,7 +174,6 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/MACA_simple$(CMO) \
 		$(SIM_MAC_DIR)/MACA_contention$(CMO) \
 		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
-		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_MOB_DIR)/mob_base$(CMO) \
 		$(SIM_MOB_DIR)/waypoint$(CMO) \
 		$(SIM_MOB_DIR)/billiard$(CMO) \
@@ -188,9 +186,9 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_AODV_DIR)/aodv_defaults$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_rtab$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
-		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
 		$(PROTO_STR_DIR)/str_agent$(CMO) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
+		$(SIM_BASE_DIR)/rt_agent_persist$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
 		$(PROTO_MISC_DIR)/null_agent$(CMO) \
@@ -251,7 +249,6 @@ allopttargets: nab grepviz nabviz
 nab: bin/nab
 bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
-
 
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grepviz$(CMO)

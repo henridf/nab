@@ -52,6 +52,10 @@
 
 type ler_proto_t = EASE | GREASE | FRESH
 
+type persist_t = 
+    {le_state : Le_tab.le_tab_state_t;
+    proto:ler_proto_t}
+
 
 (** Pass [true] for [grease] argument to constructor to get a GREASE agent,
   [false] to get EASE. *)
@@ -61,8 +65,9 @@ object
   inherit Rt_agent.t
     
   method le_tab : Le_tab.le_tab
-  method set_le_tab : Le_tab.le_tab -> unit
   method stats : unit
+  method read_state : persist_t -> unit
+  method dump_state : unit -> persist_t
 end
 
 
@@ -82,3 +87,4 @@ val proportion_met_nodes : ?stack:int -> unit -> float
 
 
 
+module Persist : Persist.t 
