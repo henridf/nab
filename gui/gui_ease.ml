@@ -28,7 +28,7 @@ open Misc
 open GMain
 
 
-let nstacks = 2
+let nstacks = 3
 
 let routes = Array.init nstacks (fun _ -> (Route.create()))
 let clear_routes() =  Array.iteri (fun i _ -> routes.(i) <- (Route.create())) routes
@@ -47,10 +47,13 @@ let text_entry = ref false
 
 (* Are we displaying the EASE or the GREASE route ? *)
 let proto = ref `GREASE
-let stack_of_proto() = match !proto with `GREASE -> 0 | `EASE -> 1 
+let stack_of_proto() = match !proto with `GREASE -> 0 | `EASE -> 1 | `FRESH -> 2
 
 (* Destination is 0 by default. Source is chosen by user. *)
 let dst = 0
+
+let src = ref 1 (* source will be chosen by user *)
+
 
 
 let running = ref false
@@ -96,7 +99,10 @@ let start_stop () = (
 )
 
 
+let route_ctr = ref 0
 let set_src nid = ( 
+
+  src := nid;
 
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" nid dst);
   Log.log#log_always (lazy (Printf.sprintf "Destination is at %s"
@@ -104,18 +110,24 @@ let set_src nid = (
   
   clear_routes();
   Gui_hooks.routes_done := 0;
-  let r = [|ref []; ref []|] in
+  let r = [|ref []; ref []; ref []|] in
   
   for stack = 0 to nstacks - 1  do
-    let in_mhook = Gui_hooks.ease_route_pktin_mhook r.(stack) in 
-    let out_mhook = Gui_hooks.ease_route_pktout_mhook r.(stack) in
+
+    let in_mhook = 
+      Gui_hooks.ease_route_pktin_mhook ~num:!route_ctr r.(stack) in 
+    let out_mhook = 
+      Gui_hooks.ease_route_pktout_mhook ~num:!route_ctr r.(stack) in
+
     Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ~stack ());
     Nodes.gpsiter (fun n -> n#add_pktin_mhook ~stack in_mhook);
     Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack out_mhook);
+
   done;
 
-  (Nodes.node nid)#originate_app_pkt ~dst;
-  
+  (Nodes.node nid)#originate_app_pkt ~l4pkt:(`APP_PKT !route_ctr) ~dst;
+  incr route_ctr;
+
   (Sched.s())#run_until 
   ~continue:(fun () -> 
     !Gui_hooks.routes_done < nstacks;
@@ -123,8 +135,9 @@ let set_src nid = (
   
   routes.(0) <- !(r.(0));
   routes.(1) <- !(r.(1));
+  routes.(2) <- !(r.(2));
 
-(*  Printf.printf "%s\n" (Route.sprintnid ( !routeref));flush stdout;*)
+  Log.log#log_info  (lazy (Route.sprintnid routes.(stack_of_proto())));
 (*
   ignore (Route.ease_route_valid !routeref 
     ~dst
@@ -145,7 +158,7 @@ let choose_node () = (
     start_stop();
   );
   if !text_entry then
-    Gui_ops.dialog_pick_node ~default:92 ~node_picked_cb:set_src ()
+    Gui_ops.dialog_pick_node ~default:!src ~node_picked_cb:set_src ()
   else
     Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:set_src ()
 )
@@ -156,6 +169,7 @@ let refresh_fun () = ignore (refresh())
 let radiobuttonlist = [
   ("GREASE", [`FUNC (fun () -> proto := `GREASE); `FUNC refresh_fun]);
   ("EASE", [`FUNC (fun () -> proto := `EASE); `FUNC refresh_fun]);
+  ("FRESH", [`FUNC (fun () -> proto := `FRESH); `FUNC refresh_fun]);
 ]
 
 let buttonlist = [
