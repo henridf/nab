@@ -22,7 +22,6 @@ object(s: #Node.node_t)
 
   val mutable neighbors  = []
   val mutable pos = pos_init
-  val mutable bler_agent = None
   val mutable mob_getnewpos = fun ~node -> (0.0,0.0)
   val mutable speed = 0.0
 
@@ -33,8 +32,8 @@ object(s: #Node.node_t)
   val mutable recv_pkt_hooks = []
   val mutable recv_l2pkt_hooks = []
   val mutable app_send_pkt_hook = fun pkt ~dst -> ()
-  val mutable control_hook = fun p -> ()
-  val mutable mhook = fun p a -> ()
+  val mutable pktin_mhooks = []
+  val mutable pktout_mhooks = []
    
   method pos = pos
   method id = id
@@ -119,7 +118,9 @@ object(s: #Node.node_t)
     
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
-    mhook l2pkt (s :> Node.node_t);
+    List.iter 
+    (fun mhook -> mhook l2pkt (s :> Node.node_t))
+      pktin_mhooks;
 
     List.iter 
       (fun hook -> hook l2pkt.Packet.l3pkt)
@@ -139,14 +140,12 @@ object(s: #Node.node_t)
   method add_app_send_pkt_hook ~hook = 
     app_send_pkt_hook <- hook
 
-  method add_control_hook ~hook = 
-    control_hook <- hook
-
-  method add_mhook  ~hook =
-    mhook <- hook
+  method add_pktin_mhook  ~hook =
+    pktin_mhooks <- hook::pktin_mhooks
       
-  method agent_control ~action = control_hook action
-
+  method add_pktout_mhook  ~hook =
+    pktout_mhooks <- hook::pktout_mhooks
+      
   method private send_pkt_ ~l3pkt ~dstid = (
     let dst = (Nodes.node(dstid)) in
       (* this method only exists to factor code out of 
@@ -164,7 +163,9 @@ object(s: #Node.node_t)
       +. Mws_utils.propdelay pos dst#pos in
     let recvtime = Common.get_time() +. delay in
 
-    mhook l2pkt (s :> Node.node_t);
+    List.iter 
+    (fun mhook -> mhook l2pkt (s :> Node.node_t))
+      pktout_mhooks;
 
     let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
     (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
@@ -193,7 +194,10 @@ object(s: #Node.node_t)
 
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:Packet.L2_BCAST
       ~l3pkt:l3pkt in
-    mhook l2pkt (s :> Node.node_t);
+
+    List.iter 
+    (fun mhook -> mhook l2pkt (s :> Node.node_t))
+      pktout_mhooks;
 
     if (List.length neighbors = 0) then (
       let l3hdr = Packet.get_l3hdr l3pkt in
