@@ -9,13 +9,15 @@
    The anchor changes at the hop which does a new anchor search (or in the
    case of GREASE, at the hop which has itself a new anchor, in which case the 
    searchcost will be 0.)
+   The anchor_age represents the age of the current anchor, and also changes 
+   when the anchor changes.
    The searchcost can therefore only be non-zero at hops where the anchor is
    different than the previous hop.
 *)
 
 open Common
 
-type 'a hop = {hop:'a; anchor:'a; searchcost:float}
+type 'a hop = {hop:'a; anchor:'a; anchor_age: int ; searchcost:float}
     (* this is not enforced, but 'a should normally be an int or a coordf_t *)
 
 type 'a t = 'a hop list
@@ -43,6 +45,8 @@ val route_valid : 'a t -> src:'a -> dest:'a -> bool
      - length >= 1
      - searchcost >= 0
      - searchcost can only be non-zero when anchor changes
+     - anchor_age must be monotonically decreasing
+     - anchor_age can only change when anchor changes
      - starts at src, ends at dst
   *)
 
@@ -50,7 +54,7 @@ val eucl_length : dist_f:(Coord.coordf_t -> Coord.coordf_t -> float) -> Coord.co
   (* Compute Euclidean length of route given a distance function *)
 
 val anchor_cost : 'a t -> float 
-  (* Sum of all search radii *)
+  (* Sum of squares of all search radii *)
 
 val sprint : Coord.coordf_t t -> string  
 

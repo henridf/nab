@@ -3,13 +3,11 @@
 (* *** ********* *)
 
 (* Simple list-based representation of a LER route. *)
-   
-   
 
 
 open Common
 
-type 'a hop = {hop:'a; anchor:'a; searchcost:float}
+type 'a hop = {hop:'a; anchor:'a; anchor_age: int ; searchcost:float}
 
 type 'a t = 'a hop list
 
@@ -31,6 +29,7 @@ let i2c data routei = (
     (fun x -> 
       {hop=data.pos.(x.hop); 
       anchor=data.pos.(x.anchor);
+      anchor_age=x.anchor_age;
       searchcost=x.searchcost}) 
     routei
 )
@@ -77,6 +76,39 @@ let route_valid route ~src ~dest= (
 	  true
   ) in 
   advance [] route)
+  &&
+  (* anchor_age monotonically decreasing *)
+  (let rec advance r last_age = (
+
+    match r with 
+      | [] -> true
+      | hop::nexthops -> (
+	  if hop.anchor_age > last_age then 
+	    false 
+	  else
+	    advance nexthops hop.anchor_age
+	)
+  )  in 
+  advance route max_int)
+  &&
+  (* anchor_age can only change when anchor changes *)
+  (let rec advance front back = (
+    match (front, back) with 
+      | ([], hopb::rb) -> (
+	  (* first hop *)
+	  (hopb.anchor_age < max_int )
+	  &&
+	  advance [hopb] rb 
+	)
+      | (hopf::rf, hopb::rb) -> (
+	  (if (hopb.anchor_age <> hopf.anchor_age) then hopb.anchor <> hopf.anchor else true)
+	  &&
+	  advance (hopb::hopf::rf) rb
+	)
+      | (rf, []) -> 
+	  true
+  ) in 
+  advance [] route)
 )
 	  
 let eucl_length ~dist_f route = (
@@ -90,7 +122,7 @@ recurse_ route 0.0
 )
 
 let anchor_cost route = 
-  List.fold_left (fun cost hop -> cost +. hop.searchcost) 0.0 route
+  List.fold_left (fun cost hop -> cost +. (hop.searchcost ** 2.0)) 0.0 route
 
 let sprint route = (
   String.concat 
