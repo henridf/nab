@@ -1,17 +1,17 @@
 PROGS = dbplotmulti dbplot dbrowaccumall dbcoladd
 
-dbplotmulti:
+dbplotmulti: dbfile.ml dbplotmulti.ml
 	ocamlc -I ../misc -I ../contrib/gnuplot unix.cma   str.cma ../misc/misc.ml ../misc/mods.ml   \
 	../contrib/gnuplot/gnuplot.cma  dbfile.ml  dbplotmulti.ml -o dbplotmulti
 
-dbplot:
+dbplot: dbfile.ml dbplot.ml
 	ocamlc -I ../misc -I ../contrib/gnuplot unix.cma   str.cma ../misc/misc.ml ../misc/mods.ml   \
 	../contrib/gnuplot/gnuplot.cma  dbfile.ml  dbplot.ml -o dbplot
 
-dbrowaccumall:
+dbrowaccumall: dbfile.ml dbrowaccumall.ml 
 	ocamlc -I ../misc str.cma ../misc/misc.ml ../misc/mods.ml dbfile.ml  dbrowaccumall.ml  -o dbrowaccumall
 
-dbcoladd:
+dbcoladd: dbfile.ml dbcoladd.ml
 	ocamlc -I ../misc str.cma ../misc/misc.ml ../misc/mods.ml dbfile.ml  dbcoladd.ml  -o dbcoladd
 
 clean:

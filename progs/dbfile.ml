@@ -67,21 +67,22 @@ struct
     close_in chan;
     let comment_lines =   
       List.filter 
-      (fun s ->   try s.[0] = '#' with _ -> false) 
+	(fun s ->   try 
+	  s.[0] = '#' &&
+	  (String.sub s 0 2) <> "#h" with _ -> false) 
       all_strings
     in 
     let header = ref [] in
     List.iter 
       (fun s -> try 
-	if s.[1] = 'h' then (* All comment_lines start with '#', so only need
-			       to look for 2nd char. *)
+	if (String.sub s 0 2) = "#h" then 
 	  (* drop head of list which is "#h" *)
 	  header := List.tl (Str.split re s) with _ -> ())
-      comment_lines;
+      all_strings;
     
     let data_strings =   List.filter 
       (* catch exception if empty line *)
-      (fun s ->   try s.[0] != '#' with _ -> false) 
+      (fun s ->   try s.[0] <> '#' with _ -> false) 
       all_strings
     in
     let data_lines = Array.of_list (List.map (fun s -> Str.split re s) data_strings)
@@ -121,8 +122,8 @@ struct
     
   let new_column h colname col = 
     
-    if (List.mem colname h.header) then failwith ("add_column:a column named "^colname^"
-    already exists");
+    if (List.mem colname h.header) then failwith 
+      ("add_column: a column named "^colname^" already exists");
 
     if ((Array.length col) <> (Array.length h.data_lines)) then 
       failwith 	(Printf.sprintf 
@@ -135,13 +136,18 @@ struct
       h.data_lines.(i) <- h.data_lines.(i) @ [col.(i)]
     done
 
-  let sprint_data_line_ dl = List.fold_left (fun s data -> s^" "^data) "" dl
+  let sprint_data_line_ dl = chop (List.fold_left (fun s data -> s^data^" ") "" dl)
 
   let writefile ?(outfile="/dev/stdout") h = 
     let outchan = open_out outfile in
 
+    output_string outchan "#h ";
+    List.iter (fun s -> output_string outchan (s^" ")) h.header;
+    output_string outchan "\n";
+
     List.iter (fun s -> output_string outchan (s^"\n")) h.comment_lines;
-Array.iter (fun s -> output_string outchan ((sprint_data_line_ s)^"\n")) h.data_lines ;
+    Array.iter (fun s -> output_string outchan ((sprint_data_line_ s)^"\n")) h.data_lines ;
+
     close_out outchan
 
 
