@@ -52,8 +52,14 @@ object
     method private unicast_failure : L2pkt.t -> unit
 end
 
+type frontend_state = 
+    Idle 
+  | Rx   
+  | Tx   
+
 class type virtual ['stats] frontend_t = 
 object 
+  method private state : frontend_state
   method private frontend_reset_stats : unit
   method private frontend_stats : 'stats
   method private frontend_xmit : L2pkt.t -> unit

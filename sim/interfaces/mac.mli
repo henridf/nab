@@ -101,9 +101,15 @@ object
     method private backend_recv : L2pkt.t -> unit
 end
 
+type frontend_state = 
+    Idle (** frontend is neither sending nor receiving. *)
+  | Rx   (** frontend is receiving. *)
+  | Tx   (** frontend is sending. *)
+
 (** The type of a MAC frontend. *)
 class type virtual ['stats] frontend_t = 
 object 
+  method private state : frontend_state
   method private frontend_reset_stats : unit
   method private frontend_stats : 'stats
   method private frontend_xmit : L2pkt.t -> unit

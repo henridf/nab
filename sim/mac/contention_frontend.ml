@@ -56,8 +56,9 @@ object(s)
   val mutable dropsTXRX = 0
 
   val mutable end_rx_handle = 0
+    
 
-
+    
   val myid = owner#id
 
   (*
@@ -77,6 +78,8 @@ object(s)
   method private sending = 
     sending_until >= Time.get_time()
 
+  method private state = 
+    if s#sending then Mac.Idle else if end_rx_handle <> 0 then Mac.Rx else Mac.Idle
 
 
   (* This is called at the end (ie after the last bit comes in) of a succesful
