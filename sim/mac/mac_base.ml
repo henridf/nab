@@ -61,7 +61,7 @@ object(s)
     bitsRX <- 0;
     pktsTX <- 0; 
     pktsRX <- 0
-      
+
   method private send_up l2pkt = 
     owner#mac_recv_pkt ~stack l2pkt
 
@@ -114,10 +114,8 @@ object(s)
 	  (Printf.sprintf "Start RX, l2src %d, l2dst %d" 
 	    (L2pkt.l2src l2pkt) d));
 	  super#send_up l2pkt;
-	  
       | d -> ((* this pkt is not for us. Drop it ... *) );
-    end
-      
+    
   method xmit = s#frontend_xmit
     
 end
@@ -131,13 +129,13 @@ end
   
 
 type mac_queue_stats = 
-    { nDrops : int } (* xxx/qmac : add more stats if necessary *)
+    { nDrops : int } (* add more stats if necessary *)
 
-class virtual queue_backend ?(stack=0)  ?(buffer=2) ~(bps:float)
+class virtual queue_backend ?(stack=0) ?(queuesize=10) ~(bps:float)
   (owner:#Node.node) =
   let myid = owner#id in
 object(s)
-  val pktq = Pkt_queue.create buffer 
+  val pktq = Pkt_queue.create queuesize 
 
   inherit ['mac_queue_stats] backend ~stack ~bps owner as super
 
@@ -148,6 +146,7 @@ object(s)
   method private backend_stats = { nDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped}  
 
   method private backend_recv l2pkt =  (
+
     let dst = L2pkt.l2dst l2pkt in
     
     (* Throw away unicast packet if not for us, keep it otherwise *)
@@ -187,22 +186,19 @@ object(s)
     )
   )
 
-  method private backend_xmit_complete = 
-    (* xxx/qmac: the frontend has finished a xmition:
-       - check if any packets in queue waiting to be transmitted
+  method private backend_xmit_complete = (
+    (* The frontend has transmitting a packet:
+       - check if any packets in queue
        - if yes, schedule an event to send it right away
     *)
-    (
       if not (Pkt_queue.is_empty pktq) then (
 	(* take packet from the queue and send it *)
 	let new_l2pkt = (Pkt_queue.pop pktq) in
-	s#log_debug (lazy(Printf.sprintf "Txmission completed: transmitting new pkt from the buffer to node %i" (L2pkt.l2dst new_l2pkt)));
+	s#log_debug (lazy(Printf.sprintf "TX completed: transmitting new pkt from the buffer to node %i" (L2pkt.l2dst new_l2pkt)));
 	s#frontend_xmit new_l2pkt;
-      )
-      else (
-	s#log_debug (lazy(Printf.sprintf "Txmission completed: not pkt to transmit in the buffer"));
-      )
-    )
+      ) else 
+	s#log_debug (lazy(Printf.sprintf "TX completed: not pkt to transmit in the buffer"));
+
 end
 
 class virtual ['stats] frontend  ?(stack=0) ~(bps:float) (owner:#Node.node) =
@@ -268,20 +264,15 @@ object(s)
 
       let t = xmit_time bps l2pkt in
       (Sched.s())#sched_in ~t ~f:xmit_done_event
-    ) else (
+    ) else 
       s#log_debug  (lazy "Frontend: Mac busy: TX packet dropped");
-    )
 
   method recv ?(snr=1.0) ~l2pkt () = 
-    let recv_event() = begin
-      s#backend_recv l2pkt
-    end in
+    let recv_event() = s#backend_recv l2pkt in
     
     pktsRX <- pktsRX + 1;
     bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
     (Sched.s())#sched_in ~f:recv_event ~t:(xmit_time bps l2pkt)
-
-
   method virtual private backend_xmit_complete : unit 
 
 end
