@@ -1,6 +1,5 @@
 (*
    in recv_l2pkt, we shouldn't update path to source if this is a data packet right??
-
    don't initiate rreq immediately on route error but wait till send next packet??
 *)
 
@@ -648,26 +647,7 @@ object(s)
 	  (L3pkt.l3src ~l3pkt)));
   )
 
-  (*
-    method ctrl_hook action = (
-
-    s#log_debug (sprintf "Originating dsdv (ttl 5) ");
-
-    let pkt = 
-      L3pkt.DSDV_PKT (L3pkt.make_dsdv_pkt 
-	~srcid:myid 
-	~originator:myid 
-	~nhops:0
-    ~seqno:seqno
-    ~ttl:6) in
-    
-    seqno <- seqno + 1;
-    owner#mac_bcast_pkt 
-    ~l3pkt:pkt;
-    )
-  *)
-    
-
+  
   method private app_recv_l4pkt l4pkt dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
      dst));

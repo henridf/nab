@@ -163,7 +163,6 @@ class type grep_agent_t =
 
 exception Send_Out_Failure
 
-
 let agents_array = ref ([||]:grep_agent_t array)
 
 let set_agents arr = agents_array := arr
@@ -341,10 +340,9 @@ object(s)
       in
       assert (update);
     );
-
+    
     s#recv_l3pkt_ ~l3pkt ~sender
-)
-
+  )
 
 
   method private process_radv_pkt ~l3pkt ~sender = ()
@@ -519,7 +517,7 @@ object(s)
       hello_period_ <- Some _DEFAULT_HELLO_PERIOD;
       let jittered_start_time = 
 	Random.float (o2v hello_period_)  in
-      (Sched.s())#sched_in ~f:s#send_radv ~t:jittered_start_time ;
+      (Sched.s())#sched_in ~f:s#send_radv ~t:jittered_start_time;
     end
 
   method stop_hello () = 
@@ -544,7 +542,7 @@ object(s)
       in
       let l3pkt = 
 	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
-    
+
       in	
       s#send_out ~l3pkt;
       
@@ -706,27 +704,8 @@ object(s)
     s#log_info (lazy (sprintf "Received app pkt from src %d"
       (L3pkt.l3src ~l3pkt)));
   )
-    
-  (*
-    method ctrl_hook action = (
 
-    s#log_debug (sprintf "Originating dsdv (ttl 5) ");
 
-    let pkt = 
-      L3pkt.DSDV_PKT (L3pkt.make_dsdv_pkt 
-	~srcid:myid 
-	~originator:myid 
-	~nhops:0
-    ~seqno:seqno
-    ~ttl:6) in
-    
-    seqno <- seqno + 1;
-    owner#mac_bcast_pkt 
-    ~l3pkt:pkt;
-    )
-  *)
-    
-    
   method private app_recv_l4pkt l4pkt dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
       dst));
@@ -751,8 +730,5 @@ object(s)
 
     s#process_data_pkt ~l3pkt
   )
-
-
-
 
 end
