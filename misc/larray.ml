@@ -2,14 +2,15 @@ open Misc
 
 module type LinkedArray_t = 
   sig
-    type 'a linkedArray
+    type 'a linkedArray_t
     type link_t = None | Link of int
-    val create_ : 'a array -> 'a linkedArray
-    val toarray_ : 'a linkedArray -> 'a array
-    val get_ : 'a linkedArray -> int -> 'a
-    val next_ : 'a linkedArray -> int -> link_t (* None means no successor   *)
-    val prev_ : 'a linkedArray -> int -> link_t (* None means no predecessor *)
-    val connect_ : 'a linkedArray -> int -> int -> unit
+    val create_ : 'a array -> 'a linkedArray_t
+    val toarray_ : 'a linkedArray_t -> 'a array
+    val get_ : 'a linkedArray_t -> int -> 'a
+    val next_ : 'a linkedArray_t -> int -> link_t (* None means no successor   *)
+    val prev_ : 'a linkedArray_t -> int -> link_t (* None means no predecessor *)
+    val length_ : 'a linkedArray_t -> int
+    val connect_ : 'a linkedArray_t -> int -> int -> unit
     val test_ : unit -> unit
   end;;
 
@@ -23,7 +24,7 @@ module LinkedArray : LinkedArray_t =
       mutable next : link_t;
     }
 
-    type 'a linkedArray = 'a cell array
+    type 'a linkedArray_t = 'a cell array
 
     let l2i = function 
 	None -> failwith "Cannot convert None to int"
