@@ -25,12 +25,11 @@
 
 
 
-
-
-
 open Misc
 open Scheduler
 open Printf
+
+module Hashtbl = ExtHashtbl.Hashtbl
 
 type handler_t = Handler of (unit -> unit) | Stop 
 
@@ -70,10 +69,12 @@ object(s)
 
   inherit Log.inheritable_loggable
 
-  (* just to keep some stats *)
+  (* some stats we keep and dump upon exit. *)
   val mutable cancels = 0
   val mutable cancellables = 0
   val mutable scheduleds = 0
+  val mutable max_hashtbl_size = 0
+
 
   val mutable next_handle_to_give = 1
   val handles = Hashtbl.create 64
@@ -146,8 +147,10 @@ object(s)
     (* given above check , this should be impossible, but impossible ain't 
        real .. *)
     assert (next_handle_to_give <> 0);
-
     Hashtbl.add handles handle false;
+    let s = Hashtbl.length handles in 
+    if s > max_hashtbl_size then 
+      max_hashtbl_size <- s;
     handle
   )
 
@@ -222,6 +225,8 @@ object(s)
     s#log_always (lazy (Printf.sprintf "%d events scheduled." scheduleds));
     s#log_always (lazy (Printf.sprintf "%d cancellable events scheduled." cancellables));
     s#log_always (lazy (Printf.sprintf "%d events cancelled." cancels));
+    s#log_always (lazy (Printf.sprintf "%d max cancellables hash table size."
+      (Hashtbl.length handles)));
 
 end
 
