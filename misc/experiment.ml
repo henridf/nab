@@ -102,7 +102,7 @@ let dump_plotline plotline =
   ofname
     
 let make_gnuplot_cmd outfile plotlinefiles = 
-  (Printf.sprintf "set terminal postscript eps 18\n")^
+  "set terminal postscript eps 18\n"^
   (Printf.sprintf "set output \"%s\" \n" outfile)^
   (List.fold_left (fun  accum infile -> 
     (Printf.sprintf "plot \"%s\" using 1:2" infile)^accum)

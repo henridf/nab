@@ -2,6 +2,44 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(* 
+
+   experiment workflow:
+
+   Have a script in scripts/* which takes a number of parameters and does an
+   experiment. Then it outputs a string of results on stdout. 
+
+   Then we need to iterate over all parameters we are interested in.
+   Should this be a .sh or .pl script? or a .ml (which can be interpreted,
+   don't need to compile here).
+
+   If it's a .ml, it can make use of a support library (a reworked
+   experiment.ml), to for example issue the system commands, repeat a number
+   of runs, etc.
+
+   Then there is also the question of how to break up results between
+   files. This should be flexible and not hardcoded by any part of the
+   experiment.ml code. A rough guideline would be that one data file should 
+   map more or less to one graph. For example, if we keep all parameters fixed
+   but vary speed over 8 values, and do 10 runs for each speed, we would keep
+   the 80 results corresponding to each run in one file.
+   (Of course, this guideline is only relevant when experiments are designed
+   with graphs in mind).
+
+
+   There is also the question of how to name files. Does the name reflect all
+   the parameters? All the common parameters? And the question of how to name
+   fields inside the file. 
+   Is all this info explicitely provided? Or is it directly derived from the
+   config info?
+
+   Once we have datafiles comes the step of making graphs. 
+*)
+   
+
+
+   
+
 (* open:
    - maybe the param_value (the one which we vary btw runs) can be directly
    represented as a float or int rather than string?
