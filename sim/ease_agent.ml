@@ -33,7 +33,7 @@ object(s)
      rt_agent_base.ml and rt_agent.mli. *)
   inherit Rt_agent_base.base ~stack theowner 
     
-  val mutable le_tab = new NodeDB.le_tab (Param.get Params.ntargets)
+  val mutable le_tab = new Le_tab.le_tab (Param.get Params.ntargets)
 
   val grease = grease (* EASE or GREASE? *)
     

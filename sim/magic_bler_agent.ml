@@ -80,7 +80,7 @@ object(s)
 
   val owner:Simplenode.simplenode = owner
 
-  val mutable db = new NodeDB.nodeDB (Param.get Params.ntargets)
+  val mutable db = new Le_tab.le_tab (Param.get Params.ntargets)
 
   method db = db
   method set_db thedb = db <- thedb

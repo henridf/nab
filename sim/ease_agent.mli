@@ -33,8 +33,8 @@ object
   inherit Log.inheritable_loggable
   inherit Rt_agent.t
 
-  method le_tab : NodeDB.le_tab
-  method set_le_tab : NodeDB.le_tab -> unit
+  method le_tab : Le_tab.le_tab
+  method set_le_tab : Le_tab.le_tab -> unit
 end
 
 val set_agents : ease_agent array -> unit
