@@ -251,8 +251,8 @@ let draw_ease_route
 	    [hop.hop, (Opt.get hop.info).anchor];
 	  );
 	  if (anchors) then (
-	    Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex)) ~target:true
-	    (Opt.get hop.info).anchor
+	    Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex))
+	    ~target:true (Opt.get hop.info).anchor
 	  )
 	in
 
@@ -277,7 +277,7 @@ let draw_ease_route
 	  | hop1::hop2::r when (List.length r <= hops_not_drawn)
 	      -> (
 		if List.length r = 0 then (
-		  Gui_gtk.draw_node ~target:true ~col:(`NAME "red")
+		  Gui_gtk.draw_node ~target:true ~col:(`NAME "red") 
 		  hop2.hop;
 		  Gui_gtk.draw_segments [(hop1.hop, hop2.hop)];
 		  let n = hop1.hop in

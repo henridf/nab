@@ -23,12 +23,8 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 (** High-level GUI drawing operations *)
+
 
 val draw_ease_route : 
   ?lines:bool ->
@@ -44,6 +40,7 @@ val draw_ease_route :
     fraction of the route is to be drawn.
   *)
 
+
 val draw_grep_route : 
   Coord.coordi_t Route.grep_route_t
   -> unit
@@ -53,31 +50,58 @@ val draw_tree :   ?col:GDraw.color ->
   Coord.coordi_t NaryTree.t -> unit
   (** Draw a tree. *)
 
-
-(* draw node at current time's position *)
 val draw_node :  
   ?emphasize:bool ->
   Common.nodeid_t -> 
   unit
+  (** Draw a node. If optional [emphasize] is [true], node is highlighted
+    (this is suitable for making the source and destination stand out, for
+    example). *)  
 
-(* draw nodes at current time's position *)
+
 val draw_nodes : 
   Common.nodeid_t list 
   -> unit
+  (** Draw some nodes *)
 
-(* connect pairs of nodes *)
 val connect_nodes : 
   ?col:GDraw.color ->          
   (Common.nodeid_t * Common.nodeid_t)  list 
   -> unit
+  (** Connect pairs of nodes. *)
 
-(* draw connectivity mesh *)
 val draw_connectivity : 
   unit -> unit
+  (** Draw full connectivity mesh. *)
 
 val draw_all_nodes : 
   unit ->
   unit
+  (** Draw all nodes. *)
+
+val user_pick_node : 
+  ?msg:string ->
+  node_picked_cb:(Common.nodeid_t -> unit)
+  -> unit
+  -> unit
+  (** Ask the user to pick a node by clicking on the drawing area. 
+    Once the user has picked, the provided callback [node_picked_cb] is called
+    with the chosen nodeid as argument.
+  *)
+
+val dialog_pick_node : 
+  ?default:Common.nodeid_t ->
+  node_picked_cb:(Common.nodeid_t -> unit) ->
+  unit ->
+  unit
+  (** Ask user for a node id via a dialog box. Checks that id is valid before
+    accepting. If provided, optional parameter [default] will be displayed in 
+    box. Once chosen, the provided callback [node_picked_cb] is called
+    with the chosen nodeid as argument.
+  *)
+  
+
+(**/**)
 
 val draw_all_boxes : 
   unit ->
@@ -87,18 +111,3 @@ val draw_all_routes :
   unit ->
   unit
 
-val user_pick_node : 
-  ?msg:string ->
-  node_picked_cb:(Common.nodeid_t -> unit)
-  -> unit
-  -> unit
-
-val dialog_pick_node : 
-  ?default:Common.nodeid_t ->
-  node_picked_cb:(Common.nodeid_t -> unit) ->
-  unit ->
-  unit
-  (** Ask user for a node id via a dialog box. Checks that id is valid before
-    accepting. If provided, optional parameter [default] will be displayed in 
-    box.*)
-    

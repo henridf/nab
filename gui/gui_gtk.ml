@@ -60,51 +60,19 @@ let pxm = ref None
 let pixmap() = o2v !pxm
 
 
+let clear () = 	
+  Opt.may
+    (fun pixmap -> 
+      (drawing())#put_pixmap  ~x:0 
+      ~y:0 
+      ~xsrc:0 
+      ~ysrc:0 
+      ~width:(Param.get Params.x_pix_size)
+      ~height:(Param.get Params.x_pix_size)
+      pixmap
+    )
+    !pxm
 
-
-let res = 10
-  (* using list of functions is not most efficient, but we are assuming there
-     will be a small number of functions per list. Otherwise CPS might be nice
-     here *)
-let draw_array = ref [||]
-
-
-
-let copy_pixmap x y = (
-
-(*
-  (drawing())#set_foreground `WHITE;
-  (drawing())#rectangle ~x:0 ~y:0 ~width:200 ~height:200 ~filled:true ();
-  (drawing())#set_foreground `BLACK;
-*)
-
-  try 
-    (drawing())#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width:res
-    ~height:res   (pixmap()) 
-  with 
-    | Failure "Misc.o2v : None"
-      -> ()
-    | e -> raise e
-)
-
-let draw ~clear () = (
-  Array.iteri (
-    fun x column ->
-      Array.iteri (
-	fun y funs -> (
-	  if (clear) then (
-	    copy_pixmap (x*res) (y*res);
-	  );
-	  List.iter (fun f -> f()) funs;
-	  !draw_array.(x).(y) <- [(fun () -> ()) ];
-	  
-	)
-      )  column
-  ) !draw_array 
-)
-  
-  
-  
 
 let expose_cb_id = ref None 
 let set_expose_event_cb f = (
@@ -120,8 +88,6 @@ let init () = (
 
   let width = (Param.get Params.x_pix_size) 
   and height = (Param.get Params.y_pix_size)  in
-
-  draw_array := Array.make_matrix (width/res) (height/res) [(fun () -> ()) ];
 
   wnd := Some (GWindow.window ~show:true ());
 
@@ -151,9 +117,8 @@ let init () = (
 
   Gdk.Window.set_back_pixmap (gdk_window()) (`PIXMAP pixmap_);
 
-
   txt_label := Some (GMisc.label ~text:"" ~packing:(vpacker()) ());
-
+  ignore (GMisc.separator `HORIZONTAL ~packing:(vpacker()) ())
 )
 
   
@@ -183,29 +148,6 @@ let boundarize pos = (
   (!newx, !newy)
 )
 
-let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
-
-
-  List.iter 
-  (fun (p1, p2) ->
-	let f() = 
-	  (drawing())#set_line_attributes ~width:thick ();
-	  (drawing())#set_foreground col;
-	  (drawing())#segments s;
-	  (drawing())#set_foreground cl_fg;    
-	  (drawing())#set_line_attributes ~width:1 ();
-
-	in
-	let (g1x, g1y) = (boundarize p1) /// res
-	and (g2x, g2y) = (boundarize p2) /// res
-	in
-	match (g1x, g1y) = (g2x, g2y) with
-	  | true -> !draw_array.(g1x).(g1y) <- f::!draw_array.(g1x).(g1y)
-	  | false -> 
-	      !draw_array.(g1x).(g1y) <- f::!draw_array.(g1x).(g1y);
-	      !draw_array.(g2x).(g2y) <- f::!draw_array.(g2x).(g2y)
-  ) s
-)
 
 let draw_segments ?(col=cl_fg) ?(thick=1) l = (
   (drawing())#set_foreground col;
@@ -261,18 +203,13 @@ let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (
       (x - pixwid, y), (x + pixwid, y)
     ]
   in
-   draw_segments_buf ~col ~thick segs
+    draw_segments ~col ~thick segs
 )  
 
 
+let draw_node ?(col=cl_fg) ?(target=false) pos = 
+  draw_cross ~col ~target pos
 
-let draw_node ?(col=cl_fg) ?(target=false) pos = (
-  draw_cross ~col ~target pos;
-)
-
-
-let draw_nodes pos_list =  
-  List.iter (fun p -> draw_node p) pos_list
 
 let draw_circle ~centr ~radius = 
   (drawing())#arc
