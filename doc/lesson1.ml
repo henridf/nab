@@ -50,6 +50,13 @@ let setup() = (
 
 )
 
+
+(* 
+   This function will be called each time a packet is transmitted by a node.
+   Parameters passed to the function are the packet itself and the node
+   transmitting it.
+   We simply increment a counter when this happens.
+*)
 let hook pkt node = incr pkt_count
 
 let setup_hooks() = (
@@ -59,12 +66,17 @@ let setup_hooks() = (
 
 
 let do_flood() = (
+  (* Select the node closest to the center to be the originator. *)
   let center_x = (Param.get Params.x_size) /. 2.0
   and center_y = (Param.get Params.y_size) /. 2.0  in
   let originator = 
     Opt.get ((World.w())#find_closest ~pos:(center_x, center_y) ())
   in
+
+  (* Inject a packet into the originating node. *)
   (Nodes.node originator)#originate_app_pkt ~l4pkt:`EMPTY ~dst:L3pkt.l3_bcast_addr;
+
+  (* Go! *)
   (Sched.s())#run()
 )
 
@@ -78,7 +90,7 @@ let print_info() = (
 
 let main = 
   setup();
-  setup_hooks();
-  do_flood();
-  print_info()
+  setup_hooks();(* Insert hooks to count packet transmissions. *)
+  do_flood();   (* Originate the flood. *)
+  print_info()  
 

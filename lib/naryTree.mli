@@ -51,6 +51,7 @@ val root : 'a t -> 'a
 
 val size : 'a t -> int
   (** Returns the number of (non Empty) nodes in the tree *)
+
 val iter : f:('a -> unit) -> 'a t -> unit
   (** Iterate over tree, presenting each node once to the provided function. 
     Order is not specified. *)
@@ -62,7 +63,7 @@ val iter2 : f:(parent:'a -> child:'a -> unit) -> 'a t -> unit
 
 val addnode : parent:'a -> node:'a -> 'a t -> 'a t 
   (** [NaryTree.addnode ~parent ~node tree] returns a new tree which is the
-    result of adding [node] under [parent] in [tree]. Raise [Failure "nth"] if
-    [parent] is not in [tree].*)
+    result of adding [node] under [parent] in [tree]. Raise [Failure "addnode"] if
+    [node] is already in [tree].*)
 
 

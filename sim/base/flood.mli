@@ -23,28 +23,25 @@
 (* $Id$ *)
 
 
-
-
-
-
-
-(** Data structures for representing floods (for
-  monitoring or gui purposes). 
+(** Data structure for representing a flood as a tree. 
   @author Henri Dubois-Ferriere.
 *)
 
 open Common
 
-(** Tree-based representation of a flood *)
 
 
 type t = Common.nodeid_t NaryTree.t
+    (** The type of a flood tree. *)
 
 val create : Common.nodeid_t -> t
+  (** Create a flood tree with specified node as originator of flood. *)
+
 val addnode : 
   parent:Common.nodeid_t ->
   node:Common.nodeid_t ->
   t -> t
+  (** Add a node to the flood tree. *)
 
 val to_coords : t -> Coord.coordf_t NaryTree.t
-     
+  (** Convert a tree of nodes into a tree of positions.*)

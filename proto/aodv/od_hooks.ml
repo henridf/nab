@@ -73,8 +73,9 @@ let od_route_pktin_mhook routeref l2pkt node = (
 	assert (NaryTree.belongs l2src tree);
 
 	let newtree = 
-	  (* A flood is not a tree, so this node may receive the rreq more
-	     than once. we only care for the first time.*)
+	  (* A real flood in the network is not a tree, so this node may
+	     receive the rreq more than once. we only care for the first
+	     time.*)
 	  try (Flood.addnode  ~parent:l2src ~node:node#id tree)
 	  with (Failure "addnode") -> tree
 	in
