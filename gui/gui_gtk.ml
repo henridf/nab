@@ -11,48 +11,64 @@ let cl_fg = `NAME "black"
 let cl_hilite = `NAME "red"
 
 let wnd = ref None 
-let gdk_wnd = ref None 
-let (drw : [ `window] GDraw.drawable option ref) = ref None 
+let (vbx : GPack.box option ref) = ref None
+let vbox() = o2v !vbx
+
 let pkr = ref (fun _ -> ())
 let window () = o2v !wnd 
-let gdk_window () = o2v !gdk_wnd 
+
+let gdk_wnd = ref None 
+let gdk_window () = o2v !gdk_wnd
+
+let (drw : [ `window] GDraw.drawable option ref) = ref None 
 let drawing () = o2v !drw
+
+
 let packer() =  !pkr
-let fixed = ref None
+
+let (fixed : GPack.fixed option ref) = ref None
 let fix() = o2v !fixed
 let txt_label = ref None
 let txt() = o2v !txt_label
+let pxm = ref None
+let pixmap() = o2v !pxm
 
-let q = Queue.create() 
-let redraw _ = (
-  (drawing())#set_foreground (`RGB (max_int, 0, 0));
-(*  (drawing())#set_line_attributes ~width:10 ();
 
-   (drawing())#polygon ~filled:false
-    [ 10,100; 35,35; 100,10; 165,35; 190,100;
-      165,165; 100,190; 35,165; 10,100 ];
-*)
 
-(*
-n  if (not (Queue.is_empty q)) then (
- let n1 = Queue.pop q in
-  (drawing())#set_line_attributes ~width:10 ();
-  (drawing())#set_foreground (`WHITE);
-  (drawing())#segments [n1];
 
-  );
-*)
-  let l = 
-   Queue.fold (fun l el -> el::l) [] q in
-  if (List.length l > 0) then (
-    (drawing())#set_line_attributes ~width:10 ();
-    (drawing())#segments l;
-  );
-  true;
+let res = 10
+  (* using list of functions is not most efficient, but we are assuming there
+     will be a small number of functions per list. Otherwise CPS might be nice
+     here *)
+let draw_array = Array.make_matrix (1200/res) (900/res) [(fun () -> ()) ]
+let copy_pixmap x y = (
+  (drawing())#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width:res
+  ~height:res   (pixmap()) 
 )
 
-let clear() = 
-  Gdk.Window.clear (gdk_window())
+let draw() = (
+  Array.iteri (
+    fun x column ->
+      Array.iteri (
+	fun y funs -> (
+	  copy_pixmap (x*res) (y*res);
+	  List.iter (fun f -> f()) funs;
+	  draw_array.(x).(y) <- [(fun () -> ()) ];
+	)
+      )  column
+  ) draw_array 
+)
+
+
+let clear() = (
+
+  draw();
+
+
+)
+
+
+
 
 let init () = (
   wnd := Some (GWindow.window ~show:true ());
@@ -60,22 +76,24 @@ let init () = (
   let _ = (window())#connect#destroy ~callback:Main.quit in
 
   
-  let vbox = GPack.vbox ~packing:(window())#add () in
-  pkr := vbox#add;
-  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:(vbox#add) ());
+  vbx := Some (GPack.vbox ~packing:(window())#add ());
+  pkr := (vbox())#add;
+  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:((vbox())#add) ());
 
-  gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window) ;
+  gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window);
+
   drw := Some (new GDraw.drawable (gdk_window()));
-  let (pixmap, bitmap) = Gdk.Pixmap.create_from_xpm
-    ~file:"/tmp/epfl.xpm" 
+
+  let (pixmap_, bitmap) = Gdk.Pixmap.create_from_xpm_d
+    ~data:Epfl.epfl_xpm
     ~window:(gdk_window())
     ()
   in
-  Gdk.Window.set_back_pixmap (fix())#misc#window (`PIXMAP pixmap);
-  
-  txt_label := Some (GMisc.label ~text:"Go on!" ~packing:(packer()) ());
-  ignore ((window())#event#connect#expose ~callback:redraw);
-(*  ignore (Timeout.add ~ms:100 ~callback:redraw)*)
+  pxm := Some pixmap_;
+
+  Gdk.Window.set_back_pixmap (gdk_window()) (`PIXMAP pixmap_);
+
+ txt_label := Some (GMisc.label ~text:"Go on!" ~packing:(packer()) ());
 
 )
 
@@ -94,17 +112,24 @@ let txt_msg msg = (
 )
 
 let draw_segs s = (
-(*  (window())#misc#draw None;
-  (drawing())#misc#draw None;*)
-  (drawing())#segments s;
 
-(*
-  List.iter (fun seg -> 
-    Queue.push seg q ) s
-    ~v:(fun _ ->    *)
 
+  List.iter 
+  (fun (p1, p2) ->
+	let f() = (drawing())#segments s
+	in
+	let (g1x, g1y) = p1 /// res
+	and (g2x, g2y) = p2 /// res
+	in
+	match (g1x, g1y) = (g2x, g2y) with
+	  | true -> draw_array.(g1x).(g1y) <- f::draw_array.(g1x).(g1y)
+	  | false -> 
+	      draw_array.(g1x).(g1y) <- f::draw_array.(g1x).(g1y);
+	      draw_array.(g2x).(g2y) <- f::draw_array.(g2x).(g2y)
+  ) s
 
 )
+
 
 (* pixcenter in gtk pixels *)
 
@@ -122,7 +147,8 @@ let draw_segments l =
 
 let draw_node hilite pos = (
   if hilite then 
-    (drawing())#set_foreground cl_hilite
+()
+(*    (drawing())#set_foreground cl_hilite*)
  else 
    (drawing())#set_foreground cl_fg;    
   
@@ -143,3 +169,38 @@ let draw_circle ~centr ~radius =
     ~height:(radius * 2) 
     ()
     
+
+
+(* (for future reference)
+   how to draw on a pixmap, then display the pixmap:
+   
+
+  wnd := Some (GWindow.window ~show:true ());
+
+  let _ = (window())#connect#destroy ~callback:Main.quit in
+
+  
+  let vbox = GPack.vbox ~packing:(window())#add () in
+  pkr := vbox#add;
+  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:(vbox#add) ());
+
+  gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window) ;
+
+   drw2 := Some (new GDraw.drawable (gdk_window()));
+
+  let (pixmap_, bitmap) = Gdk.Pixmap.create_from_xpm
+    ~file:"/tmp/epfl.xpm" 
+    ~window:(gdk_window())
+    ()
+  in
+  pxm := Some pixmap_;
+  drw := Some ((new GDraw.pixmap) pixmap_);
+
+
+(* now drw is a drawable so can do #segments, etc on it*)
+   
+(* not we put the obtained pixmap on the background pixmap *)
+
+  (drawing2())#put_pixmap ~x:0 ~y:0 ~xsrc:0 ~ysrc:0 ~width:1200 ~height:900
+  (drawing())#pixmap
+*)

@@ -17,20 +17,14 @@ let rt_btn() = o2v !choose_route_btn
 
 
 let run() = (
-(*
-      while (Glib.Main.pending()) do
-	ignore (Glib.Main.iteration false)
-      done;
-*)
 
 	t := (Common.get_time());
 	let continue() = ((Common.get_time()) < !t +. 1.0) in
 	(Gsched.sched())#run_until~continue;
-(*	Gui_gtk.clear();*)
 	Gui_ops.draw_all_nodes(); 
-	Gui_ops.draw_all_boxes(); 
-(*	ignore(Gui_gtk.redraw());**)
-
+(*	Gui_ops.draw_all_routes(); 
+	Gui_ops.draw_all_boxes(); *)
+	Gui_gtk.draw();
 	true
 )
   

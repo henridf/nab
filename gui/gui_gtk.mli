@@ -22,10 +22,7 @@ val remove_button_press_cb :  GtkSignal.id -> unit
 (* use this function to write a txt message in msg area *)
 val txt_msg : string  -> unit
 
-val redraw : 
-  'a -> bool
-
-val clear : 
+val draw : 
   unit -> unit
 
 val draw_node :  
