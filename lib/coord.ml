@@ -18,12 +18,12 @@ let ( /// ) (x, y) scalar = (x / scalar, y / scalar)
 let ( ///. ) (x, y) scalar = (x /. scalar, y /. scalar)
 
 
-let coord_i2f (x, y) = (i2f x, i2f y)
-let coord_i2n (x, y) = [|  x; y|]
-let coord_f2i (x, y) = (f2i x, f2i y)
-let coord_f2n (x, y) = [|f2i x; f2i y|]
-let coord_round (x, y) = (round x, round y)
-let coord_floor (x, y) = (floor x, floor y)
+let i2f (x, y) = (float x, float y)
+let i2n (x, y) = [|  x; y|]
+let f2i (x, y) = (Misc.f2i x, Misc.f2i y)
+let f2n (x, y) = [|Misc.f2i x; Misc.f2i y|]
+let round (x, y) = (round x, round y)
+let floor (x, y) = (floor x, floor y)
 
 let xx (x, _) = x
 let yy (_, y) = y
@@ -33,13 +33,13 @@ let normi_sq (x, y) =
   (powi ~num:x ~exp:2) + (powi ~num:y ~exp:2)
     
 let normi c = 
-  sqrt (i2f (normi_sq c))
+  sqrt (Misc.i2f (normi_sq c))
 
 let disti_sq  (x1, y1) (x2, y2) = 
   (powi ~num:(x1 - x2) ~exp:2) + (powi ~num:(y1 - y2) ~exp:2)
 
 let disti c1 c2 = (
-  sqrt (i2f (disti_sq c1 c2))
+  sqrt (Misc.i2f (disti_sq c1 c2))
 )
 
 let norm_sq (x, y) =  (x ** 2.0) +. (y ** 2.0)

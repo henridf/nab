@@ -11,7 +11,7 @@ let box_centeri i =
   let pts = Graph.getinfoi_ (g()) i in
   match pts with 
     | x1::y1::x2::y2::x3::y3::x4::y4::[] -> 
-	(((coord_i2f (x1, y1)) +++. (coord_i2f (x3, y3))) ///. 2.)
+	(((Coord.i2f (x1, y1)) +++. (Coord.i2f (x3, y3))) ///. 2.)
    | _ -> raise (Misc.Impossible_Case "Read_coords.box_center")
 
 let box_center n = 

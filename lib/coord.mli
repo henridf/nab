@@ -43,12 +43,12 @@ val ( ///. ) : coordf_t -> float -> coordf_t
 
 (** Type conversions *)
 
-val coord_i2f : coordi_t -> coordf_t
-val coord_i2n : coordi_t -> coordn_t
-val coord_f2i : coordf_t -> coordi_t
-val coord_f2n : coordf_t -> coordn_t
-val coord_round : coordf_t -> coordf_t
-val coord_floor : coordf_t -> coordf_t
+val i2f : coordi_t -> coordf_t
+val i2n : coordi_t -> coordn_t
+val f2i : coordf_t -> coordi_t
+val f2n : coordf_t -> coordn_t
+val round : coordf_t -> coordf_t
+val floor : coordf_t -> coordf_t
 
 (** Norms and distances *)
 

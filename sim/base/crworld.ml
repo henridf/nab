@@ -7,6 +7,7 @@
   @author Henri Dubois-Ferriere *)
 
 open Coord
+open Pervasives
 open Misc
 open Common
 open Printf

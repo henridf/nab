@@ -1,4 +1,5 @@
 open Coord
+open Pervasives
 open Misc
 
 
@@ -70,9 +71,9 @@ let xsect_grid_and_circle
 	 the x /. tile_size_x_ division "fits" and we would get a grid_pos = to 
 	 grid_size_x_ (resp. grid_size_y_). *)
       let x_pos = 
-	min (grid_size_x - 1) (f2i (floor (x /. tile_size_x)))
+	min (grid_size_x - 1) (Misc.f2i (floor (x /. tile_size_x)))
       and y_pos =
-	min (grid_size_y - 1) (f2i (floor (y /. tile_size_y)))
+	min (grid_size_y - 1) (Misc.f2i (floor (y /. tile_size_y)))
       in (x_pos, y_pos)
     ) in
     

@@ -66,7 +66,7 @@ let draw_connectivity () = (
 )
 
 let draw_all_boxes() = (
-  let f point = pos_mtr_to_pix (coord_i2f point) in
+  let f point = pos_mtr_to_pix (Coord.i2f point) in
   let list2segs l = 
     match l with 
       | x1::y1::x2::y2::x3::y3::x4::y4::[] -> [
