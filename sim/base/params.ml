@@ -63,13 +63,6 @@ let radiorange =
     ~doc:"Radio range [m] of nodes"
     ()
 
-let ntargets = 
-  Param.intcreate 
-    ~name:"ntargets" 
-    ~default:1
-    ~doc:"Number of targets in Simulation"
-    ()
-
 let mob_gran = 
   Param.floatcreate 
     ~name:"mob_gran" 

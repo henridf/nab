@@ -47,7 +47,7 @@ let setup () = (
      For large simulations, we usually reduce this, so that the total memory
      space for LE tables is #nodes * ntargets
   *)
-  Param.set Params.ntargets (Param.get Params.nodes);
+  Param.set Hello_agents.ntargets (Param.get Params.nodes);
 
 
 
@@ -88,7 +88,7 @@ let _ =
   (* This function computes the encounter ratio, ie the proportion of node pairs for which
     encounter entries exist *)
   let proportion_met_nodes()   = 
-    let targets = Param.get Params.ntargets in
+    let targets = Param.get Hello_agents.ntargets in
     let total_encounters = 
       Array.fold_left (fun encs agent -> (agent#db#num_encounters) + encs) 0 hello_agents
     in

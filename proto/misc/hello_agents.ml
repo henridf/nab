@@ -37,6 +37,14 @@ open Printf
   @author Henri Dubois-Ferriere.
  *)
 
+
+let ntargets = 
+  Param.intcreate 
+    ~name:"number of targets (hello_agent)" 
+    ~default:1
+    ~doc:"Number of targets in Simulation"
+    ()
+
 (** @param owner a {!Gpsnode.gpsnode} object representing the node on which
   this agent is running *)
 class base_hello_agent owner = 
@@ -46,7 +54,7 @@ object(s)
   val owner:Gpsnode.gpsnode = owner
 
   (** This {!Le_tab.le_tab} object is our last-encounter table *)
-  val mutable db = new Le_tab.le_tab (Param.get Params.ntargets)
+  val mutable db = new Le_tab.le_tab ~ntargets:(Param.get ntargets)
 
   method db = db
   method set_db thedb = db <- thedb
@@ -66,7 +74,7 @@ object(s)
 	
       | `HELLO_PKT pos -> (* This is a hello packet *)
 
-	  let src = L3pkt.l3src ~l3pkt 
+	  let src = L3pkt.l3src l3pkt 
 	    (* the sender of this hello message *)
 	  in
 
