@@ -37,8 +37,6 @@ object(s: #Node.node_t)
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
 
-    (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:None
-
   )
 
   method move newpos = (
