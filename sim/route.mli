@@ -2,8 +2,8 @@
 (* LER Simulator *)
 (* *** ********* *)
 
-open Common
-
+(* Simple list-based representation of a LER route. *)
+   
 (* A route between src and dest should start at the src and finish at the dest.
    Therefore  its length is 1 more than the # hops in the route.
    The anchor changes at the hop which does a new anchor search (or in the
@@ -13,6 +13,7 @@ open Common
    different than the previous hop.
 *)
 
+open Common
 
 type 'a hop = {hop:'a; anchor:'a; searchcost:float}
     (* this is not enforced, but 'a should normally be an int or a coordf_t *)
