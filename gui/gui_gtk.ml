@@ -112,8 +112,7 @@ Mwsconv.init();
 
 
   let (pixmap_, bitmap) = Gdk.Pixmap.create_from_xpm_d
-(*    ~data:Blank.blank_xpm*)
-    ~data:Epfl.epfl_xpm
+    ~data:(Param.get Params_gui.xpm_bg)
     ~window:(gdk_window())
     ()
   in
