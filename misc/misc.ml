@@ -1,4 +1,8 @@
-(* Miscellaneous stuff that is useful everywhere **)
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
+
+(** Miscellaneous stuff that is useful everywhere *)
 
 open Printf
 
@@ -10,6 +14,8 @@ open Printf
 
 
 
+(** Type converters *)
+
 let i2f i = float_of_int i
 let f2i f = int_of_float f
 
@@ -19,10 +25,8 @@ let s2f s = float_of_string s
 let i2s i = string_of_int i
 let f2s f = string_of_float f
 
-let repeat n f = begin
-  let ctr = ref 0 in 
-    while (!ctr < n) do f (); incr ctr  done;
-end
+
+(** Arithmetic and related *)
 
 let largest f1 f2 = 
   if (f1 > f2) then f1 else f2
@@ -49,12 +53,7 @@ let normdot a = let n = ref 0.0 in Array.iter (fun x -> n := !n +. ((i2f x) ** 2
 
 let id x = x
 
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-(*                                                                                     **)
-(*  Lists                                                                              **)
-(*                                                                                     **)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-
+(**  Lists *)
 
 let listlast l = List.nth l (List.length l - 1)
   
@@ -76,12 +75,7 @@ let sprintlist ~fmt:fmt ~l:l = List.fold_left (fun a b -> a ^ (Printf.sprintf fm
 let printlist ~fmt:fmt ~l:l = Printf.printf "%s" (sprintlist ~fmt:fmt ~l:l)
 
 
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-(*                                                                                     **)
-(*  Arrays                                                                             **)
-(*                                                                                     **)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-
+(**  Arrays *)
 
 let array_f2i a = Array.map (fun x -> f2i x ) a
 let array_i2f a = Array.map (fun x -> i2f x ) a
@@ -107,34 +101,29 @@ let array_count_filt f a = (
 let array_count elt a = array_count_filt (fun x -> x = elt) a
 
 let array_same a1 a2 = list_same (Array.to_list a1) (Array.to_list a2)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-(*                                                                                     **)
-(*  Iterators                                                                          **)
-(*                                                                                     **)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+
+
+(**  Iterators *)
 
 let matrix_iter f m = 
   let iter_row r = Array.iter f r in
     Array.iter iter_row m
 
+let repeat n f = begin
+  let ctr = ref 0 in 
+    while (!ctr < n) do f (); incr ctr  done;
+end
     
 
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-(*                                                                                     **)
-(*  Options                                                                            **)
-(*                                                                                     **)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+(**  Options *)
 
 let o2v = function 
     None -> raise (Failure "Misc.o2v : None")
   | Some v -> v
 
 
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-(*                                                                                     **)
-(* Error Handling                                                                      **)
-(*                                                                                     **)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+(** Error Handling and Exceptions *)
+
 
 exception Impossible_Case of string
 exception Not_Implemented
@@ -151,11 +140,7 @@ let equal_or_print a b ~equal ~print =
     false
   ) else true
 	
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
-(*                                                                                     **)
-(* UI                                                                                  **)
-(*                                                                                     **)
-(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+(** Random *)
   let wait_for_line() = (
     Printf.printf "Press enter to continue...\n" ; 
     flush stdout;
