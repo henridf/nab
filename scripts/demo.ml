@@ -128,9 +128,9 @@ let do_one_run() = (
 
 let _ = 
   Read_coords.make_graph();
-Read_coords.check_ngbrs();
-
-(*  Read_coords.check_conn();*)
+  Read_coords.check_ngbrs();
+  
+  (*  Read_coords.check_conn();*)
   Param.set Params.nodes 1000;
   Param.set Params.rrange 20.0;
   Param.set Params.x_size 800.0;
