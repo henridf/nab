@@ -70,6 +70,7 @@ let list_unique_elements l =
     Hashtbl.fold (fun key value list -> key :: list ) hash []
 
 let list_count_element ~l ~el = List.length (List.filter (fun x -> x = el) l)
+let list_count_int ~l el:int = List.length (List.filter (fun (x:int) -> (x = el)) l)
 
 let sprintlist ~fmt:fmt ~l:l = List.fold_left (fun a b -> a ^ (Printf.sprintf fmt b)) "" l
 let printlist ~fmt:fmt ~l:l = Printf.printf "%s" (sprintlist ~fmt:fmt ~l:l)
