@@ -9,6 +9,9 @@ else
 	include  mk/ocaml.mk	
 endif
 
+
+LIB_DIR = $(shell ocamlc -where)
+
 MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
 GUI_DIR = gui
@@ -17,9 +20,9 @@ MK_DIR = mk
 GUI_DIR = gui
 TEST_DIR = test
 BIN_DIR = bin
-CAML_DIR = /usr/lib/ocaml
-GTK_DIR = $(CAML_DIR)/lablgtk
-CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
+
+GTK_DIR = $(LIB_DIR)/lablgtk
+CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
 INCLUDE_LIBS = -I $(GTK_DIR)
 INCLUDE_SRC = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR)
@@ -56,10 +59,10 @@ DEPENDS = \
 ############
 # Libraries
 
-GFX_LIB = $(CAML_DIR)/graphics$(CMA)
-UNIX_LIB = $(CAML_DIR)/unix$(CMA)
-STR_LIB = $(CAML_DIR)/str$(CMA)
-THREADS_LIB = $(CAML_DIR)/threads/threads$(CMA)
+GFX_LIB = $(LIB_DIR)/graphics$(CMA)
+UNIX_LIB = $(LIB_DIR)/unix$(CMA)
+STR_LIB = $(LIB_DIR)/str$(CMA)
+THREADS_LIB = $(LIB_DIR)/threads/threads$(CMA)
 
 
 GTK_LIBS = $(GTK_DIR)/lablgtk$(CMA) $(UNIX_LIB) $(STR_LIB)
