@@ -195,7 +195,8 @@ let _ =
   
 (*  Param.printconfig stdout;*)
   
-  Printf.printf "#h proto run n rate srcs tmat speed DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
+  if (Param.get Config.run) = 1 then
+    Printf.printf "#h proto run n rate srcs tmat speed DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
   flush stdout;
   do_one_run ();
 
