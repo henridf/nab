@@ -29,9 +29,38 @@ let avg_degree = 9
 
 type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
 type agent_type = AODV | GREP | STR_MAX | STR_AGE | STR_AODV
+type warmup_type = TRAFFIC | MOB  | NONE
+
 
 module Config = 
 struct
+  let warmup_of_string = function
+    | "traffic" | "traf" -> TRAFFIC
+    | "mob" -> MOB
+    | "none" -> NONE
+    | _ -> raise (Failure "Invalid format for warmup type")
+
+  let string_of_warmup = function
+    | TRAFFIC -> "traffic"
+    | MOB -> "mob"
+    | NONE -> "none"
+
+  let warmup = Param.stringcreate
+    ~name:"warmup"
+    ~cmdline:true
+    ~default:"none"
+    ~doc:"Simulation Warmup type"
+    ~checker:(fun s -> ignore (warmup_of_string s))
+    ()
+
+  let warmupfile = Param.stringcreate
+    ~name:"warmupfile"
+    ~cmdline:true
+    ~default:"none"
+    ~doc:"Warmup file"
+    ~checker:(fun s -> ())
+    ()
+
   let agent_of_string = function
     | "aodv" | "AODV" -> AODV
     | "str"  | "str-max" | "str_max" ->STR_MAX
@@ -43,7 +72,7 @@ struct
   let agent = Param.stringcreate
     ~name:"agent"
     ~cmdline:true
-    ~default:"grep"
+    ~default:"str_age"
     ~doc:"Routing protocol"
     ~checker:(fun s -> ignore (agent_of_string s))
     ()
@@ -110,7 +139,7 @@ let is_destination nid =
     | BIDIR -> nid <= sources - 1
 
 
-let setup_sim() = (
+let setup_sim () = (
 
   let agenttype = Config.agent_of_string (Param.get Config.agent)
   and speed = (Param.get Config.speed)
@@ -124,31 +153,30 @@ let setup_sim() = (
   Param.set Params.y_size 
     (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
 
-(*
-  Param.set Params.x_size 800.;
-  Param.set Params.y_size 600.;
-*)
-
 
 (*  init_epfl_world();*)
   init_lazy_world();
 
-  begin match agenttype with
-    | AODV -> make_aodv_nodes()
-    | STR_AGE -> make_str_nodes Str_rtab.STR_AGE;
-    | STR_MAX -> make_str_nodes Str_rtab.STR_MAX;
-    | STR_AODV -> make_str_nodes Str_rtab.STR_AODV;
-    | GREP -> failwith "grep not working no more"
+  begin
+    match (Param.get Config.warmupfile) with
+      | "none" ->
+	  begin match agenttype with
+	    | AODV -> make_aodv_nodes()
+	    | STR_AGE -> make_str_nodes Str_rtab.STR_AGE;
+	    | STR_MAX -> make_str_nodes Str_rtab.STR_MAX;
+	    | STR_AODV -> make_str_nodes Str_rtab.STR_AODV;
+	    | GREP -> failwith "grep not working no more"
+	  end
+      | f -> 
+	  let ic = Pervasives.open_in f in
+	  Persistency.read_node_state ic;
+	  Persistency.read_str_agents ic
   end;
-
-(*  Mob_ctl.make_epfl_waypoint_mobs();*)
-  Mob_ctl.make_billiard_mobs ~gran:(rrange /. 10.) ();
+  (*  Mob_ctl.make_epfl_waypoint_mobs();*)
+  install_mobs ~gran:(rrange /. 10.) ();
   Mob_ctl.set_speed_mps speed;
-(*  Mob_ctl.start_all();*)
-
+  
   print_degree();
-
-
 )
 
 
