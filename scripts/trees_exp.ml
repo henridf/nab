@@ -2,7 +2,7 @@ let durations = [1200]
 let sinks = [1;2;3;4;5;6;7;8;9;10]
 let runs = [1; 2; 3; 4; 5]
 let difftypes = ["voronoi"; "opp"; "ess"]
-let mactypes = ["nullmac"]
+let mactypes = ["nullmac", "contmac"]
 let tmpfile = "/tmp/out.txt"
 let resfile = "./out.txt"
   
@@ -42,6 +42,7 @@ let _ =
   ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
 
 
+(*
   let chop = Filename.chop_extension in
 
   ignore (Sys.command (Printf.sprintf 
@@ -71,3 +72,4 @@ let _ =
 
 
 
+*)
