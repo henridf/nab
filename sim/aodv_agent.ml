@@ -524,10 +524,14 @@ object(s)
 	with 
 	  | Send_Out_Failure -> ()
       ) else (
-      let old_hopcount = o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst) in
+
 	Rtab.invalidate ~rt:rtab ~dst:invalid_dst;
+
 	let (dseqno,dhopcount) = 
-	  (o2v (Rtab.seqno ~rt:rtab ~dst:invalid_dst), old_hopcount)
+	  begin match (Rtab.seqno ~rt:rtab ~dst:invalid_dst) with
+	    | None -> (0, max_int)
+	    | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
+
 	in
 	s#log_notice (lazy (sprintf "got a rerr for me, doing rreq for node %d hops %d seqno
 		    %d\n" invalid_dst dhopcount dseqno));
