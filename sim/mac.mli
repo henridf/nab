@@ -7,6 +7,7 @@
   @author Henri Dubois-Ferriere.
 *)
 
+
 class type mac_t  = 
 object
   method objdescr : string
