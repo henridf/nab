@@ -300,16 +300,22 @@ object(s)
     (* this expects to be called just prior to sending l3pkt*)
     let dst = (L3pkt.l3dst ~l3pkt) in
     let  next_rt = (agent nexthop)#get_rtab in
-    let this_sn = Rtab.seqno ~rt:rtab ~dst
-    and this_hc = Rtab.hopcount ~rt:rtab ~dst
-    and next_sn = Rtab.seqno ~rt:next_rt ~dst
-    and next_hc = Rtab.hopcount ~rt:next_rt ~dst
-
+    let this_sn = o2v (Rtab.seqno ~rt:rtab ~dst)
+    and this_hc = o2v (Rtab.hopcount ~rt:rtab ~dst)
+    and next_sn = o2v (Rtab.seqno ~rt:next_rt ~dst)
+    and next_hc = o2v (Rtab.hopcount ~rt:next_rt ~dst)
+      
     in
     if not (
       (this_sn < next_sn) || 
       ((this_sn = next_sn) && (this_hc >= next_hc))
-    ) then raise (Failure "Inv_packet_upwards")
+    ) then 
+      let s = (Printf.sprintf "this_sn: %d, this_hc: %d, next_sn: %d, next_hc:
+    %d" this_sn this_hc next_sn next_hc)
+      in
+      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" s))
+	
+	
   )
     
   method private process_data_pkt 
