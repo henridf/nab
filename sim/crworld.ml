@@ -3,7 +3,9 @@
 (*                                  *)
 
 
-(* Continuous topology with reflective boundaries *)
+(** Continuous topology with reflective boundaries.
+  @author Henri Dubois-Ferriere
+*)
 
 open Coord
 open Misc
