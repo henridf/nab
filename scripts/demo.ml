@@ -156,7 +156,7 @@ let _ =
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();
   Log.set_log_level ~level:Log.LOG_DEBUG;
-  Gui_ctl.create_buttons_ease();
+  Gui_ctl.setup_easeviz_app();
   Gui_ops.draw_all_boxes();
   do_one_run();
 

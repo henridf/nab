@@ -190,7 +190,7 @@ let main() =
 let () = 
   main();
   Gui_gtk.init ();
-  Gui_ease_diffusion.create_buttons_ease();
+  Gui_ease.setup_easeviz_app();
   Main.main()
 
 

@@ -31,7 +31,7 @@
 open Misc
 open GMain
 
-let t = ref (Time.get_time())
+
 
 let rt = ref None (* keep a copy of last route around so expose_event can
 		     redraw it *)
@@ -47,13 +47,20 @@ let ss_tab() = o2v !start_stop_tab
 let choose_route_btn = ref None
 let rt_btn() = o2v !choose_route_btn
 
+(* Flags indicating what information to display. *)
 let show_nodes = ref true
 let show_connectivity = ref false
-let show_tree = ref true
+
+(* Flag indicating whether the user chooses the src by click or by 
+   entering node id.*)
 let text_entry = ref false  
+
+
+
+(* Destination is 0 by default. Source is chosen by user. *)
+let dst = 0
 let src_ = ref 0
 let src() = !src_
-let dst = 0
  
 let route_portion = ref 1.0
 
@@ -66,7 +73,8 @@ let draw_nodes () =
 
 
 let refresh ?(clear=true) ()  = (
-  Gui_gtk.draw ~clear ();
+  Gui_gtk.clear();
+
   if !show_nodes  then  draw_nodes(); 
   if !show_connectivity  then  Gui_ops.draw_connectivity();
 
@@ -78,7 +86,6 @@ let refresh ?(clear=true) ()  = (
 
 let running = ref false
 let start_stop () = (
-  (* if we are in the middle of choosing a node, should we cancel all state? *)
   
   match !running with
     | true -> 
@@ -142,28 +149,6 @@ let choose_node () = (
     Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:get_route ()
 )
   
-let create_buttons_common() = (
-
-  let ss_tab = (GPack.table ~rows:8 ~columns:1 ~homogeneous:false 
-    ~row_spacings:0 ~col_spacings:0 ~border_width:0
-    ~packing:(Gui_gtk.hpacker()) ()) in
-
-  start_stop_btn := Some (GButton.toggle_button ~draw_indicator:false
-    ~label:"start/stop" ());
-  ignore ((ss_btn())#connect#released ~callback:(start_stop));
-  ss_tab#attach (ss_btn())#coerce ~left:0 ~top:0 ~right:1 ~bottom:1
-    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
-
-  choose_route_btn := Some (GButton.toggle_button ~draw_indicator:false
-    ~label:"draw a route" ()) ;
-  ignore ((rt_btn())#connect#released ~callback:(choose_node));
-  ss_tab#attach (rt_btn())#coerce ~left:0 ~top:1 ~right:1 ~bottom:2
-    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
-
-  ss_tab
-)
-
-
 (* lifted from testgtk.ml (example comes with lablgtk) *)
 let create_menu () = (
   let menu = GMenu.menu () and group = ref None in
@@ -198,40 +183,31 @@ let create_menus () = (
 
 )
 
+let refresh_fun () = ignore (refresh())
 
-let create_buttons_grep() = (
+let buttonlist = [
+  ("Move nodes",       `TOGGLE,  [`FUNC start_stop]);
+  ("Draw route",       `TOGGLE,  [`FUNC choose_node]);
+  ("Show nodes",       `CHECK,   [`TOGGLE show_nodes; `FUNC refresh_fun ]);
+  ("Show Connectivity",`CHECK,   [`TOGGLE show_connectivity; `FUNC refresh_fun]);
+  ("Text",            `CHECK,    [`TOGGLE text_entry; `FUNC refresh_fun]);
+]
 
-  let ss_tab = create_buttons_common() in
 
-  let checkbox_tab = (GPack.table ~rows:1 ~columns:4 ~homogeneous:false 
+let setup_grepviz_app() = (
+
+  let top = ref 0 in
+
+  (* Create a table to put our buttons in. *)
+  let ss_tab = (GPack.table ~rows:8 ~columns:1 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
-    ()) in
+    ~packing:(Gui_gtk.hpacker()) ()) in
 
-  ss_tab#attach checkbox_tab#coerce ~left:0 ~top:2 ~right:1 ~bottom:8
-    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
-(*  let box2 = GPack.vbox ~spacing: 0 ~border_width: 10
-    ~packing: box1#pack () in*)
-  
+  (* Create buttons *)
+  Gui_widgets.make_buttons ss_tab buttonlist top;
 
-  let checkboxlist = [
-    ("Nodes", show_nodes, 0, 0);
-    ("Connectivity", show_connectivity, 0, 1);
-    ("Text", text_entry, 0, 2);
-  ] in
-  
-  List.iter (fun (txt, boolref, left, top) ->
-    let btn = (GButton.check_button ~label:txt
-      ()) in
-    checkbox_tab#attach btn#coerce ~left ~top ~right:(left + 1) 
-      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`NONE;
-    
-    ignore (btn#connect#released 
-      ~callback:(fun _ -> 
-	boolref := not !boolref;
-	refresh () ;
-      )
-    )) checkboxlist;
-
+  (* Create scaler (slider bar at the bottom which controls partial
+     visualization of route) *)
   let adj =
     GData.adjustment ~lower:0. ~upper:1001. ~step_incr:1. ~page_incr:100. () in
   let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
@@ -246,13 +222,13 @@ let create_buttons_grep() = (
       adj#value/.1000.;
       if (!rt <> None) then refresh ();
     ));
+
+
+  (* Tell gtk to invoke our refresh method whenever the window is exposed *)
   Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false);
 
   create_menus();
-
-
-
-  )
+)
 
 
 

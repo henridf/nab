@@ -197,8 +197,9 @@ GUI_OBJS = $(SIM_OBJS) \
 		$(GUI_DIR)/gui_conv$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
+		$(GUI_DIR)/gui_widgets$(CMO) \
 		$(GUI_DIR)/gui_ctl$(CMO) \
-		$(GUI_DIR)/gui_ease_diffusion$(CMO) \
+		$(GUI_DIR)/gui_ease$(CMO) \
 		$(GUI_DIR)/gui_grep$(CMO) 
 
 MODULE_OBJS = \

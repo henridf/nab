@@ -97,7 +97,7 @@ let () =
 
   Gui_gtk.init();
 
-  Gui_grep.create_buttons_grep();
+  Gui_grep.setup_grepviz_app();
 
   do_one_run();
 (*  (Sched.s())#run_for ~duration:1600.;*)

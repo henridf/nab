@@ -28,74 +28,53 @@ open Misc
 open GMain
 
 
-let t = ref (Time.get_time())
-
 let nstacks = 2
 
 let routes = Array.init nstacks (fun _ -> (Route.create()))
 let clear_routes() =  Array.iteri (fun i _ -> routes.(i) <- (Route.create())) routes
 
-let start_stop_btn = ref None
-let start_stop_tab:GPack.table option ref = ref None
-let ss_btn() = o2v !start_stop_btn
-let ss_tab() = o2v !start_stop_tab
-let choose_route_btn = ref None
-let rt_btn() = o2v !choose_route_btn
-
-let show_nodes = ref true
+(* Flags indicating what information to display. *)
+let show_nodes = ref true 
 let show_route_lines = ref true
 let show_route_anchors = ref true
 let show_route_disks = ref true
 let show_connectivity = ref false
+
+(* Flag indicating whether the user chooses the src by click or by 
+   entering node id.*)
 let text_entry = ref false  
 
-type proto = EASE | GREASE
-let proto = ref GREASE
-let stack_of_proto() = match !proto with GREASE -> 0 | EASE -> 1 
+
+(* Are we displaying the EASE or the GREASE route ? *)
+let proto = ref `GREASE
+let stack_of_proto() = match !proto with `GREASE -> 0 | `EASE -> 1 
+
+(* Destination is 0 by default. Source is chosen by user. *)
+let dst = 0
 
 
 let running = ref false
 
 let route_portion = ref 1.0
 
-let dst = 0
+let draw_nodes () = 
+  Gui_ops.draw_all_nodes();
+  Gui_ops.draw_node ~emphasize:true dst
 
-let run() = (
+let refresh ()  = (
 
-  Gui_gtk.set_expose_event_cb (fun _ -> true);
-  
-  t := (Time.get_time());
-  let continue() = ((Time.get_time()) < !t +. 1.0) in
-  (Sched.s())#run_until~continue;
+  Gui_gtk.clear();
 
-  if !show_nodes  then  Gui_ops.draw_all_nodes(); 
-  Gui_gtk.draw ~clear:true ();
-  true
-)
-  
-
-
-let refresh ?(clear=true) ()  = (
-
-  Gui_gtk.draw ~clear ();
-
-  if !show_nodes  then  Gui_ops.draw_all_nodes(); 
+  if !show_nodes  then  draw_nodes(); 
   if !show_connectivity  then  Gui_ops.draw_connectivity(); 
-  (*
-    Gui_ops.draw_all_routes 
-    (); 
-    Gui_ops.draw_all_boxes(); 
-  *)
-
-    Gui_ops.draw_ease_route 
-      ~lines:!show_route_lines
-      ~anchors:!show_route_anchors
-      ~disks:!show_route_disks
-      ~portion:!route_portion
-      (Gui_conv.ease_route_nodeid_to_pix routes.(stack_of_proto()))
-
+  
+  Gui_ops.draw_ease_route 
+    ~lines:!show_route_lines
+    ~anchors:!show_route_anchors
+    ~disks:!show_route_disks
+    ~portion:!route_portion
+    (Gui_conv.ease_route_nodeid_to_pix routes.(stack_of_proto()));
 )
-
 
 
 let start_stop () = (
@@ -117,9 +96,7 @@ let start_stop () = (
 )
 
 
-
-
-let set_src nid = (
+let set_src nid = ( 
 
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" nid dst);
   Log.log#log_always (lazy (Printf.sprintf "Destination is at %s"
@@ -130,7 +107,7 @@ let set_src nid = (
   let r = [|ref []; ref []|] in
   
   for stack = 0 to nstacks - 1  do
-    let in_mhook = Gui_hooks.ease_route_pktin_mhook r.(stack) in
+    let in_mhook = Gui_hooks.ease_route_pktin_mhook r.(stack) in 
     let out_mhook = Gui_hooks.ease_route_pktout_mhook r.(stack) in
     Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ~stack ());
     Nodes.gpsiter (fun n -> n#add_pktin_mhook ~stack in_mhook);
@@ -154,12 +131,6 @@ let set_src nid = (
     ~src:nid);
 *)
   
-
-  (* For some reason, if i don't do this twice, the anchors are not drawn, and
-     only appear if i force the window to refresh (by say passing another window
-     over it. Not sure if this is my bug or lablgtk's, but with this ugly
-     workaround it goes away. *)
-  refresh();
   refresh();
 )
 
@@ -180,74 +151,39 @@ let choose_node () = (
 )
 
 
-  
-let create_buttons_common() = (
+let refresh_fun () = ignore (refresh())
 
+let radiobuttonlist = [
+  ("GREASE", [`FUNC (fun () -> proto := `GREASE); `FUNC refresh_fun]);
+  ("EASE", [`FUNC (fun () -> proto := `EASE); `FUNC refresh_fun]);
+]
+
+let buttonlist = [
+  ("Move nodes",      `TOGGLE,  [`FUNC start_stop]);
+  ("Draw route",      `TOGGLE,  [`FUNC choose_node]);
+  ("Hide nodes",      `CHECK,   [`TOGGLE show_nodes; `FUNC refresh_fun ]);
+  ("Hide Anchors",    `CHECK,   [`TOGGLE show_route_anchors; `FUNC refresh_fun]);
+  ("Hide Directions", `CHECK,   [`TOGGLE show_route_lines; `FUNC refresh_fun]);
+  ("Hide Disks",      `CHECK,   [`TOGGLE show_route_disks; `FUNC refresh_fun]);
+  ("Text",            `CHECK,   [`TOGGLE text_entry; `FUNC refresh_fun]);
+] 
+
+
+let setup_easeviz_app() = (
+
+  let top = ref 0 in
+
+  (* Create a table to put our buttons in. *)
   let ss_tab = (GPack.table ~rows:8 ~columns:1 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
     ~packing:(Gui_gtk.hpacker()) ()) in
 
-  start_stop_btn := Some (GButton.toggle_button ~draw_indicator:false
-    ~label:"start/stop" ());
-  ignore ((ss_btn())#connect#released ~callback:(start_stop));
-  ss_tab#attach (ss_btn())#coerce ~left:0 ~top:0 ~right:1 ~bottom:1
-    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
+  (* Create buttons *)
+  Gui_widgets.make_buttons ss_tab buttonlist top;
+  Gui_widgets.make_radio_buttons ss_tab radiobuttonlist top;
 
-  choose_route_btn := Some (GButton.toggle_button ~draw_indicator:false
-    ~label:"draw a route" ()) ;
-  ignore ((rt_btn())#connect#released ~callback:(choose_node));
-  ss_tab#attach (rt_btn())#coerce ~left:0 ~top:1 ~right:1 ~bottom:2
-    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
-
-  ss_tab
-)
-
-let create_buttons_ease() = (
-
-  let ss_tab = create_buttons_common() in 
-
-  let checkbox_tab = (GPack.table ~rows:1 ~columns:4 ~homogeneous:false 
-    ~row_spacings:0 ~col_spacings:0 ~border_width:0
-    ()) in
-
-  ss_tab#attach checkbox_tab#coerce ~left:0 ~top:2 ~right:1 ~bottom:8
-    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
-(*  let box2 = GPack.vbox ~spacing: 0 ~border_width: 10
-    ~packing: box1#pack () in*)
-  
-
-  let checkboxlist = [
-    ("Hide nodes", show_nodes, 0, 0);
-    ("Hide Anchors", show_route_anchors, 0, 1);
-    ("Hide Directions", show_route_lines, 0, 2);
-    ("Hide Disks", show_route_disks, 0, 3);
-    ("Text", text_entry, 0, 4);
-  ] in
-  
-  List.iter (fun (txt, boolref, left, top) ->
-    let btn = (GButton.check_button ~label:txt
-      ()) in
-    checkbox_tab#attach btn#coerce ~left ~top ~right:(left + 1) 
-      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`NONE;
-    
-    ignore (btn#connect#released 
-      ~callback:(fun _ -> 
-	boolref := not !boolref;
-	ignore (refresh ()) ;
-      )
-    )) checkboxlist;
-
-  
-  let btn1 =  GButton.radio_button ~label:"GREASE" ~active:true  ()  in
-
-  checkbox_tab#attach btn1#coerce ~left:0 ~top:5 ~right:1 ~bottom:6 ~expand:`NONE;
-  ignore (btn1#connect#released ~callback:(fun () -> proto := GREASE; ignore (refresh())));
-  
-  let btn2 = GButton.radio_button ~group:btn1#group ~label:"EASE" ()  in
-
-  checkbox_tab#attach btn2#coerce ~left:0 ~top:6 ~right:1 ~bottom:7 ~expand:`NONE;
-  ignore (btn2#connect#released ~callback:(fun () -> proto := EASE; ignore (refresh())));
-
+  (* Create scaler (slider bar at the bottom which controls partial
+     visualization of route) *)
   let adj =
     GData.adjustment ~lower:0. ~upper:1001. ~step_incr:1. ~page_incr:100. () in
   let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
@@ -261,11 +197,12 @@ let create_buttons_ease() = (
       ignore (refresh());
     ));
 
-  Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false);
 
-(*  ignore (counter#connect#changed ~callback:(fun n -> 
-    Gui_gtk.txt_msg (Printf.sprintf "New value %s.." (string_of_int n))));
-*)
+  let sep = GMisc.separator `HORIZONTAL ~packing:(Gui_gtk.vpacker()) ~height:4
+    () in
+
+  (* Tell gtk to invoke our refresh method whenever the window is exposed *)
+  Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false);
 
 )
 
