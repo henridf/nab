@@ -117,10 +117,10 @@ val make_flood_agents : ?stack:int -> unit -> unit
     (default stack 0). See {!Flood_agent.flood_agent}.
     Nodes should be created before calling this.*)
   
-val make_ler_agents : ?stack:int -> Ease_agent.ler_proto_t -> unit 
+val make_ler_agents : ?stack:int -> Ler_agent.ler_proto_t -> unit 
   (** Creates and adds a LER agent to each node, on [stack]
     (default stack 0). 
-    The parameter {!Ease_agent.ler_proto_t} indicates the choice of algorithm 
+    The parameter {!Ler_agent.ler_proto_t} indicates the choice of algorithm 
     that the node should run (FRESH, EASE, GREASE).
 
     Nodes should be created before calling this. EASE and GREASE require

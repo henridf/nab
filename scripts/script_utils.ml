@@ -149,7 +149,7 @@ let place_nodes_on_line () =
 
 let make_ler_agents ?(stack=0) proto = (
   Nodes.gpsiteri (fun nid n -> 
-    let agent = new Ease_agent.ler_agent ~stack ~proto n in
+    let agent = new Ler_agent.ler_agent ~stack ~proto n in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 

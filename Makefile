@@ -173,8 +173,9 @@ SIM_OBJS = $(GFX_LIB) \
 		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
+		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
 		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
-		$(PROTO_LER_DIR)/ease_agent$(CMO) \
+		$(PROTO_LER_DIR)/ler_agent$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
 		$(SIM_BASE_DIR)/gui_hooks$(CMO) \
