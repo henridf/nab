@@ -3,7 +3,13 @@ open Misc
 open Coord
 
 let init_sched() = Gsched.set_sched (new Sched.schedList)
-let init_world() = Gworld.set_world (new Crworld.crworld (Param.get Params.nodes))
+let init_world() = 
+  Gworld.set_world (new Crworld.crworld 
+    ~x:(Param.get Params.x_size)
+    ~y:(Param.get Params.y_size)
+    ~rrange:(Param.get Params.rrange)
+)
+
 
 let make_grep_nodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
