@@ -11,6 +11,7 @@
 #directory "/home/henridf/work/nab/sim/base";;
 #directory "/home/henridf/work/nab/sim/interfaces";;
 #directory "/home/henridf/work/nab/sim/pkt";;
+#directory "/home/henridf/work/nab/sim/mac";;
 #directory "/home/henridf/work/nab/gui";;
 
 #directory "/home/henridf/work/nab/proto/grep";;
