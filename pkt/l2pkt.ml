@@ -42,9 +42,14 @@ let l3pkt ~(l2pkt:l2packet_t) = l2pkt.l3pkt
 let l2hdr ~(pkt:l2packet_t) = pkt.l2hdr
 let l2src ~(pkt:l2packet_t) = (l2hdr pkt).l2src
 let l2dst ~(pkt:l2packet_t) = (l2hdr pkt).l2dst
+let string_of_l2dst l2dst = 
+  match l2dst with 
+    | L2_BCAST -> "L2_bcast"
+    | L2_DST d -> string_of_int d
 
 let make_l2pkt ~srcid ~l2_dst ~l3pkt = 
   let l2hdr = {l2src=srcid; l2dst=l2_dst} 
   in {l2hdr=l2hdr; l3pkt=l3pkt}
+
 
 

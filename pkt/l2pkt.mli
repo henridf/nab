@@ -26,5 +26,6 @@ val l3pkt : l2pkt:l2packet_t -> l3packet_t
 val l2hdr : pkt:l2packet_t -> l2hdr_t
 val l2src : pkt:l2packet_t -> Common.nodeid_t
 val l2dst : pkt:l2packet_t -> l2_dst_t
+val string_of_l2dst : l2_dst_t -> string
 
 val l2hdr_size : int
