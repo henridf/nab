@@ -7,23 +7,23 @@ module type GraphType = HashedType
 module type S = 
 sig
   type elt
-  type g
+  type t
   type graphtype_t = Directed | Undirected
 
-  val create_ : elt -> int -> graphtype_t -> g
+  val create_ : elt -> int -> graphtype_t -> t
 
-  val neigbors_  :  g -> elt -> elt list
-  val neigborsi_ : g -> int -> int list
+  val neigbors_  : t -> elt -> elt list
+  val neigborsi_ : t -> int -> int list
 
-  val contains_  : g -> elt -> bool
-  val containsi_ : g -> int -> bool
+  val contains_  : t -> elt -> bool
+  val containsi_ : t -> int -> bool
 
-  val add_node_  : g -> elt -> unit
-  val add_edge_  : g -> elt -> elt  -> float ->  unit
-  val add_edgei_ : g -> int -> int  -> float -> unit
+  val add_node_  : t -> elt -> unit
+  val add_edge_  : t -> elt -> elt  -> float ->  unit
+  val add_edgei_ : t -> int -> int  -> float -> unit
 
-  val iteri_ : (int  -> unit) -> g -> unit
-  val itern_ : (elt  -> unit) -> g -> unit
+  val iteri_ : (int  -> unit) -> t -> unit
+  val itern_ : (elt  -> unit) -> t -> unit
 end;;
 
 
@@ -38,7 +38,7 @@ struct
   type adj_mat_t = cost_t array array   
 
   type graphtype_t = Directed | Undirected 
-  type g = { mutable ind : int;  (* index of next new node in nodes array. Equal to size when full *)
+  type t = { mutable ind : int;  (* index of next new node in nodes array. Equal to size when full *)
 	     size : int;         (* max # nodes in graph *)
 	     nodes : elt array;   
 	     hash : int Hash.t;

@@ -6,14 +6,14 @@ module type Itinerary_t =
 sig
   exception Itin_size_not_set
   type place_t = None | Place of int;;
-  type itinerary_t   
+  type t   
   val set_itin_size_ : graphsize:int -> unit  (* needed to set size of internal 'scratch' structures. could be avoided *)
-  val create_ : int -> itinerary_t
-  val length_ : itinerary_t -> int
-  val addplace_ : itinerary_t -> place_t -> unit
-  val get_ : itinerary_t -> int -> place_t    (* get an entry in the itinerary, specified by relative age *)
-  val hops_to_place_ : itinerary_t -> place_t -> int (* returns max_int if place not in itin *)
-  val unroll_itin_ : itinerary_t -> itinerary_t (* itinerary must be full before this can be called *)
+  val create_ : int -> t
+  val length_ : t -> int
+  val addplace_ : t -> place_t -> unit
+  val get_ : t -> int -> place_t    (* get an entry in the itinerary, specified by relative age *)
+  val hops_to_place_ : t -> place_t -> int (* returns max_int if place not in itin *)
+  val unroll_itin_ : t -> t (* itinerary must be full before this can be called *)
   val test_ : unit -> unit    
 end;;
 
@@ -25,7 +25,7 @@ struct
 
   type place_t = None | Place of int
   type mytype = place_t LinkedArray.linkedArray_t
-  type itinerary_t =  place_t CircBuf.circbuf_t (* head points to last written entry *)
+  type t =  place_t CircBuf.circbuf_t (* head points to last written entry *)
 		       
   let graphsize__ = ref 8
   let last_visit_of_place__ = ref (Array.create !graphsize__ max_int) (* to avoid allocating each time in unroll_itin_ *)
