@@ -123,7 +123,7 @@ object(s)
 
       dir_ <- s#new_direction;
 
-      let lambda = 1. /. (speed_mps *. (Param.get Params.x_size)) in 
+      let lambda = 1. /. ((Param.get Params.x_size) /. speed_mps ) in 
       (* The inter-change time is an expo; mean is the time to traverse
 	 distance of network size. *)
       let delta_next_change = Misc.expo ~rand:(Random.float rnd 1.0) ~lambda in
@@ -174,9 +174,7 @@ object(s)
     else 
       newx, newy
     in
-    let p = 
-      ((World.w())#boundarize newpos) in
-p
+      ((World.w())#boundarize newpos)
   )
 end
 
