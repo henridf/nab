@@ -15,14 +15,17 @@ val ler_draw_segments_reflect : coordf_t array -> unit
 val draw_nodes : coordf_t array -> unit
 val label_node : coordf_t -> string -> unit
 val draw_and_label_nodes : coordf_t array -> unit
-val circle_nodes : coordf_t array -> float -> unit
+val circle_nodes : ?fill:bool -> coordf_t array -> float -> unit
 val draw_cross : coordf_t -> int -> unit
 
-val draw_route : Coord.coordf_t Route.t  -> unit
+(*val draw_route : color:bool -> route:Coord.coordf_t Route.t  -> unit*)
+val draw_route : color:(hop:int -> routelength:int -> Graphics.color) -> route:Coord.coordf_t Route.t  -> unit
+val hop_col_color : hop:int -> routelength:int -> Graphics.color
 
-val draw_gradient : (coordf_t) array array -> unit
+val disc_draw_gradient : (coordf_t) array array -> unit
+val cont_draw_gradient : (coordf_t * coordf_t) array -> unit
 
-val mouse_choose_node :  (coordf_t -> int list) -> string -> int
+val mouse_choose_node :  (unitpos:coordf_t -> Common.nodeid_t) -> string -> Common.nodeid_t
 
 val dump_window : string -> unit
 
