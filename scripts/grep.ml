@@ -52,7 +52,7 @@ let do_one_run ()  = (
   and sources = (Param.get Config.sources) 
   and speed = (Param.get Config.speed)
   and pkts_to_send = (Param.get Config.pktssend)
-  and rrange = (Param.get Params.rrange)
+  and rrange = (Param.get Params.radiorange)
   in
 
   Randoms.change_seed ~newseed:(Param.get Config.run) () ;
@@ -66,8 +66,11 @@ let do_one_run ()  = (
   init_lazy_world();
   
   begin match agenttype with
-    | AODV -> make_aodv_nodes()
+         | AODV -> ()
+	     (* make_aodv_nodes()
+	    aodv has moved out of nab/ for now *)
     | GREP -> make_grep_nodes();
+	
   end;
 
   (* Attach a random waypoint mobility process to each node *)
@@ -123,7 +126,7 @@ let do_one_run ()  = (
 let setup() = 
   
   Param.set Params.nodes 100;
-  Param.set Params.rrange rrange;
+  Param.set Params.radiorange rrange;
   
   let s = Param.make_argspeclist () 
   in

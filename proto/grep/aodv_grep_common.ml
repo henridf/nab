@@ -43,7 +43,7 @@ let  xmitdelay ~bytes ~bps = (i2f (bytes * 8)) /. bps
   
 let hop_traversal_time bps = 
   max 0.2
-  ((Param.get Params.rrange) /. Ether.speed_of_light
+  ((Param.get Params.radiorange) /. Ether.speed_of_light
   +.xmitdelay ~bytes:2000 ~bps)
 
 

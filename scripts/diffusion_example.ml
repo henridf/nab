@@ -40,7 +40,7 @@ let setup () = (
   Param.set Params.y_size 5.0;
 
   (* Radio range (this should not change) *)
-  Param.set Params.rrange ( 1. +. epsilon_float);
+  Param.set Params.radiorange ( 1. +. epsilon_float);
 
   (* Set the number of targets in each nodes last-encounter table.
      For small simulations this can be equal to the # of nodes. 

@@ -151,7 +151,7 @@ let _ =
   
   (*  Read_coords.check_conn();*)
   Param.set Params.nodes 100;
-  Param.set Params.rrange 20.0;
+  Param.set Params.radiorange 20.0;
   Param.set Params.x_size 800.0;
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();

@@ -50,7 +50,7 @@ val x_pix_size : int Param.t
 val y_pix_size : int Param.t
   (** The Y (pixels) size  of the simulation area, when using a GUI. *)
 
-val rrange : float Param.t
+val radiorange : float Param.t
   (** Radio range (meters) of nodes *)
 
 val ntargets : int Param.t
@@ -59,6 +59,10 @@ val ntargets : int Param.t
     For large simulations, some parts of mws may be more efficient when this
     is kept small. For example, in EASE routing, the size of the
     Last-Encounter table depends on the number of targets value. *)
+
+val mob_gran : float Param.t
+  (** The granularity at which nodes move. 
+    See {!Mob.t}.*)
     
 (*
 val world : string Param.t

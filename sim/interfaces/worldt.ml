@@ -58,11 +58,11 @@ object
     
   method neighbors : Common.nodeid_t -> Common.nodeid_t list
     (** Return all the neighbors of a node. Neighbors are nodes within
-      distance {!Params.rrange} of each other. *)
+      distance {!Params.radiorange} of each other. *)
 
   method are_neighbors : Common.nodeid_t -> Common.nodeid_t -> bool
     (** Return true if two nodes are neighbors, false otherwise.
-      Neighbors are nodes within  distance {!Params.rrange} of each other. *)
+      Neighbors are nodes within  distance {!Params.radiorange} of each other. *)
 
   method add_mob_mhook : hook:(Coord.coordf_t -> Common.nodeid_t -> unit) -> unit
     (** Any monitoring application can register here to receive update each
@@ -96,7 +96,7 @@ object
 
   method is_connected : unit -> bool
     (** Returns true if the network is connected (under a boolean connectivity
-      model, with connectivity up to Params.rrange), false otherwise.
+      model, with connectivity up to Params.radiorange), false otherwise.
       Warning: this is SLOW for networks in the 100s of nodes or above. *)
 
   method get_nodes_within_radius :  nid:Common.nodeid_t -> radius:float -> Common.nodeid_t list

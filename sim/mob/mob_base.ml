@@ -58,7 +58,7 @@ object(s)
     
     begin match gran with 
       | Some g -> granularity <- g
-      | _ -> ()
+      | None -> granularity <- Param.get (Params.mob_gran)
     end;
     incr rndseed
     

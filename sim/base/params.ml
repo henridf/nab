@@ -23,14 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
-
-
-
 let nodes = 
   Param.intcreate 
     ~name:"nodes" 
@@ -65,7 +57,7 @@ let y_pix_size =
     ~doc:"Y [pix] size of simulation area"
     ()
 
-let rrange = 
+let radiorange = 
   Param.floatcreate 
     ~name:"rrange" 
     ~doc:"Radio range [m] of nodes"
@@ -76,6 +68,12 @@ let ntargets =
     ~name:"ntargets" 
     ~default:1
     ~doc:"Number of targets in Simulation"
+    ()
+
+let mob_gran = 
+  Param.floatcreate 
+    ~name:"mob_gran" 
+    ~doc:"Mobility granularity"
     ()
 
 let mac = 
