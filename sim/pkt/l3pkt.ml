@@ -22,12 +22,6 @@
 
 (* $Id$ *)
 
-
-
-
-
-
-
 open L4pkt
 open Pkt_common
 
@@ -42,12 +36,13 @@ let l3_bcast_addr = (* 255.255.255.255 *)
   powi ~num:2 ~exp:16 + 
   powi ~num:2 ~exp:24
 
-
+let default_ttl = 255
 
 type l3hdr_ext_t = 
     [ `NONE
     | `LER_HDR of Ler_pkt.t
     | `GREP_HDR of Grep_pkt.t
+    | `STR_HDR of Str_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
     | `SIMPLE_HDR of Simple_pkt.t
@@ -57,6 +52,7 @@ let clone_l3hdr_ext = function
   | `NONE -> `NONE
   | `LER_HDR e -> `LER_HDR (Ler_pkt.clone e)
   | `GREP_HDR e -> `GREP_HDR (Grep_pkt.clone e)
+  | `STR_HDR e -> `STR_HDR (Str_pkt.clone e)
   | `AODV_HDR e -> `AODV_HDR (Aodv_pkt.clone e)
   | `DIFF_HDR e -> `DIFF_HDR (Diff_pkt.clone e)
   | `SIMPLE_HDR e -> `SIMPLE_HDR (Simple_pkt.clone e)
@@ -83,6 +79,7 @@ let l3hdr_ext_size = function
   | `NONE -> 0
   | `LER_HDR hdr -> Ler_pkt.size hdr
   | `GREP_HDR hdr ->  Grep_pkt.hdr_size hdr 
+  | `STR_HDR hdr ->  Str_pkt.hdr_size hdr 
   | `AODV_HDR hdr ->  Aodv_pkt.hdr_size hdr 
   | `DIFF_HDR hdr ->  Diff_pkt.hdr_size hdr 
   | `SIMPLE_HDR hdr ->  Simple_pkt.hdr_size hdr 
@@ -90,8 +87,8 @@ let l3hdr_ext_size = function
 
  
 let l3hdr_size ~l3hdr = 
-  2 * _ADDR_SIZE (* src, dst *)
-  + _TTL_SIZE    (* ttl *)
+  2 * addr_size (* src, dst *)
+  + ttl_size    (* ttl *)
   +  (l3hdr_ext_size l3hdr.ext)
     
 
@@ -127,38 +124,43 @@ let l3hdr_ext l3pkt = l3pkt.l3hdr.ext
 let ler_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `LER_HDR e -> e
-    | _ -> raise (Failure "Packet.ler_hdr")
+    | _ -> raise (Failure "L3pkt.ler_hdr")
 
 let grep_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `GREP_HDR e -> e
-    | _ -> raise (Failure "Packet.grep_hdr")
+    | _ -> raise (Failure "L3pkt.grep_hdr")
+
+let str_hdr l3pkt = 
+  match l3pkt.l3hdr.ext with
+    | `STR_HDR e -> e
+    | _ -> raise (Failure "L3pkt.str_hdr")
 
 let aodv_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `AODV_HDR e -> e
-    | _ -> raise (Failure "Packet.aodv_hdr")
+    | _ -> raise (Failure "L3pkt.aodv_hdr")
 
 let diff_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `DIFF_HDR e -> e
-    | _ -> raise (Failure "Packet.diff_hdr")
+    | _ -> raise (Failure "L3pkt.diff_hdr")
 
 let simple_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `SIMPLE_HDR e -> e
-    | _ -> raise (Failure "Packet.simple_hdr")
+    | _ -> raise (Failure "L3pkt.simple_hdr")
 
 let get_ler_l3ext (l3hdr:l3hdr_t) = 
   match l3hdr.ext with
     | `LER_HDR e -> e
-    | _ -> raise (Failure "Packet.get_ler_l3ext")
+    | _ -> raise (Failure "L3pkt.get_ler_l3ext")
 
 
 let make_l3hdr 
   ~src 
   ~dst 
-  ?(ttl=255)
+  ?(ttl=default_ttl)
   ?(ext=`NONE)
   ()
   = {

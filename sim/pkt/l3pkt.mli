@@ -59,6 +59,7 @@ type l3hdr_ext_t =
     [ `NONE
     | `LER_HDR of Ler_pkt.t 
     | `GREP_HDR of Grep_pkt.t
+    | `STR_HDR of Str_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
     | `SIMPLE_HDR of Simple_pkt.t
@@ -74,13 +75,15 @@ type t
 
 (** {2 Network Layer (L3) Packet Constructors} *)
 
+val default_ttl : int
+
 val make_l3hdr :
   src:Common.nodeid_t ->
   dst:Common.nodeid_t ->
-  ?ttl:int ->
+  ?ttl:int -> 
   ?ext:l3hdr_ext_t -> unit -> 
   l3hdr_t
-
+  (** default value for ttl is {!L3pkt.default_ttl} *)
 
 
 val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:L4pkt.t -> t
@@ -98,6 +101,7 @@ val l3ttl : t -> int
 val l3hdr_ext : t -> l3hdr_ext_t
 val ler_hdr : t -> Ler_pkt.t
 val grep_hdr : t -> Grep_pkt.t
+val str_hdr : t -> Str_pkt.t
 val aodv_hdr : t -> Aodv_pkt.t
 val diff_hdr : t -> Diff_pkt.t
 val simple_hdr : t -> Simple_pkt.t
