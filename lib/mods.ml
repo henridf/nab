@@ -28,7 +28,11 @@
 
 
 
-(** Augmented versions of the standard library modules *)
+(** Tweaked and slightly augmented versions of the standard library modules.
+
+  @author Henri Dubois-Ferriere.
+
+*)
 
  module Array = struct
 
@@ -60,3 +64,9 @@
      iteri_ l 0;;
    
   end
+
+
+ module String = struct
+   include String
+   let last s = s.[String.length s - 1]
+ end
