@@ -17,7 +17,7 @@ different MAC layers and different MAC parameters. In so doing, we will see:
 <ul>
 <li> How to configure parallel protocol stacks running on each node.
 <li> How to extract MAC layer statistics.
-<li> How to use hooks to reconstruct high-level network states, such as the
+<li> How to use hooks to reconstruct high-level network state, such as the
 sequence of nodes in a flood.
 <li> How to use the above data to compute some statistics on flooding behavior
 (namely the number of <a href="lesson2-bwlinks.html">backward links</a>)
@@ -37,7 +37,7 @@ online. This file has revision $Revision$.</font>
 0. <a href="#0">Prerequisites</a><br>
 1. <a href="#1">Simulation setup</a><br>
 2. <a href="#2">Using parallel stacks</a><br>
-3. <a href="#3">Launching the flood and viewing the statistics<code>nab</code> toplevel</a><br>
+3. <a href="#3">Launching the flood and computing statistics</a><br>
 <p>
 
 <hr>
@@ -50,14 +50,16 @@ This lesson requires the following:
 
 <h2><a name="1">1. Simulation setup</a></h2>
 <p>
-To be filled in...<br> 
+To be filled in... check back soon on http://nab.epfl.ch <p> 
 For now, please see <a href="lesson2.ml">lesson2.ml</a> for the full commented script.
+<p>
 <p>
 
 <h2><a name="2">2. Using parallel stacks</a></h2>
 <p>
-To be filled in...<br> 
+To be filled in... check back soon on http://nab.epfl.ch <p> 
 For now, please see <a href="lesson2.ml">lesson2.ml</a> for the full commented script.
+<p>
 <p>
 
 
@@ -103,12 +105,12 @@ Stack 2 (Contention MAC, 200Kbps, 3s jitter)
 
 </pre>
 
-
+<p>
 Note that we can directly 'inspect' the generated tree. But this is not, er,
 not easy to parse visually. If you're feeling adventurous, note that a primitive is
 available in the <a href="gen/Gui_ops.html">visualization</a> libraries to
 draw trees on top of the network layout.
-
+<p>
 <pre class=example>
 # !(!flood_trees.(2));;
 - : Flood.t =
