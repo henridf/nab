@@ -17,11 +17,10 @@ let set_debug_level s =
   in
   Log.set_log_level ~level
 
-let speclist = 
-  ["-debug", Arg.String set_debug_level, "<level> Set debug level"]
 
 let parse_args() = (
-  Arg.parse speclist (fun _ -> ()) "";
+  let s = Param.make_argspeclist () in
+  Arg.parse s (fun _ -> ()) "";
 )
 
 let init_sched() = Sched.set_sched (new Sched.schedHeap)
@@ -109,18 +108,21 @@ let make_grease_nodes () = (
 
   Nodes.set_gpsnodes 
     (Array.init (Param.get Params.nodes)
-      (fun i -> 
-	(new Gpsnode.gpsnode
-	  ~pos_init:(World.w())#random_pos 
-	  i
-	)));
-  
-  (* create grease agents, who will hook to their owners *)
+      (fun nid -> 
+	let pos_init = (World.w())#random_pos in
+	(World.w())#init_pos ~nid ~pos:pos_init;
+	(new Gpsnode.gpsnode ~pos_init nid);
+      )
+    );
+  (* create grease agents, and 'insert' them into their owner nodes. *)
   Ease_agent.set_agents
     (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent ~grease:true n));
+  
+  Nodes.iteri (fun nid n -> 
+    n#install_rt_agent (!Ease_agent.agents_array.(nid) :> Rt_agent.t));
 
-  (* set up initial node position in internal structures of World.object *)
-  Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos);
+  install_macs();
+
   assert ((World.w())#neighbors_consistent);
 )
 
@@ -203,7 +205,7 @@ let avg_neighbors_per_node() =
   let total_neighbors = 
     Nodes.fold (fun n total -> (List.length ((World.w())#neighbors n#id)) + total) 0 
   in
-  (i2f total_neighbors) /. (i2f (Param.get Params.nodes))
+  (float total_neighbors) /. (float (Param.get Params.nodes))
 
 let max_neighbors_per_node() = 
   let max = ref 0 in
@@ -298,8 +300,6 @@ let print_header () = (
   Printf.printf "--------------------------------------- \n";
   Printf.printf "    mws  multihop wireless simulator    \n";
   Printf.printf "--------------------------------------- \n\n";
-  Printf.printf "Simulation Parameters:\n";
-  Printf.printf "\tNumber of nodes:\t\t %d\n" (Param.get Params.nodes);
   flush stdout;
 )
 
