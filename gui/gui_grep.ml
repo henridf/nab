@@ -23,15 +23,15 @@ let show_route_anchors = ref true
 let show_route = ref true
 let show_connectivity = ref false
 let show_tree = ref true
-
-let src() = (Param.get Params.nodes) - 1
+let src_ = ref 0
+let src() = !src_
 let dst = 0
  
 let route_portion = ref 1.0
 
 
 let draw_nodes () = 
-  Gui_ops.draw_all_nodes(); 
+  Gui_ops.draw_all_nodes();
   Gui_ops.draw_node ~emphasize:true (src());
   Gui_ops.draw_node ~emphasize:true dst
   
@@ -65,11 +65,12 @@ let start_stop () = (
 )
 
 
-let get_route () = (
+let get_route nid = (
 
   Mob_ctl.stop_all();
-
   (Gsched.sched())#run(); 
+  src_ := nid;
+
   let routeref = (ref (Route.create())) in
   Gui_hooks.route_done := false;
   let in_mhook = Gui_hooks.grep_route_pktin_mhook routeref in
@@ -104,7 +105,7 @@ let choose_node () = (
     Gui_ctl.stop();
     running := not !running;
   );
-  get_route();
+  Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:get_route ()
 )
   
 let create_buttons_common() = (
