@@ -9,7 +9,7 @@ open Printf
    Simplified bler algorithm which simply sends packets from anchor 
    to anchor. Does not do a real flooding.
    Is also incomplete in that it does not need to properly fill in 
-   bler packets with  the current encounter age. *)
+   bler packets with the current encounter age. *)
 
 (* right now this mhook does not distinguish betwen src-dst pairs, it takes
    anything and tries to construct the route.
@@ -89,14 +89,9 @@ object(s)
       | BLER_PKT p ->  s#recv_bler_pkt_ p
       | _ -> ()
 
-  method app_send pkt = (
-    let l3hdr = 
-      Packet.make_l3hdr ~srcid:pkt.l3hdr.src ~dstid:pkt.l3hdr.dst  ()
-    and pld = 
-      Packet.ANCH_REQ (pkt.l3hdr.dst, max_float); 
-    in
-    s#recv_bler_pkt_ (Packet.make_bler_pkt ~l3hdr:l3hdr ~blerpld:pld)
-  )
+  method app_send pkt = 
+    s#recv_bler_pkt_ (Packet.make_bler_pkt ~srcid:pkt.l3hdr.src ~dstid:pkt.l3hdr.dst)
+
 
   method private recv_bler_pkt_ (pkt:Packet.bler_packet_t) = (
     s#log_info (sprintf "%d received pkt with src %d, dst %d"
@@ -138,7 +133,7 @@ object(s)
 
 	  in
 	  (* Send through our containing nodes' mac layer *)
-	  owner#cheat_send_pkt ~l3pkt:(BLER_PKT pkt) ~dst:(Nodes.node(Misc.o2v next_hop))
+	  owner#cheat_send_pkt ~l3pkt:(BLER_PKT pkt) ~dstid:(Misc.o2v next_hop)
   )
 
 
