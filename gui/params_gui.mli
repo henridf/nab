@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (** Globally accessible parameters.  
   @author Henri Dubois-Ferriere.

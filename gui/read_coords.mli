@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (** Parsing the epfl 'concentration point graph'.
   @author Henri Dubois-Ferriere.

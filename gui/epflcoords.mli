@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (** Data structure representing coordinates and connectivity of EPFL
   concentration points.
