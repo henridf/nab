@@ -11,7 +11,6 @@ endif
 
 
 LER_SUBDIR = ler
-LLER_SUBDIR = ller
 MISC_SUBDIR = misc
 TEST_SUBDIR = test
 BIN_SUBDIR = bin
@@ -19,7 +18,7 @@ LIB_SUBDIR = /usr/lib/ocaml
 CAMLIMAGES_SUBDIR = $(LIB_SUBDIR)/camlimages
 
 
-INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(LLER_SUBDIR) -I $(CAMLIMAGES_SUBDIR) 
+INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(CAMLIMAGES_SUBDIR) 
 
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
@@ -27,8 +26,8 @@ LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"
 SUBDIRS = \
 	$(MISC_SUBDIR) \
 	$(TEST_SUBDIR) \
-	$(LER_SUBDIR) \
-	$(LLER_SUBDIR) 
+	$(LER_SUBDIR) 
+
 
 
 DEPEND = .depend
@@ -37,8 +36,6 @@ DEPENDS = \
 	$(LER_SUBDIR)/*.ml \
 	$(LER_SUBDIR)/*.mli \
 	$(TEST_SUBDIR)/*.mli \
-	$(LLER_SUBDIR)/*.ml \
-	$(LLER_SUBDIR)/*.mli \
 	$(MISC_SUBDIR)/*.ml \
 	$(MISC_SUBDIR)/*.mli
 
@@ -66,27 +63,19 @@ LER_OBJ_FILES = $(GFX_LIB) \
 		$(LER_SUBDIR)/ler$(CMO) \
 		$(MISC_SUBDIR)/ler_graphics$(CMO) \
 		$(LER_SUBDIR)/movements$(CMO) \
-		$(LLER_SUBDIR)/larray$(CMO) \
-		$(LLER_SUBDIR)/circbuf$(CMO) \
-		$(LLER_SUBDIR)/itin$(CMO) \
+		$(MISC_SUBDIR)/larray$(CMO) \
+		$(MISC_SUBDIR)/circbuf$(CMO) \
+		$(MISC_SUBDIR)/itin$(CMO) \
 		$(LER_SUBDIR)/ease$(CMO) \
 		$(LER_SUBDIR)/abf$(CMO) \
 		$(LER_SUBDIR)/ler_main$(CMO)
 
-LLER_OBJ_FILES = $(MISC_OBJ_FILES) \
-		 $(MISC_SUBDIR)/data$(CMO) \
-		 $(MISC_SUBDIR)/graph$(CMO) \
-		 $(LLER_SUBDIR)/larray$(CMO) \
-		 $(LLER_SUBDIR)/circbuf$(CMO) \
-		 $(LLER_SUBDIR)/itin$(CMO) \
-	  	 $(LLER_SUBDIR)/ller$(CMO) \
-		 $(LLER_SUBDIR)/ller_main$(CMO)
 
 MODULE_OBJ_FILES = \
 	$(MISC_SUBDIR)/graph$(CMO) \
-	$(LLER_SUBDIR)/larray$(CMO) \
-	$(LLER_SUBDIR)/circbuf$(CMO) \
-	$(LLER_SUBDIR)/itin$(CMO)
+	$(MISC_SUBDIR)/larray$(CMO) \
+	$(MISC_SUBDIR)/circbuf$(CMO) \
+	$(MISC_SUBDIR)/itin$(CMO)
 
 
 PROOF_OBJ_FILES = $(LER_SUBDIR)/proof$(CMO)
@@ -130,17 +119,12 @@ im2png: misc/im2png$(CMO)
 exp: bin/exp
 bin/exp:  $(LER_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(LER_OBJ_FILES) -o $@ 
-#	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(CAMLIMAGES_LIBS) $(LER_OBJ_FILES) -o $@ 
 
 doplots: $(DOPLOTS_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(DOPLOTS_OBJ_FILES) $(DOPLOTS_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
 testmodules:  $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES) $(TEST_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
-
-ller: bin/ller
-bin/ller: $(LLER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(LLER_OBJ_FILES) -o $@
 
 ocamlgfx: 
 	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
