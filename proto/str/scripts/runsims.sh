@@ -30,28 +30,35 @@
 protos="str-age"
 nodes="500"
 mobs="rw billiard borderwp"
-movers="all dests allbutdests"
+movers="all dests"
 num_runs=4
 action=$1
-pkts_orig=20
+
 
 if [ $# != 1 ] ; then
-    echo "usage $0 [warmup | route] "
+    echo "usage $0 [warmup | route | process] "
     exit 1
 fi
 
-if [ $action != "warmup" -a $action != "route" ] ; then
-    echo "Must specify [warmup | route]   !"
+if [ $action != "warmup" -a $action != "route" -a $action != "process" ] ; then
+    echo "Must specify [warmup | route | process]  !"
     exit
 fi
 
-
-
 pushd /home/henridf/work/nab/
 
-for node in $nodes
-  do
 
+if [ $action == "process" ]; then
+    jdboutfile=all-`date +%F-%Hh%Mm`.jdb
+    if [ -f $jdboutfile ]; then
+	echo "$jdboutfile already exists"
+	exit -1
+    fi
+fi
+
+
+for node in $nodes
+  do 
   for mob in $mobs
     do
     for mover in $movers
@@ -59,31 +66,31 @@ for node in $nodes
       for proto in $protos
 	do
 	
-	run=1
-	while [ $run -le $num_runs ] ; do
-	    basename=$node"n-$mob-$mover-$run"
-	    statefile=$basename".dat"
-	    resultfile=$basename".res"
-	    if [ $action == "warmup" ]; then
-		cmd="bin/nab -nodes $node -agent $proto -warmup mob -mob $mob -run $run -move $mover -dumpfile $statefile"
+	if [ $action == "process" ]; then
+	    basename=$node"n-$mob-$mover"
+	    cat $basename-*.jdb | dbrowaccumall | dbcolcreate nodes $node mob $mob movers $mover proto $proto | dbstripcomments -h | dbcolneaten >> $jdboutfile
+	else
+	    run=1
+	    while [ $run -le $num_runs ] ; do
+		basename=$node"n-$mob-$mover-$run"
+		statefile=$basename".dat"
+		resultfile=$basename".res"
+		if [ $action == "warmup" ]; then
+		    cmd="bin/nab -nodes $node -agent $proto -warmup mob -mob $mob -run $run -move $mover -dumpfile $statefile"
 
-	    elif [ $action == "route" ]; then
+		elif [ $action == "route" ]; then
 
-		cmd="bin/nab -pkts_orig $pkts_orig $statefile  -dumpfile $resultfile $statefile"
+		    pkts_orig=$node
+		    cmd="bin/nab -pkts_orig $pkts_orig $statefile  -dumpfile $resultfile $statefile"
 
-	    fi
-
-	    
-	    echo ""
-	    echo " [ $cmd ]"
-	    echo ""
-	    $cmd
-
-	    run=$(($run+1))
-	    echo ""
-	    echo "--------------------------------------------------------------------"
-	    echo ""
-	done
+		fi
+		
+		echo ""; echo " [ $cmd ]";  echo ""
+		$cmd
+		run=$(($run+1))
+		echo ""; echo "--------------------------------------------------------------------"; echo ""
+	    done
+	fi
       done
     done
     
