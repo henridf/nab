@@ -30,7 +30,7 @@ let largest f1 f2 =
 let smallest f1 f2 = 
   if (f1 < f2) then f1 else f2
 
-let isint x = (x -. floor x) < epsilon_float
+let isint x = (floor x) = x
 let round x = if (x -. floor x) < 0.5 then (floor x) else (ceil x)
 
 let powi ~num ~exp = f2i ((i2f num) ** (i2f exp))
