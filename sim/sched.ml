@@ -96,9 +96,13 @@ object(s)
     )
 
   method run_for ~duration = 
-    let t = (Common.get_time()) in
-    let continue  = (fun () -> (Common.get_time()) < duration +. t) in
-    s#run_until ~continue
+    let end_time = (Common.get_time()) +. duration in
+    let continue  = (fun () -> (Common.get_time()) < end_time) in
+    s#run_until ~continue;
+    (* if for example you run_for 200 secs, and there are no more events after
+       10 secs, you still expect to be at time 200.*)
+    if (Common.get_time()) < end_time then
+      Common.set_time end_time
 
   method run() = 
     s#run_until ~continue:(fun () -> true)
