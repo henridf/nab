@@ -75,8 +75,8 @@ val connect_nodes :
   (** Connect pairs of nodes. *)
 
 val draw_connectivity : 
-  unit -> unit
-  (** Draw full connectivity mesh. *)
+  ?col:GDraw.color -> unit -> unit
+  (** Draw full connectivity mesh using ~col *)
 
 val draw_all_nodes : 
   unit ->

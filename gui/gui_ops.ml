@@ -72,7 +72,7 @@ let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   Gui_gtk.draw_segments ~col poslist
 )
 
-let draw_connectivity () = (
+let draw_connectivity ?(col=(`NAME "dim grey")) () = (
 
   let neighborlist = 
   Nodes.fold (fun node l ->
@@ -82,7 +82,7 @@ let draw_connectivity () = (
     l@ (List.map (fun ngbr -> (nid, ngbr)) ngbrs))
   []
   in
-  connect_nodes neighborlist
+  connect_nodes ~col neighborlist
 )
 
 let draw_all_boxes() = (
