@@ -18,7 +18,3 @@ let set_trace_chan, oc = (
 )
 
 let close_trace_chan () = close_out (oc())
-let namltrace ~msg = 
-  if (Param.get Params.trace_enabled) then
-    let stamped_msg = Naml_msg.mk_stamped_msg ~t:(Common.get_time()) ~msg:msg in
-    Marshal.to_channel (oc()) stamped_msg []
