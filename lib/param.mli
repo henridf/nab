@@ -25,7 +25,7 @@
 
 
 (** Parameter handling. 
-  The external was partly inspired by unison's Prefs module.
+  Some of this was initially inspired by unison's Prefs module.
   @author Henri Dubois-Ferriere.
 *)
 
@@ -35,25 +35,6 @@ type 'a t
 
 exception IllegalParamVal of string
 exception NoParamVal of string
-
-(** {1 Getting and Setting parameter values} *)
-
-val set : 'a t -> 'a -> unit
-  (** Set the value of a parameter. 
-    @raise IllegalParamVal if the parameter provided is invalid ('validity' is a
-    parameter-specific notion. *)
-
-val strset : 'a t -> string -> unit
-  (** Set the value of a parameter, by providing a string representation of
-    the value.
-    @raise IllegalParamVal if the string provided cannot be parsed into a
-    param value. *)
-
-val get : 'a t -> 'a                 
-  (** Returns the value of this parameter. *)
-
-val as_string : 'a t -> string
-
 
 (** {1 Creating and registering parameters} *)
 
@@ -66,6 +47,7 @@ val create :
   ?cmdline:bool ->    (* True if settable on cmdline. Default  is false.*)
   ?default:'a ->             
   ?checker:('a -> unit) ->   
+  ?notpersist:bool ->
   unit 
   -> 'a t                    
 (** 
@@ -78,14 +60,18 @@ val create :
   @param default Default value. Optional.
   @param cmdline Allow the parameter to be set via a command-line
   argument. Optional; default is [false].
+  @param persist If true, ignore this parameter when saving and restoring configuration
+  state. Default is [false].
+
 *)
 
 val intcreate :  
   name:string  -> 
-  ?cmdline:bool ->    (* True if settable on cmdline. Default  is false.*)
-  ?default:int  -> 
   doc:string  -> 
+  ?cmdline:bool ->    
+  ?default:int  -> 
   ?checker:(int -> unit) -> 
+  ?notpersist:bool ->
   unit 
   -> int t                             
   (** Create an parameter of type int.
@@ -95,10 +81,12 @@ val intcreate :
 
 val floatcreate :  
   name:string  -> 
-  ?cmdline:bool ->  (* True if settable on cmdline. Default  is false.*)
-  ?default:float  -> 
   doc:string -> 
-  ?checker:(float -> unit) -> unit 
+  ?cmdline:bool ->  
+  ?default:float  -> 
+  ?checker:(float -> unit) -> 
+  ?notpersist:bool ->
+  unit 
   -> float t                             
   (** Create an parameter of type float.
     @param checker A function to check validity of value when setting, for
@@ -108,10 +96,12 @@ val floatcreate :
 
 val boolcreate :  
   name:string  -> 
-  ?cmdline:bool  ->  (* True if settable on cmdline. Default  is false.*)
+  doc:string  ->
+  ?cmdline:bool  ->  
   ?default:bool  -> 
-  doc:string  
-  -> ?checker:(bool -> unit) -> unit 
+  ?checker:(bool -> unit) ->
+  ?notpersist:bool ->
+  unit 
   -> bool t                             
   (** Create an parameter of type bool.
     @param checker A function to check validity of value when setting, for
@@ -121,10 +111,12 @@ val boolcreate :
 
 val stringcreate :  
   name:string  -> 
-  ?cmdline:bool  -> (* True if settable on cmdline. Default  is false.*)
-  ?default:string  -> 
   doc:string -> 
-  ?checker:(string -> unit) -> unit 
+  ?cmdline:bool  -> 
+  ?default:string  -> 
+  ?checker:(string -> unit) -> 
+  ?notpersist:bool ->
+  unit 
   -> string t                             
   (** Create an parameter of type string.
     @param checker A function to check validity of value when setting, for
@@ -132,16 +124,41 @@ val stringcreate :
     Other arguments are same as for {!Param.create}. *)
 
 
+(** {1 Getting and Setting parameter values} *)
+
+val set : 'a t -> 'a -> unit
+  (** Set the value of a parameter. 
+    @raise IllegalParamVal if the parameter provided is invalid ('validity' is a
+    parameter-specific notion. *)
+
+val strset : 'a t -> string -> unit
+  (** [strset param stringval] sets the value of parameter [param] to the
+    value represented by [stringval], converting it to the appropriate type if
+    [param] is not a string parameter.
+    @raise IllegalParamVal if the string provided cannot be parsed into a
+    param value. *)
+
+val strset_by_name : string -> string -> unit
+  (** [strset paramname stringval] sets the value of the parameter with name
+    [paramname] to the value represented by [stringval], converting it to the
+    appropriate type if it is not a string parameter.
+    @raise IllegalParamVal if the string provided cannot be parsed into a
+    param value. *)
+
+val get : 'a t -> 'a                 
+  (** Returns the value of this parameter. *)
+
+val as_string : 'a t -> string
+  (** Returns a string representation of this parameter. *)
+
+
+(** {1 Operations on all configured parameters at a time}*)
+
 val argspeclist : unit -> (string * Arg.spec * string) list
   (** Returns a list of triples [(key, spec, doc)] corresponding to all
     created params which had 'cmdline' set. This list can then be used 
     to call the standard library's Arg.parse with, in order to set Param
     values from the command line. *)
-
-val configlist : unit -> (string * string) list
-  (** Returns a list of (keyword, value) pairs containing all created params
-    which have a value (ie, those params which were created without a default
-    value and have not been set are not included).*)
 
 val sprintconfig : unit -> string
   (** Returns a string representation of all registered Param (not only those
@@ -159,4 +176,4 @@ val printconfig : out_channel -> unit
 
 
 
-
+module Persist : Persist.t

@@ -24,9 +24,7 @@
 
 
 
-let mob_ = ref Mobs.None
 
-let getmob() = !mob_
 
 let mob_of_string = function
   | "borderwp" | "borderwaypoint" | "border" -> Mobs.Borderwaypoint
@@ -37,11 +35,17 @@ let mob_of_string = function
   | "none" -> Mobs.None
   | _ -> raise (Failure "Invalid format for mobility type")
 
-let strset_mob mob = mob_ := (mob_of_string mob)
+let string_of_mob = function
+  | Mobs.Borderwaypoint -> "borderwp" 
+  | Mobs.Uniwaypoint -> "uniwaypoint"
+  | Mobs.Epfl_waypoint -> "epfl"
+  | Mobs.Randomwalk -> "rw"
+  | Mobs.Billiard -> "billiard"
+  | Mobs.None -> "none"
 
 let mob = 
-  Param.stringcreate ~name:"mob" ~default:"billiard" ~cmdline:true
-    ~doc:"Mobility process" ~checker:(fun s -> strset_mob s) ()
+  Param.create ~name:"mob" ~default:Mobs.Billiard ~cmdline:true
+    ~doc:"Mobility process" ~reader:mob_of_string ~printer:string_of_mob ()
 
 let mob_array = ref ([||]: Mob.t array)
 

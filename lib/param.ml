@@ -41,15 +41,21 @@ type 'a t = {
 
 
 let params_speclist : (Arg.key * Arg.spec * Arg.doc) list ref = ref []
-  (* contains all params *)
+  (* contains all params that have cmdline=true.
+     used for parsing command line arguments.
+  *)
 
 let params_configlist : (unit -> string * string) list ref = ref []
-  (* for all params, contains a function which returns the name field and the
-     value (as_string) of the param. *)
+  (* for all params except those with notpersist=true, contains a function
+     which returns the name field and the value (as_string) of the param. 
+     Used to save and restore configuration state.
+  *)
 
 let params_configlist_doc : (unit -> string * string) list ref = ref []
   (* for cmdline params only, contains a function which returns the doc field
-     and the  value (as_string) of the param. *)
+     and the  value (as_string) of the param. 
+     Used to print out configuration state.
+  *)
 
 let allparams = ref []
 
@@ -82,7 +88,7 @@ let get param = match param.value with
 
 let as_string p = p.printer (get p)
 
-let make_intargspec param = 
+let make_intargspec param =
   ("-"^param.name, 
   Arg.Int (fun i -> set param i),
   param.doc)
@@ -107,99 +113,111 @@ let make_otherargspec param =
   Arg.String (fun i -> set param (param.reader i)),
   param.doc)
 
-let register ~name ?default ~doc ~reader ~printer ?checker () =  (
+let strset param string = (
+  let value = try 
+    param.reader string 
+  with _ -> raise 
+    (IllegalParamVal
+      (Printf.sprintf "%s is not correct for param %s" string param.name))
+  in
+  set param value
+)
+
+let strset_by_name name value = 
+  try 
+    let f = Hashtbl.find namespace name in
+    f value
+  with Not_found -> failwith ("No registered param with name "^name)
+
+let register ~cmdline ~name ?default ~doc ~reader ~printer ?checker
+  ?(notpersist=false) () =  
 
   if Hashtbl.mem namespace name then 
     raise (Failure (Printf.sprintf "Param.register : %s already taken" name));
-  Hashtbl.add namespace name name;
   
   begin
     match checker, default with 
       | Some f, Some v -> f v
       | _ -> ();
   end;
-  {value=default;
-  name=name;
-  doc=doc;
-  reader=reader;
-  printer=printer;
-  checker=checker}
-)
+  let p = {
+    value=default;
+    name=name;
+    doc=doc;
+    reader=reader;
+    printer=printer;
+    checker=checker} in
 
-let create ~name ~doc ~reader ~printer ?(cmdline=false) ?default ?checker () = 
-  let p = register ~name ~printer ?default ~doc ~reader ?checker () in
-  if cmdline then (
+  Hashtbl.add namespace name (fun s -> strset p s);
+
+  if not notpersist then
+    params_configlist := 
+    (fun () -> (p.name, (as_string p)))::!params_configlist;
+
+  if cmdline then 
+    params_configlist_doc := 
+    (fun () -> (p.doc, (as_string p)))::!params_configlist_doc;
+  
+  p
+    
+
+
+let create ~name ~doc ~reader ~printer ?(cmdline=false) ?default ?checker
+  ?(notpersist=false) () = 
+
+  let p = register ~cmdline ~name ~printer ?default ~doc ~reader ?checker
+    ~notpersist () in
+  if cmdline then 
     params_speclist := (make_otherargspec p)::!params_speclist;
-    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
-  );
-  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
   p
 
     
-let intcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = register ~name ?default ~doc ~reader:int_of_string ~printer:string_of_int
-    ?checker () in
-  if cmdline then (
+let intcreate ~name  ~doc ?(cmdline=false) ?default ?checker
+  ?(notpersist=false) () = 
+  let p = register ~cmdline ~name ?default ~doc ~reader:int_of_string
+    ~printer:string_of_int ~notpersist ?checker () in
+  if cmdline then 
     params_speclist := (make_intargspec p)::!params_speclist;
-    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
-  );
-  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
   p
 
-let floatcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = register ~name ?default ~doc ~reader:float_of_string ~printer:string_of_float
-    ?checker () in
-  if cmdline then (
+let floatcreate ~name  ~doc ?(cmdline=false) ?default ?checker
+  ?(notpersist=false) () = 
+  let p = register ~cmdline ~name ?default ~doc ~reader:float_of_string
+    ~printer:string_of_float ?checker ~notpersist () in
+  if cmdline then 
     params_speclist := (make_floatargspec p)::!params_speclist;
-    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
-  );
-  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
   p
 
-let boolcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = register ~name ?default ~doc ~reader:bool_of_string ~printer:string_of_bool
-    ?checker () in
-  if cmdline then (
+let boolcreate ~name  ~doc ?(cmdline=false) ?default ?checker
+  ?(notpersist=false) () = 
+  let p = register ~cmdline ~name ?default ~doc ~reader:bool_of_string
+    ~printer:string_of_bool ?checker ~notpersist () in
+  if cmdline then 
     params_speclist := (make_boolargspec p)::!params_speclist;
-    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
-  );
-  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
   p
 
-let stringcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = register ~name ?default ~doc ~reader:(fun s -> s) ~printer:(fun s -> s)
-    ?checker () in
-  if cmdline then (
+let stringcreate ~name  ~doc ?(cmdline=false) ?default ?checker
+  ?(notpersist=false) () = 
+  let p = register ~cmdline ~name ?default ~doc ~reader:(fun s -> s)
+    ~printer:(fun s -> s) ?checker ~notpersist () in
+  if cmdline then 
     params_speclist := (make_stringargspec p)::!params_speclist;
-    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
-  );
-  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
   p
-
-
-let strset param string = (
-  let value = try 
-    param.reader string 
-  with _ -> raise 
-    (IllegalParamVal
-      (Printf.sprintf "%s is not correct for param %s\n" string param.name))
-  in
-  set param value
-)
 
 
 let argspeclist () = !params_speclist
     
 
+(** Returns a list of (keyword, value) pairs containing all created params
+  which have a value (ie, those params which were created without a default
+  value and have not been set are not included).*)
 let configlist () = 
-  (* puts only the cmdline-able params in there*)  
-  List.sort (fun (a, _) (b, _) -> String.compare a b)
-    (List.fold_left 
-      (fun configlist f -> 
-	try (f())::configlist with
-	    NoParamVal _ -> configlist)
-      []
-      !params_configlist)
+  (List.fold_left 
+    (fun configlist f -> 
+      try (f())::configlist with
+	  NoParamVal _ -> configlist)
+    []
+    !params_configlist)
 
 let configlist_doc () = 
   (* puts only the cmdline-able params in there*)
@@ -208,20 +226,20 @@ let configlist_doc () =
     
   
 let sprintconfig () = 
-  let configlist = configlist_doc () in
+  let l = configlist_doc () in
   
   let max_width = 
     List.fold_left 
       (fun w (name,_) -> 
 	if String.length name > w then String.length name else w)
       0
-      configlist
+      l
   in
   
   let stringlist = 
     List.map (fun (name, value) ->
       (Misc.padto name (max_width + 4))^value^"\n"
-    ) configlist 
+    ) l
   in
   List.fold_left (^) "" stringlist
 
@@ -229,3 +247,18 @@ let sprintconfig () =
 let printconfig outchan = 
   let s = sprintconfig() in
   output_string outchan s
+
+
+module Persist = struct
+
+  let save oc = Marshal.to_channel oc (configlist()) []
+    
+  let restore ?(verbose=true) ic = 
+    Log.log#log_notice (lazy "Restoring Param state...");
+    let configlist = (Marshal.from_channel ic  : (string * string) list)
+    in
+    List.iter (fun (name, value) -> strset_by_name name value) configlist;
+    if verbose then 
+      Log.log#log_notice (lazy (sprintconfig()));
+    Log.log#log_notice (lazy "Done.");
+end

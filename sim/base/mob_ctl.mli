@@ -74,11 +74,5 @@ val start_all : unit -> unit
 val stop_all : unit -> unit
   (** Stops mobility of all nodes. Idempotent.*)
 
-val strset_mob : string -> unit
-  (** Set the default mobility via a string (for example provided as cmdline argument). *)
-
-val getmob : unit -> Mobs.mob_t
-  (** Returns the mobility model. *)
-
-val mob : string Param.t
+val mob : Mobs.mob_t Param.t
   (** Mob param *)

@@ -32,6 +32,17 @@ val set_lazy_world : Worldt.lazy_world_t -> unit
 val set_greedy_world : Worldt.greedy_world_t -> unit
   (** Sets the global greedy world object. *)
 
+type worldtype = 
+  | Lazy
+  | Greedy
+  | Lazy_taurus 
+  | Greedy_taurus 
+  | Epfl
+      (** The type of world that can be used (see sim/interfaces/worldt.ml)*)
+      
+val world : worldtype Param.t
+  (** Configuration parameter representing the type of world to use. *)
+
 val w : unit -> Worldt.lazy_world_t
   (** Returns the global lazy_world object, if one has been set. 
     Otherwise, returns the global greedy_world object, coerced to a
@@ -40,7 +51,9 @@ val w : unit -> Worldt.lazy_world_t
 val gw : unit -> Worldt.greedy_world_t
   (** Returns the global greedy_world object, if one has been set. *)
 
-(*
-val strset_world : string -> unit
-  (** Set the desired world type via a string (for example provided as cmdline argument). *)
-*)
+
+(**/**)
+
+
+
+

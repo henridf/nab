@@ -22,21 +22,14 @@
 
 (* $Id$ *)
 
-
-
-
-
-
-
-
 open Common
 open Misc
 
 type worldtype = 
-    Lazy_taurus 
+  | Lazy
+  | Greedy
+  | Lazy_taurus 
   | Greedy_taurus 
-  | Lazy_reflecting 
-  | Greedy_reflecting
   | Epfl
 
 let (lazy_world_ : Worldt.lazy_world_t option ref) = ref None 
@@ -52,18 +45,27 @@ let set_greedy_world t =
   greedy_world_ := Some t; 
   lazy_world_ := Some (t :> Worldt.lazy_world_t)
 
+let world_of_string = function
+  | "lazy_taurus" |  "taurus_lazy" | "tl" | "lt"
+      -> Lazy_taurus
+  | "greedy_taurus" |  "taurus_greedy" | "tg" | "gt"
+      -> Greedy_taurus
+  | "lazy" | "l"
+      -> Lazy
+  | "greedy" |  "g" 
+      -> Greedy
+  | "epfl" 
+    -> Epfl
+  | s -> raise (Failure ("Invalid worldtype "^s))
 
-let str2mac s = 
-    match s with 
-      | "lazy_taurus" |  "taurus_lazy" 
-	  -> Lazy_taurus
-      | "greedy_taurus" |  "taurus_greedy" 
-	  -> Greedy_taurus
-      | "lazy_reflecting" |  "reflecting_lazy" 
-	  -> Lazy_reflecting
-      | "greedy_reflecting" |  "reflecting_greedy" 
-	  -> Greedy_reflecting
-      | "epfl" |  "epfl_world" 
-	  -> Epfl
-      | _ -> raise (Failure ("Invalid worldtype "^s))
+let string_of_world = function
+  | Greedy -> "greedy"
+  | Lazy -> "lazy"
+  | Lazy_taurus -> "lazy_taurus" 
+  | Greedy_taurus -> "greedy_taurus"
+  | Epfl -> "epfl" 
 
+let world = Param.create ~name:"world" ~default:Lazy ~doc:"World type"
+  ~reader:world_of_string ~printer:string_of_world()
+
+	

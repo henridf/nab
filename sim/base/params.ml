@@ -61,24 +61,20 @@ let radiorange =
   Param.floatcreate 
     ~name:"rrange" 
     ~doc:"Radio range [m] of nodes"
-    ()
-
-let mob_gran = 
-  Param.floatcreate 
-    ~name:"mob_gran" 
-    ~doc:"Mobility granularity"
+    ~default:50.
     ()
 
 let mac = 
   Param.stringcreate ~name:"mac" ~default:"null" ~cmdline:true
     ~doc:"Mac layer" ~checker:(fun s -> Mac.strset_mac s) ()
 
-(*
-let world = 
-  Param.stringcreate ~name:"world" ~default:"null" ~cmdline:true
-    ~doc:"Mac layer" ~checker:(fun s -> Mac.strset_mac s) ()
-*)
+
 let log_level = 
   Param.stringcreate ~name:"loglevel" ~default:"notice" ~cmdline:true
     ~doc:"Log level"  ~checker:(fun s -> Log.strset_log_level s) ()
 
+let speed = 
+  Param.floatcreate ~name:"speed" 
+    ~cmdline:true
+    ~default:8.0
+    ~doc:"Node Speed [m/s]"  ()

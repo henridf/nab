@@ -53,17 +53,11 @@ val y_pix_size : int Param.t
 val radiorange : float Param.t
   (** Radio range (meters) of nodes *)
 
-val mob_gran : float Param.t
-  (** The granularity at which nodes move. 
-    See {!Mob.t}.*)
-    
-(*
-val world : string Param.t
-  (** The type of world representation (taurus vs reflecting, lazy vs greedy, epfl)
-    that is to be used in this simulation. @see 'worldt.ml' for details. *)
-*)
 val log_level : string Param.t
   (** Logging level. *)
 
 val mac : string Param.t
   (** Mac layer used. *)
+
+val speed : float Param.t 
+  (** Speed of mobility processes. *)
