@@ -11,6 +11,24 @@ let make_bler_nodes ?ntargets () = (
       | None -> (Param.get Params.nodes)
       | Some n -> n
   in
+  Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
+  Nodes.set_nodes
+  (Array.init (Param.get Params.nodes)
+    (fun i -> 
+      (new Simplenode.simplenode 
+	~pos_init:((Gworld.world())#random_pos)
+	~id:i
+	~ntargets:nt)));
+
+  (* create bler_agents, who will hook to their owners *)
+  Nodes.iter (fun n -> ignore (new Magic_bler_agent.magic_bler_agent n));
+
+  (* set up initial node position in internal structures of world object *)
+  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
+  assert ((Gworld.world())#neighbors_consistent);
+)
+
+let make_grep_nodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
   Nodes.set_nodes
   (Array.init (Param.get Params.nodes)
@@ -18,10 +36,34 @@ let make_bler_nodes ?ntargets () = (
       (new Simplenode.simplenode 
 	~pos_init:((Gworld.world())#random_pos) 
 	~id:i
-	~ntargets:nt)));
+	~ntargets:1)));
 
-  (* create bler_agents, who will register with their owners *)
-  Nodes.iter (fun n -> ignore (new Magic_bler_agent.magic_bler_agent n));
+  (* create grep agents, who will hook to their owners *)
+  Grep_agent.set_agents
+    (Array.init (Param.get Params.nodes)
+      (fun i -> 
+	(new Grep_agent.grep_agent (Nodes.node(i)))));
+
+  (* set up initial node position in internal structures of world object *)
+  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
+  assert ((Gworld.world())#neighbors_consistent);
+)
+
+let make_aodv_nodes () = (
+  Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
+  Nodes.set_nodes
+  (Array.init (Param.get Params.nodes)
+    (fun i -> 
+      (new Simplenode.simplenode 
+	~pos_init:((Gworld.world())#random_pos) 
+	~id:i
+	~ntargets:1)));
+
+  (* create grep agents, who will hook to their owners *)
+  Aodv_agent.set_agents
+    (Array.init (Param.get Params.nodes)
+      (fun i -> 
+	(new Aodv_agent.aodv_agent (Nodes.node(i)))));
 
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
@@ -42,6 +84,17 @@ let set_tracefile f = (
 let draw_nodes () = 
   Ler_graphics.draw_nodes (Nodes.map (fun n -> (Gworld.world())#project_2d
     n#pos))
+
+let gui_draw_connectivity () = 
+  Nodes.iter ( fun n -> 
+    (List.iter
+      ( fun m -> 
+	Ler_graphics.ler_draw_segment [|
+	  ((Gworld.world())#project_2d n#pos);
+	  ((Gworld.world())#project_2d (Nodes.node(m))#pos)|] )
+      n#neighbors
+    )
+  )
     
 let draw_node ~nid = 
   Ler_graphics.draw_nodes [|((Gworld.world())#project_2d (Nodes.node(nid))#pos)|]
@@ -82,34 +135,17 @@ let wait_for_any_keypress() = (
 let make_app_packet ~srcid ~dstid = 
   Packet.make_app_pkt ~l3hdr:(Packet.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
 
-let make_bler_packet ~srcid ~dstid = 
-  Packet.make_bler_pkt 
-    ~l3hdr:(Packet.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
-    ~blerpld:(Packet.ANCH_REQ (dstid, max_float)) (*dst, current enc. age*)
   
-let do_one_route ~src ~dst = (
-(*
-  let l3pkt = Packet.BLER_PKT (make_bler_packet ~srcid:src ~dstid:dst) in
-  let l2pkt = Packet.make_l2pkt ~srcid:src ~l2_dst:(Packet.L2_DST dst)
-    ~l3pkt:l3pkt in
-  
-  let routeref = ref (Route.create()) in
-  let bler_mhook = Magic_bler_agent.magic_bler_route_mhook routeref in
-  Nodes.iter (fun n -> n#add_mhook bler_mhook);
-  
-  let pkt_reception() = (Nodes.node(src))#mac_recv_pkt l2pkt in
-  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
-  *)
+let do_one_route ~srcid ~dstid = (
 
   let routeref = ref (Route.create()) in
   let bler_mhook = Magic_bler_agent.magic_bler_route_mhook routeref in
   Nodes.iter (fun n -> n#add_mhook bler_mhook);
-  let pkt_reception() = (Nodes.node(src))#originate_app_pkt (Nodes.node(dst)) in
+  let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
   (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
   (Gsched.sched())#run();
   
-  assert (Route.route_valid !routeref ~src:src ~dst:dst);
+  assert (Route.route_valid !routeref ~src:srcid ~dst:dstid);
   Route.i2c !routeref
 )
 
@@ -118,17 +154,108 @@ let hop_col_color ~hop ~routelength = (
   Graphics.blue |].(hop mod 3)
 )
 
+
+let grep_one_route ~src ~dst = (
+  let pkt_reception() = (Nodes.node(src))#originate_app_pkt dst in
+  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#run();
+)
+
+let gui_grep_one_route() = (
+
+  draw_nodes();
+  label_nodes();
+  gui_draw_connectivity();
+  let dstid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" in
+
+  Graphics.set_color (Graphics.rgb 100 100 100);    
+
+
+  let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
+
+  let pkt_reception() = (Nodes.node(srcid))#trafficsource dstid 10 in
+  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#run();
+
+  (Nodes.node(133))#move ((Gworld.world())#random_pos);
+  Ler_graphics.clear_gfx();
+  draw_nodes();
+  label_nodes();
+  gui_draw_connectivity();
+
+  let dstid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" in
+
+  
+  let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
+
+  let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
+  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#run();
+)
+
+(*
+let gui_dsdv_flood_route() = (
+
+  draw_nodes();
+  label_nodes();
+  gui_draw_connectivity();
+  let dstid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" in
+
+  let touchedref = ref [] in
+  let dsdv_flood_mhook = Dsdv_agent.dsdv_flood_mhook touchedref in
+  Nodes.iter (fun n -> n#add_mhook dsdv_flood_mhook);
+  let start_dsdv() = (Nodes.node(dstid))#agent_control Node.AGENT_START in
+  (Gsched.sched())#sched_at ~handler:start_dsdv ~t:(Sched.ASAP);
+  (Gsched.sched())#run();
+  
+  Printf.printf "There are %d nodes in touchednodesref\n" (List.length !touchedref);
+
+  Graphics.set_color (Graphics.rgb 100 100 100);    
+
+  Ler_graphics.circle_nodes ~fill:false (Array.of_list 
+    (List.map 
+      (fun n -> ((Gworld.world())#project_2d) (Nodes.node n)#pos)
+      !touchedref)) 0.01;
+
+  let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
+
+ let routeref = ref (Route.create()) in
+  let dsdv_route_mhook = Dsdv_agent.dsdv_route_mhook routeref in
+  Nodes.iter (fun n -> n#add_mhook dsdv_route_mhook);
+  let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
+  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#run();
+  
+
+  let route_coords = (Route.i2c !routeref) in
+
+  let route_normalized = 
+    (List.map 
+      (fun x -> {
+	Route.hop = (Gworld.world())#project_2d x.Route.hop;
+	Route.anchor = (Gworld.world())#project_2d x.Route.anchor;
+	Route.anchor_age = x.Route.anchor_age;
+	Route.searchcost = (
+	  Gworld.world())#scale_unit ((x.Route.searchcost) ** 0.5)}
+      )
+      route_coords)
+  in
+  Ler_graphics.draw_route ~color:hop_col_color ~route:route_normalized;
+
+)
+*)
+
+
 let gui_one_route() = (
 
   draw_nodes();
-
   let src = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" 
   and dst =  Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" 
   in
   Printf.printf "src is %d, enc_age %f\n" src (((Nodes.node(src))#db)#encounter_age dst);
   Printf.printf "dst is %d\n" dst;
   
-  let route_coords = do_one_route   ~src:src ~dst:dst in
+  let route_coords = do_one_route   ~srcid:src ~dstid:dst in
 
   Printf.printf "Route has length %f, anchor cost %f\n"
     (Route.eucl_length (Gworld.world())#dist_coords route_coords) (Route.anchor_cost route_coords);
