@@ -27,11 +27,6 @@
 *)
 
 
-
-
-
-
-
 (** Miscellaneous stuff that is useful everywhere *)
 
 open Printf
@@ -44,7 +39,7 @@ open Printf
 
 
 
-(** Type converters *)
+(** Type converters. *)
 
 let i2f i = float_of_int i
 let f2i f = int_of_float f
@@ -56,7 +51,7 @@ let i2s i = string_of_int i
 let f2s f = string_of_float f
 
 
-(** Arithmetic and related *)
+(** Arithmetic and related. *)
 
 let (+=) a b = a := !a + b
 let (-=) a b = a := !a - b
@@ -190,6 +185,12 @@ let foreach l f = List.iter f l
 let o2v = function 
     None -> raise (Failure "Misc.o2v : None")
   | Some v -> v
+
+(** Hashes *)
+
+let listofhash h = 
+  let f key data l = data::l in
+  Hashtbl.fold f h []
 
 
 (** Error Handling and Exceptions *)
