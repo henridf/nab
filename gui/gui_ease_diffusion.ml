@@ -36,7 +36,7 @@
    fun to pick a node, etc, and stuff which is app-specific (like drawing a
    route (set_src below), etc).
 
-   in install_get_node_cb() , simply replaced the call to set_src with
+   in choose_node() , simply replaced the call to set_src with
    set_tree_src. 
 
 *)
@@ -47,11 +47,13 @@
 open Misc
 open GMain
 
-let run_id = ref None
+
 let t = ref (Time.get_time())
 
-let rt = ref None (* keep a copy of last route around so expose_event can
-		     redraw it *)
+let nstacks = 2
+
+let routes = Array.init nstacks (fun _ -> (Route.create()))
+let clear_routes() =  Array.iteri (fun i _ -> routes.(i) <- (Route.create())) routes
 
 let start_stop_btn = ref None
 let start_stop_tab:GPack.table option ref = ref None
@@ -66,9 +68,18 @@ let show_route_anchors = ref true
 let show_route_disks = ref true
 let show_connectivity = ref false
 let show_tree = ref true
+let text_entry = ref false  
 
+type proto = EASE | GREASE
+let proto = ref GREASE
+let stack_of_proto() = match !proto with GREASE -> 0 | EASE -> 1 
+
+
+let running = ref false
 
 let route_portion = ref 1.0
+
+let dst = 0
 
 let run() = (
 
@@ -85,7 +96,10 @@ let run() = (
   
 
 
-let refresh ?(clear=false) ()  = (
+let refresh ?(clear=true) ()  = (
+
+  Gui_gtk.draw ~clear ();
+
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
   if !show_connectivity  then  Gui_ops.draw_connectivity(); 
   (*
@@ -93,98 +107,80 @@ let refresh ?(clear=false) ()  = (
     (); 
     Gui_ops.draw_all_boxes(); 
   *)
-  Gui_gtk.draw ~clear ();
-  if (!rt <> None) then
-    Gui_ops.draw_route 
+
+    Gui_ops.draw_ease_route 
       ~lines:!show_route_lines
       ~anchors:!show_route_anchors
       ~disks:!show_route_disks
       ~portion:!route_portion
-      (Mwsconv.mtr_2_pix_route (o2v !rt));
-  false
+      (Gui_conv.ease_route_nodeid_to_pix routes.(stack_of_proto()))
+
 )
 
-let refresh_cb _ = refresh ()
 
-let stop() = (
-  Gui_gtk.txt_msg "Nodes are frozen ";
-
-  (* calling function is responsible for ensuring that !run_id <> None , ie
-     that we are indeed running *)
-  Mob_ctl.stop_all();
-  
-  (* this call is to "purge" all mobility events that might be still in the
-     scheduler. normally this should be done by the mob itself when we stop it,
-     but this is pending the ability to cancel events in the scheduler (see
-     general_todo.txt) *)
-
-  (Sched.s())#run(); 
-
-  Timeout.remove (o2v !run_id);
-  run_id := None;
-  Gui_gtk.set_expose_event_cb refresh_cb
-)
-
-let start() = (
-
-  rt := None;
-  Gui_gtk.txt_msg "Nodes are moving ";
-  Mob_ctl.start_all();
-  ignore(run());
-  run_id := Some (Timeout.add ~ms:300 ~callback:run);
-)
 
 let start_stop () = (
   (* if we are in the middle of choosing a node, should we cancel all state? *)
-  match !run_id with
-    | Some id -> stop()
-    | None -> start()
+  
+  match !running with
+    | true -> 
+	Gui_gtk.txt_msg "Nodes are frozen ";
+	Mob_ctl.stop_all();
+	Gui_ctl.stop();
+	running := not !running;
+	refresh ();
+    | false -> 
+	Gui_gtk.txt_msg "Nodes are moving ";
+	Mob_ctl.start_all();
+	clear_routes();
+	Gui_ctl.startsim ~sim_tick:1. ~rt_tick_ms:1000 ~display_cb:refresh;
+	running := not !running;
 )
 
 
 
-let get_node_cb_sig_id = ref None
 
-let remove_get_node_cb() = 
-  let id = o2v !get_node_cb_sig_id in
-  Gui_gtk.remove_button_press_cb id
+let set_src nid = (
 
+  Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" nid dst);
+  Log.log#log_always (lazy (Printf.sprintf "Destination is at %s"
+    (Coord.sprintf (Nodes.gpsnode dst)#pos)));
+  
+  clear_routes();
+  Gui_hooks.routes_done := 0;
+  let r = [|ref []; ref []|] in
+  
+  for stack = 0 to nstacks - 1  do
+    let in_mhook = Gui_hooks.ease_route_pktin_mhook r.(stack) in
+    let out_mhook = Gui_hooks.ease_route_pktout_mhook r.(stack) in
+    Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ~stack ());
+    Nodes.gpsiter (fun n -> n#add_pktin_mhook ~stack in_mhook);
+    Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack out_mhook);
+  done;
 
-let set_src x y = (
-  remove_get_node_cb();
-
-  Printf.printf "src is at %d %d\n" x y; flush stdout;
-  let srcnode = Mwsconv.closest_node_at (x, y)
-  in
-
-  let routeref = (ref (Route.create())) in
-  Gui_hooks.route_done := false;
-  let in_mhook = Gui_hooks.ease_route_pktin_mhook routeref in
-  let out_mhook = Gui_hooks.ease_route_pktout_mhook routeref in
-  Nodes.gpsiter (fun n -> n#clear_pkt_mhooks);
-  Nodes.gpsiter (fun n -> n#add_pktin_mhook in_mhook);
-  Nodes.gpsiter (fun n -> n#add_pktout_mhook out_mhook);
-  (Nodes.node srcnode)#originate_app_pkt ~dst:0;
-
+  (Nodes.node nid)#originate_app_pkt ~dst;
+  
   (Sched.s())#run_until 
   ~continue:(fun () -> 
-    Gui_hooks.route_done = ref false;
+    !Gui_hooks.routes_done < nstacks;
   );
   
-  Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
-  ignore (Route.route_valid !routeref 
-    ~dst:((World.w())#nodepos 0) 
-    ~src:((World.w())#nodepos srcnode));
-  Gui_ops.draw_route 
-    ~lines:!show_route_lines
-    ~anchors:!show_route_anchors
-    ~disks:!show_route_disks
-    ~portion:!route_portion
-    (Mwsconv.mtr_2_pix_route !routeref);
+  routes.(0) <- !(r.(0));
+  routes.(1) <- !(r.(1));
+
+(*  Printf.printf "%s\n" (Route.sprintnid ( !routeref));flush stdout;*)
+(*
+  ignore (Route.ease_route_valid !routeref 
+    ~dst
+    ~src:nid);
+*)
   
-  rt := Some !routeref;
+
+  refresh();
+  refresh();
 )
 
+(*
 let get_tree_sink sink = (
   let sinkdiffagent = !Diff_agent.agents_array.(sink) in
   let sink_seqno = (sinkdiffagent#seqno()) - 1 in
@@ -221,18 +217,19 @@ let get_tree_sink sink = (
 
       )
     )  
-)
+)*)
 
 let make_tree_sink sink = 
 (Nodes.node(sink))#originate_app_pkt  ~dst:123
 
 
 
+(*
 let set_tree_src x y = (
   remove_get_node_cb();
 
   Printf.printf "src is at %d %d\n" x y; flush stdout;
-  let sink2 = Mwsconv.closest_node_at (x, y) in
+  let sink2 = Gui_conv.closest_node_at (x, y) in
 (*  let sink2 = Random.int (Param.get Params.nodes) in
   let sink3 = Random.int (Param.get Params.nodes) in
   let sink4 = Random.int (Param.get Params.nodes) in
@@ -267,7 +264,7 @@ in
 
 
   
-)
+)*)
 
 (*
 let set_tree_src x y = (
@@ -302,68 +299,54 @@ let set_tree_src x y = (
   
 )*)
 
-let install_get_node_cb() = (
-  Gui_gtk.txt_msg "Choisissez la source";
-  get_node_cb_sig_id := Some (
-    Gui_gtk.install_button_press_cb 
-    (fun b -> 
-      let x, y = (GdkEvent.Button.x b, GdkEvent.Button.y b) in
-      begin
-	Gui_gtk.txt_msg "Calcul de la route..";	    
-	(* set_src (f2i x) (f2i y);*)
-	 set_tree_src (f2i x) (f2i y);
-      end;
-      (* returning true or false from this callback does not seem to make any
-	 difference. Read somewhere (API or tut) that this is because it will
-	 then call the default handler and use the return value of that one. 
-	 apparently we would have to use the *connect_after (or stg like that)
-	 call to be called after the default, and then our return value would
-	 be taken into account *)
-      true)
-  )
-)
+
 
 let choose_node () = (
-  (* if nodes are moving around, stop'em *)
-  begin 
-    match !run_id with 
-      | Some id -> stop()
-      | _ -> ()
-  end;
-  install_get_node_cb();
+  (* call Mob_ctl.stop_all always because node mobs might not be stopped even 
+     when  !running is false. *)
+  Mob_ctl.stop_all();
+  
+  if !running then (
+    start_stop();
+  );
+  if !text_entry then
+    Gui_ops.dialog_pick_node ~default:92 ~node_picked_cb:set_src ()
+  else
+    Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:set_src ()
 )
+
 
   
 let create_buttons_common() = (
 
-  let ss_tab = (GPack.table ~rows:1 ~columns:3 ~homogeneous:false 
+  let ss_tab = (GPack.table ~rows:8 ~columns:1 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
-    ~packing:(Gui_gtk.packer()) ()) in
+    ~packing:(Gui_gtk.hpacker()) ()) in
 
   start_stop_btn := Some (GButton.toggle_button ~draw_indicator:false
     ~label:"start/stop" ());
   ignore ((ss_btn())#connect#released ~callback:(start_stop));
   ss_tab#attach (ss_btn())#coerce ~left:0 ~top:0 ~right:1 ~bottom:1
-    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
 
   choose_route_btn := Some (GButton.toggle_button ~draw_indicator:false
     ~label:"draw a route" ()) ;
   ignore ((rt_btn())#connect#released ~callback:(choose_node));
-  ss_tab#attach (rt_btn())#coerce ~left:1 ~top:0 ~right:2 ~bottom:1
-    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+  ss_tab#attach (rt_btn())#coerce ~left:0 ~top:1 ~right:1 ~bottom:2
+    ~xpadding:0 ~ypadding:0  ~expand:`NONE;
 
   ss_tab
 )
 
 let create_buttons_ease() = (
 
-  let ss_tab = create_buttons_common() in
+  let ss_tab = create_buttons_common() in 
 
   let checkbox_tab = (GPack.table ~rows:1 ~columns:4 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
     ()) in
 
-  ss_tab#attach checkbox_tab#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
+  ss_tab#attach checkbox_tab#coerce ~left:0 ~top:2 ~right:1 ~bottom:8
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 (*  let box2 = GPack.vbox ~spacing: 0 ~border_width: 10
     ~packing: box1#pack () in*)
@@ -371,47 +354,59 @@ let create_buttons_ease() = (
 
   let checkboxlist = [
     ("Hide nodes", show_nodes, 0, 0);
-    ("Hide Anchors", show_route_anchors, 1, 0);
-    ("Hide Directions", show_route_lines, 2, 0);
-    ("Hide Disks", show_route_disks, 3, 0);
+    ("Hide Anchors", show_route_anchors, 0, 1);
+    ("Hide Directions", show_route_lines, 0, 2);
+    ("Hide Disks", show_route_disks, 0, 3);
+    ("Text", text_entry, 0, 4);
   ] in
   
   List.iter (fun (txt, boolref, left, top) ->
     let btn = (GButton.check_button ~label:txt
       ()) in
     checkbox_tab#attach btn#coerce ~left ~top ~right:(left + 1) 
-      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`NONE;
     
     ignore (btn#connect#released 
       ~callback:(fun _ -> 
 	boolref := not !boolref;
-	ignore (refresh ~clear:true ()) ;
+	ignore (refresh ()) ;
       )
     )) checkboxlist;
+
+  
+  let btn1 =  GButton.radio_button ~label:"GREASE" ~active:true  ()  in
+
+  checkbox_tab#attach btn1#coerce ~left:0 ~top:5 ~right:1 ~bottom:6 ~expand:`NONE;
+  ignore (btn1#connect#released ~callback:(fun () -> proto := GREASE; ignore (refresh())));
+  
+  let btn2 = GButton.radio_button ~group:btn1#group ~label:"EASE" ()  in
+
+  checkbox_tab#attach btn2#coerce ~left:0 ~top:6 ~right:1 ~bottom:7 ~expand:`NONE;
+  ignore (btn2#connect#released ~callback:(fun () -> proto := EASE; ignore (refresh())));
 
   let adj =
     GData.adjustment ~lower:0. ~upper:1001. ~step_incr:1. ~page_incr:100. () in
   let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
-    ~packing:(Gui_gtk.packer()) () in
+    ~packing:(Gui_gtk.vpacker()) () in
     
   ignore (adj#connect#value_changed
     ~callback:(fun () -> 
-      Printf.printf "value %f\n" adj#value; flush stdout;
-      
       route_portion := 
       if       adj#value > 990.0 then 1.0 else
       adj#value/.1000.;
-      if (!rt <> None) then ignore (refresh() ~clear:true);
+      ignore (refresh());
     ));
 
-
+  Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false);
 
 (*  ignore (counter#connect#changed ~callback:(fun n -> 
     Gui_gtk.txt_msg (Printf.sprintf "New value %s.." (string_of_int n))));
 *)
-  )
+
+)
 
 
+(*
 let create_buttons_trees() = (
 
   let ss_tab = create_buttons_common() in
@@ -439,11 +434,11 @@ let create_buttons_trees() = (
     ignore (btn#connect#released 
       ~callback:(fun _ -> 
 	boolref := not !boolref;
-	ignore (refresh ~clear:true ()) ;
+	ignore (refresh ()) ;
       )
     )) checkboxlist;
 
-  )
+  )*)
 
     
 (* to kill: window#destroy ()*)
