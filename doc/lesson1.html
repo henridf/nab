@@ -173,13 +173,6 @@ size have been set.
 </pre>
 
 
-To instantiate our nodes (which will be uniformly dispersed in the area), we do:
-
-<pre class=example>
-# Script_utils.make_nodes ();;
- - : unit = ()
-</pre>
-
 We choose to use a null mac layer - this is a 'perfect' mac where all packets
 sent by a node within radio range are received, with no collisions or loss.
 <Font  Size="-1">
@@ -190,6 +183,13 @@ sent by a node within radio range are received, with no collisions or loss.
 <pre class=example>
 # Param.set Params.mac "nullmac";;
 - : unit = ()
+</pre>
+
+To instantiate our nodes (which will be uniformly dispersed in the area), we do:
+
+<pre class=example>
+# Script_utils.make_nodes ();;
+ - : unit = ()
 </pre>
 
 Now, the last thing we need to do before we get packets flowing is to choose

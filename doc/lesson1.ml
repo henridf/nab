@@ -23,7 +23,6 @@
   along with mws; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
 *)
 
 
@@ -46,9 +45,9 @@ let setup() = (
 
   Script_utils.init_lazy_world();
 
-  Script_utils.make_nodes ();
-  
   Param.set Params.mac "nullmac";
+
+  Script_utils.make_nodes ();
   
   Script_utils.make_flood_agents();
 
