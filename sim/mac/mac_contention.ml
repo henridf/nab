@@ -41,7 +41,10 @@
   Contention MAC: A simple MAC layer with high level collision modeling.
   This MAC can either be sending or receiving.
   If a packet is received while already receiving, both are lost
-  (collision). 
+  (collision). Collisions are detected instantaneously; the node immediately
+  stops receiving. Therefore a node can send a packet right after the
+  beginning of a collision.
+  
   If a packet is received while sending, sending continues ok but reception
   fails.
   If node tries to send while either sending or receiving, the packet to be
@@ -160,11 +163,10 @@ object(s)
 	  s#log_debug (lazy (
 	    sprintf "Pkt from %d collided with already receiving packet from %d"
 	    (l2src ~pkt:l2pkt) receiving_from))
-    end
+    end;
     
-    (* We will be underinterference for the duration of this packet. *)
-    interfering_until <- max end_rx_time interfering_until;
-    
+    (* We will be under interference for the duration of this packet. *)
+    interfering_until <- max end_rx_time interfering_until
   )
 
 
@@ -175,6 +177,7 @@ object(s)
       (Sched.s())#sched_in ~f:(fun () -> s#xmit ~l2pkt) ~t:delay;
       s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
     ) else (
+      let receiving = end_rx_handle <> 0 in
       if not s#sending && not receiving then (
 	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
 	let end_xmit_time = 
