@@ -30,11 +30,13 @@ This lesson requires the following:
 <ul>
 <li> You have installed the Objective Caml distribution (see <a
 href="../README">README</a> from mws distribution)
+<li> You have built the <code>mws-top</code> interactive toplevel (see <a
+href="../README">README</a> from mws distribution)
 </ul>
 It is recommended that:
 <ul>
 <li> You have built the source documentation by typing <code>make
-htmldoc</code>(see <a href="../README">README</a>). If you haven't, things
+htmldoc </code>(see <a href="../README">README</a>). If you haven't, things
 will run fine, but some of the links to source documentation will not work.
 <li> You have gained basic familiarity with ocaml.
 </ul>
@@ -74,22 +76,28 @@ Once you have your .ocamlinit file edited and
 in the right place, you should exit (<code>exit 0;;</code>
 ) and restart the caml toplevel, or type 
 <pre class=example>
-# #use /path/to/homedir/.ocamlinit;;
+# #use "/path/to/homedir/.ocamlinit";;
 </pre>
  to reload the .ocamlinit file without restarting.
 <p>
 
 <font  size="-1">
 <b>Note:</b> For more information on the ocaml toplevel, see ocaml(1) or 
-<a href="http://caml.inria.fr/htmlman/manual023.html">the ocaml manual</a>
+<a href="http://caml.inria.fr/ocaml/htmlman/manual023.html">the ocaml manual</a>
 </font><br>
 
 
 <font  size="-1">
 <b>Note:</b> You will quickly notice that the ocaml toplevel does not have the
 ability to navigate previous commands, or other textual navigation. It is
-intended to be used the toplevel in conjunction with an emacs mode such as tuareg
-or the caml emacs mode; alternatively you may use the ocamlbrowser tool included in the ocaml distribution. (xxx pointers) 
+intended to be used in conjunction with an emacs mode such as the one provided
+with the ocaml distribution, or <a href="http://www-rocq.inria.fr/~acohen/tuareg/">tuareg</a>;
+alternatively you may use the <code>ocamlbrowser</code> tool which is 
+included in the ocaml distribution (see <a
+href="http://caml.inria.fr/oreilly-book/html/book-ora213.html">here</a> for an
+overview or <a href="http://caml.inria.fr/ocaml/htmlman/manual028.html">here
+for more info</a>).  
+
 </font><br>
 
 <p>

@@ -20,7 +20,7 @@ lablgtk. Lablgtk is available from XXXX.
 **             
 
 The html documentation and a tutorial are located under doc/ and can be 
-browsed starting from doc/index.html.
+browsed starting from mws/doc/index.html.
 
 More detailed documentation of the internals can be generated from the 
 source code with the ocamldoc tool - see COMPILING below.
