@@ -99,7 +99,6 @@ let start_stop () = (
 
 
 let get_route nid = (
-  Grep_hooks.reset();
 
   (*  (Sched.s())#run(); *)
   src_ := nid;
@@ -126,8 +125,6 @@ let get_route nid = (
 
   rt := Some !routeref;
   refresh();
-  Log.log#log_notice 
-    (lazy (Printf.sprintf "%d DATA xmits" !Grep_hooks.data_pkts_sent));
 (*  Mob_ctl.start_all();*)
 )
 
