@@ -147,32 +147,10 @@ let place_nodes_on_line () =
     (World.w())#movenode ~nid ~newpos)
 
 
-let make_grease_agents ?(stack=0) ?(ease=false) () = (
-  let grease = not ease in  
+let make_ler_agents ?(stack=0) proto = (
   Nodes.gpsiteri (fun nid n -> 
-    let agent = new Ease_agent.ease_agent ~stack ~grease n in
+    let agent = new Ease_agent.ler_agent ~stack ~proto n in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
-
-)
-
-
-let make_grease_nodes ?(ease=false) () = (
-
-
-  Nodes.set_gpsnodes 
-    (Array.init (Param.get Params.nodes)
-      (fun nid -> 
-	let pos_init = (World.w())#random_pos in
-	(World.w())#init_pos ~nid ~pos:pos_init;
-	(new Gpsnode.gpsnode nid);
-      )
-    );
-
-  make_grease_agents ~ease ~stack:0 ();
-
-  install_macs();
-
-  assert ((World.w())#neighbors_consistent);
 )
 
 
@@ -186,7 +164,6 @@ let make_grep_nodes () = (
 )
 
 
-
 let make_flood_agents ?(stack=0) () = (
   
   Nodes.iteri (fun nid n -> 
@@ -194,49 +171,6 @@ let make_flood_agents ?(stack=0) () = (
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
-
-
-
-
-
-let proportion_met_nodes()  = 
-  Ease_agent.proportion_met_nodes()
-
-(*
-let draw_nodes () = 
-  Ler_graphics.draw_nodes (Nodes.map (fun n -> (World.w())#project_2d
-    n#pos))
-
-let gui_draw_connectivity () = 
-  Nodes.iter ( fun n -> 
-    (List.iter
-      ( fun m -> 
-	Ler_graphics.ler_draw_segment [|
-	  ((World.w())#project_2d n#pos);
-	  ((World.w())#project_2d (Nodes.node(m))#pos)|] )
-      ((World.w())#neighbors n#id)
-    )
-  )
-    
-let draw_node ~nid = 
-  Ler_graphics.draw_nodes [|((World.w())#project_2d (Nodes.node(nid))#pos)|]
-    
-let label_node ~node = (
-  Ler_graphics.label_node 
-  ((World.w())#project_2d node#pos)
-  (Printf.sprintf "%d" node#id)
-)
-
-let label_nodes() = Nodes.iter (fun node -> label_node node)
-
-let redraw_and_label_nodes() = (
-  Ler_graphics.clear_gfx();
-  draw_nodes();
-  label_nodes()
-)
-
-  
-*)
 
 let avg_neighbors_per_node() = 
   let total_neighbors = 
@@ -259,88 +193,21 @@ let wait_for_any_keypress() = (
   ignore (Graphics.read_key())
 )
 
-let make_app_packet ~srcid ~dstid = 
-  L3pkt.make_app_pkt ~l3hdr:(L3pkt.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
-
   
-
-
-let hop_col_color ~hop = (
-  [| Graphics.black; Graphics.red;
-  Graphics.blue |].(hop mod 3)
-)
-
-
 let grep_one_route ~src ~dst = (
-  let pkt_reception() = (Nodes.node(src))#originate_app_pkt dst in
+  let pkt_reception() = (Nodes.node(src))#originate_app_pkt ~l4pkt:`EMPTY ~dst in
   (Sched.s())#sched_at ~f:pkt_reception ~t:(Scheduler.ASAP);
   (Sched.s())#run();
 )
 
-(*
-let gui_grep_one_route() = (
-
-  draw_nodes();
-  label_nodes();
-  gui_draw_connectivity();
-  let dstid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a dest" in
-
-  Graphics.set_color (Graphics.rgb 100 100 100);    
-
-
-  let srcid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a source" in
-
-  let pkt_reception() = (Nodes.node(srcid))#trafficsource dstid 10 in
-  (Sched.s())#sched_at ~f:pkt_reception ~t:(Scheduler.ASAP);
-  (Sched.s())#run();
-
-  (Nodes.node(133))#move ((World.w())#random_pos);
-  Ler_graphics.clear_gfx();
-  draw_nodes();
-  label_nodes();
-  gui_draw_connectivity();
-
-  let dstid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a dest" in
-
-  
-  let srcid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a source" in
-
-  let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
-  (Sched.s())#sched_at ~f:pkt_reception ~t:(Scheduler.ASAP);
-  (Sched.s())#run();
-)
-*)
-
-
-let move_nodes ~prop  = (
-  let iterations = ( (Param.get Params.nodes) * (Param.get Params.nodes) / 10) in 
-  let ctr = ref 0 in 
-  let continue() = (
-    incr ctr; 
-    if !ctr = iterations then (
-      ctr := 0;
-      let p = (proportion_met_nodes()) in
-      Log.log#log_notice 
-	(lazy (Printf.sprintf "prop_met_nodes %f\n" p));
-      p < prop 
-    ) else true
-  )
-  in
-  Mob_ctl.start_all();
-  (Sched.s())#run_until ~continue;
-  Mob_ctl.stop_all();
-)
-  
 
 let print_header () = (
   Printf.printf "\n";
   Printf.printf "--------------------------------------- \n";
-  Printf.printf "    mws  multihop wireless simulator    \n";
+  Printf.printf "        nab - network in a box          \n";
   Printf.printf "--------------------------------------- \n\n";
   flush stdout;
 )
-
-
 
  
 let finish () = (
@@ -386,6 +253,9 @@ let size
   sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
     float (avg_degree))
 
+
+let interactive_print_banner s = 
+  print_endline s
 
 let _ = 
   if !Sys.interactive then 

@@ -24,7 +24,7 @@
 
 
 
-(** General utils and helpers for writing MWS scripts.
+(** General utils and helpers for writing nab scripts and apps.
   @author Henri Dubois-Ferriere. 
 *)
 
@@ -117,19 +117,15 @@ val make_flood_agents : ?stack:int -> unit -> unit
     (default stack 0). See {!Flood_agent.flood_agent}.
     Nodes should be created before calling this.*)
   
-val make_grease_nodes : ?ease:bool -> unit -> unit 
-  (** Create gpsnodes each with a GREASE agent and a mac layer
-    of the type specified in {!Params.mac}. 
-    Pass optional parameter [ease] as [true] if you want EASE behavior
-    (default is grease).
-    Number of nodes {!Params.nodes} should be set before calling this *)
-
-val make_grease_agents : ?stack:int -> ?ease:bool -> unit -> unit 
-  (** Creates and adds a grease agent to each node, on [stack]
+val make_ler_agents : ?stack:int -> Ease_agent.ler_proto_t -> unit 
+  (** Creates and adds a LER agent to each node, on [stack]
     (default stack 0). 
-    Pass optional parameter [ease] as [true] if you want EASE behavior
-    (default is grease).
-    Nodes should be created before calling this.*)
+    The parameter {!Ease_agent.ler_proto_t} indicates the choice of algorithm 
+    that the node should run (FRESH, EASE, GREASE).
+
+    Nodes should be created before calling this. EASE and GREASE require
+    position aware nodes (see [make_nodes] and [make_naked_nodes] above).
+*)
 
 val install_macs : ?stack:int ->  ?bps:float -> unit -> unit
   (** Installs a Mac layer of type {!Params.mac} on each node.
@@ -156,19 +152,12 @@ val place_nodes_on_line : unit -> unit
   (** Places all nodes on a horizontal line, evenly spaced so as to use 
     the whole width {!Params.x_size}*)
 
-(** Actions *)
-
-val move_nodes : 
-  prop:float -> (* btw 0 and 1 *)
-  unit
-
 (** Stats *)
 
 val avg_neighbors_per_node : unit -> float 
 
 val grep_one_route : src:Common.nodeid_t -> dst:Common.nodeid_t -> unit
 
-val proportion_met_nodes : unit -> float
 
 
 (* Graphics *)
@@ -191,5 +180,6 @@ val detach_daemon :  outfilename:string -> unit
   (** Detach from terminal. All further logs will be spewed to outfilename *)
 
 
+val interactive_print_banner : string -> unit
 
 
