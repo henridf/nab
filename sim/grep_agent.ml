@@ -1,15 +1,18 @@
 (*                                  *)
 (* mws  multihop wireless simulator *)
 (*                                  *)
+
 open Packet
 open Printf
 open Misc
+
+let packet_buffer_size = 1
 
 class type grep_agent_t =
   object
     method private app_send : Packet.l4pld_t -> dst:Common.nodeid_t -> unit
     method private buffer_packet : l3pkt:Packet.l3packet_t -> unit
-    method private hand_upper_layer : unit -> unit
+    method private hand_upper_layer : l3pkt:Packet.l3packet_t -> unit
     method private incr_seqno : unit -> unit
     method private inv_packet_upwards :
       nexthop:Common.nodeid_t -> l3pkt:Packet.l3packet_t -> unit
@@ -21,6 +24,7 @@ class type grep_agent_t =
       unit -> bool
     method objdescr : string
     method private packet_fresh : l3pkt:Packet.l3packet_t -> bool
+    method private queue_size : unit -> int
     method private packets_waiting : dst:Common.nodeid_t -> bool
     method private process_data_pkt : l3pkt:Packet.l3packet_t -> unit
     method private process_radv_pkt :
@@ -29,7 +33,7 @@ class type grep_agent_t =
     method private process_rrep_pkt :
       l3pkt:Packet.l3packet_t -> 
       sender:Common.nodeid_t -> unit
-    method private process_rreq_pkt : 
+    method private process_rreq_pkt :
       l3pkt:Packet.l3packet_t -> 
       fresh:bool -> unit
     method private newadv_rrep :
@@ -102,14 +106,16 @@ object(s)
   method private packets_waiting ~dst = 
     not (Queue.is_empty pktqs.(dst))
 
+  method private queue_size() = 
+    Array.fold_left (fun n q -> n + (Queue.length q))  0 pktqs
 
   method private send_waiting_packets ~dst = 
     while s#packets_waiting ~dst:dst do
       let pkt = (Queue.pop pktqs.(dst)) in
 	try 
-	  s#log_info 
+(*	  s#log_info 
 	    (sprintf "Sending buffered DATA pkt from src %d to dst %d."
-	      (Packet.get_l3src ~l3pkt:pkt) dst);
+	      (Packet.get_l3src ~l3pkt:pkt) dst);*)
 	  s#send_out ~l3pkt:pkt
 	with 
 	  | Send_Out_Failure -> 
@@ -118,12 +124,17 @@ object(s)
 		(Packet.get_l3src ~l3pkt:pkt) dst);
     done
 
-  (* used for DATA packets which failed to send, to keep them
-   in store for when a route is found *)
+  (* DATA packets are buffered when they fail on send, 
+     or if there are already buffered packets for that destination *)
   method private buffer_packet ~(l3pkt:Packet.l3packet_t) = (
-    let dst = Packet.get_l3dst ~l3pkt:l3pkt in
-    assert (dst != Packet._L3_BCAST_ADDR );
-    Queue.push l3pkt pktqs.(dst) 
+    match s#queue_size() < packet_buffer_size with 
+      | true ->
+	  let dst = Packet.get_l3dst ~l3pkt:l3pkt in
+	  assert (dst != Packet._L3_BCAST_ADDR);
+	  Queue.push l3pkt pktqs.(dst);
+      | false ->
+	  s#log_notice (sprintf "Dropped packet for dst %d" 
+	    (Packet.get_l3dst ~l3pkt:l3pkt))
   )
 
   (* wrapper around Rtab.newadv which additionally checks for 
@@ -141,12 +152,12 @@ object(s)
 	  Rtab.newadv ~rt:rtab ~dst:dst ~rtent:rtent
       in
       if update then (
-	s#log_info 
+(*	s#log_info 
 	(sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
 	  dst 
 	  (o2v rtent.Rtab.nexthop) 
 	  (o2v rtent.Rtab.hopcount)
-	  (o2v rtent.Rtab.seqno));
+	  (o2v rtent.Rtab.seqno));*)
 	(* if route to dst was accepted, send any packets that were waiting
 	   for a route to this dst *)
 	if (s#packets_waiting ~dst:dst) then (
@@ -253,10 +264,10 @@ object(s)
 
     let rreq = (Packet.get_grep_rreq_pld ~l3pkt:l3pkt) in
 
-    s#log_info 
+(*    s#log_info 
     (sprintf "Received RREQ pkt from src %d for dst %d"
       (Packet.get_l3src ~l3pkt:l3pkt) 
-      rreq.Packet.rreq_dst);
+      rreq.Packet.rreq_dst);*)
     match fresh with 
       | true -> 
 	  let answer_rreq = 
@@ -278,17 +289,17 @@ object(s)
 	      ~obo:rreq.Packet.rreq_dst
 	  else (* broadcast the rreq further along *)
 	    s#send_out ~l3pkt:l3pkt
-      | false ->
-	  s#log_info 
+      | false -> ()
+(*	  s#log_info 
 	  (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
 	    (Packet.get_l3src ~l3pkt:l3pkt) 
-	    rreq.Packet.rreq_dst);
+	    rreq.Packet.rreq_dst);*)
   )
       
   method private send_rrep ~dst ~obo = (
-    s#log_info 
+(*    s#log_info 
     (sprintf "Sending RREP pkt to dst %d, obo %d"
-      dst obo);
+      dst obo);*)
     let adv = Packet.make_grep_adv_payload 
       ~adv_dst:obo
       ~adv_seqno:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
@@ -309,17 +320,14 @@ object(s)
 	)
     in
     
-    if (s#packets_waiting ~dst:dst) then (
-      s#buffer_packet ~l3pkt:l3pkt
-    ) else (
-      try 
-	s#send_out  ~l3pkt:l3pkt
-      with 
-	| Send_Out_Failure -> 
-	    s#log_info 
-	    (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
-	      dst obo);
-    )
+    
+    try 
+      s#send_out  ~l3pkt:l3pkt
+    with 
+      | Send_Out_Failure -> 
+	  s#log_notice 
+	  (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
+	    dst obo);
   )
 
   method private inv_packet_upwards ~nexthop ~l3pkt = (
@@ -352,7 +360,7 @@ object(s)
 	  | Packet.GREP_DATA | Packet.GREP_RREP -> s#inv_ttl_zero ~l3pkt:l3pkt
 	  | _ -> raise (Misc.Impossible_Case "Grep_agent.process_data_pkt");
 	end;
-	s#hand_upper_layer();
+	s#hand_upper_layer ~l3pkt:l3pkt;
       ) else (
 	if (s#packets_waiting ~dst:(Packet.get_l3dst ~l3pkt:l3pkt)) then (
 	  s#buffer_packet ~l3pkt:l3pkt
@@ -460,7 +468,7 @@ object(s)
 	  s#send_out ~l3pkt:l3pkt
 	with 
 	  | Send_Out_Failure -> 
-	      s#log_info 
+	      s#log_notice 
 	      (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
 		(Packet.get_l3dst ~l3pkt:l3pkt) 
 		(adv.Packet.adv_dst));
@@ -484,7 +492,7 @@ object(s)
       );
 
       if ((Packet.get_l3ttl ~l3pkt:l3pkt) < 0) then (
-	s#log_info (sprintf "Dropping packet (negative ttl)");
+(*	s#log_info (sprintf "Dropping packet (negative ttl)");*)
 	
 	assert(
 	  Packet.get_l3grepflags ~l3pkt:l3pkt = Packet.GREP_RADV ||
@@ -500,15 +508,20 @@ object(s)
 
       | Packet.NOT_GREP -> 
 	  raise (Failure "Grep_agent.send_out")
-	  
       | Packet.GREP_RADV 
       | Packet.GREP_RREQ -> 
 	  if (decr_and_check_ttl()) then (
 	    assert (dst = Packet._L3_BCAST_ADDR);
+	    Grep_hooks.sent_rreq() ;
 	    owner#mac_bcast_pkt ~l3pkt:l3pkt;
 	  )
       | Packet.GREP_DATA 
       | Packet.GREP_RREP ->
+	  if (Packet.get_l3grepflags ~l3pkt:l3pkt) = Packet.GREP_DATA then (
+	    Grep_hooks.sent_data();
+	  ) else (
+	    Grep_hooks.sent_rrep();
+	  );
 	  let (nexthop, ttl) = 
 	    match Rtab.nexthop ~rt:rtab ~dst:dst  with
 	      | None -> raise Send_Out_Failure
@@ -533,7 +546,10 @@ object(s)
   (* this is a null method because so far we don't need to model apps getting
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
-  method private hand_upper_layer() = ()
+  method private hand_upper_layer ~l3pkt = (
+    s#log_notice (sprintf "Received app pkt from src %d"
+      (Packet.get_l3src ~l3pkt:l3pkt));
+  )
 
   (*
     method ctrl_hook action = (
@@ -556,8 +572,8 @@ object(s)
     
     
   method private app_send l4pkt ~dst = (
-    s#log_info (sprintf "%d received app pkt with dst %d"
-      owner#id dst);
+(*    s#log_info (sprintf "Received app pkt with dst %d"
+      dst);*)
       let l3hdr = 
 	Packet.make_grep_l3hdr
 	  ~srcid:owner#id
