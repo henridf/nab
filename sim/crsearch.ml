@@ -8,6 +8,9 @@ open Misc
    2. Can still optimize. 
    - in neighboring_squares, could probably only take one of the two (say
      always take the upper one), and avoid the list_unique_elements at the end.
+     xxx/for some reasone this is quite tricky. spent an hour on it, couldn't
+     work.
+
    - instead of iterating over all lines, of grid, could prune and only
      iterate over those which are within one radius of the center.
    - in Crworld.get_nodes_in_ring:
@@ -53,52 +56,52 @@ let xsect_circle_vline ~center ~radius ~x ~gridsize = (
   touched by the circle.
 *)
 let xsect_grid_and_circle ~center ~radius ~gridsize = (
-  let max = gridsize in
+
+  let xmin = max 0.0 (floor ((xx center) -. radius))
+  and xmax = min gridsize (floor ((xx center) +. radius))
+  and ymin = max 0.0 (floor ((yy center) -. radius))
+  and ymax = min gridsize (floor ((yy center) +. radius)) in
   let rec advanceup_ y l = 
-    if y > max then 
-      l 
+    if (y > ymax) then 
+      l
     else 
       let neighboring_squares x = 
-	(* Return bottom-left corners of 2 vertically neighboring squares *)
 	match y with
 	  | 0.0 -> [(coord_f2i (coord_floor (x, y)))]
-	  | y when (y = max) -> 
-	      [(coord_f2i (coord_floor ((x, y) +++. (0.0, -1.0))))]
-	  | y ->
+	  | y  ->
 	      [(coord_f2i (coord_floor (x, y)));
 	      (coord_f2i (coord_floor ((x, y) +++. (0.0, -1.0))))]
+
+
       in
       let pts = List.fold_left 
 	(fun l x -> l @ neighboring_squares x)
 	[]
 	(xsect_circle_hline ~center:center ~radius:radius ~y:y
-	  ~gridsize:max) 
+	  ~gridsize:gridsize) 
       in
       advanceup_ (y +. 1.0) pts@l
   in
   let rec advanceright_ x l = 
-    if x > max then 
+    if (x > xmax) then 
       l 
     else 
       let neighboring_squares y = 
-	(* Return bottom-left corners of 2 horizontally neighboring squares *)
 	match x with
 	  | 0.0 -> [(coord_f2i (coord_floor (x, y)))]
-	  | x when (x = max) -> 
-	      [coord_f2i (coord_floor ((x, y) +++. (-1.0, 0.0)))]
-	  | x ->
-	      [(coord_f2i (coord_floor (x, y)));
+	  | x -> [(coord_f2i (coord_floor (x, y)));
 	      (coord_f2i (coord_floor ((x, y) +++. (-1.0, 0.0))))]
+
       in
       let pts = List.fold_left
 	(fun l y ->  l @ neighboring_squares y)
 	[]
 	(xsect_circle_vline ~center:center ~radius:radius ~x:x
-	  ~gridsize:max) 
+	  ~gridsize:gridsize) 
       in 
       advanceright_ (x +. 1.0) pts@l
   in
-  let xpoints =  (advanceup_ 0.0 []) @ (advanceright_ 0.0 []) in 
+  let xpoints =  (advanceup_ ymin []) @ (advanceright_ xmin []) in 
   Misc.list_unique_elements xpoints
 
 )
