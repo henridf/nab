@@ -232,7 +232,8 @@ let animate_itin itin lattice f =
 
 let draw_itin itin lattice = animate_itin itin lattice (fun x -> ())
 
-let mouse_choose_node msg = (
+(*
+  let mouse_choose_node msg = (
   printf "%s \n" msg; flush Pervasives.stdout;
 
   let rec try_till_chosen () = (
@@ -248,7 +249,7 @@ let mouse_choose_node msg = (
   ) in 
     try_till_chosen ();
 )
-
+*)
 
 
 let dump_window outfile = (

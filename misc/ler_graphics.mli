@@ -31,7 +31,7 @@ val draw_gradient : (float * float) array array -> unit
 val animate_itin : Itin.Itinerary.t -> Lattice.Lattice.t -> (int * int -> 'a) -> unit 
 val draw_itin : Itin.Itinerary.t -> Lattice.Lattice.t -> unit
 
-val mouse_choose_node : string -> int
+(*val mouse_choose_node : string -> int*)
 
 val dump_window : string -> unit
 
