@@ -1,4 +1,5 @@
 open Misc
+open Set
 
 module type Graph_t = 
 sig
@@ -14,11 +15,14 @@ sig
   val contains_  : 'a graph_t -> 'a -> bool
   val containsi_ : 'a graph_t -> int -> bool
 
+  val add_node_  : 'a graph_t -> 'a -> unit
   val add_edge_  : 'a graph_t -> 'a -> 'a  -> float ->  unit
   val add_edgei_ : 'a graph_t -> int -> int  -> float -> unit
 
   val iteri_ : (int  -> unit) -> 'a graph_t -> unit
   val itern_ : ('a  -> unit) -> 'a graph_t -> unit
+
+  val test_ : unit -> unit
 end;;
 
 
@@ -61,7 +65,7 @@ struct
 
 
   let contains_ g n  = (
-    let rec _contains i = i < g.size && ((g.nodes.(i) = n) or (_contains (i + 1))) in
+    let rec _contains i = i < g.ind && ((g.nodes.(i) = n) or (_contains (i + 1))) in
       _contains 0
   )
 
@@ -69,18 +73,20 @@ struct
 			 
 
   let add_edge_ g n1 n2 c  = (
+    if (n1 = n2) then raise (Invalid_argument "Graph.add_edge_: cannot connect a node to itself");
     try 
       let x = index__ g n1 and y = index__ g n2 in
  	g.m.(x).(y) <- Cost c;
-	if g.t = Undirected then g.m.(x).(y) <- Cost c;
+	if g.t = Undirected then g.m.(y).(x) <- Cost c;
     with 
 	Not_found -> raise (Invalid_argument  "Graph.add_edge_: node does not exist");
   )
 
   let add_edgei_ g i1 i2 c = (
+    if (i1 = i2) then raise (Invalid_argument "Graph.add_edgei_: cannot connect a node to itself");
     if i1 >= g.ind or i2 >= g.ind then raise (Invalid_argument  "Graph.add_edgei_: index does not exist");
     g.m.(i1).(i2) <- Cost c;
-    if g.t = Undirected then g.m.(i1).(i2) <- Cost c;
+    if g.t = Undirected then g.m.(i2).(i1) <- Cost c;
   )
 
 
@@ -173,10 +179,101 @@ struct
       g;
   )
 
-end;;
+
+  module OrderedCoord = 
+  struct 
+    type t = int array
+    let compare coord1 coord2 = 
+      if (normdot coord1) < (normdot coord2) then -1 
+      else if (normdot coord1) > (normdot coord2) then 1 
+      else 0
+  end;;
+
+  module CoordSet = Set.Make (OrderedCoord);;
+  open CoordSet;;
+
+  let coordSetofList l = (
+    let c = ref CoordSet.empty in
+      List.iter (fun coord -> c := CoordSet.add coord !c) l;
+      !c
+  )
+
+  let test_ () = (
+    let g = create_ 0.0 10 Undirected in (
+	assert (contains_ g 0.0 = false);
+	assert (containsi_ g 0 = false);
+	add_node_ g 0.0;
+	assert (contains_ g 0.0 = true);
+	assert (containsi_ g 0 = true);
+	assert (neigbors_ g 0.0 = []);
+	assert (neigborsi_ g 0 = []);
+	
+	add_node_ g 1.0;
+	add_edgei_ g 0 1 0.0;
+	assert (neigbors_ g 0.0 = [1.0]);
+	assert (neigbors_ g 1.0 = [0.0]);
+	
+	add_node_ g 2.0;
+	add_node_ g 3.0;
+	add_edge_ g 2.0 3.0 0.0;
+	assert (neigborsi_ g 2 = [3]);
+	assert (neigborsi_ g 3 = [2]);
+	
+	add_edge_ g 0.0 2.0 0.0;
+	add_edge_ g 0.0 3.0 0.0;
+	add_edge_ g 2.0 1.0 0.0;
+	add_edge_ g 3.0 1.0 0.0;
+	
+	let ngbrs = neigborsi_ g 1 in (
+	    assert (List.length ngbrs = 3);
+	    assert (List.mem 0 ngbrs);
+	    assert (List.mem 2 ngbrs);
+	    assert (List.mem 3 ngbrs);
+	  );
+      );				
+      
+      let g = create_ 0.0 10 Directed in (
+	  add_node_ g 0.0;
+	  add_node_ g 1.0;
+	  add_node_ g 2.0;
+	  add_node_ g 3.0;
+	  
+	  add_edgei_ g 0 1 0.0;
+	  assert (neigborsi_ g 0 = [1]);
+	  assert (neigborsi_ g 1 = []);
+	);
+					   
+	let l = create_lattice_ 2 4 in 
+	let ngbrs = neigbors_ l [|1; 1|] in
+	let ngbrs_set = coordSetofList ngbrs 
+	and exp_ngbrs_set = coordSetofList [[|0; 1|]; [|1; 0|]] 
+	in
+	  assert (CoordSet.equal ngbrs_set exp_ngbrs_set);
+	  
+	let l = create_lattice_ 3 27 in 
+	let ngbrs = neigbors_ l [|2; 2; 2|] in
+	let ngbrs_set = coordSetofList ngbrs 
+	and exp_ngbrs_set = coordSetofList [
+	  [|0; 2; 2|]; 
+	  [|1; 2; 2|]; 
+	  [|2; 0; 2|];
+	  [|2; 1; 2|];
+	  [|2; 2; 0|];
+	  [|2; 2; 1|];
+	]
+	in
+	  assert (CoordSet.equal ngbrs_set exp_ngbrs_set);
+      
 
 
+      Printf.printf "Graph.test_ : passed \n";
 
+  )
+		   
+  end;;
+
+
+  Graph.test_ ();;
 
 
 
