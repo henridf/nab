@@ -15,7 +15,7 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 
   match (L2pkt.l2src l2pkt) <> node#id with
     | _ -> 	(* Packet arriving at a node *)
-	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving t node %d" node#id));	  
+	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
 	
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  route_done := true;
@@ -76,7 +76,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 
   match Grep_pkt.flags (L3pkt.grep_hdr l3pkt) with
     | Grep_pkt.GREP_DATA ->
-	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving t node %d" node#id));	  
+	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  route_done := true;
 	  routeref := Route.add_hop !routeref {

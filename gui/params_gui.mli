@@ -2,7 +2,7 @@
 
 
 
-(** Globally accessible parameters.  
+(** Gui parameters.
   @author Henri Dubois-Ferriere.
 *)
 

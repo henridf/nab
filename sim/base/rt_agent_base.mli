@@ -43,7 +43,11 @@ object
   method private cheat_send_pkt : L3pkt.t -> Common.nodeid_t -> unit
     (** Call this method from the derived routing agent to send a packet
       directly to any node. This is a wrapper around [method cheat_send_pkt] in
-      {!Simplenode.simplenode}. *)
+      {!Simplenode.simplenode}. 
+
+      This only works if the MAC layer is a {!Mac_cheat.cheatmac} - otherwise
+      a packet to a node which is not in range is silently dropped.
+    *)
 
   method private bps : float
     (** Returns the speed of the underlying MAC layer for the node this agent

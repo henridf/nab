@@ -1,7 +1,3 @@
-
-
-
-
 (** Simplenode: Encapsulates most of the state and constituent objects
   (routing agent, mac layer, traffic source) that model a node.
 
@@ -83,7 +79,10 @@ object ('a)
 
   method cheat_send_pkt : ?stack:int -> dst:Common.nodeid_t -> L3pkt.t -> unit
     (** Same as above except will accept sending pkt to any destination, even
-      if that destination is not a neighbor (hence the "cheating"). *)
+      if that destination is not a neighbor within range (hence the "cheating"). 
+      This only works if the MAC layer is a {!Mac_cheat.cheatmac} - otherwise
+      a packet to a node which is not in range is silently dropped.
+*)
 
   method mac_bcast_pkt : ?stack:int -> L3pkt.t -> unit
     (** Broadcast packet to all neighbors. *)
