@@ -4,31 +4,39 @@
 
 
 
+** COMPILING
+
+First run the following two commands :
+
+	touch .depend
+	make depend
+
 To compile mws only:
 
-make bin/mws
+	make bin/mws
 
 To compile mws with gui libraries:
 
-make bin/gui
+	make bin/gui
 
-To compile as native code (runs faster):
+To compile as native code (runs faster), pass OPT=y flag to make, as in
 
-make OPT=y bin/gui 
-(or
- make OPT=y bin/mws)
-
+	make OPT=y bin/gui 
 
 Usually, one compiles mws with a script file:
 
-make SCRIPT=filename bin/mws
+	make SCRIPT=filename bin/mws
 
 where filename is assumed to be a file in the scripts/ directory, as in
 
-make SCRIPT=demo.ml bin/gui
-or
-make OPT=y SCRIPT=demo.ml bin/gui
-or
-make SCRIPT=grep.ml bin/gui
+	make SCRIPT=demo.ml bin/gui
+	or
+	make OPT=y SCRIPT=demo.ml bin/gui
+	or
+	make SCRIPT=grep.ml bin/mws
 
 
+** OTHER TARGETS
+To build documentation: 
+
+	make htmldoc
