@@ -12,9 +12,11 @@ dbrowaccumall:
 	ocamlc -I ../misc str.cma ../misc/misc.ml ../misc/mods.ml dbfile.ml  dbrowaccumall.ml  -o dbrowaccumall
 
 dbcoladd:
-	ocamlc -I ../misc str.cma ../misc/misc.ml ../misc/mods.ml dbfile.ml  dbcoladd.ml  -o dbcolladd
+	ocamlc -I ../misc str.cma ../misc/misc.ml ../misc/mods.ml dbfile.ml  dbcoladd.ml  -o dbcoladd
 
 clean:
 	rm -f $(PROGS)
 
 all: dbplotmulti dbplot dbrowaccumall dbcoladd
+install: $(PROGS)
+	cp $(PROGS) ../../../bin
