@@ -104,7 +104,7 @@ let make_grease_nodes () = (
   
   (* create grease agents, who will hook to their owners *)
   Ease_agent.set_agents
-    (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent n));
+    (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent ~grease:true n));
 
   (* set up initial node position in internal structures of World.object *)
   Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos);
