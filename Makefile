@@ -182,7 +182,6 @@ SIM_OBJS = $(GFX_LIB) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
-		$(SIM_BASE_DIR)/gui_hooks$(CMO) \
 		$(SIM_MOB_DIR)/mob_base$(CMO) \
 		$(SIM_MOB_DIR)/mobs$(CMO) \
 		$(SIM_BASE_DIR)/mob_ctl$(CMO) \
