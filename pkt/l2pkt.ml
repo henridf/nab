@@ -18,8 +18,8 @@ type l2hdr_t = {
   l2dst: l2_dst_t
 }
 
-(* 100 should vaguely represent the mac-layer framing bytes *) 
-let l2hdr_size = 100 + 2 * _ADDR_SIZE 
+(* 20 should vaguely represent the mac-layer framing bytes *) 
+let l2hdr_size = 20 + 2 * _ADDR_SIZE 
 
 let clone_l2hdr ~l2hdr = {l2hdr with l2src = l2hdr.l2src}
 
