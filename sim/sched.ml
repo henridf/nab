@@ -21,7 +21,14 @@ type eventlist_entry_t =
 class type scheduler_t = 
 object 
 
+  (* keep processing queued events until none left *)
   method run : unit -> unit 
+
+  (* same as #run except that continure is called between each event, and
+     processing stops if f returns true *)
+  method run_until : 
+    continue:(unit -> bool) -> 
+    unit 
 
   method objdescr : string
 
@@ -81,12 +88,10 @@ object(s)
       match t with 
 	| ASAP -> 
 	    s#sched_event_at (Event {handler=handler; time=Common.get_time()});
-(*	    str := (sprintf "%f (ASAP)" (Common.get_time()));*)
 	| ALAP -> raise (Failure "schedList.sched: ALAP not implemented\n")
 	| Time t -> (
 	    assert (t > Common.get_time());
 	    s#sched_event_at (Event {handler=handler; time=t});
-(*	    str := (sprintf "%f " t);*)
 	  );
     );
 (*    s#log_debug (sprintf "scheduling event at %s" !str);*)
@@ -94,17 +99,27 @@ object(s)
     
   method sched_in ~handler ~t = s#sched_at handler (Time (t +. Common.get_time()))
 
-  method run () = (
-    match s#next_event with
-      | None -> ()
-      | Some (Stop s) -> 
-	  Common.set_time (s.time);
-      | Some (Event ev) -> (
-	  Common.set_time (ev.time);
-	  ev.handler();
-	  s#run()
-	)
+  method run_until ~continue = (
+    try 
+      while (true) do 
+	match s#next_event with
+	  | None -> raise Misc.Break
+	  | Some (Stop s) -> 
+	      Common.set_time (s.time);
+	      raise Misc.Break
+	  | Some (Event ev) -> (
+	      Common.set_time (ev.time);
+	      ev.handler();
+	      if (not (continue())) then 
+		raise Misc.Break;
+	    )
+      done;
+      
+    with
+      | Misc.Break -> () 
+      | o -> raise o
+    )
 
-  )
+  method run() = s#run_until (fun () -> true)
 
 end
