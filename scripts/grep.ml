@@ -6,9 +6,9 @@ open Printf
 open Misc
 open Script_utils
 
-let daemon = true
-let outfile = ref "/home/henridf/work/caml/"
-let outfile_det = ref "/home/henridf/work/caml/"
+let daemon = false
+let outfile = ref (Unix.getcwd())
+let outfile_det = ref (Unix.getcwd())
 
 
 let outfd = ref Pervasives.stderr
@@ -64,7 +64,7 @@ let do_one_run ~trafficmat ~agenttype ~nodes ~sources ~packet_rate ~speed
     else
       Random.init !seed;
 
-  Log.set_log_level ~level:Log.LOG_ERROR;
+  Log.set_log_level ~level:Log.LOG_WARNING;
   Param.set Params.nodes nodes;
   Param.set Params.rrange rrange;
   Param.set Params.x_size (size nodes);
@@ -197,6 +197,11 @@ let r3 = [
   (10, HOTDEST,  8.0,  4,   1000,  40,  20);
 ]  
 
+let r7 = [
+(* repeats hotspot speed rate nodes srcs pktssend *)
+  (1, UNIDIR,  12.0,  4,   800,  20,  20);
+]
+
 
 let aodvtots = ref (0, 0, 0, 0, 0, 0, 0, 0)
 let greptots = ref (0, 0, 0, 0, 0, 0, 0, 0)
@@ -260,6 +265,10 @@ let argspec = Arg.Int
 	  runs :=  r6;
 	  outfile := !outfile^"r6"^".txt";
 	  outfile_det := !outfile_det^"r6-det"^".txt";
+      | 7 ->     
+	  runs :=  r7;
+	  outfile := !outfile^"r7"^".txt";
+	  outfile_det := !outfile_det^"r7-det"^".txt";
       | _ -> failwith "No such run"
   )
   
