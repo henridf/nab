@@ -105,7 +105,12 @@ object(s)
 
   method bps = bps
 
-  method reset_stats = super#reset_stats
+  method reset_stats = 
+    collsRXRX <- 0;
+    collsRXTX <- 0;
+    dropsTXTX <- 0;
+    dropsTXRX <- 0;
+    super#reset_stats
 
   method set_jitter j = jitter <- j
 
@@ -217,8 +222,6 @@ object(s)
     }
 end
   
-  
-  
 let string_of_ostats s = 
   Printf.sprintf 
     "%d RX/RX colls, %d RX/TX colls, %d TX/TX drops, %d TX/RX drops"
@@ -226,3 +229,21 @@ let string_of_ostats s =
     s.collsRXTX 
     s.dropsTXTX 
     s.dropsTXRX 
+
+
+let add_ostats s1 s2 =  
+  {
+    collsRXRX = s1.collsRXRX + s1.collsRXRX;
+    collsRXTX = s1.collsRXTX + s2.collsRXTX;
+    dropsTXTX = s1.dropsTXTX + s2.dropsTXTX;
+    dropsTXRX = s1.dropsTXRX + s2.dropsTXRX
+  }
+
+
+let zero_ostats () = 
+  {
+    collsRXRX = 0;
+    collsRXTX = 0;
+    dropsTXTX = 0;
+    dropsTXRX = 0
+  }
