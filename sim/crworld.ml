@@ -144,28 +144,26 @@ object(s)
 
     let (newx, newy) = s#pos_in_grid_ newpos in
 
-    let _ = 
-
-	match oldpos_opt with
+    begin match oldpos_opt with
+	
+      | None ->  (
+	  assert (not (List.mem index grid_of_nodes_.(newx).(newy)));
+	  grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+	  (* node is new, had no previous position *)
+	)
+      | Some oldpos -> (
+	  let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
+	  
+	  if (oldx, oldy) <> (newx, newy) then (
+	    (* only update grid_of_nodes if node moved to another slot *)
 	    
-	  | None ->  (
-	      assert (not (List.mem index grid_of_nodes_.(newx).(newy)));
-	      grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
-	      (* node is new, had no previous position *)
-	    )
-	  | Some oldpos -> (
-	      let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
-	      
-	      if (oldx, oldy) <> (newx, newy) then (
-		(* only update grid_of_nodes if node moved to another slot *)
-		
-		grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
-		assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
-		grid_of_nodes_.(oldx).(oldy) <- list_without
-		  grid_of_nodes_.(oldx).(oldy) index;      
-	      )
-	    )
-    in
+	    grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+	    assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
+	    grid_of_nodes_.(oldx).(oldy) <- list_without
+	      grid_of_nodes_.(oldx).(oldy) index;      
+	  )
+	)
+    end;
     s#update_node_neighbors_ node;
   )
     
