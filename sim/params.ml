@@ -85,6 +85,7 @@ let mob =
     ~reader:Common.mobility_of_string 
     ~checker:None
 
+(*
 let top = 
   Param.create 
     ~name:"top" 
@@ -92,6 +93,7 @@ let top =
     ~doc:"Topology to use"
     ~reader:Common.topology_of_string 
     ~checker:None
+  *)
 
 let action = 
   Param.create 
