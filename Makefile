@@ -20,14 +20,14 @@ MWS_SCRIPT_DIR = scripts
 GUI_DIR = gui
 MISC_DIR = misc
 MK_DIR = mk
-GUI_DIR = gui
 TEST_DIR = test
 BIN_DIR = bin
 
 GTK_DIR = $(LIB_DIR)/lablgtk
+GNUPLOT_DIR = contrib/gnuplot
 CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
-INCLUDE_LIBS = -I $(GTK_DIR)
+INCLUDE_LIBS = -I $(GTK_DIR) -I $(GNUPLOT_DIR)
 INCLUDE_SRC = -I $(MISC_DIR) -I $(PKT_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR)
 INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC)
 
@@ -72,6 +72,7 @@ endif
 # Libraries
 
 GFX_LIB = $(LIB_DIR)/graphics$(CMA)
+GNUPLOT_LIB = $(GNUPLOT_DIR)/gnuplot$(CMA)
 UNIX_LIB = $(LIB_DIR)/unix$(CMA)
 STR_LIB = $(LIB_DIR)/str$(CMA)
 THREADS_LIB = $(LIB_DIR)/threads/threads$(CMA)
@@ -96,6 +97,7 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 
 MWS_OBJ_FILES = $(GFX_LIB) \
 		$(STR_LIB) \
+		$(GNUPLOT_LIB) \
 		$(MISC_OBJ_FILES) \
 		$(MISC_DIR)/graph$(CMO) \
 		$(GUI_DIR)/epflcoords$(CMO) \
@@ -108,10 +110,9 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(PKT_DIR)/l4pkt$(CMO) \
 		$(PKT_DIR)/l3pkt$(CMO) \
 		$(PKT_DIR)/l2pkt$(CMO) \
+		$(MWS_DIR)/log$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MISC_DIR)/experiment$(CMO) \
-		$(MWS_DIR)/trace$(CMO) \
-		$(MWS_DIR)/log$(CMO) \
 		$(MISC_DIR)/heap$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
 		$(MWS_DIR)/gsched$(CMO) \
@@ -121,6 +122,10 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/ler_graphics$(CMO) \
 		$(MWS_DIR)/nodeDB$(CMO) \
 		$(MWS_DIR)/rtab$(CMO) \
+		$(MWS_DIR)/ether$(CMO) \
+		$(MWS_DIR)/mac_null$(CMO) \
+		$(MWS_DIR)/mac_contention$(CMO) \
+		$(MWS_DIR)/tsource$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
 		$(MWS_DIR)/gpsnode$(CMO) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
@@ -152,7 +157,7 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
-		 $(MISC_DIR)/rnd_manager$(CMO) \
+		 $(MISC_DIR)/randoms$(CMO) \
 		 $(MISC_DIR)/myarg$(CMO) \
 		 $(MISC_DIR)/coord$(CMO)
 
@@ -179,7 +184,7 @@ bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
-	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES)  $(MWS_SCRIPT) -o $@
+	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES)  $(MWS_SCRIPT) -o $@
 
 gui: bin/gui
 bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
@@ -187,9 +192,8 @@ bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
 	$(GUI_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
 guitop: bin/guitop
-bin/guitop: $(GUI_OBJ_FILES) 
-	$(MLTOP) $(INCLUDE) $(GTK_STUFF) \
-	$(GUI_OBJ_FILES)  -o $@ 
+bin/guitop: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
+	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
 DOC_FILES = \
 	$(MWS_DIR)/*.ml \
@@ -205,7 +209,7 @@ GUI_OBJ_ONLY_CMOS = $(filter %.cmo, $(GUI_OBJ_FILES))
 GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
 DOC_DIR = doc
 
-htmldoc: $(GUI_OBJ_FILES)
+htmldoc: $(MWS_OBJ_FILES)
 	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
