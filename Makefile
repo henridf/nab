@@ -77,6 +77,7 @@ DEPEND_DIRS = $(DIRS) $(MWS_SCRIPT_DIR)	$(GUI_DATA_DIR)
 
 DOC_DIRS = $(DIRS) $(GUI_DATA_DIR)
 DOC_DIR = doc
+DOC_GEN_DIR = doc/gen
 
 DEPEND_FILES := $(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*mli)) \
 	$(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*ml))
@@ -113,7 +114,9 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 
 # Files to generate doc for (all except scripts and gui/data/ files)
 DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
-	$(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*ml))
+	$(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*ml)) \
+	$(MWS_SCRIPT_DIR)/script_utils.mli \
+	$(MWS_SCRIPT_DIR)/script_utils.ml
 
 
 ##########################################
@@ -140,6 +143,7 @@ MWS_OBJS = $(GFX_LIB) \
 		$(PROTO_GREP_DIR)/grep_pkt$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
+		$(PROTO_MISC_DIR)/simple_pkt$(CMO) \
 		$(MWS_PKT_DIR)/l3pkt$(CMO) \
 		$(MWS_PKT_DIR)/l2pkt$(CMO) \
 		$(MWS_LIB_DIR)/log$(CMO) \
@@ -158,6 +162,7 @@ MWS_OBJS = $(GFX_LIB) \
 		$(MWS_MAC_DIR)/mac_base$(CMO) \
 		$(MWS_MAC_DIR)/mac_null$(CMO) \
 		$(MWS_MAC_DIR)/mac_contention$(CMO) \
+		$(MWS_MAC_DIR)/mac_cheat$(CMO) \
 		$(MWS_BASE_DIR)/gpsnode$(CMO) \
 		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
@@ -166,8 +171,9 @@ MWS_OBJS = $(GFX_LIB) \
 		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_agent$(CMO) \
 		$(PROTO_LER_DIR)/ease_agent$(CMO) \
-		$(MWS_BASE_DIR)/gui_hooks$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
+		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
+		$(MWS_BASE_DIR)/gui_hooks$(CMO) \
 		$(MWS_MOB_DIR)/mob_base$(CMO) \
 		$(MWS_MOB_DIR)/mobs$(CMO) \
 		$(MWS_BASE_DIR)/mob_ctl$(CMO) \
@@ -221,7 +227,7 @@ TEST_OBJS = \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-alltargets: mws mwsgrep grepviz mwstop gui mwsvor guitop
+alltargets: mws mwsgrep grepviz mws-top mwsviz mwsvor mwsviz-top
 
 
 mws: bin/mws
@@ -240,26 +246,26 @@ mwsvor: bin/mwsvor
 bin/mwsvor:  $(MWS_OBJS) scripts/voronoi_common$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJS) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
 
-mwstop: bin/mwstop
-bin/mwstop: $(MWS_OBJS)  $(MWS_SCRIPT)
+mws-top: bin/mws-top
+bin/mws-top: $(MWS_OBJS)  $(MWS_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJS)  $(MWS_SCRIPT) -o $@
 
-gui: bin/gui
-bin/gui: $(GUI_OBJS) $(MWS_SCRIPT)
+mwsviz: bin/mwsviz
+bin/mwsviz: $(GUI_OBJS) $(MWS_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
 	$(GUI_OBJS) $(MWS_SCRIPT) -o $@ 
 
-guitop: bin/guitop
-bin/guitop: $(GUI_OBJS) $(MWS_SCRIPT)
+mwsviz-top: bin/mwsviz-top
+bin/mwsviz-top: $(GUI_OBJS) $(MWS_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(MWS_SCRIPT) -o $@ 
 
 
 
 htmldoc: $(GUI_OBJS)
-	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
+	$(OCAMLDOC) -html -sort -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
-	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
+	$(OCAMLDOC) -dot -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
 
 camlgtk-th: bin/camlgtk-th
 bin/camlgtk-th: 
@@ -282,6 +288,7 @@ OPTCLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *.cmx); done
 BYTECLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *.cmi *.cmo); done
 CLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *.o *.out *.annot *.cm*); done
 EMACSCLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *~; rm -f .*~); done
+DOCCLEAN = for d in $(DOC_GEN_DIR); do (cd $$d; rm -f *html; rm -f .*css); done
 
 bclean:
 	$(BYTECLEANALL)
@@ -289,6 +296,7 @@ bclean:
 
 oclean:
 	$(OPTCLEANALL)
+
 	rm -f  *.cmx
 clean:  
 	$(CLEANALL) 
@@ -297,6 +305,8 @@ eclean:
 	$(EMACSCLEANALL)
 	rm -f *~
 	rm -f .*~
+docclean:
+	$(DOCCLEAN)
 
 
 DEPEND = .depend
