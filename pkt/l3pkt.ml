@@ -18,18 +18,9 @@ let _L3_BCAST_ADDR = (* 255.255.255.255 *)
 
 
 
-	
-
-type ease_l3hdr_ext_t = {
-  mutable enc_age : Common.time_t;
-  mutable anchor_pos : Coord.coordf_t;
-  mutable search_dist : float; (* hack for mhook to read off of *)
-}
-
-
 type l3hdr_ext_t = 
     [ `NONE
-    | `EASE_HDR of ease_l3hdr_ext_t (* for now, fresh uses same thing *)
+    | `EASE_HDR of Ease_pkt.t
     | `GREP_HDR of Grep_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
@@ -37,7 +28,7 @@ type l3hdr_ext_t =
 
 let clone_l3hdr_ext = function
   | `NONE -> `NONE
-  | `EASE_HDR e -> `EASE_HDR {e with enc_age=e.enc_age}
+  | `EASE_HDR e -> `EASE_HDR (Ease_pkt.clone e)
   | `GREP_HDR e -> `GREP_HDR (Grep_pkt.clone e)
   | `AODV_HDR e -> `AODV_HDR (Aodv_pkt.clone e)
   | `DIFF_HDR e -> `DIFF_HDR (Diff_pkt.clone e)
@@ -102,6 +93,11 @@ let decr_l3ttl ~(l3pkt:t) =
   l3pkt.l3hdr.ttl <- l3pkt.l3hdr.ttl - 1
 
 
+let ease_hdr l3pkt = 
+  match l3pkt.l3hdr.ext with
+    | `EASE_HDR e -> e
+    | _ -> raise (Failure "Packet.ease_hdr")
+
 let grep_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `GREP_HDR e -> e
@@ -122,22 +118,6 @@ let get_ease_l3ext (l3hdr:l3hdr_t) =
     | `EASE_HDR e -> e
     | _ -> raise (Failure "Packet.get_ease_l3ext")
 
-let l3anchor ~l3pkt = (get_ease_l3ext (l3hdr ~l3pkt)).anchor_pos
-let l3enc_age ~l3pkt = (get_ease_l3ext (l3hdr ~l3pkt)).enc_age
-let l3search_dist ~l3pkt = (get_ease_l3ext (l3hdr ~l3pkt)).search_dist
-
-let set_search_dist ~l3hdr d = 
-  let ext = get_ease_l3ext l3hdr in 
-  ext.search_dist <- d
-
-let set_anchor_pos ~l3hdr anch = 
-  let ext = get_ease_l3ext l3hdr in 
-  ext.anchor_pos <- anch
-
-let set_enc_age ~l3hdr age = 
-  let ext = get_ease_l3ext l3hdr in 
-  ext.enc_age <- age
-
 
 let make_l3hdr 
   ~srcid 
@@ -153,15 +133,6 @@ let make_l3hdr
   }
   
 
-let make_ease_l3hdr_ext 
-  ~enc_age
-  ~anchor_pos
-  = `EASE_HDR {
-    enc_age=enc_age;
-    anchor_pos=anchor_pos;
-    search_dist=0.0
-  }
-
 let make_app_pkt ~l3hdr = {
   l3hdr=l3hdr;
   l4pkt=`APP_PKT
@@ -172,35 +143,4 @@ let make_l3pkt ~l3hdr ~l4pkt = {
   l4pkt=l4pkt
 }
 
-let make_bler_l3pkt ~srcid ~dstid  = {
-  l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ());
-  l4pkt=`BLER_PKT (ANCH_REQ (dstid, max_float))(*dst, current enc. age*)
-}
-
-let make_ease_l3pkt ~srcid ~dstid ~anchor_pos ~enc_age ~l4pkt = (
-  let ext = make_ease_l3hdr_ext ~enc_age ~anchor_pos in
-  {
-    l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ~ext ());
-    l4pkt=l4pkt
-  }
-)
   
-let make_dsdv_l3pkt ~srcid ~ttl ~originator ~seqno ~nhops = {
-  l3hdr=(make_l3hdr ~srcid:srcid ~dstid:Common.nid_bcast ~ttl:ttl ());
-  l4pkt=(`DSDV_PKT {originator=originator; seqno=seqno; nhops=nhops})
-}
-
-
-let dsdv_pkt ~pkt = 
-  match pkt.l4pkt with
-    | `DSDV_PKT p -> p
-    | _ -> raise (Failure "Packet.dsdv_pkt")
-
-let succ_dsdv_pkt ~pkt ~src = (
-  let pld = (dsdv_pkt pkt) in 
-  let l3h = (l3hdr pkt) in {
-    l3hdr={l3h with ttl = (l3h.ttl - 1); src=src};
-    l4pkt=(`DSDV_PKT {pld with nhops=((pld.nhops) + 1)})
-  }
-)
-
