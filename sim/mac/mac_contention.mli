@@ -25,7 +25,7 @@
 
 
 
-(** A MAC frontend (see {!Mac_base.frontend}) with modeling of contention and collisions. 
+(** A MAC with modeling of contention and collisions. 
 
   @author Henri Dubois-Ferriere.
 *)
