@@ -2,22 +2,11 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-val make_waypoint_mobs : unit -> unit
-val make_epfl_mobs : unit -> unit
-val start_node : Common.nodeid_t -> unit
-val stop_node : Common.nodeid_t -> unit
-val start_all : unit -> unit
-val stop_all : unit -> unit
+(** Mobility generators and related stuff. *)
 
 
-(* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using
-   Gui_hooks.* from here *)
-val x_mtr_to_pix : float -> int
 
-val pos_pix_to_mtr : Coord.coordi_t -> Coord.coordf_t
-val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t
-
-
+(** The base class for all classes implementing a mobility process *)
 class virtual mobility :
   string ->
   #Simplenode.simplenode ->
@@ -28,13 +17,31 @@ class virtual mobility :
     val owner : #Simplenode.simplenode
     val mutable speed_mps : float
     method abbrevname : string
-    method virtual getnewpos : gran:float -> Coord.coordf_t
-    method move : unit
+
     method set_speed_mps : float -> unit
-    method start : unit
+      (** Set the speed in meters/sec. *)
+
+    method  start : unit
+      (** Stop movement *)
+
     method stop : unit
+      (** Start movement *)
+
+    method virtual getnewpos : gran:float -> Coord.coordf_t
+      (** This method is called in order to get the next position for the node
+	associated with this mobility object.
+	The frequency at which it is called depends on the speed of the node.
+	parameter {i gran} is the required {i granularity}, or {i distance} of the
+	movement, expressed in meters. This allows tuning the 'resolution' of
+	movement steps. This parameter can be ignored by processes such as a
+	discrete random walk *)
+	
+    (**/**)
+    method private move : unit
+      
   end
 
+(** Waypoint mobility class *)
 class waypoint :
   #Simplenode.simplenode ->
   (newpos:Coord.coordf_t -> unit) ->
@@ -42,3 +49,20 @@ class waypoint :
     inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
   end
+
+(** Waypoint over EPFL mobility class *)
+class epfl_waypoint :
+  #Simplenode.simplenode ->
+  (newpos:Coord.coordf_t -> unit) ->
+  object
+    inherit mobility
+    method getnewpos : gran:float -> Coord.coordf_t
+  end
+
+(**/**)
+(* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using
+   Gui_hooks.* from here *)
+val x_mtr_to_pix : float -> int
+
+val pos_pix_to_mtr : Coord.coordi_t -> Coord.coordf_t
+val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t

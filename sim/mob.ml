@@ -18,44 +18,14 @@ let y_mtr_to_pix y = f2i ((i2f !y_pix_size) *. (y /. y_mtr()))
 let x_pix_to_mtr x = (x_mtr()) *. ((i2f x) /. (i2f !x_pix_size))
 let y_pix_to_mtr y = (y_mtr()) *. ((i2f y) /. (i2f !y_pix_size))
 
-
 let pos_mtr_to_pix pos = 
   (x_mtr_to_pix (Coord.xx pos), y_mtr_to_pix (Coord.yy pos))
 
 let pos_pix_to_mtr pos = 
   (x_pix_to_mtr (Coord.xx pos), y_pix_to_mtr (Coord.yy pos))
 
-(*
-class type virtual mobility_t =
-  object
-    val abbrev : string
-    val mutable moving : bool
-    val owner : #Simplenode.simplenode
-    val mutable speed_mps : float
-    method abbrevname : string
-    method virtual getnewpos : gran:float -> Coord.coordf_t
-    method move : unit
-    method set_speed_mps : float -> unit
-    method start : unit
-    method stop : unit
-  end
 
-class type waypoint_t =
 
-  object
-    val abbrev : string
-    val mutable moving : bool
-    val owner : Node.node_t
-    val mutable speed_mps : float
-    val mutable target_ : Coord.coordf_t
-    method abbrevname : string
-    method getnewpos : gran:float -> Coord.coordf_t
-    method move : unit
-    method set_speed_mps : float -> unit
-    method start : unit
-    method stop : unit
-  end
-	  *)
 
 class virtual mobility 
   (abbrevname:string) 
@@ -93,7 +63,7 @@ object(s)
   *)
   method virtual getnewpos : gran:float -> Coord.coordf_t
     
-  method move  = (
+  method private move  = (
 
     (* if we are stopped then we ignore previously scheduled mobility events. 
        this is for example so that in the gui case, when we call sched#run() to compute
@@ -104,7 +74,7 @@ object(s)
 (*      (Gworld.world())#movenode ~nid:owner#id ~newpos:newpos;*)
 
       (* mob is assumed to move us by granularity [meters], so we should schedule the next
-	 one in granulatiry / speed_mps seconds.
+	 one in granularity / speed_mps seconds.
       *)
       let move_event() = s#move in
       (Gsched.sched())#sched_in ~f:move_event ~t:(granularity /. speed_mps)
@@ -165,12 +135,12 @@ let get_containing_node pos = (
 
   
   
-class epfl 
+class epfl_waypoint 
   (owner:#Simplenode.simplenode) 
   (movefun:(newpos:Coord.coordf_t -> unit)) = 
 object(s)
   inherit mobility "epfl" owner movefun
-(*  val mutable target_ = (0.0, 0.0)  (* the current end-destination *)*)
+
   val mutable graphtarget_ = 0      (* as a graph node index *)
   val mutable graph_hops_ = []       (* remaining hops through the graph to
 				       graphtarget_ *)
@@ -198,9 +168,6 @@ object(s)
       ((Graph.routei_dij_ (Read_coords.g()) current_graph_pos_ graphtarget_) @
       [graphtarget_]);
 
-(*    List.iter (fun i -> Printf.printf "%s " (Graph.node_ (Read_coords.g()) i))
-     ((Graph.routei_dij_ (Read_coords.g()) current_graph_pos_ graphtarget_) @
-      [graphtarget_]);*)
   )
     
   method getnewpos ~gran = (
@@ -223,28 +190,21 @@ object(s)
 
 end
 
-let mob_array = ref ([||]: #mobility array)
-let make_waypoint_mobs() = mob_array := 
-  (Nodes.map (fun n -> new waypoint n
-    ((Gworld.world())#movenode ~nid:n#id)))
-let make_epfl_mobs() = (
-  mob_array := (Nodes.gpsmap (fun n -> new epfl n n#move));
-  Array.iter 
-    (fun m ->
-      if (Random.int 2) = 0 then (
-	m#set_speed_mps 1.0
-      ) else (
-	m#set_speed_mps 1.0
-      )
-    ) !mob_array
-)
+class discreteRandomWalk 
+  (owner:#Simplenode.simplenode) 
+  (movefun:(newpos:Coord.coordf_t -> unit)) = 
+object 
 
-let start_node i = !mob_array.(i)#start
-let stop_node i = !mob_array.(i)#stop
-let start_all() = Array.iteri (fun i n -> start_node i) !mob_array
-let stop_all() = Array.iteri (fun i n -> stop_node i) !mob_array
+  inherit mobility "discrRW" owner movefun
+
+  method initialize () = ()
+  method getnewpos ~node = 
+    (Gworld.world())#boundarize
+    (* amplitude of 3 gives us a variance of 3/4 along either axis *)
+    (node#pos +++. ((Random.float 3.0, Random.float 3.0) ---. (1.5, 1.5)))
 
 
+end
 
 
 (*
@@ -260,19 +220,6 @@ object
     node#move (Gworld.world())#random_pos
 end
 
-class randomWalk = 
-object 
-
-  inherit mobility "rw"
-
-  method initialize () = ()
-  method getnewpos ~node = 
-    (Gworld.world())#boundarize
-    (* amplitude of 3 gives us a variance of 3/4 along either axis *)
-    (node#pos +++. ((Random.float 3.0, Random.float 3.0) ---. (1.5, 1.5)))
-
-
-end
 
 *)
 
