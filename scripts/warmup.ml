@@ -27,6 +27,11 @@ open GMain
 open Misc
 open Script_utils
 
+let dumpfile = Param.stringcreate ~name:"dumpfile" 
+  ~cmdline:true
+  ~doc:"File to dump warmup state"
+  ()
+  
 
 let sp = Printf.sprintf
 
@@ -43,10 +48,4 @@ let () =
   Warmup_utils.setup_or_restore();
   if Param.get detach then 
     Script_utils.detach_daemon();
-  Warmup_utils.maybe_warmup()
-  
-  
-  
-
-
-
+  Warmup_utils.maybe_warmup (Param.get dumpfile)

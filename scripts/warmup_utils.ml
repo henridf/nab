@@ -106,6 +106,7 @@ struct
     ~checker:(fun i -> Randoms.change_seed ~newseed:i ())
     ~doc:"Run number" ()
 
+
 end
 
 let sp = Printf.sprintf
@@ -244,20 +245,10 @@ let setup_or_restore() =
   )
 
   
-let warmup_file_basename() = 
-  sp "%s-%dn-%s-%s" 
-    (Param.as_string Config.agent)
-    (Param.get Params.nodes)
-    (Param.as_string Config.warmup)
-    (Param.as_string Mob_ctl.mob)
     
-let warmup_file_name() = 
-  (warmup_file_basename())^".dat"
-    
-let maybe_warmup() = 
+let maybe_warmup fname = 
   if Param.get Config.warmup <> NONE then (
     Log.log#log_always (lazy (sp "Warming up with %s" (Param.as_string Config.warmup)));
-    let fname = warmup_file_name() in
     Log.log#log_always (lazy (sp "Will dump to file %s" fname));
     if Sys.file_exists fname then (
       Log.log#log_always (lazy (sp "OOops! %s already exists!" fname));

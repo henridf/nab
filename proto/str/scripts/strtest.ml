@@ -26,53 +26,60 @@ open Printf
 open Misc
 open Script_utils
 
+let detach = Param.stringcreate 
+  ~name:"detach" 
+  ~doc:"Detach from terminal"
+  ~cmdline:true
+  ~default:""
+  ~notpersist:true
+  ()
+  
 
 
 let () = 
 
-  
+  Script_utils.parse_args();
+  Arg.current := 0;
+  if Param.get detach <> "" then 
+    Script_utils.detach_daemon ~outfilename:(Param.get detach) ();
+
+
   Warmup_utils.setup_or_restore();
 
   Pervasives.at_exit (fun () ->
     let stats = Warmup_utils.get_added_stats() in
-    print_string "\n\n";
-    print_string stats;
+    output_string !Log.ochan "\n\n";
+    output_string !Log.ochan stats;
   );
 
-
-  Warmup_utils.maybe_warmup();
-
-  Pervasives.at_exit (fun () ->
-    let stats = Warmup_utils.get_added_stats() in
-    print_string "\n\n";
-    print_string stats;
-
-  );
-
- 
-  (*  install_tsources();  
-      
-      let pkts_origd() = (Str_agent.total_stats()).Str_agent.Str_stats.data_orig in
-      
-      while (true) do
-      (Sched.s())#run_for ~duration:100.;
-      if pkts_origd() > (Param.get Config.pktssend) then exit 0
-      done;
+  (*
+    install_tsources();  
+    
+    let pkts_origd() = (Str_agent.total_stats()).Str_agent.Str_stats.data_orig in
+    
+    while (true) do
+    (Sched.s())#run_for ~duration:100.;
+    if pkts_origd() > (Param.get Config.pktssend) then exit 0
+    done;
   *)
 
+  let dsts = Traffic_utils.all_destinations() in
+  if List.length dsts <> 1 then 
+    failwith "Expecting one destination";
+  let dst = List.hd dsts in
 
   let pkts_origd() = (Str_agent.total_stats()).Str_agent.Str_stats.data_orig in
 
+  Mob_ctl.stop_all();
+
   while (true) do
     let src = Random.int (Param.get Params.nodes) in
-    Mob_ctl.stop_all();
-    (Nodes.node src)#originate_app_pkt ~l4pkt:`EMPTY ~dst:1999;
-    (Sched.s())#run_for ~duration:15.;
-    Mob_ctl.start_all();
-    (Sched.s())#run_for ~duration:20.;
+
+    (Nodes.node src)#originate_app_pkt ~l4pkt:`EMPTY ~dst;
+    (Sched.s())#run_for ~duration:30.;
     Hashtbl.iter (fun id agent -> 
       let rt, metric = agent#rtab_metric in
-      Str_rtab.purge_n_hop_entries rt metric 1999)
+      Str_rtab.purge_n_hop_entries rt metric dst)
       Str_agent.agents_array_.(0);
     if pkts_origd() > (Param.get Traffic_utils.TParams.pkts_orig) then exit 0
   done;

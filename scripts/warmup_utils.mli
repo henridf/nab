@@ -36,4 +36,4 @@ val get_added_stats : unit -> string
 val set_hellos : unit -> unit
 val setup_sim : unit -> unit
 val setup_or_restore : unit -> unit
-val maybe_warmup : unit -> unit
+val maybe_warmup : string -> unit
