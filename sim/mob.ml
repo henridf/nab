@@ -62,9 +62,11 @@ class virtual mobility (abbrevname:string) (owner:Node.node_t) =
 object(s)
   val abbrev = abbrevname
   val owner:Node.node_t = owner
-  val mutable speed_mps = 10.0
+  val mutable speed_mps = 1.0
   val mutable moving =  false
-  val granularity = 40.0
+  val granularity = 1.0 (* be careful if high speed and low granularity, then
+			   we will load the scheduler with zillions of small
+			   movement events *)
 
   method start = (
     if (not moving) then (
@@ -98,7 +100,8 @@ object(s)
       owner#move newpos;
 
       (* mob is assumed to move us by granularity [meters], so we should schedule the next
-	 one in granulatiry / speed_mps seconds *)
+	 one in granulatiry / speed_mps seconds.
+      *)
       let move_event() = s#move in
       (Gsched.sched())#sched_in ~handler:move_event ~t:(granularity /. speed_mps)
     )
