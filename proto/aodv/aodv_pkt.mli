@@ -24,12 +24,8 @@
 
 
 
-
-
-
-
 (** AODV packet types and manipulators.
-  As per draft-ietf-manet-aodv-13.txt, Feb 2003. 
+  As per Section 5 of RFC 3561. 
   
   @author Henri Dubois-Ferriere.
 *)
@@ -44,11 +40,11 @@ type rreq_flags = {
 }
 
 type rreq = {
-  rreq_flags :  rreq_flags;
-  rreq_hop_count :   int;
-  rreq_id :     int;
-  rreq_dst :    Common.nodeid_t;
-  rreq_dst_sn : seqno_t;
+  rreq_flags :       rreq_flags;
+  rreq_hopcount :    int;
+  rreq_id :          int;
+  rreq_dst :         Common.nodeid_t;
+  rreq_dst_sn :      seqno_t;
   rreq_orig :        Common.nodeid_t;
   rreq_orig_sn :     seqno_t;
 }
@@ -58,28 +54,31 @@ type rrep_flags = {
 }
 
 type rrep = {
-  rrep_flags :   rrep_flags;
-  prefix_size :  char;
-  rrep_hop_count :    int;
-  rrep_dst :     Common.nodeid_t;
-  rrep_dst_sn :  seqno_t;
+  rrep_flags :        rrep_flags;
+  prefix_size :       char;
+  rrep_hopcount :     int;
+  rrep_dst :          Common.nodeid_t;
+  rrep_dst_sn :       seqno_t;
   rrep_orig :         Common.nodeid_t;
-  lifetime :     int;
+  lifetime :          float;
 }
 
 
 
 type rerr_flags = {
-  n : bool (** No delete. *)
+  nd : bool;      (** No delete. *)
 }
 
+
 type rerr = {
+  (* no need to implement the destCount field, simply compute
+     the List.length of the unreach field instead. *)
   rerr_flags : rerr_flags;
-  unreach : (Common.nodeid_t * seqno_t) list
+  unreach : (Common.nodeid_t * seqno_t option) list
 }
 
 type t =  
-  | NONE 
+  | DATA
   | RREQ of rreq 
   | RREP of rrep 
   | RERR of rerr
@@ -92,16 +91,16 @@ val clone : t -> t
 val make_rrep_hdr : 
   ?flags:rrep_flags ->
   ?prefix_size:char -> 
-  hop_count:int ->
+  hc:int ->
   dst:Common.nodeid_t ->
   dst_sn:seqno_t ->
   orig:Common.nodeid_t ->
-  lifetime:int -> unit -> 
+  lifetime:float -> unit -> 
   t
 
 val make_rreq_hdr :
   ?flags:rreq_flags ->
-  hop_count:int ->
+  hc:int ->
   rreq_id:int ->
   rreq_dst:Common.nodeid_t ->
   rreq_dst_sn:seqno_t ->
@@ -111,24 +110,10 @@ val make_rreq_hdr :
 
 val make_rerr_hdr :  
   ?flags : rerr_flags -> 
-  (Common.nodeid_t * seqno_t) list -> 
+  (Common.nodeid_t * seqno_t option) list -> 
   t
 
-val incr_hop_count : t -> t (* increase hop_count (RREQ/RREP only) *)
-val decr_hop_count : t -> t (* decrease hop_count (RREQ/RREP only) *)
-
-(* RREQ only *)
-val rreq_orig : t -> Common.nodeid_t
-val rreq_orig_sn : t -> seqno_t 
-val rreq_dst : t ->  Common.nodeid_t
-val rreq_dst_sn : t ->  seqno_t
-
-(* RREP only *)
-val rrep_orig : t -> Common.nodeid_t
-val rrep_dst : t -> Common.nodeid_t
-val rrep_dst_sn : t ->  seqno_t
-
-
+val incr_rrep_hopcount : rrep -> rrep
 
 
 
