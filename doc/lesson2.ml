@@ -51,7 +51,7 @@ let setup() = (
   Param.set Params.x_size size;
   Param.set Params.y_size size;
   
-  Script_utils.init_lazy_world();
+  Script_utils.init_world();
   
   Script_utils.make_naked_nodes ();
 
@@ -98,9 +98,9 @@ let add_basic_stats_imperative stack =
 *)
 let add_cont_stats stack = 
   Hashtbl.fold 
-    (fun nodeid mac stats -> Mac_contention.add_ostats mac#other_stats stats)
+    (fun nodeid mac stats -> Contention_frontend.add_ostats mac#other_stats stats)
     (Mac_contention.macs ~stack ())
-    (Mac_contention.zero_ostats())
+    (Contention_frontend.zero_ostats())
 
 
 (* 
@@ -145,7 +145,7 @@ let is_backward child parent =
 let count_backward_links tree = 
   let ctr = ref 0 in 
   NaryTree.iter2 
-    (fun ~parent  ~child -> if is_backward child parent then incr ctr)
+    ~f:(fun ~parent  ~child -> if is_backward child parent then incr ctr)
     tree;
   !ctr
 
@@ -182,7 +182,7 @@ let print_info() = (
 
     if stack <> 0 then ( (* null mac doesn't have additional stats *)
       let totals = add_cont_stats stack in
-      Printf.printf "\t%s\n" (Mac_contention.string_of_ostats totals);
+      Printf.printf "\t%s\n" (Contention_frontend.string_of_ostats totals);
     );
 
     let backlinks = (count_backward_links !(!flood_trees.(stack))) in
@@ -194,6 +194,15 @@ let print_info() = (
 
 
 )
+
+(* This is simply there so that we can invoke this program with -script and
+   have it exit immediately in automated tests. *)
+let script = Param.boolcreate 
+  ~name:"script" 
+  ~doc:"exit immediately (for scripted tests)"
+  ~cmdline:true
+  ~default:false
+  ~notpersist:true ()
 
 
 let main = 

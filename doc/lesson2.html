@@ -53,8 +53,7 @@ This lesson requires the following:
 <p>
 
 We start off by configuring the number of nodes, radio range and world size,
-creating the world object, and selecting the node nearest the center to be the
-originating node. These steps have already been done and documented in lesson 1.
+and creating the world object. These steps have already been done and documented in lesson 1.
 <pre class=example>
 # let nodes = 900;;
 val nodes : int = 900
@@ -73,16 +72,14 @@ val size : float = 201.728530456155369
 - : unit = ()
 # Param.set Params.y_size size;;
 - : unit = ()
-# Script_utils.init_lazy_world();;
+# Script_utils.init_world();;
 0.000000 /global World: 201.73 x 201.73 [m],  12.00 radio range [m], 800 nodes
 - : unit = ()
 # let center_x = (Param.get Params.x_size) /. 2.0                  <!--test_keep-->
   and center_y = (Param.get Params.y_size) /. 2.0;;
 val center_x : float = 100.864265228077684
 val center_y : float = 100.864265228077684
-# let originator = ref (Opt.get ((World.w())#find_closest ~pos:(center_x, center_y) ()));;
-val originator : Common.nodeid_t ref = {contents = 397}
-# let nstacks = 3
+# let nstacks = 3;;
 val nstacks : int = 3
 </pre>  
 
@@ -175,15 +172,21 @@ Finally we must not forget to create the flooding agents on all 3 stacks:
 - : unit = ()
 </pre>
 
-
-
 <p>
 <p>
 
 <h2><a name="3">3. Setting up hooks and launching the flood.</a></h2>
 
 Our nodes are now configured and ready to go. If we wish, we can now originate
-flood packets at any node as in lesson 1. But before so doing, we shall
+flood packets at any node as in lesson 1. In fact this time we will choose the
+originator to be the node closest to the center of the world:
+
+<pre class=example>
+# let originator = Opt.get ((World.w())#find_closest ~pos:(center_x, center_y) ());;
+val originator : Common.nodeid_t ref = {contents = 397}
+</pre>
+
+But before so doing, we shall
 install monitoring hooks to reconstruct the flood tree. Note that in lesson 1
 we have already used hooks, in a very simple configuration, in order to count
 the total number of packet transmissions. To do this, our hook functions
@@ -211,7 +214,7 @@ not modify the tree.
   flood_tree := try (Flood.addnode  ~parent:l2src ~node:node#id !flood_tree) <!--test_keep-->
   with (Failure "addnode") -> !flood_tree                                    <!--test_keep-->
 );;
-val tree_hook : Flood.t ref -> L2pkt.t -> < id : Common.nodeid_t; .. > -> unit = <fun>
+val tree_hook : Flood.t ref -> L2pkt.t -> < id : Common.nodeid_t; .. > -> unit =  &lt;fun&gt;
 </pre>
 
 Of course we will build one distinct tree for each protocol stack. We store
@@ -219,7 +222,7 @@ the three trees (initially empty) in an array and install the hooks on the
 nodes:
 
 <pre class=example>
-# let flood_trees = ref ( Array.init nstacks (fun _ -> ref (Flood.create !originator)));;
+# let flood_trees = ref ( Array.init nstacks (fun _ -> ref (Flood.create originator)));;
 val flood_trees : Flood.t ref array ref =
   {contents =
     [|{contents = NaryTree.Node (397, [])};
@@ -237,7 +240,7 @@ And now we are ready to originate the flood! Note that after you enter the
 run() command, the toplevel might take a few seconds to complete the flood.
 
 <pre class=example>
-# (Nodes.node !originator)#originate_app_pkt ~l4pkt:(`APP_PKT 0) ~dst:L3pkt.l3_bcast_addr;;
+# (Nodes.node originator)#originate_app_pkt ~l4pkt:(`APP_PKT 0) ~dst:L3pkt.l3_bcast_addr;;
 # (Sched.s())#run();;
 - : unit = ()
 </pre>
@@ -289,20 +292,20 @@ extract our statistic of interest (number of bw links) in a few lines of code:
 
 <pre class=example>
 # let dist_to_originator n =                           <!--test_keep-->
-  let orig_pos = ((World.w())#nodepos !originator)     <!--test_keep-->
+  let orig_pos = ((World.w())#nodepos originator)     <!--test_keep-->
   and n_pos = ((World.w())#nodepos n)                  <!--test_keep-->
   in  Coord.dist_sq  orig_pos n_pos;;                  <!--test_keep-->
-val dist_to_originator : Common.nodeid_t -> float = <fun>
+val dist_to_originator : Common.nodeid_t -> float =  &lt;fun&gt;
 
 # let is_backward child parent =  dist_to_originator child < dist_to_originator parent<!--test_keep-->
-val is_backward : Common.nodeid_t -> Common.nodeid_t -> bool = <fun>
+val is_backward : Common.nodeid_t -> Common.nodeid_t -> bool =  &lt;fun&gt;
 # let count_backward_links tree =                                     <!--test_keep-->
   let ctr = ref 0 in                                                  <!--test_keep-->
   NaryTree.iter2                                                      <!--test_keep-->
-    (fun ~parent  ~child -> if is_backward child parent then incr ctr)<!--test_keep-->
+    ~f:(fun ~parent  ~child -> if is_backward child parent then incr ctr)<!--test_keep-->
     tree;                                                             <!--test_keep-->
-  !ctr                                                                <!--test_keep-->
-val count_backward_links : Common.nodeid_t NaryTree.t -> int = <fun>
+  !ctr;;                                                              <!--test_keep-->
+val count_backward_links : Common.nodeid_t NaryTree.t -> int = &lt;fun&gt;
 </pre>
 
 
@@ -359,14 +362,14 @@ let add_basic_stats stack = <!--test_keep-->
     (Mac_base.macs ~stack ())<!--test_keep-->
     (Mac_base.zero_bstats())<!--test_keep-->
 ;;
-val add_basic_stats : int -> Mac.basic_stats = <fun>
+val add_basic_stats : int -> Mac.basic_stats =  &lt;fun&gt;
 
 # let add_cont_stats stack = <!--test_keep-->
   Hashtbl.fold <!--test_keep-->
-    (fun nodeid mac stats -> Mac_contention.add_ostats mac#other_stats stats)<!--test_keep-->
+    (fun nodeid mac stats -> Contention_frontend.add_ostats mac#other_stats stats)<!--test_keep-->
     (Mac_contention.macs ~stack ())<!--test_keep-->
-    (Mac_contention.zero_ostats());;
-val add_cont_stats : int -> Mac_contention.stats = <fun>
+    (Contention_frontend.zero_ostats());;
+val add_cont_stats : int -> Contention_frontend.stats =  &lt;fun&gt;
 # 
 </pre>
 
@@ -388,10 +391,10 @@ loop instead of a fold). Less concise and much less readable!
   let macs = (Mac_base.macs ~stack ()) in<!--test_keep-->
   for nodeid = 0 to Param.get Params.nodes - 1 do<!--test_keep-->
     let mac = Hashtbl.find macs nodeid <!--test_keep-->
-    in totals := Mac_base.add_bstats !totals mac#basic_<!--test_keep-->stats
+    in totals := Mac_base.add_bstats !totals mac#basic_stats<!--test_keep-->
   done;<!--test_keep-->
   !totals;;
-val add_basic_stats_imperative : int -> Mac.basic_stats = <fun>
+val add_basic_stats_imperative : int -> Mac.basic_stats =  &lt;fun&gt;
 </pre>
 
 With this, we can dump out the aggregate stats over all mac layers and all stacks:
@@ -404,7 +407,7 @@ With this, we can dump out the aggregate stats over all mac layers and all stack
 
     if stack <> 0 then ( (* null mac doesn't have additional stats *)<!--test_keep-->
       let totals = add_cont_stats stack in<!--test_keep-->
-      Printf.printf "\t%s\n" (Mac_contention.string_of_ostats totals);<!--test_keep-->
+      Printf.printf "\t%s\n" (Contention_frontend.string_of_ostats totals);<!--test_keep-->
     );<!--test_keep-->
     print_newline();<!--test_keep-->
   done;;

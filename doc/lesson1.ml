@@ -40,7 +40,7 @@ let setup() = (
   Param.set Params.x_size size;
   Param.set Params.y_size size;
 
-  Script_utils.init_lazy_world();
+  Script_utils.init_world();
 
   Param.set Params.mac "nullmac";
 
@@ -86,6 +86,16 @@ let print_info() = (
   Log.log#log_always (lazy (Printf.sprintf "Avg degree is %f" avg_ngbrs));
   Log.log#log_always (lazy (Printf.sprintf "%d packets were transmitted in the flood" !pkt_count));
 )
+
+
+(* This is simply there so that we can invoke this program with -script and
+   have it exit immediately in automated tests. *)
+let script = Param.boolcreate 
+  ~name:"script" 
+  ~doc:"exit immediately (for scripted tests)"
+  ~cmdline:true
+  ~default:false
+  ~notpersist:true ()
 
 
 let main = 

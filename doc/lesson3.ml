@@ -44,22 +44,21 @@ let () =
   Param.set Params.x_pix_size 800; (* size of gui window *)
   Param.set Params.y_pix_size 800;
 
+  Param.set World.world World.Greedy;
+
   (* Set the transmission range (range within which nodes are neighbors). *)
   Param.set Params.radiorange radiorange;
 
-  (* Set the granularity at which nodes move. The smaller the granularity, the
-     smaller the "steps" - this means also more events getting scheduled to move
-     nodes around. *)
-  Param.set Params.mob_gran (radiorange /. 2.);
-
   (* Set the number of targets in each nodes last-encounter table. *)
   Param.set Ler_agent.ntargets 1
+
+    
 
 let encounter_ratio = 
   (* We could simply define this as a float (as for radiorange above) - 
      but by creating a Param object it becomes possible to set this value via
      the command-line invocation. *)
-  Param.floatcreate  ~name:"warmup"  ~cmdline:true  ~default:0.5
+  Param.floatcreate  ~name:"enc_ratio"  ~cmdline:true  ~default:0.5
     ~doc:"encounter ratio" ()
     
 
@@ -83,10 +82,10 @@ let setup () = (
 
   (* Instantiate global world object. This must be done *after* the
      params above have been set. *)
-  Script_utils.init_greedy_world();
+  Script_utils.init_world();
   
   (* Make "naked" (no mac, routing agents) nodes*)
-  Script_utils.make_naked_nodes ~pos_aware:true ();
+  Script_utils.make_naked_nodes ();
 
   (* Create macs on all stacks. *)
   for stack = 0 to nstacks - 1 do 
@@ -99,7 +98,7 @@ let setup () = (
   Script_utils.make_ler_agents ~stack:2 Ler_agent.FRESH;
   
   (* Create billiard mobility processes (see mob_ctl.mli, mobs.mli).*)
-  Mob_ctl.make_billiard_mobs();
+  Mob_ctl.make_billiard_mobs ~gran:(radiorange /. 2.) ();
 )
 
 (* Move nodes until the required encounter ratio is reached *)
@@ -109,8 +108,8 @@ let warmup enc_ratio = (
   if enc_ratio > 0.0 then
     while (not !finished) do 
       
-      (* make nodes move for 60 seconds. *)
-      (Sched.s())#run_for ~duration:60.0;
+      (* make nodes move for 30 seconds. *)
+      (Sched.s())#run_for ~duration:30.0;
       
       let p = Ler_agent.proportion_met_nodes() in
       Log.log#log_always (lazy (Printf.sprintf "Warming up: enc. ratio %f" p));
@@ -147,8 +146,20 @@ let main() = (
   Mob_ctl.stop_all();
 )
 
+(* This is simply there so that we can invoke this program with -script and
+   have it exit immediately in automated tests. *)
+let script = Param.boolcreate 
+  ~name:"script" 
+  ~doc:"exit immediately (for scripted tests)"
+  ~cmdline:true
+  ~default:false
+  ~notpersist:true ()
+
+
 let () = 
   main();
-  Gui_gtk.init ();
+  Gui_gtk.init();
   Gui_ler.setup_easeviz_app();
-  Main.main()
+  if not (Param.get script) then
+    Main.main()
+      

@@ -63,7 +63,7 @@ needing the visualization libraries.
 </pre>
 
 We first configure the usual parameters and create the world object. This has
-already been done in lessons 1 and 2 and is explained in more detail there..
+already been done in lessons 1 and 2 and is explained in more detail there.
 
 <pre class=example>
 # open Params;;
@@ -79,7 +79,9 @@ val avg_degree : int = 10
   val size : float = 212.640541760032193
 # Param.set x_size size; Param.set y_size size;;
 - : unit = ()
-# Script_utils.init_greedy_world();;
+# Param.set World.world World.Greedy;
+- : unit = ()
+# Script_utils.init_world();;
 0.000000 /global World: 212.64 x 212.64 [m],  12.00 radio range [m], 1000 nodes
 - : unit = ()
 # Param.set Params.mac "cheatmac";
@@ -90,12 +92,9 @@ Now we create the nodes. We use the <code>make_naked_nodes</code> (which
 creates nodes having neither MAC layer nor routing agent) function rather
 than the <code>make_nodes</code> because we will manually configure them
 afterwards. <br>
-Note that we create <a href="gen/Gpsnode.html">position-aware</a> nodes by passing the optional
-<code>~pos_aware</code> parameter with value true <code>true</code>; this is
-necessary for the EASE and GREASE algorithms. 
 
 <pre class=example>
-# Script_utils.make_naked_nodes ~pos_aware:true ();;
+# Script_utils.make_naked_nodes ();;
 - : unit = ()
 </pre>
 
@@ -144,15 +143,17 @@ nodes move around until we have reached a given <i>encounter ratio</i>
 (proportion of source-destination pairs which have been one-hop neighbors at
 least once since the simulation started).<p>
 
-Before creating the node mobility processes, we set the <i>mobility
-granularity</i>: this governs the step size at which nodes move. There is a
-tradeoff between granularity and efficiency: at one extreme, if we set a tiny
-granularity, the mobility processes will be close to continuous, but this will
-load the scheduler with large numbers of 'node movement' events. It often
-makes sense to pick the granularity in function of the radio range, and it
-should always be smaller than the radio range (otherwise to nodes which cross
-each other while moving in opposite directions might make jumps big enough that
-they do come within radio range).<p>
+We will create <i>billiard</i> mobility processes: nodes pick a uniform random
+direction, and advance in that direction for a random interval T
+(exponentially distributed) after which a new direction is chosen. Boundaries
+are reflecting, ie a node bounces off as off of a mirror. We create the
+processes by calling <code>Mob_ctl.make_billiard_mobs()</code>. Note that this
+function takes an optional <i>granularity</i> parameter. The
+<i>granularity</i> governs the step size
+at which nodes move. There is a tradeoff between granularity and efficiency:
+at one extreme, if we set a tiny granularity, the mobility processes will be
+close to continuous, but this will load the scheduler with large numbers of
+'node movement' events. <p>
 
 When the mobility processes are created, they are initially in 'stopped'
 state. We start them with the call to <code>start_all</code>. Note that after
@@ -160,9 +161,7 @@ this call, their <code>state</code> is 'moving' - but nothing will happen
 until we start the scheduler event loop.
 
 <pre class=example>
-# Param.set mob_gran ((Param.get radiorange) /. 4.);;
-- : unit = ()
-# Mob_ctl.make_billiard_mobs();;
+# Mob_ctl.make_billiard_mobs ~gran:(range /. 2.) ();;
 - : unit = ()
 # Mob_ctl.start_all();;
 - : unit = ()
@@ -178,7 +177,7 @@ and repeats if not.
 # let finished = ref false;;
 - : val finished : bool ref = {contents = false}
 # while (not !finished) do                               <!--test_keep-->
-      (Sched.s())#run_for ~duration:60.0;                   <!--test_keep-->
+      (Sched.s())#run_for ~duration:30.0;                   <!--test_keep-->
       let p = Ler_agent.proportion_met_nodes() in          <!--test_keep-->
       Log.log#log_always (lazy (Printf.sprintf "Warming up: encounter ratio %f" p));<!--test_keep-->
       if  (p > enc_ratio) then   finished := true;          <!--test_keep-->
@@ -216,7 +215,7 @@ have done in previous lessons. For example to route a packet from source node
 <pre class=example>
 # Log.set_log_level Log.LOG_INFO;;
 - : unit = ()
-# (Nodes.gpsnode 123)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
+# (Nodes.node 123)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
 183.000315 /node/123/grease_agent/0 received pkt with src 123, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <121.272, 45.552>
 183.000315 /node/123/ease_agent/1 received pkt with src 123, dst 0, enc_age  17976931348 ... 99881250404026184124858368.000000, anchor_pos <121.272, 45.552>
 183.000315 /node/123/fresh_agent/2 received pkt with src 123, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <121.272, 45.552>
@@ -285,13 +284,13 @@ val fresh_cost : float ref = {contents = 0.}
   let l3pkt = L2pkt.l3pkt l2pkt in               <!--test_keep-->
   let ler_hdr =  L3pkt.ler_hdr l3pkt in        <!--test_keep-->
   tot_cost := !tot_cost +. ((Ler_pkt.search_dist ler_hdr) ** 2.0);;
-val route_cost_hook : float ref -> L2pkt.t -> 'a -> unit = <fun>
+val route_cost_hook : float ref -> L2pkt.t -> 'a -> unit =  &lt;fun&gt;
 
-# Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:0 (route_cost_hook grease_cost));;
+# Nodes.iter (fun n -> n#add_pktout_mhook ~stack:0 (route_cost_hook grease_cost));;
 - : unit = ()
-# Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:1 (route_cost_hook ease_cost));;
+# Nodes.iter (fun n -> n#add_pktout_mhook ~stack:1 (route_cost_hook ease_cost));;
 - : unit = ()
-# Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:2 (route_cost_hook fresh_cost));;
+# Nodes.iter (fun n -> n#add_pktout_mhook ~stack:2 (route_cost_hook fresh_cost));;
 </pre>
 
 The last three lines above might seem unusual to users
@@ -306,12 +305,12 @@ variable. Note that without higher-order functions, we would have to
 explicitly define one function for every hook! 
 
 <pre class=example>
-# let src = (World.w())#find_closest ~pos:(Nodes.gpsnode 0)#pos ~f:(fun nid -> (World.w())#dist_nodeids 0 nid > 100.) ();;
+# let src = (World.w())#find_closest ~pos:(Nodes.node 0)#pos ~f:(fun nid -> (World.w())#dist_nodeids 0 nid > 100.) ();;
 - : Common.nodeid_t option = Some 632
 <!-- 
 assert (((World.w())#dist_nodeids 0 632) > 100.);; <!--test_keep-->
  -->
-# (Nodes.gpsnode 632)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
+# (Nodes.node 632)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
 1023.000000 /node/632/grease_agent/0 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
 1023.000000 /node/632/ease_agent/1 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
 1023.000000 /node/632/fresh_agent/2 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
@@ -354,7 +353,7 @@ Have fun!!!
 
 <pre class=example>
 # Gui_gtk.init();;
-- : unit -> unit = <fun>
+- : unit -> unit =  &lt;fun&gt;
 # Gui_ler.setup_easeviz_app();; 
 - : unit = ()
 # Main.main();;<!--test_ignore-->

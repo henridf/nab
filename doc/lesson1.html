@@ -175,16 +175,14 @@ look there, you may find that what you need is already implemented.
 We now instantiate the global <a href="gen/Worldt.lazy_world_t.html">world</a>
 object - this is where all operations requiring
 global network knowledge (computing neighborhoods, etc) are done. The world
-object must be instantiated *after* the proper values for radiorange and world
-size have been set. 
+object must be instantiated *after* the proper values for number of nodes,
+radiorange, and world size have been set. 
 
 <pre class=example>
-# Script_utils.init_lazy_world();;
+# Script_utils.init_world();;
 0.000000 /global World: 212.64 x 212.64 [m],  12.00 radio range [m], 800 nodes
 - : unit = ()
 </pre>
-
-
 
 We choose to use a null mac layer - this is a 'perfect' mac where all packets
 sent by a node within radio range are received, with no collisions or loss.
@@ -212,8 +210,8 @@ some sort of routing agent.
 <h2><a name="3">3. Running a simple flooding protocol.</a></h2>
 
 Let's go with a very simple flooding agent. All
-this one does is to receive packets and reforward a packet it receives for the
-first time.
+this one does is to receive packets and reforward each packet it receives once
+(duplicates are detected and discarded to avoid infinite packet circulation).
 
 <pre class=example>
 # Script_utils.make_flood_agents();;
@@ -355,7 +353,7 @@ is called:
 # let pkt_count = ref 0;;
 val pkt_count : int ref = {contents = 0}
 # let pkt_count_hook pkt node = incr pkt_count;;
-val pkt_count_hook : 'a -> 'b -> unit = <fun>
+val pkt_count_hook : 'a -> 'b -> unit =  &lt;fun&gt;
 </pre>
 
 Then we add our hook to every node, by calling the method
