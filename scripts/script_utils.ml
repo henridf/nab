@@ -104,8 +104,8 @@ let install_null_macs ?(stack=0) ?(bps=default_bps) () =
   let makemac node = ((new Mac_null.nullmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
-let install_queue_null_macs ?(stack=0) ?(bps=default_bps) () = 
-  let makemac node = ((new Mac_null_queue.nullmac_q ~stack ~bps node) :> Mac.t) in
+let install_queue_null_macs ?(stack=0) ?(buffer=2) ?(bps=default_bps) () = 
+  let makemac node = ((new Mac_null_queue.nullmac_q ~stack ~buffer ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
 let install_contention_macs ?(stack=0) ?(bps=default_bps) () = 
