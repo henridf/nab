@@ -11,39 +11,73 @@ type rtab_entry_t = {
 }
 
 
-type rtab_t = rtab_entry_t  array
+type rtab_t = rtab_entry_t array
 
-let create ~size = Array.create size {seqno=None; nexthop=None; hopcount=None}
-let seqno ~rtab ~dst = rtab.(dst).seqno
-let nexthop ~rtab ~dst = rtab.(dst).nexthop
-let hopcount ~rtab ~dst = rtab.(dst).hopcount
+let create ~size = Array.init size (fun n -> {seqno=None; nexthop=None; hopcount=None})
+let seqno ~rt ~dst = rt.(dst).seqno
+let nexthop ~rt ~dst = rt.(dst).nexthop
+let hopcount ~rt ~dst = rt.(dst).hopcount
 
-let newadv ~rtab ~dst ~rtent = 
+let invalidate ~rt ~dst = (
+  rt.(dst).hopcount <- Some max_int;
+  rt.(dst).nexthop <- None
+)
+
+let invalid ~rt ~dst = (
+  rt.(dst).hopcount = Some max_int;
+)
+
+let newadv ~rt ~dst ~rtent = 
+  let newseqno = o2v rtent.seqno in
+  let newhopcount = o2v rtent.hopcount in
+
+  assert (newhopcount >= 0);
+  let rtab_changed = 
+    
+    match rt.(dst).seqno with 
+
+    | None -> (* first time we get entry for this target *)
+	rt.(dst).seqno <- rtent.seqno;
+	rt.(dst).hopcount <- rtent.hopcount;
+	rt.(dst).nexthop <- rtent.nexthop;
+	true;
+    | Some oldseqno when (newseqno > oldseqno)  -> (* advertisement has fresher seqno *)
+	rt.(dst).seqno <- rtent.seqno;
+	rt.(dst).hopcount <- rtent.hopcount;
+	rt.(dst).nexthop <- rtent.nexthop;
+	true;
+    | Some oldseqno when (newseqno = oldseqno)  -> (* same seqno, only keep if shorter route *)
+	if newhopcount < o2v rt.(dst).hopcount then (
+	  rt.(dst).seqno <- rtent.seqno;
+	  rt.(dst).hopcount <- rtent.hopcount;
+	  rt.(dst).nexthop <- rtent.nexthop;
+	  true;
+	) else false;
+    | Some oldseqno when (newseqno < oldseqno)  -> false; (* advertisement has stale seqno, discard *)
+    | _ -> raise (Misc.Impossible_Case "rtab.ml") 
+  in
+  rtab_changed
+
+
+let newadv_ignorehops ~rt ~dst ~rtent = 
   let newseqno = o2v rtent.seqno in
   let newhopcount = o2v rtent.hopcount in
 
   let rtab_changed = 
     
-  match rtab.(dst).seqno with 
+    match rt.(dst).seqno with 
 
     | None -> (* first time we get entry for this target *)
-	rtab.(dst).seqno <- rtent.seqno;
-	rtab.(dst).hopcount <- rtent.hopcount;
-	rtab.(dst).nexthop <- rtent.nexthop;
+	rt.(dst).seqno <- rtent.seqno;
+	rt.(dst).hopcount <- rtent.hopcount;
+	rt.(dst).nexthop <- rtent.nexthop;
 	true;
-    | Some oldseqno when (newseqno > oldseqno)  -> (* advertisement has fresher seqno *)
-	rtab.(dst).seqno <- rtent.seqno;
-	rtab.(dst).hopcount <- rtent.hopcount;
-	rtab.(dst).nexthop <- rtent.nexthop;
+    | Some oldseqno when (newseqno >= oldseqno)  -> 
+	rt.(dst).seqno <- rtent.seqno;
+	rt.(dst).hopcount <- rtent.hopcount;
+	rt.(dst).nexthop <- rtent.nexthop;
 	true;
-    | Some oldseqno when (newseqno = oldseqno)  -> (* same seqno, only keep if shorter route *)
-	if newhopcount < o2v rtab.(dst).hopcount then (
-	  rtab.(dst).seqno <- rtent.seqno;
-	  rtab.(dst).hopcount <- rtent.hopcount;
-	  rtab.(dst).nexthop <- rtent.nexthop;
-	  true;
-	) else false;
-    | Some oldseqno when (newseqno < oldseqno)  -> false; (* advertisement has stale seqno, discard *)
+    | Some oldseqno when (newseqno < oldseqno)  -> false; 
     | _ -> raise (Misc.Impossible_Case "rtab.ml") 
   in
   rtab_changed
