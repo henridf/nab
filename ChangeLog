@@ -3,7 +3,19 @@ release 0.8
 	- Use odoc_fhtml (by M. Guesdon) to generate javadoc-like html
 	documentation (ie, with frames).
 	
-	- Completed AODV implementation.
+	- Completely revamped the class model for MAC
+	implementations. Backend (control logic, buffering) and frontend
+	(radio, contention) can now be implemented separately, and
+	different backends can be mixed and matched as long as they
+	respect the class types defined in sim/interfaces/mac.mli.
+	It is still possible to implement MACs as previously, ie by
+	implementing front and backend in the same class.
+	
+	- new MACA mac layer as per the paper "MACAW: A Media Access
+	Protocol for Wireless LANs", by V. Bharghavan, A. Demers,
+	S. Shenker, and L. Zhang.
+	
+	- AODV implementation rewritten, now fully RFC 3561.
 	
 	- Added support in the protocol stack architecture for (optional)
 	MAC-layer callbacks to notify the upper layer when a packet could
