@@ -35,7 +35,7 @@ let rndseed = ref 0
 
 
 let macs_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+  Array.init Node.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 let macs ?(stack=0) () = macs_array_.(stack)
 let mac ?(stack=0) i = 
   Hashtbl.find macs_array_.(stack) i

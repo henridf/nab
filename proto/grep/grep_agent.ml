@@ -28,7 +28,7 @@
    Grep_agent has not been converted to use new mac-layer notification for send
    failures (see changelog), and therefore in the current state it alwyas
    thinks that unicast packets are succesfully xmitted ( because now
-   simplenode does not raise Mac_Send_Failure anymore on failed xmits).
+   node does not raise Mac_Send_Failure anymore on failed xmits).
 *)
 
 
@@ -74,7 +74,7 @@ exception Send_Out_Failure
 
 
 let agents_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+  Array.init Node.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 let agents ?(stack=0) () = agents_array_.(stack)
 let agent ?(stack=0) i = 
   Hashtbl.find agents_array_.(stack) i
@@ -579,7 +579,7 @@ object(s)
 	    in 
 	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
 	    (*try*)  s#mac_send_pkt l3pkt nexthop
-	    (*with Simplenode.Mac_Send_Failure -> failed()*)
+	    (*with Node.Mac_Send_Failure -> failed()*)
 
 	  end
 

@@ -58,7 +58,7 @@ type stats =
 class virtual maca_backend :
   ?stack:int ->
   bps:float ->
-  #Simplenode.simplenode ->
+  #Node.node ->
   object
     inherit Log.virtual_loggable 
     inherit [stats] Mac.backend_t

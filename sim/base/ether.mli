@@ -46,7 +46,7 @@ module type Ether_t = sig
     then takes care of sending them, with appropriate propagation delay and SNR,
     to nodes within range. 
     [stack] serves to distinguish when multiple stacks are being used. 
-    The notion of multiple stacks is explained in {!Simplenode.simplenode}. *)
+    The notion of multiple stacks is explained in {!Node.node}. *)
 end
 
 module SimpleEther : Ether_t

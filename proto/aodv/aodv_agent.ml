@@ -125,7 +125,7 @@ let sprint_stats s =
 
 end
 
-let agents_array_  =  Array.init Simplenode.max_nstacks 
+let agents_array_  =  Array.init Node.max_nstacks 
   (fun _ -> Hashtbl.create (Param.get Params.nodes))
 
 module S = Aodv_stats

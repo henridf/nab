@@ -86,7 +86,7 @@ val total_stats : ?stack:int -> unit -> Aodv_stats.stats
     (default stack is 0). *)
   
 
-class aodv_agent : ?stack:int -> ?localrepair:bool -> ?dstonly:bool -> #Simplenode.simplenode -> 
+class aodv_agent : ?stack:int -> ?localrepair:bool -> ?dstonly:bool -> #Node.node -> 
 object
 
   inherit Rt_agent.t 

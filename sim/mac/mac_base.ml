@@ -23,7 +23,7 @@
 (* $Id$ *)
 
 let macs_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+  Array.init Node.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 let macs ?(stack=0) () = macs_array_.(stack)
 let mac ?(stack=0) i = 
   Hashtbl.find macs_array_.(stack) i
@@ -35,7 +35,7 @@ let xmit_time bps l2pkt =
 open Misc
 open Ether
 
-class virtual ['stats] base ?(stack=0) ~(bps:float) (owner:#Simplenode.simplenode) = 
+class virtual ['stats] base ?(stack=0) ~(bps:float) (owner:#Node.node) = 
 object(s)
 
   inherit Log.inheritable_loggable as log
@@ -74,7 +74,7 @@ object(s)
   method bps = bps
 end
 
-class virtual ['stats] backend ?(stack=0) ~(bps:float) (owner:#Simplenode.simplenode) = 
+class virtual ['stats] backend ?(stack=0) ~(bps:float) (owner:#Node.node) = 
 object(s)
 
   inherit Log.virtual_loggable
@@ -93,7 +93,7 @@ object(s)
 end
 
 class virtual null_backend ?(stack=0)  ~(bps:float)
-  (owner:#Simplenode.simplenode) =
+  (owner:#Node.node) =
   let myid = owner#id in
 object(s)
   inherit [unit] backend ~stack ~bps owner as super
@@ -122,7 +122,7 @@ object(s)
     
 end
 
-class virtual ['stats] frontend  ?(stack=0) ~(bps:float) (owner:#Simplenode.simplenode) =
+class virtual ['stats] frontend  ?(stack=0) ~(bps:float) (owner:#Node.node) =
 object
   inherit Log.virtual_loggable 
 
@@ -152,7 +152,7 @@ object
 end
 
 class virtual null_frontend ?(stack=0)  ~(bps:float)
-  (owner:#Simplenode.simplenode) =
+  (owner:#Node.node) =
   let myid = owner#id in
 object(s)
   inherit [unit] frontend ~stack ~bps owner

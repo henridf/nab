@@ -33,7 +33,7 @@ type node_state_t = Coord.coordf_t
 
 exception Mac_Send_Failure
 
-class simplenode id   = 
+class node id   = 
 
 object(s)
   
@@ -55,12 +55,12 @@ object(s)
 
   method mac ?(stack=0) () = 
     match macs.(stack) with
-      | None -> failwith ("Simplenode.mac: No mac on stack "^(string_of_int stack))
+      | None -> failwith ("Node.mac: No mac on stack "^(string_of_int stack))
       | Some mac -> mac
 
   method install_mac ?(stack=0) themac = 
     if (macs.(stack) <> None) then 
-      failwith "Simplenode.install_mac: mac already there!";
+      failwith "Node.install_mac: mac already there!";
     macs.(stack) <- Some themac
 
   method remove_mac ?(stack=0) () = 
@@ -72,12 +72,12 @@ object(s)
 
   method install_rt_agent ?(stack=0) (theagent : Rt_agent.t)  = 
     if (rt_agents.(stack) <> None) then 
-      failwith "Simplenode.install_rt_agent: agent already there!";
+      failwith "Node.install_rt_agent: agent already there!";
     rt_agents.(stack) <- Some theagent
 
   method agent ?(stack=0) () = 
     match rt_agents.(stack) with
-      | None -> failwith ("Simplenode.agent No rtagent on stack "^(string_of_int stack))
+      | None -> failwith ("Node.agent No rtagent on stack "^(string_of_int stack))
       | Some rtagent -> rtagent
 
   method remove_rt_agent ?(stack=0) () = 
@@ -176,6 +176,8 @@ object(s)
       rt_agents 
 
   method dump_state = (World.w())#nodepos id
+
+  method pos = (World.w())#nodepos id
 
 end
 

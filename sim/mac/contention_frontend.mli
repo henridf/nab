@@ -65,7 +65,7 @@ type stats =
   sent is dropped silently.
 *)
 class virtual contention_frontend : ?stack:int -> bps:float ->
-  #Simplenode.simplenode -> 
+  #Node.node -> 
 object
   inherit Log.virtual_loggable 
   inherit [stats] Mac.frontend_t

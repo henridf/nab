@@ -28,13 +28,13 @@
 val od_route_pktin_mhook : 
   Common.nodeid_t Od_route.t ref ->
   L2pkt.t ->
-  Simplenode.simplenode -> 
+  Node.node -> 
   unit
 
 val od_route_pktout_mhook : 
   Common.nodeid_t Od_route.t ref ->
   L2pkt.t ->
-  Simplenode.simplenode -> 
+  Node.node -> 
   unit
 
 val routes_done : int ref

@@ -31,7 +31,7 @@
 class maca_mac :
   ?stack:int ->
   bps:float ->
-  #Simplenode.simplenode ->
+  #Node.node ->
   object
     inherit Mac.t
     method other_stats : unit * MACA_backend.stats

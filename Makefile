@@ -136,6 +136,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_INTF_DIR)/worldt$(CMO) \
 		$(SIM_INTF_DIR)/mac$(CMO) \
 		$(SIM_INTF_DIR)/trafficgen$(CMO) \
+		$(SIM_INTF_DIR)/persist$(CMO) \
 		$(SIM_BASE_DIR)/time$(CMO) \
 		$(SIM_BASE_DIR)/common$(CMO) \
 		$(SIM_PKT_DIR)/pkt_common$(CMO) \
@@ -166,7 +167,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_BASE_DIR)/rtab$(CMO) \
 		$(SIM_BASE_DIR)/ether$(CMO) \
 		$(SIM_BASE_DIR)/tsource$(CMO) \
-		$(SIM_BASE_DIR)/simplenode$(CMO) \
+		$(SIM_BASE_DIR)/node$(CMO) \
 		$(SIM_MAC_DIR)/mac_base$(CMO) \
 		$(SIM_MAC_DIR)/mac_null$(CMO) \
 		$(SIM_MAC_DIR)/contention_frontend$(CMO) \
@@ -175,7 +176,6 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/MACA_simple$(CMO) \
 		$(SIM_MAC_DIR)/MACA_contention$(CMO) \
 		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
-		$(SIM_BASE_DIR)/gpsnode$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_MOB_DIR)/mob_base$(CMO) \
 		$(SIM_MOB_DIR)/mobs$(CMO) \
@@ -194,8 +194,10 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_MISC_DIR)/null_agent$(CMO) \
 		$(SIM_BASE_DIR)/crsearch$(CMO) \
 		$(SIM_BASE_DIR)/crworld$(CMO) \
+		$(SIM_SCRIPT_DIR)/traffic_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/script_utils$(CMO) \
-		$(SIM_BASE_DIR)/persistency$(CMO)
+		$(SIM_BASE_DIR)/persistency$(CMO)\
+		$(SIM_SCRIPT_DIR)/grep_common$(CMO)
 # script_utils should be as near to end as possible
 # because only scripts should need to use it
 # persistency gets an exception because it performs 
@@ -249,12 +251,12 @@ bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
 
 
 grepviz: bin/grepviz
-bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
+bin/grepviz: $(GUI_OBJS) scripts/grepviz$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grepviz$(CMO) -o $@ 
 
 strtest: bin/strtest
-bin/strtest: $(GUI_OBJS) scripts/grep_common$(CMO) $(PROTO_STR_DIR)/scripts/strtest$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) scripts/grep_common$(CMO) $(PROTO_STR_DIR)/scripts/strtest$(CMO) -o $@ 
+bin/strtest: $(GUI_OBJS) $(PROTO_STR_DIR)/scripts/strtest$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(PROTO_STR_DIR)/scripts/strtest$(CMO) -o $@ 
 
 nab-top: bin/nab-top
 bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)

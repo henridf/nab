@@ -40,7 +40,7 @@
 class contentionmac :
   ?stack:int ->
   bps:float ->
-  #Simplenode.simplenode ->
+  #Node.node ->
   object
     inherit Mac.t
     method other_stats : Contention_frontend.stats

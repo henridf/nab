@@ -30,7 +30,7 @@ object(s : #Rt_agent.t)
   inherit Log.inheritable_loggable as log
 
   val myid = owner#id
-  val owner:#Simplenode.simplenode = owner
+  val owner:#Node.node = owner
 
   method myid = myid
 

@@ -16,17 +16,11 @@
  *  NAB is distributed in the hope that it will be useful, but WITHOUT ANY
  *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- *  details (enclosed in the file GPL). 
+ *  details (enclosed in the file GPL).
  *
  *)
 
 (* $Id$ *)
-
-
-
-
-
-
 
 open Printf
 open Misc
@@ -45,7 +39,7 @@ let set_debug_level s =
 
 
 let parse_args ?(anon_fun=(fun _ -> ())) () = (
-  let s = Param.make_argspeclist () in
+  let s = Param.argspeclist () in
   Arg.parse s anon_fun "";
 )
 
@@ -127,7 +121,7 @@ let install_macs ?(stack=0) ?(bps=default_bps) () =
     | Mac.MACA_contention -> install_maca_contention_macs ~stack ~bps ()
 
 let install_mobs ?gran () = 
-  match Mob_ctl.getmob() with 
+  match Param.get Mob_ctl.mob with 
     | Mobs.Uniwaypoint  -> Mob_ctl.make_uniwaypoint_mobs ?gran ()
     | Mobs.Borderwaypoint  -> Mob_ctl.make_borderwaypoint_mobs ?gran ()
     | Mobs.Epfl_waypoint  -> Mob_ctl.make_epfl_waypoint_mobs ()
@@ -136,16 +130,11 @@ let install_mobs ?gran () =
     | Mobs.None -> ()
 
 
-let make_naked_nodes ?(pos_aware=false) ?(with_positions=true) () = (
+let make_naked_nodes ?(with_positions=true) () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
-  if pos_aware then 
-  Nodes.set_gpsnodes 
-    (Array.init (Param.get Params.nodes)
-      (fun nid -> new Gpsnode.gpsnode  nid))
-  else 
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
-      (fun i -> (new Simplenode.simplenode i)));
+      (fun i -> (new Node.node i)));
 
   if with_positions then begin
     (* set up initial node position in internal structures of World object *)
@@ -154,8 +143,8 @@ let make_naked_nodes ?(pos_aware=false) ?(with_positions=true) () = (
   end
 )
 
-let make_nodes ?(pos_aware=false) ?(with_positions=true) () = (
-  make_naked_nodes ~pos_aware ~with_positions ();
+let make_nodes ?(with_positions=true) () = (
+  make_naked_nodes ~with_positions ();
   install_macs  ();
 )
     
@@ -167,7 +156,7 @@ let place_nodes_on_line () =
 
 
 let make_ler_agents ?(stack=0) proto = (
-  Nodes.gpsiteri (fun nid n -> 
+  Nodes.iteri (fun nid n -> 
     let agent = new Ler_agent.ler_agent ~stack ~proto n in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )

@@ -55,9 +55,9 @@ let setup () = (
      params above have been set. *)
   Script_utils.init_lazy_world();
 
-  (* Create gpsnodes. Gps nodes are geographically-aware, ie they know their
-     position (unlike simplenodes which do not). *)
-  Script_utils.make_gpsnodes();
+  (* Create nodes. Gps nodes are geographically-aware, ie they know their
+     position (unlike nodes which do not). *)
+  Script_utils.make_nodes();
 
 )
 
@@ -73,7 +73,7 @@ let _ =
   (* At creation, nodes have random positions in the surface. We now
      discretize these positions so that the nodes are only in discrete lattice
      locations. *)
-  Nodes.gpsiter (fun n -> 
+  Nodes.iter (fun n -> 
     let p = n#pos in 
     let discr_p = (Coord.coord_floor p) in
     n#move discr_p
@@ -82,7 +82,7 @@ let _ =
   (* Attach a periodic_hello_agent to each node, and keep them all the agents 
      in an array called hello_agents *)
   let hello_agents = 
-    Nodes.gpsmap 
+    Nodes.map 
       (fun n -> new Hello_agents.periodic_hello_agent n) in
   
   (* This function computes the encounter ratio, ie the proportion of node pairs for which

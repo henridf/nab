@@ -106,7 +106,7 @@ let set_src nid = (
 
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" nid dst);
   Log.log#log_always (lazy (Printf.sprintf "Destination is at %s"
-    (Coord.sprintf (Nodes.gpsnode dst)#pos)));
+    (Coord.sprintf (Nodes.node dst)#pos)));
   
   clear_routes();
   Ler_hooks.routes_done := 0;
@@ -119,9 +119,9 @@ let set_src nid = (
     let out_mhook = 
       Ler_hooks.ler_route_pktout_mhook ~num:!route_ctr r.(stack) in
 
-    Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ~stack ());
-    Nodes.gpsiter (fun n -> n#add_pktin_mhook ~stack in_mhook);
-    Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack out_mhook);
+    Nodes.iter (fun n -> n#clear_pkt_mhooks ~stack ());
+    Nodes.iter (fun n -> n#add_pktin_mhook ~stack in_mhook);
+    Nodes.iter (fun n -> n#add_pktout_mhook ~stack out_mhook);
 
   done;
 

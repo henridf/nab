@@ -33,14 +33,14 @@ val ler_route_pktin_mhook :
   ?num:int ->
   (Common.nodeid_t, Coord.coordf_t) Ler_route.t ref ->
   L2pkt.t ->
-  Gpsnode.gpsnode -> 
+  Node.node -> 
   unit
   
 val ler_route_pktout_mhook : 
   ?num:int ->
   (Common.nodeid_t, Coord.coordf_t) Ler_route.t ref ->
   L2pkt.t ->
-  Gpsnode.gpsnode -> 
+  Node.node -> 
   unit
 
 val routes_done : int ref

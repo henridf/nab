@@ -32,7 +32,7 @@ module Random = Random.State
 let rndseed = ref 0
 
 class virtual mobility 
-  (owner:#Simplenode.simplenode) 
+  (owner:#Node.node) 
   ?gran
   () =
 object(s)

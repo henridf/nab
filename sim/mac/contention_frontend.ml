@@ -41,7 +41,7 @@ type stats =
     }
 
 
-class virtual contention_frontend ?(stack=0) ~bps (owner:#Simplenode.simplenode) = 
+class virtual contention_frontend ?(stack=0) ~bps (owner:#Node.node) = 
 object(s)
 
   inherit [stats] Mac_base.frontend ~stack ~bps owner

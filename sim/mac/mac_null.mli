@@ -37,7 +37,7 @@
 class nullmac :
   ?stack:int ->
   bps:float ->
-  #Simplenode.simplenode ->
+  #Node.node ->
   object
     inherit Mac.t
 

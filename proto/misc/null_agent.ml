@@ -39,7 +39,7 @@ open Printf
   @author Henri Dubois-Ferriere.
  *)
 
-(** @param owner a [Simplenode.simplenode] object representing the node on which
+(** @param owner a [Node.node] object representing the node on which
   this agent is running *)
 class flood_agent ?(stack=0) theowner = 
 object(s)

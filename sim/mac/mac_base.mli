@@ -41,7 +41,7 @@
   these classes when implementing a new MAC layer.
 
   The [base] class serves two purposes:
-  - hide multistack details (see {!Simplenode.simplenode}
+  - hide multistack details (see {!Node.node}
   for an explanation of multiple stacks) from the derived
   subclasses, to avoid having to keep track of which stack an agent is in
   (since in most cases nodes are run with only one stack).
@@ -87,11 +87,11 @@ val xmit_time : float -> L2pkt.t -> Time.t
 
   @param stack serves to distinguish the stack when multiple stacks are being
   used. Defaults to 0. (The notion of multiple stacks is explained in
-  {!Simplenode.simplenode}). 
+  {!Node.node}). 
   @param bps speed in bits per sec of this interface.
-  @param simplenode the node on which this MAC layer is running.
+  @param node the node on which this MAC layer is running.
 *)
-class virtual ['stats] base : ?stack:int -> bps:float -> #Simplenode.simplenode ->
+class virtual ['stats] base : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit Log.inheritable_loggable 
 
@@ -126,11 +126,11 @@ end
 
   @param stack serves to distinguish the stack when multiple stacks are being
   used. Defaults to 0. (The notion of multiple stacks is explained in
-  {!Simplenode.simplenode}). 
+  {!Node.node}). 
   @param bps speed in bits per sec of this interface.
-  @param simplenode the node on which this MAC layer is running.
+  @param node the node on which this MAC layer is running.
 *)
-class virtual ['stats] frontend : ?stack:int -> bps:float -> #Simplenode.simplenode ->
+class virtual ['stats] frontend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit Log.virtual_loggable 
 
@@ -179,11 +179,11 @@ end
 
   @param stack serves to distinguish the stack when multiple stacks are being
   used. Defaults to 0. (The notion of multiple stacks is explained in
-  {!Simplenode.simplenode}). 
+  {!Node.node}). 
   @param bps speed in bits per sec of this interface.
-  @param simplenode the node on which this MAC layer is running.
+  @param node the node on which this MAC layer is running.
 *)
-class virtual ['stats] backend : ?stack:int -> bps:float -> #Simplenode.simplenode ->
+class virtual ['stats] backend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit Log.virtual_loggable 
 
@@ -206,7 +206,7 @@ end
   Packets from the upper layers are sent directly to the frontend, and
   vice-versa. It maintains no statistics.
 *)
-class virtual null_backend : ?stack:int -> bps:float -> #Simplenode.simplenode ->
+class virtual null_backend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit [unit] backend
   method private backend_reset_stats : unit
@@ -217,7 +217,7 @@ end
 
 (** A Null frontend, which can be inherited from by MAC layers with no backend
   logic (for example see {!MACA_simple.maca_mac}). *)
-class virtual null_frontend : ?stack:int -> bps:float -> #Simplenode.simplenode ->
+class virtual null_frontend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit [unit] frontend
   method private frontend_reset_stats : unit

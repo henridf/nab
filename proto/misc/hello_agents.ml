@@ -45,13 +45,13 @@ let ntargets =
     ~doc:"Number of targets in Simulation"
     ()
 
-(** @param owner a {!Gpsnode.gpsnode} object representing the node on which
+(** @param owner a {!Node.node} object representing the node on which
   this agent is running *)
 class base_hello_agent owner = 
 object(s)
   inherit Log.inheritable_loggable
 
-  val owner:Gpsnode.gpsnode = owner
+  val owner:Node.node = owner
 
   (** This {!Le_tab.le_tab} object is our last-encounter table *)
   val mutable db = new Le_tab.le_tab ~ntargets:(Param.get ntargets)

@@ -55,7 +55,7 @@ type ler_proto_t = EASE | GREASE | FRESH
 
 (** Pass [true] for [grease] argument to constructor to get a GREASE agent,
   [false] to get EASE. *)
-class ler_agent : ?stack:int -> proto:ler_proto_t -> #Simplenode.simplenode -> 
+class ler_agent : ?stack:int -> proto:ler_proto_t -> #Node.node -> 
 object 
 
   inherit Rt_agent.t

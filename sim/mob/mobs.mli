@@ -35,14 +35,14 @@ type mob_t = Uniwaypoint  | Borderwaypoint | Epfl_waypoint | Billiard |
 (** Uniform waypoint mobility class: waypoints are chosen at random uniformly
   over surface. *)
 class uniwaypoint : 
-  #Simplenode.simplenode ->  
+  #Node.node ->  
   ?gran:float ->
   unit ->
   Mob.t
 
 (** Border waypoint mobility class: waypoints are chosen only on the borders. *)
 class borderwaypoint :
-  #Simplenode.simplenode ->
+  #Node.node ->
   ?gran:float ->
   unit ->
   Mob.t
@@ -66,7 +66,7 @@ class borderwaypoint :
   around obstacles.      
 *)
 class epfl_waypoint :
-  #Simplenode.simplenode ->
+  #Node.node ->
   unit ->
   Mob.t
   
@@ -79,7 +79,7 @@ class epfl_waypoint :
   Boundaries are reflecting, ie a node bounces off as off of a mirror.
 *)
 class billiard : 
-  #Simplenode.simplenode ->
+  #Node.node ->
   ?gran:float ->
   unit ->
   Mob.t
@@ -87,7 +87,7 @@ class billiard :
 (** Discrete Random Walk, moves by 1.0 in one of 4 cardinal directions at each
   step *)
 class discreteRandomWalk :
-  #Simplenode.simplenode ->
+  #Node.node ->
   ?gran:float ->
   unit ->
   Mob.t

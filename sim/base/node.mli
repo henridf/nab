@@ -38,7 +38,7 @@ type node_state_t = Coord.coordf_t
 
 
 
-(** Simplenode: Encapsulates most of the state and constituent objects
+(** Node: Encapsulates most of the state and constituent objects
   (routing agent, mac layer, traffic source) that model a node.
 
   {b On multiple stacks:}
@@ -70,7 +70,7 @@ type node_state_t = Coord.coordf_t
   of contention/collisions.
 
  *)
-class simplenode : Common.nodeid_t ->
+class node : Common.nodeid_t ->
 
 object ('a)
   
@@ -153,6 +153,8 @@ object ('a)
   method clear_pkt_mhooks : ?stack:int -> unit -> unit 
     (** clears pktin and pktout mhooks *)
 
+  method pos : Coord.coordf_t
+    (** Returns the position of this node. *)
 
 end
   

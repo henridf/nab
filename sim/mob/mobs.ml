@@ -34,7 +34,7 @@ type mob_t = Uniwaypoint  | Borderwaypoint | Epfl_waypoint | Billiard |
   Randomwalk | None
 
 class virtual waypoint
-  (owner:#Simplenode.simplenode) 
+  (owner:#Node.node) 
   ?gran
   () = 
 object(s)
@@ -68,7 +68,7 @@ end
 
 
 class uniwaypoint 
-  (owner:#Simplenode.simplenode) 
+  (owner:#Node.node) 
   ?gran
   () = 
 object
@@ -77,7 +77,7 @@ object
 end
 
 class borderwaypoint 
-  (owner:#Simplenode.simplenode)
+  (owner:#Node.node)
   ?gran
   () =
 object
@@ -99,7 +99,7 @@ end
 open Complex
 
 class billiard
-  (owner:#Simplenode.simplenode) 
+  (owner:#Node.node) 
   ?gran
   () = 
 object(s)
@@ -199,7 +199,7 @@ let closest_epfl_node pos = (
   
   
 class epfl_waypoint 
-  (owner:#Simplenode.simplenode)
+  (owner:#Node.node)
   () = 
 object(s)
   inherit Mob_base.mobility owner ()
@@ -250,7 +250,7 @@ object(s)
 end
 
 class discreteRandomWalk 
-  (owner:#Simplenode.simplenode) 
+  (owner:#Node.node) 
   ?gran 
   () = 
 object 

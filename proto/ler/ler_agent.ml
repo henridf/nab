@@ -42,7 +42,7 @@ let ntargets =
 
 
 let agents_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+  Array.init Node.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 let agents ?(stack=0) () = agents_array_.(stack)
 let agent ?(stack=0) i = 
   Hashtbl.find agents_array_.(stack) i
@@ -97,7 +97,7 @@ object(s)
      We insert an entry in our encounter table.*)
   method private add_neighbor nid = (
     if nid < (Param.get ntargets) then (
-      let n = Nodes.gpsnode nid in
+      let n = Nodes.node nid in
       le_tab#add_encounter ~nid ~pos:n#pos;
     )
   )
@@ -142,7 +142,7 @@ object(s)
 	  with 
 	    | None -> myid
 	    | Some n when (
-		((World.w())#dist_coords (Nodes.gpsnode n)#pos anchor_pos) >
+		((World.w())#dist_coords (Nodes.node n)#pos anchor_pos) >
 		d_here_to_anchor)
 		->
 		myid
@@ -193,15 +193,15 @@ object(s)
 	)
       in
       if (msngr = dst) then 
-	(((World.w())#dist_coords owner#pos (Nodes.gpsnode dst)#pos), 
-	(Nodes.gpsnode dst)#pos, 
+	(((World.w())#dist_coords owner#pos (Nodes.node dst)#pos), 
+	(Nodes.node dst)#pos, 
 	0.0, dst)
       else
 	let enc_age = (agent ~stack msngr)#le_tab#le_age dst
 	and enc_pos = Opt.get ((agent ~stack msngr)#le_tab#le_pos dst)
 	in
 	let d_to_messenger = 
-	  (World.w())#dist_coords owner#pos (Nodes.gpsnode msngr)#pos 
+	  (World.w())#dist_coords owner#pos (Nodes.node msngr)#pos 
 	in
 	
 	(* Return triplet as defined above *)
@@ -234,10 +234,10 @@ object(s)
     (* this first case is necssary to avoid a possible infinite loop if we are at
        the same position as the destination, in which case the find_closest call
        in closest_toward_anchor might return us. *)
-    if owner#pos = (Nodes.gpsnode dst)#pos  then 
+    if owner#pos = (Nodes.node dst)#pos  then 
 
-      (* [mac_send_pkt] is documented in simplenode.mli. *)
-      s#mac_send_pkt pkt (Nodes.gpsnode dst)#id
+      (* [mac_send_pkt] is documented in node.mli. *)
+      s#mac_send_pkt pkt (Nodes.node dst)#id
 
     else (
       (* find next closest node toward anchor *)
@@ -248,17 +248,17 @@ object(s)
 	
 	s#log_debug (lazy (sprintf "We are closest to anchor"));
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.gpsnode dst)#pos)));
+	  (Coord.sprintf (Nodes.node dst)#pos)));
 	
 	s#recv_ler_pkt_ pkt
       ) else (   
 	(* geographically forward toward anchor  *)
 	s#log_debug (lazy (sprintf "Forwarding geographically to %d" closest_id));
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.gpsnode dst)#pos)))
+	  (Coord.sprintf (Nodes.node dst)#pos)))
       );
 
-      (* [mac_send_pkt] is documented in simplenode.mli. *)
+      (* [mac_send_pkt] is documented in node.mli. *)
       s#mac_send_pkt pkt closest_id
     )
   )

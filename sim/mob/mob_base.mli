@@ -39,7 +39,7 @@
   implement the virtual method [getnewpos].
 *)
 class virtual mobility :
-  #Simplenode.simplenode ->
+  #Node.node ->
   ?gran:float ->
   unit ->
 object

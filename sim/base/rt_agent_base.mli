@@ -25,7 +25,7 @@
 
 
 (** Base class for routing agents. 
-  This class essentially serves to hide multistack details (see {!Simplenode.simplenode}
+  This class essentially serves to hide multistack details (see {!Node.node}
   for an explanation of multiple stacks) from the derived
   subclasses, to avoid having to keep track of which stack an agent is in
   (since in most cases nodes are run with only one stack).
@@ -39,15 +39,15 @@
   @author Henri Dubois-Ferriere.
 *)
 
-class virtual ['a] base : ?stack:int -> #Simplenode.simplenode ->
+class virtual ['a] base : ?stack:int -> #Node.node ->
   (** [stack] serves to distinguish when multiple stacks are being used. 
-    The notion of multiple stacks is explained in {!Simplenode.simplenode}.*)
+    The notion of multiple stacks is explained in {!Node.node}.*)
 object
 
   inherit Log.inheritable_loggable
 
   val myid : Common.nodeid_t
-  val owner:#Simplenode.simplenode
+  val owner:#Node.node
 
   method myid : Common.nodeid_t
 
@@ -65,12 +65,12 @@ object
   method private mac_bcast_pkt : L3pkt.t -> unit
     (** Call this method from the derived routing agent to send a packet as a
       Mac-layer broadcast. This is a wrapper around [method mac_bcast_pkt] in
-      {!Simplenode.simplenode}. *)
+      {!Node.node}. *)
 
   method private mac_send_pkt : L3pkt.t -> Common.nodeid_t -> unit
     (** Call this method from the derived routing agent to send a packet as a
       Mac-layer unicast. This is a wrapper around [method mac_send_pkt] in
-      {!Simplenode.simplenode}. *)
+      {!Node.node}. *)
 
   method private bps : float
     (** Returns the speed of the underlying MAC layer for the node this agent
@@ -79,7 +79,7 @@ object
 
 end
 
-class virtual ['a, 'b] base_persist : ?stack:int -> #Simplenode.simplenode -> 
+class virtual ['a, 'b] base_persist : ?stack:int -> #Node.node -> 
 object
   inherit ['a] base 
   method virtual dump_state : unit -> 'b
