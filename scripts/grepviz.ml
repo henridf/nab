@@ -23,107 +23,136 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 open GMain
-open Printf
 open Misc
 open Script_utils
 open Grep_common
 
-let avg_degree = 12
 let rrange = 100.
 
+let sp = Printf.sprintf
 
-let print_degree() = 
-  let avgn = avg_neighbors_per_node() in
-  Log.log#log_notice (lazy (sprintf "Avg neighbors per node is %f\n" avgn))
-
-
-let do_one_run() = (
-
-  let agenttype = Config.agent_of_string (Param.get Config.agent)
-  and speed = (Param.get Config.speed)
-  and rrange = (Param.get Params.radiorange)
+let encounter_ratio() = 
+  let total_encounters = 
+    Hashtbl.fold (fun id str_agent encs -> 
+      let rt, metric = str_agent#rtab_metric in
+      if  Str_rtab.best_invalid_entry rt metric 0 <> Str_pkt.null_triple then 
+	encs + 1 else encs
+    ) Str_agent.agents_array_.(0) 0;
   in
+  (float total_encounters) /. (float ((Param.get Params.nodes)))
+  
+let mob_warmup() = 
+  Mob_ctl.start_all();
 
-  Randoms.change_seed ~newseed:(Param.get Config.run) () ;
+  Hashtbl.iter (fun id str_agent -> if id <> 0 then str_agent#stop_hello) Str_agent.agents_array_.(0);
 
-  Param.set Params.x_size 
-    (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
-  Param.set Params.y_size 
-    (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
-
-(*
-  Param.set Params.x_size 800.;
-  Param.set Params.y_size 600.;
-*)
-
-
-  init_sched();
-
-(*  init_epfl_world();*)
-  init_lazy_world();
-
-  begin match agenttype with
-    | AODV -> make_aodv_nodes()
-    | GREP -> make_grep_nodes();
-	Hashtbl.iter (fun _ grep_agent -> grep_agent#start_hello ())
-	  (Grep_agent.agents ())
+  begin try
+    while true do
+      (Sched.s())#run_for ~duration:((Param.get Params.x_size) /. 4.);
+      let r = encounter_ratio() in
+      if r > 0.4 then (
+	Log.log#log_always (lazy (sp "Mob. warmup complete (encounter ratio %.2f) " r));
+	raise Misc.Break
+      ) else 
+	Log.log#log_always (lazy (sp "Mob. warmup continuing (encounter ratio %.2f) " r));
+    done;
+  with Misc.Break -> ()
   end;
+  
+  Mob_ctl.stop_all()
+    
+    
+let traffic_warmup() = 
+  Log.log#log_always (lazy (sp "Traffic warmup "));
 
-(*  Mob_ctl.make_epfl_waypoint_mobs();*)
-  Mob_ctl.make_billiard_mobs ~gran:(rrange /. 10.) ();
-  Mob_ctl.set_speed_mps speed;
-(*  Mob_ctl.start_all();*)
 
-  print_degree();
+  Hashtbl.iter (fun id str_agent -> if id <> 0 then str_agent#stop_hello) Str_agent.agents_array_.(0);
+    Mob_ctl.start_all();  
+  for i = 1 to (Param.get Params.nodes) / 100 do
 
 
-)
+    let src = Random.int (Param.get Params.nodes) in
+    Mob_ctl.stop_all();
+    (Nodes.node src)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;
+    (Sched.s())#run_for ~duration:15.;
+    Mob_ctl.start_all();
+    (Sched.s())#run_for ~duration:20.;
+(*    Hashtbl.iter (fun id agent -> 
+      let rt, metric = agent#rtab_metric in
+      Str_rtab.purge_n_hop_entries rt metric 0)
+      Str_agent.agents_array_.(0);*)
+
+
+  done;
+  Mob_ctl.stop_all();
+  (Sched.s())#run_for ~duration:20.(* purge traffic still in network. *)
+  
+
 
 let () = 
+
+  Param.set Params.x_pix_size 600;
+  Param.set Params.y_pix_size 600;
 
   Param.set Params.radiorange rrange;
 
   Param.set Params.mac "null";
 
   Script_utils.parse_args();
+  Param.printconfig stdout;
+
+  setup_sim();
+
+  Hashtbl.iter (fun id str_agent -> if id <> 0 then str_agent#stop_hello) Str_agent.agents_array_.(0);
+
+  Pervasives.at_exit (fun () ->
+    let stats = get_added_stats() in
+    print_string "\n\n";
+    print_string stats;
+
+  );
+
+  if Param.get Config.warmup <> NONE then (
+    Log.log#log_always (lazy (sp "Warming up with %s" (Param.as_string Config.warmup)));
+    let fname = sp "%s-%dn-%s-%s.dat" 
+      (Param.as_string Config.agent)
+      (Param.get Params.nodes)
+      (Param.as_string Config.warmup)
+      (Param.as_string Mob_ctl.mob)
+    in
+    Log.log#log_always (lazy (sp "Will dump to file %s" fname));
+    if Sys.file_exists fname then (
+      Log.log#log_always (lazy (sp "OOops! %s already exists!" fname));
+      exit (-1);
+    );
+    begin match (Param.get Config.warmup) with
+      | TRAFFIC -> mob_warmup(); traffic_warmup()
+      | MOB -> mob_warmup()
+      | NONE -> ()
+    end;
+    let oc = Pervasives.open_out fname in
+    Persistency.save_node_state oc;
+    Persistency.save_str_agents oc;
+    close_out oc;
+  ) else (*mob_warmup*)();
 
 
-  Gui_gtk.init();
+  (* (Sched.s())#run();
+     install_tsources();
+     (Sched.s())#run_for ~duration:3000.;
+     exit 0;
 
-  Gui_grep.setup_grepviz_app();
+     let dst = 0 in
+     for i = 0 to -1 do 
+     (Nodes.node dst)#originate_app_pkt ~l4pkt:`EMPTY ~dst:(i + 2);
 
-
-  do_one_run();
-(*  (Sched.s())#run_for ~duration:1600.;*)
-
-
-  let dst = 0 in
-  for i = 0 to -1 do 
-    (Nodes.node dst)#originate_app_pkt ~l4pkt:`EMPTY ~dst:(i + 2);
-
-  done;
-(*
-  let oc = open_out "/tmp/mws_node_state" in 
-  Persistency.save_node_state oc;  
-  let ochan = open_out "/tmp/mws_grep_state" in 
-  Persistency.save_grep_agents ochan;  
-  close_out ochan;
-
-
-
-  let ichan = open_in "/tmp/mws_node_state" in 
-  Persistency.read_node_state ichan ;  
-  let ichan = open_in "/tmp/mws_grep_state" in 
-  Persistency.read_grep_agents ichan;  
-
-*)  
+     done;
+  *)
+  
   print_degree();
 
+  Gui_gtk.init();
+  Gui_grep.setup_grepviz_app();
   Main.main();
 

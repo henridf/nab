@@ -33,73 +33,28 @@ let parambag = Hashtbl.create 50
 type 'a t = {
   mutable value: 'a option;
   name:string;
-  shortname:string;
   doc:string;
   reader:(string -> 'a);
+  printer:('a -> string);
   checker:('a -> unit) option;
 }
 
-(* used for keeping track of which params 
-   are argspeccable *)
-let intparams = ref []
-let floatparams = ref []
-let stringparams = ref []
-let boolparams = ref []
 
+let params_speclist : (Arg.key * Arg.spec * Arg.doc) list ref = ref []
+  (* contains all params *)
 
+let params_configlist : (unit -> string * string) list ref = ref []
+  (* for all params, contains a function which returns the name field and the
+     value (as_string) of the param. *)
+
+let params_configlist_doc : (unit -> string * string) list ref = ref []
+  (* for cmdline params only, contains a function which returns the doc field
+     and the  value (as_string) of the param. *)
+
+let allparams = ref []
 
 exception IllegalParamVal of string
-
-let create ~name  ?shortname ?default ~doc ~reader ?checker () =  (
-
-  if Hashtbl.mem namespace name then 
-    raise (Failure (Printf.sprintf "Param.create : %s already taken" name));
-  Hashtbl.add namespace name name;
-  
-  if shortname <> None then (
-    let sn = (Misc.o2v shortname) in
-    if Hashtbl.mem namespace sn then 
-      raise (Failure (Printf.sprintf "Param.create : %s already taken" sn));
-    Hashtbl.add namespace sn sn;
-  );
-  
-  begin
-    match checker, default with 
-      | Some f, Some v -> f v
-      | _ -> ();
-  end;
-  {value=default;
-  shortname=(match shortname with None -> name | Some n -> n);
-  name=name;
-  doc=doc;
-  reader=reader;
-  checker=checker}
-)
-    
-let intcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ?default ~doc ~reader:int_of_string
-    ?checker () in
-  if cmdline then intparams := p::!intparams;
-  p
-
-let floatcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ?default ~doc ~reader:float_of_string
-    ?checker () in
-  if cmdline then floatparams := p::!floatparams;
-  p
-
-let boolcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ?default ~doc ~reader:bool_of_string
-    ?checker () in
-  if cmdline then boolparams := p::!boolparams;
-  p
-
-let stringcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ?default ~doc ~reader:(fun s -> s)
-    ?checker () in
-  if cmdline then stringparams := p::!stringparams;
-  p
-
+exception NoParamVal of string
 
 let set param value = (
 
@@ -115,6 +70,113 @@ let set param value = (
   param.value <- (Some value);
 )
 
+let get_value p = 
+  match p.value with 
+    | None -> raise (Failure ("No value for parameter "^p.name^" "^p.doc))
+    | Some v -> v
+
+let get param = match param.value with 
+  | None -> raise (NoParamVal
+      (Printf.sprintf "Cannot provide value for param %s which had no default\n"  param.name))
+  | Some value -> value
+
+let as_string p = p.printer (get p)
+
+let make_intargspec param = 
+  ("-"^param.name, 
+  Arg.Int (fun i -> set param i),
+  param.doc)
+  
+let make_floatargspec param = 
+  ("-"^param.name, 
+  Arg.Float (fun i -> set param i),
+  param.doc)
+
+let make_stringargspec param = 
+  ("-"^param.name, 
+  Arg.String (fun i -> set param i),
+  param.doc)
+
+let make_boolargspec param = 
+  ("-"^param.name, 
+  Arg.Bool (fun i -> set param i),
+  param.doc)
+
+let make_otherargspec param = 
+  ("-"^param.name, 
+  Arg.String (fun i -> set param (param.reader i)),
+  param.doc)
+
+let register ~name ?default ~doc ~reader ~printer ?checker () =  (
+
+  if Hashtbl.mem namespace name then 
+    raise (Failure (Printf.sprintf "Param.register : %s already taken" name));
+  Hashtbl.add namespace name name;
+  
+  begin
+    match checker, default with 
+      | Some f, Some v -> f v
+      | _ -> ();
+  end;
+  {value=default;
+  name=name;
+  doc=doc;
+  reader=reader;
+  printer=printer;
+  checker=checker}
+)
+
+let create ~name ~doc ~reader ~printer ?(cmdline=false) ?default ?checker () = 
+  let p = register ~name ~printer ?default ~doc ~reader ?checker () in
+  if cmdline then (
+    params_speclist := (make_otherargspec p)::!params_speclist;
+    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
+  );
+  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
+  p
+
+    
+let intcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = register ~name ?default ~doc ~reader:int_of_string ~printer:string_of_int
+    ?checker () in
+  if cmdline then (
+    params_speclist := (make_intargspec p)::!params_speclist;
+    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
+  );
+  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
+  p
+
+let floatcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = register ~name ?default ~doc ~reader:float_of_string ~printer:string_of_float
+    ?checker () in
+  if cmdline then (
+    params_speclist := (make_floatargspec p)::!params_speclist;
+    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
+  );
+  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
+  p
+
+let boolcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = register ~name ?default ~doc ~reader:bool_of_string ~printer:string_of_bool
+    ?checker () in
+  if cmdline then (
+    params_speclist := (make_boolargspec p)::!params_speclist;
+    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
+  );
+  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
+  p
+
+let stringcreate ~name ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = register ~name ?default ~doc ~reader:(fun s -> s) ~printer:(fun s -> s)
+    ?checker () in
+  if cmdline then (
+    params_speclist := (make_stringargspec p)::!params_speclist;
+    params_configlist_doc := (fun () -> (p.doc, (as_string p)))::!params_configlist_doc
+  );
+  params_configlist := (fun () -> (p.name, (as_string p)))::!params_configlist;
+  p
+
+
 let strset param string = (
   let value = try 
     param.reader string 
@@ -125,71 +187,29 @@ let strset param string = (
   set param value
 )
 
-let get param = match param.value with 
-  | None -> raise (Misc.Fatal  
-      (Printf.sprintf "Cannot provide value for param %s which had no default\n"  param.name))
-  | Some value -> value
 
-
-
-let make_intargspec param = 
-	("-"^param.shortname, 
-	Arg.Int (fun i -> set param i),
-	param.doc)
-
-let make_floatargspec param = 
-	("-"^param.shortname, 
-	Arg.Float (fun i -> set param i),
-	param.doc)
-
-let make_stringargspec param = 
-	("-"^param.shortname, 
-	Arg.String (fun i -> set param i),
-	param.doc)
-
-let make_boolargspec param = 
-	("-"^param.shortname, 
-	Arg.Bool (fun i -> set param i),
-	param.doc)
-
-let make_argspeclist () = 
-  List.map (fun p -> make_intargspec p) !intparams
-  @
-  List.map (fun p -> make_floatargspec p) !floatparams
-  @
-  List.map (fun p -> make_stringargspec p) !stringparams
-  @
-  List.map (fun p -> make_boolargspec p) !boolparams
+let argspeclist () = !params_speclist
     
-let get_value p = 
-  match p.value with 
-    | None -> raise (Failure ("No value for parameter "^p.name^" "^p.doc))
-    | Some v -> v
 
 let configlist () = 
+  (* puts only the cmdline-able params in there*)  
   List.sort (fun (a, _) (b, _) -> String.compare a b)
-    (List.map (fun p -> (p.name, (get_value p))) !stringparams
-    @
-    List.map (fun p -> (p.name, string_of_float (get_value p))) !floatparams
-    @
-    List.map (fun p -> (p.name, string_of_int (get_value p))) !intparams
-    @
-    List.map (fun p -> (p.name, string_of_bool (get_value p))) !boolparams)
+    (List.fold_left 
+      (fun configlist f -> 
+	try (f())::configlist with
+	    NoParamVal _ -> configlist)
+      []
+      !params_configlist)
 
 let configlist_doc () = 
+  (* puts only the cmdline-able params in there*)
   List.sort (fun (a, _) (b, _) -> String.compare a b)
-    (List.map (fun p -> (p.doc, (get_value p))) !stringparams
-    @
-    List.map (fun p -> (p.doc, string_of_float (get_value p))) !floatparams
-    @
-    List.map (fun p -> (p.doc, string_of_int (get_value p))) !intparams
-    @
-    List.map (fun p -> (p.doc, string_of_bool (get_value p))) !boolparams)
+    (List.map (fun f -> f()) !params_configlist_doc)
     
   
-let printconfig outchan = (
+let sprintconfig () = 
   let configlist = configlist_doc () in
-
+  
   let max_width = 
     List.fold_left 
       (fun w (name,_) -> 
@@ -197,30 +217,15 @@ let printconfig outchan = (
       0
       configlist
   in
-
-  List.iter (fun (name, value) ->
-    output_string outchan ((Misc.padto name (max_width + 4))^value^"\n")
-  ) configlist;
-  flush outchan;
-)
-
-
-let sprintconfig () = (
-  let configlist = configlist_doc () in
-
-  let max_width = 
-    List.fold_left 
-      (fun w (name,_) -> 
-	if String.length name > w then String.length name else w)
-      0
-      configlist
-  in
-
+  
   let stringlist = 
     List.map (fun (name, value) ->
       (Misc.padto name (max_width + 4))^value^"\n"
     ) configlist 
   in
-  List.fold_left (^) "" stringlist;
+  List.fold_left (^) "" stringlist
 
-)
+
+let printconfig outchan = 
+  let s = sprintconfig() in
+  output_string outchan s

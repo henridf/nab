@@ -41,11 +41,11 @@ let make_finite_trafficsource f num_pkts =
     f_
 
 
-let make_cbr ?num_pkts ~pkts_per_sec () = 
-  let time_to_next_pkt() = 1.0 /. pkts_per_sec in
+let make_cbr ?num_pkts ~rate () = 
+  let time_to_next_pkt() = 1.0 /. rate in
   match num_pkts with 
     | None -> fun () -> Some (time_to_next_pkt())
-    | Some n ->  make_finite_trafficsource time_to_next_pkt n
+    | Some n -> make_finite_trafficsource time_to_next_pkt n
   
     
     
