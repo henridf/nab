@@ -482,7 +482,7 @@ object(s)
 		| None -> failed()
 		| Some nh -> nh 
 	    in 
-	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
+(*	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;*)
 	    try begin
 	      owner#mac_send_pkt ~l3pkt ~dstid:nexthop; end
 	    with Simplenode.Mac_Send_Failure -> failed()
