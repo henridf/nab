@@ -21,24 +21,26 @@ sig
   val neigbors_  : 'a t -> 'a -> 'a list
   val neigborsi_ : 'a t -> int -> int list
 
-
   val neigbors_lattice_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
   val neigborsi_lattice_  : Coord.coordi_t t -> index:int -> side:int -> int list
 
   val neigbors_lattice_wrap_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
   val neigborsi_lattice_wrap_  : Coord.coordi_t t -> index:int -> side:int -> int list
 
+    (* common *)
   val nhop_neigbors_  : 'a t -> node:'a -> radius:int -> 'a list
   val nhop_neigborsi_ : 'a t -> index:int -> radius:int -> int list
   val nhop_and_less_neigbors_ : 'a t -> node:'a -> radius:int -> 'a list
   val nhop_and_less_neigborsi_ : 'a t -> index:int -> radius:int -> int list
 
+    (* common *)
   val size_      : 'a t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
   val index_     : 'a t -> 'a -> int
   val node_      : 'a t -> int -> 'a
   val contains_  : 'a t -> 'a -> bool
   val containsi_ : 'a t -> int -> bool
 
+  (* common *)
   val setinfo_   : 'a t -> 'a -> int list -> unit (* convenience functions to allow client to associate 'info' with each node *)
   val setinfoi_  : 'a t -> int -> int list -> unit (* Graph module blindly manipulates 'info' *)
   val appendinfo_   : 'a t -> 'a -> int -> unit 
@@ -47,16 +49,25 @@ sig
   val getinfoi_  : 'a t -> int -> int list
   val getinfosi_ : 'a t -> int list -> int list    
 
+  (* common *)
   val add_node_  : 'a t -> 'a -> unit
   val add_edge_  : 'a t -> 'a -> 'a  -> float ->  unit
   val add_edgei_ : 'a t -> int -> int  -> float -> unit
 
-  val route_dij_  : 'a t -> src:'a -> dest:'a -> 'a list (* all of these can raise (Failure "No_route") *)
-  val routei_dij_ : 'a t -> src:int -> dest:int -> int list
-  val dist_       : 'a t -> src:'a -> dest:'a -> int
-  val disti_      : 'a t -> src:int -> dest:int -> int
 
-  val iteri_ : (int  -> unit) -> 'a t -> unit
+  (* all of these can raise (Failure "No_route") *)
+  (* routes start at src, ends 1 hop before dst *)
+  val route_dij_  : 'a t -> src:'a -> dest:'a -> 'a list 
+  val routei_dij_ : 'a t -> src:int -> dest:int -> int list
+  
+  val dist_       : 'a t -> src:'a -> dest:'a -> int (* distance in hops *)
+  val disti_      : 'a t -> src:int -> dest:int -> int
+  
+(* optimized for lattices *)
+  val lattice_dist_       : Coord.coordi_t t -> src:Coord.coordi_t -> dest:Coord.coordi_t -> int
+  val lattice_disti_      : Coord.coordi_t t -> src:int -> dest:int -> int
+
+  val iteri_ : (int -> unit) -> 'a t -> unit
   val itern_ : ('a  -> unit) -> 'a t -> unit
   val print_ : 'a t -> unit
   val print_lattice_ : Coord.coordi_t t -> unit
@@ -294,7 +305,7 @@ struct
 	  if paths.(i) =  src then route else   (makepath paths.(i) route) @ [paths.(i)]
 	in
 	  if not (a_cost distances.(dest)) then raise (Failure "No_route") else
-	    (makepath dest []) @ [dest]
+	    src::(makepath dest []) 
       )
   )      
 				   
@@ -306,6 +317,13 @@ struct
   let dist_ g ~src ~dest = List.length (route_dij_ g src dest)
   let disti_ g ~src ~dest = List.length (routei_dij_ g src dest)
     
+  let lattice_dist_ g ~src ~dest = 
+    let d = ref 0 in 
+    Array.iteri (fun i x -> d := !d + abs (x - dest.(i))) src;
+    !d
+
+  let lattice_disti_ g ~src ~dest = 
+    lattice_dist_ g (node_ g src) (node_ g dest)
 
   let nhop_neigborsi_ g ~index ~radius = (
     if not (containsi_ g index) then raise (Invalid_argument "Graph.nhop_neigborsi_: index does not exist");
@@ -467,6 +485,7 @@ struct
 
   let make_wrap_lattice_ ~dim ~side = (
 
+    if (side <= 1) then raise (Failure "Cannot make lattice with side <=1, this will fool lattice_dim_ later on");
     let size = (powi side dim) in
     let g = make_ (Array.make dim 0) size Undirected in
       for i = 0 to size - 1 do
@@ -484,6 +503,8 @@ struct
 
 
   let make_lattice_ ~dim ~side = (
+
+    if (side <= 1) then raise (Failure "Cannot make lattice with side <=1, this will fool lattice_dim_ later on");
 
     let size = (powi side dim) in
     let g = make_ (Array.make dim 0) size Undirected in
