@@ -78,7 +78,7 @@ let str_max_metric age hops =
   let hops_cost hops =  (float hops) *. (0.7 *. range) in
   if hops = 0 then 0.0 
   else 
-  let speed = Mob_ctl.get_speed_mps 0
+  let speed = Mob_ctl.get_speed 0
   in (hops_cost hops) +. 1.4 *. speed *. age
 
 let str_exp_metric age hops = 
@@ -87,7 +87,7 @@ let str_exp_metric age hops =
   let hops_cost hops =  (float hops) *. (range *. 0.2) in
   if hops = 0 then 0.0 
   else 
-  let speed = Mob_ctl.get_speed_mps 0
+  let speed = Mob_ctl.get_speed 0
   in (hops_cost hops) +. 2. *. speed *. age
 
 let str_age_metric age hops = 
