@@ -2,7 +2,7 @@
 
 
 
-(** Globally accessible parameters.  
+(** Core simulator parameters.  
   @author Henri Dubois-Ferriere.
 *)
 

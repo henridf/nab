@@ -22,7 +22,7 @@ let boolparams = ref []
 
 
 
-exception IllegalValue of string
+exception IllegalParamVal of string
 
 let create ~name  ?shortname ?default ~doc ~reader ?checker () =  (
 
@@ -82,8 +82,8 @@ let set param value = (
       | Some f -> (
 	  try 
 	    f value 
-	  with  IllegalValue str -> 
-	    raise(Misc.Fatal(Printf.sprintf "%s\n" str))
+	  with  IllegalParamVal str -> 
+	    raise (IllegalParamVal str)
 	)
   end;	  
   param.value <- (Some value);
@@ -92,8 +92,9 @@ let set param value = (
 let strset param string = (
   let value = try 
     param.reader string 
-  with _ -> raise (Misc.Fatal 
-    (Printf.sprintf "%s is not correct for param %s\n" string param.name))
+  with _ -> raise 
+    (IllegalParamVal
+      (Printf.sprintf "%s is not correct for param %s\n" string param.name))
   in
   set param value
 )

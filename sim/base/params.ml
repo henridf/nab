@@ -3,12 +3,12 @@
 
 
 
-(** Globally accessible parameters.  *)
+
 
 let nodes = 
   Param.intcreate 
     ~name:"nodes" 
-    ~default:1000
+    ~default:500
     ~cmdline:true
     ~doc:"Number of nodes"
     ()
