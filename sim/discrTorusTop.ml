@@ -1,9 +1,17 @@
+(* *** ********* *)
+(* LER Simulator *)
+(* *** ********* *)
+
+(* Discrete square torus topology                                        *)
+
 open Misc
 open Coord
 open Graph
 open Common
 
-module Lat2D : Top.Topology_t = 
+module DiscrTorusTop : Top.Topology_t = 
+  (* This module duplicates code from  discrRefTop.ml, keep in mind when 
+   changing things *)
   struct
 
     let g = ref (Graph.make_wrap_lattice_ ~dim:2 ~side:4)
@@ -38,8 +46,71 @@ module Lat2D : Top.Topology_t =
 	
     let zero_hop_neigbors coord1 coord2 = (coord1 = coord2)
       
-    let next_position data ~index = 
-      coord_i2f (rnd_from_list (Graph.neigbors_lattice_ !g (coord_f2i data.pos.(index)) ~side:!gridsize_))
+  let (waypoint_move, waypoint_init) = (
+
+    let init_done = ref false in
+    let waypoint_targets = ref (Array.make 1 ([|0;0|]:coordi_t)) in
+    
+    let init () = (
+      waypoint_targets := (Array.make params.n ([|0;0|]:coordi_t));
+      Array.iteri (
+	fun i nothing  -> 
+	  !waypoint_targets.(i) <- [|Random.int !gridsize_; Random.int !gridsize_|]
+      ) !waypoint_targets;
+    ) in
+    
+    let move data ~index  =  (
+
+	if (!init_done = false)  then (
+	  (* need to setup waypoint targets the very first time *)
+	  init();
+	  init_done := true;
+	);
+
+      let target = !waypoint_targets.(index) in
+      let pos = data.pos.(index) in
+      if (dist_sq_reflect target pos) <= 1 then 
+	(* arrived at target *)
+	begin
+	  !waypoint_targets.(index) <- [|Random.int !gridsize_; Random.int !gridsize_|];
+	  if index = 0 then (
+	    Ler_graphics.circle_nodes [|!waypoint_targets.(index)|] 0.3;
+	    Ler_graphics.draw_nodes [|target|];
+	  );
+	  target
+	end
+      else 
+	begin
+	  let direction = normalize (coord_i2f (target --- pos)) in
+	  let increment =
+	    match coordf2pair (coord_round direction) with
+	      | (1.0, 1.0) -> rnd_from_list [[|1; 0|]; [|0;1|]] 
+	      | (1.0, -1.0) -> rnd_from_list [[|1; 0|]; [|0;-1|]] 
+	      | (-1.0, 1.0) -> rnd_from_list [[|-1; 0|]; [|0;1|]] 
+	      | (-1.0, -1.0) -> rnd_from_list [[|-1; 0|]; [|0;-1|]] 
+	      | default -> coord_f2i (coord_round direction) 
+	  in
+	  if index = 0 then Ler_graphics.draw_nodes [|pos +++ increment|];
+	  pos +++ increment;
+	end
+    )
+      
+
+
+  in
+  (move, init)
+)
+
+    let next_position data ~index ~mob = (
+      match mob with
+	| RANDOMWALK -> 
+	    coord_i2f (rnd_from_list (Graph.neigbors_lattice_ !g (coord_f2i data.pos.(index)) ~side:!gridsize_))
+	| WAYPOINT -> (
+	    Printf.printf "!*!\nWaypoint model has never been tested in this
+      topology. look at the node movement  and make sure it looks ok!\n!*!\n"
+	    raise waypoint_move data ~index:index
+	  )
+    )
 
     let update_pos ~index ~oldpos ~newpos = (
       assert (List.mem index (Graph.getinfo_ !g (coord_f2i oldpos)));
