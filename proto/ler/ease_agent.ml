@@ -73,7 +73,10 @@ object(s)
     (* Here we ask the global world object to inform us each time a node enters
        our neighborhood, by calling our method add_neighbor.
        The global world object (and its method add_new_ngbr_hook) are documented
-       in worldt.ml *)
+       in worldt.ml 
+       Of course in a real protocol this is not possible: this would be done
+       with periodic hello messages.
+    *)
     (World.gw())#add_new_ngbr_hook theowner#id ~hook:s#add_neighbor;
   )
 
@@ -97,8 +100,9 @@ object(s)
 
   (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
      packet to send. We build the L3 header and originate the packet into the
-     EASE logic. *)
+     EASE routing logic. *)
   method app_recv_l4pkt (l4pkt:L4pkt.t) dst = (
+
     let ease_hdr = 
       Ease_pkt.make_ease_hdr
 	~anchor_pos:owner#pos
@@ -149,7 +153,7 @@ object(s)
      [dst] is fresher than [age], false otherwise. *)
   method private have_better_anchor dst cur_enc_age = 
     (le_tab#le_age dst) < cur_enc_age
-
+    
 
   (* [find_next_anchor d age] finds the next anchor for destination [d],
      assuming that the current best encounter age is [age]. 
@@ -257,8 +261,7 @@ object(s)
     let ease_hdr = L3pkt.ease_hdr pkt in
 
     s#log_info 
-      (lazy (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
-	myid 
+      (lazy (sprintf "received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
 	(L3pkt.l3src pkt)
 	(L3pkt.l3dst pkt)
  	(Ease_pkt.enc_age ease_hdr)
