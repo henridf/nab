@@ -17,7 +17,7 @@ MK_DIR = mk
 GUI_DIR = gui
 TEST_DIR = test
 BIN_DIR = bin
-CAML_DIR = /usr/local/lib/ocaml
+CAML_DIR = /usr/lib/ocaml
 GTK_DIR = $(CAML_DIR)/lablgtk
 CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
 
@@ -166,9 +166,9 @@ bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT)
 	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@
 
 gui: bin/gui
-bin/gui: $(GUI_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT)
+bin/gui: $(GUI_OBJ_FILES) scripts/demo.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
-	$(GUI_OBJ_FILES)   $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
+	$(GUI_OBJ_FILES)   scripts/demo.ml -o $@ 
 
 guitop: bin/guitop
 bin/guitop: $(GUI_OBJ_FILES) 
