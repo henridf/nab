@@ -13,7 +13,7 @@ let check() = if !nodes_array = [||] then
 let set_nodes arr = nodes_array := arr
 
 let iter f = check(); Array.iter f !nodes_array
-let iteri f = check(); for i = 0 to Array.length !nodes_array - 1 do  f i done
+let iteri f = check(); Array.iteri f !nodes_array
 
 
     

@@ -16,7 +16,7 @@ val node : int -> Simplenode.simplenode
   (** Return node by index *)  
 
 val iter : (Simplenode.simplenode -> unit) -> unit
-val iteri : (Common.nodeid_t -> unit) -> unit
+val iteri : (Common.nodeid_t -> Simplenode.simplenode -> unit) -> unit
 val map : (Simplenode.simplenode -> 'a) -> 'a array
 val mapi : (Common.nodeid_t -> 'a) -> 'a array
 val fold : (Simplenode.simplenode -> 'a -> 'a) -> 'a -> 'a
