@@ -1,3 +1,8 @@
+
+
+
+
+
 (*
 
   Copyright (C) 2004 Swiss Federal Institute of Technology Lausanne (EPFL),
@@ -35,8 +40,8 @@
 (** 
   Contention MAC: A simple MAC layer with high level collision modeling.
   This MAC can either be sending or receiving.
-  If a packet is received while already received, both are dropped
-  (collision).
+  If a packet is received while already receiving, both are lost
+  (collision). 
   If a packet is received while sending, sending continues ok but reception
   fails.
   If node tries to send while either sending or receiving, the packet to be
@@ -54,28 +59,51 @@ open Printf
 
 let rndseed = ref 0 
 
-let bps = 1e7
+type stats = 
+    {collsRXRX : int;
+    collsRXTX : int}
+    (** Statistics maintained by [mac_contention] MAC layer 
+      (in addition to statistics from {!Mac.basic_stats}.
+      - [collsRXRX] counts the number of "receive on receive" collisions,
+      ie a packet arrives when we are already receiving another packet
+      (causing both to be dropped).
+      - [collsRXTX] counts the number of "receive on send" collisions, ie a
+      packet arrives when we are already sending a packet (causing the
+      incoming packet to be dropped).
+    *)
+
+let macs_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+let macs ?(stack=0) () = macs_array_.(stack)
+let mac ?(stack=0) i = 
+  Hashtbl.find macs_array_.(stack) i
 
 
-class contentionmac ?(stack=0) owner : Mac.t = 
+class contentionmac ?(stack=0) bps owner  = 
 object(s)
 
-  inherit Log.inheritable_loggable
-  inherit Mac_base.base ~stack ~bps owner as super
+  inherit [stats] Mac_base.base ~stack ~bps owner as super
 
-  val mutable collision = false
-  val mutable interfering_until = Time.get_time()
-  val mutable sending_until = Time.get_time()
+  val mutable interfering_until = Time.get_time() -. 1.
+  val mutable sending_until = Time.get_time() -. 1.
   val mutable receiving_from = 0
-  val mutable receiving = false
   val rnd = Random.State.make [|!rndseed|] 
+
+  val mutable collsRXRX = 0
+  val mutable collsRXTX = 0
+
+  val mutable end_rx_handle = 0
 
   initializer (
     s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/cmac";
+    Hashtbl.replace macs_array_.(stack) owner#id (s :> contentionmac);
     incr rndseed
   )
 
   method bps = bps
+
+  method reset_stats = super#reset_stats
+
 
   (*
     sending -> interfering
@@ -83,60 +111,60 @@ object(s)
     interfering -> cannot receive 
   *)
 
-  (* Check if a packet transmission is ongoing in our radio range.
-     This could be us transmitting, or a neighbor transmitting.  *)
+  (* True if any packet transmission is ongoing in our radio
+     range. (including if we are the transmitter)
+  *)
   method private interfering =  
     interfering_until >= Time.get_time()
       
-  (* Check if we are actively sending a packet*)
+  (* True if we are actively sending a packet. This flag remains true until
+     transmission of packet is complete. *)
   method private sending = 
     sending_until >= Time.get_time()
 
+  (* This is called at the end (ie after the last bit comes in) of a succesful
+     packet reception, ie a packet which arrived with no collisions. *)
   method private end_rx l2pkt = (
-    assert (receiving);
-    receiving <- false;
-    if collision then 
-      collision <- false
-    else 
-      begin
-	assert (interfering_until = Time.get_time());
-	let dst = l2dst ~pkt:l2pkt in
-	if (dst = L2_BCAST || dst = L2_DST myid) then 
-	  super#send_up ~l2pkt
-      end
+    assert (end_rx_handle <> 0);
+    end_rx_handle <- 0;
+    
+    assert (interfering_until = Time.get_time());
+    let dst = l2dst ~pkt:l2pkt in
+    if (dst = L2_BCAST || dst = L2_DST myid) then 
+      super#send_up ~l2pkt
   )
 
+  (* This is called when the first bit of a packet lands at this MAC.*)
   method recv ?snr ~l2pkt () = (
 
-    (* If we're already in rx, set the collision flag so that when
-       we know to drop the packet when ongoing rx completes. *)
-    if receiving then (
-	collision <- true;
-	s#log_notice (lazy 
-	  (sprintf "Pkt from %d collided with already receiving  packet for %d"
+    let end_rx_time = 
+      Time.get_time()
+      +. super#xmitdelay l2pkt in
+
+    begin match s#sending, s#interfering with 
+      | false, false ->
+	  (* Not xmiting and not under interference. 
+	     -> Schedule the full packet reception event.*)
+	  s#log_debug (lazy (sprintf "RX packet of (%d bytes)" (l2pkt_size ~l2pkt)));
+ 	  receiving_from <- l2src ~pkt:l2pkt;
+	  let recv_event() =  s#end_rx l2pkt  in
+	  end_rx_handle <- (Sched.s())#sched_at_handle ~f:recv_event ~t:(Scheduler.Time end_rx_time);
+	  
+      | true, _ ->  collsRXTX <- collsRXTX + 1
+      | _, true -> 
+	  if (end_rx_handle <> 0) then begin
+	    (Sched.s())#cancel end_rx_handle;
+	    end_rx_handle <- 0
+	  end;
+	  collsRXRX <- collsRXRX + 1;
+	  s#log_debug (lazy (
+	    sprintf "Pkt from %d collided with already receiving packet from %d"
 	    (l2src ~pkt:l2pkt) receiving_from))
-    ) else (
-      assert (collision = false);
-
-      (* if we're not in tx/rx, and not already under interference, then mark that 
-	 we're receiving, and schedule the full packet reception event. *)
-      if  not s#sending && not s#interfering then (
-	receiving <- true;
-	s#log_debug (lazy (sprintf "RX packet of (%d bytes)" (l2pkt_size ~l2pkt)));
-	
-	let end_rx_time = 
-	  Time.get_time() 
-	  +. super#xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
-
-	receiving_from <- l2src ~pkt:l2pkt;
-
-	let recv_event() =  s#end_rx l2pkt  in
-	(Sched.s())#sched_at ~f:recv_event ~t:(Scheduler.Time end_rx_time);
-
-	(* Finally, mark that we're being interfered for the duration of this packet.*)
-	interfering_until <- max end_rx_time interfering_until;
-      )
-    )
+    end
+    
+    (* We will be underinterference for the duration of this packet. *)
+    interfering_until <- max end_rx_time interfering_until;
+    
   )
 
 
@@ -146,26 +174,30 @@ object(s)
       let delay = Random.State.float rnd 0.1 in
       (Sched.s())#sched_in ~f:(fun () -> s#xmit ~l2pkt) ~t:delay;
       s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
-    )
-    else (
+    ) else (
       if not s#sending && not receiving then (
 	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
 	let end_xmit_time = 
 	  Time.get_time() 
-	  +. super#xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	  +. super#xmitdelay l2pkt in
 	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
-	SimpleEther.emit ~nid:myid l2pkt
+	
+	bTX <- bTX + (L2pkt.l2pkt_size l2pkt);
+	
+	SimpleEther.emit ~stack ~nid:myid l2pkt
       ) else (
 	let msg = 
 	  if s#sending then "sending" else  "receiving" 
 	in 
-	s#log_notice (lazy (sprintf "Pkt to %s dropped because already %s" 
+	s#log_info (lazy (sprintf "Pkt to %s dropped because already %s" 
 	  (string_of_l2dst (l2dst l2pkt))
 	  msg))
       )
     )
+
+  method other_stats = {collsRXRX = collsRXRX; collsRXTX = collsRXTX}
 end
-      
-    
-    
+  
+  
+  
