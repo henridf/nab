@@ -260,7 +260,6 @@ object
   (* ignores gran, meaningless for a discrete mob *)
   method getnewpos ~gran = 
     let pos = ((World.w())#nodepos owner#id) in
-    assert ((isint (xx pos) ) && (isint (yy pos)));
     let step = 
       [|
 	(1., 0.); 
@@ -278,7 +277,7 @@ object
       Params.x_size) -. 1.);
     if (!newy = (Param.get Params.y_size)) then newy := ((Param.get
       Params.y_size) -. 1.);
-    (!newx, !newy)
+    (World.w())#boundarize (!newx, !newy)
 
 end
 
