@@ -67,7 +67,7 @@ let init () = (
   gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window) ;
   drw := Some (new GDraw.drawable (gdk_window()));
   let (pixmap, bitmap) = Gdk.Pixmap.create_from_xpm
-    ~file:"/home/henri/work/150th/epfl.xpm" 
+    ~file:"/tmp/epfl.xpm" 
     ~window:(gdk_window())
     ()
   in
