@@ -32,7 +32,7 @@ val ntargets : int Param.t
     In small simulations, this should be equal to the number of nodes. 
     For large simulations, some parts of mws may be more efficient when this
     is kept small. For example, in EASE routing, the size of the
-    Last-Encounter table depends on this value *)
+    Last-Encounter table depends on the number of targets value. *)
     
 
 val log_level : string Param.t
