@@ -22,8 +22,11 @@
 val xsect_grid_and_circle : 
   center:Coord.coordf_t -> 
   radius:float -> 
-  worldsize_x:float ->
-  worldsize_y:float -> 
-  boxsize:float ->
+  world_size_x:float ->
+  world_size_y:float -> 
+  tile_size_x:float ->
+  tile_size_y:float ->
+  grid_size_x:int ->
+  grid_size_y:int ->
   Coord.coordi_t list 
 

@@ -21,48 +21,65 @@ open Misc
 *)
 
 (* check if x is in World.and not nan (can happen in sqrt computation of circle) *)
-let exists_and_in_world x worldsize = 
-  if (x >= 0.0 && x < worldsize) then [x]
+let exists_and_in_world x world_size = 
+  if (x >= 0.0 && x < world_size) then [x]
   else []
 
 (* Intersects the (center, radius) circle with a horizontal line at y, 
    and returns the list of 0, 1, or 2 intersection points depending on their 
    existence and their being within the World.*)
    
-let xsect_circle_hline ~center ~radius ~y ~worldsize_x = (
+let xsect_circle_hline ~center ~radius ~y ~world_size_x = (
   let rsq = radius ** 2.0 in
   let c = center in
-  let x1 = exists_and_in_world ((xx c) +. sqrt (rsq -. (y -. (yy c))**2.0)) worldsize_x
-  and x2 = exists_and_in_world ((xx c) -. sqrt (rsq -. (y -. (yy c))**2.0)) worldsize_x
+  let x1 = exists_and_in_world ((xx c) +. sqrt (rsq -. (y -. (yy c))**2.0)) world_size_x
+  and x2 = exists_and_in_world ((xx c) -. sqrt (rsq -. (y -. (yy c))**2.0)) world_size_x
   in x1 @ x2
 )
 
 (* Intersects the (center, radius) circle with a vertical line at x, 
    and returns the list of 0, 1, or 2 intersection points depending on their 
    existence and their being within the World.*)
-let xsect_circle_vline ~center ~radius ~x ~worldsize_y = (
+let xsect_circle_vline ~center ~radius ~x ~world_size_y = (
   let rsq = radius ** 2.0 in
   let c = center in
-  let y1 = exists_and_in_world ((yy c) +. sqrt (rsq -. (x -. (xx c))**2.0)) worldsize_y
-  and y2 = exists_and_in_world ((yy c) -. sqrt (rsq -. (x -. (xx c))**2.0)) worldsize_y
+  let y1 = exists_and_in_world ((yy c) +. sqrt (rsq -. (x -. (xx c))**2.0)) world_size_y
+  and y2 = exists_and_in_world ((yy c) -. sqrt (rsq -. (x -. (xx c))**2.0)) world_size_y
   in y1 @ y2
 )
 
 
+let grid_size_x, grid_size_y = 0, 0
+	
 
 let xsect_grid_and_circle 
   ~center 
   ~radius 
-  ~worldsize_x
-  ~worldsize_y 
-  ~boxsize = (
+  ~world_size_x
+  ~world_size_y 
+  ~tile_size_x
+  ~tile_size_y
+  ~grid_size_x
+  ~grid_size_y
+  = (
     
-    let pos_in_grid pos = coord_f2i (coord_floor (pos ///. boxsize)) in
+    (*       Note: replicated from crworld.ml*)
+    let pos_in_grid (x, y) = (
+      assert (x >= 0. && y >= 0. && x <= world_size_x && y <= world_size_y);
+      (* the 'min' is in case a point lies on the up/right boundary, in which case
+	 the x /. tile_size_x_ division "fits" and we would get a grid_pos = to 
+	 grid_size_x_ (resp. grid_size_y_). *)
+      let x_pos = 
+	min (grid_size_x - 1) (f2i (floor (x /. tile_size_x)))
+      and y_pos =
+	min (grid_size_y - 1) (f2i (floor (y /. tile_size_y)))
+      in (x_pos, y_pos)
+    ) in
     
     let xmin = max 0.0 (floor ((xx center) -. radius))
-    and xmax = min worldsize_x (floor ((xx center) +. radius))
+    and xmax = min world_size_x (floor ((xx center) +. radius))
     and ymin = max 0.0 (floor ((yy center) -. radius))
-    and ymax = min worldsize_y (floor ((yy center) +. radius)) in
+    and ymax = min world_size_y (floor ((yy center) +. radius)) in
     let rec advanceup_ y l = 
       if (y > ymax) then 
 	l
@@ -77,9 +94,9 @@ let xsect_grid_and_circle
 	let pts = List.fold_left 
 	  (fun l x -> l @ neighboring_squares x)
 	  []
-	  (xsect_circle_hline ~center ~radius ~y ~worldsize_x) 
+	  (xsect_circle_hline ~center ~radius ~y ~world_size_x) 
 	in
-	advanceup_ (y +. boxsize) pts@l
+	advanceup_ (y +. tile_size_y) pts@l
     in
     let rec advanceright_ x l = 
       if (x > xmax) then 
@@ -95,9 +112,9 @@ let xsect_grid_and_circle
 	let pts = List.fold_left
 	  (fun l y ->  l @ neighboring_squares y)
 	  []
-	  (xsect_circle_vline ~center ~radius ~x ~worldsize_y) 
+	  (xsect_circle_vline ~center ~radius ~x ~world_size_y) 
 	in 
-	advanceright_ (x +. boxsize) pts@l
+	advanceright_ (x +. tile_size_x) pts@l
     in
     let xpoints =  (advanceup_ ymin []) @ (advanceright_ xmin []) in 
     Misc.list_unique_elements xpoints
@@ -117,7 +134,7 @@ let color_index = ref 0 ;;
 
 let radius = ref 2.0;;
 let next_circle() = Array.of_list (xsect_grid_and_circle ~center:(35.1, 35.1)
-       ~radius:!radius ~worldsize:75.0) ;;
+       ~radius:!radius ~world_size:75.0) ;;
 let scaleup p = p *** 10;;
 
 let draw_rects a = (
