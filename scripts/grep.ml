@@ -6,8 +6,8 @@ open Printf
 open Misc
 open Script_utils
 
-let daemon = false
-let outfile = ""
+let daemon = true
+let outfile = "/home/henridf/work/caml/R4.txt"
 
 
 let outfd = ref Pervasives.stderr
@@ -57,7 +57,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
     else
       Random.init !seed;
 
-  Log.set_log_level ~level:Log.LOG_WARNING;
+  Log.set_log_level ~level:Log.LOG_ERROR;
   Param.set Params.nodes nodes;
   Param.set Params.rrange rrange;
   Param.set Params.x_size (size nodes);
@@ -103,7 +103,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
  
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in
-  Printf.fprintf !outfd "Avg neighbors per node is %f\n" avgn;
+(*  Printf.fprintf !outfd "Avg neighbors per node is %f\n" avgn;*)
 
   res_summary := 
   (speed, 
@@ -122,35 +122,59 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 
 
 
-(* CPU1 on lcavpc23 Thursday noon *)
+
+(* R1: lcavpc23 Thursday noon (repeats 10 )
 let runs = [
-  (* speed rate nodes srcs pktssend *)
-  (  0.0,  8,   800,  1,  100);
-  (  1.0,  8,   800,  1,  100);
-  (  2.0,  8,   800,  1,  100);
-  (  4.0,  8,   800,  1,  100);
-  (  8.0,  8,   800,  1,  100);
-  (  16.0,  8,   800,  1,  100);
-  (  32.0,  8,   800,  1,  100);
+  (*  repeats hotspot speed rate nodes srcs pktssend *)
+  (10, false,  0.0,  4,   1000,  10,  100);
+  (10, false,  1.0,  4,   1000,  10,  100);
+  (10, false,  2.0,  4,   1000,  10,  100);
+  (10, false,  4.0,  4,   1000,  10,  100);
+  (10, false,  8.0,  4,   1000,  10,  100);
+  (10, false,  16.0, 4,   1000,  10,  100);
+]*)
+
+
+(* R2
+let runs = [
+(* repeats hotspot speed rate nodes srcs pktssend *)
+   (10, false, 0.0,  8,   100,  40,  2400);
+   (10, false,  1.0,  8,   100,  40,  2400);
+   (10, false,  2.0,  8,   100,  40,  2400);
+   (10, false,  4.0,  8,   100,  40,  2400);
+   (10, false,  8.0,  8,   100,  40,  2400);
+   (10, false,  16.0,  8,   100,  40,  2400);
+]*)
+
+
+(* R3 on lcavpc23 Thursday noon (repeats 6 ) 
+let runs = [
+  (* repeats hotspot speed rate nodes srcs pktssend *)
+  (6, true,  0.0,  4,   1000,  20,  20);
+  (6, true,  1.0,  4,   1000,  20,  20);
+  (6, true,  2.0,  4,   1000,  20,  20);
+  (6, true,  4.0,  4,   1000,  20,  20);
+  (6, true,  8.0,  4,   1000,  20,  20);
+  (6, true,  16.0,  4,   1000,  20,  20);
+]*)
+
+(* R4*)
+let runs = [
+(* repeats hotspot speed rate nodes srcs pktssend *)
+   (10, true, 0.0,  8,   100,  40,  2400);
+   (10, true,  1.0,  8,   100,  40,  2400);
+   (10, true,  2.0,  8,   100,  40,  2400);
+   (10, true,  4.0,  8,   100,  40,  2400);
+   (10, true,  8.0,  8,   100,  40,  2400);
+   (10, true,  16.0,  8,   100,  40,  2400);
 ]
 
-(* CPU1 on lcavpc23 Thursday noon *)
-let runs = [
-  (* speed rate nodes srcs pktssend *)
-  (  0.0,  8,   100,  100,  100);
-  (  1.0,  8,   100,  100,  100);
-  (  2.0,  8,   100,  100,  100);
-  (  4.0,  8,   100,  100,  100);
-  (  8.0,  8,   100,  100,  100);
-  (  16.0,  8,   100,  100,  100);
-  (  32.0,  8,   100,  100,  100);
-]
 
-let aodvtots = ref (0, 0, 0, 0, 0, 0, 0, 0) 
-let greptots = ref (0, 0, 0, 0, 0, 0, 0, 0) 
+let aodvtots = ref (0, 0, 0, 0, 0, 0, 0, 0)
+let greptots = ref (0, 0, 0, 0, 0, 0, 0, 0)
 
 let addtots 
-  (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) 
+  (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr)
   (sp, dorig2, ts2, dr2, ds2, rreps2, rreqs2, dd2, ddrerr2)
   = 
   (dorig + dorig2, 
@@ -161,7 +185,7 @@ let addtots
   rreqs + rreqs2, 
   dd + dd2, 
   ddrerr + ddrerr2)
-
+  
   
 let rec print_summary l = 
   match l with 
@@ -178,7 +202,6 @@ let rec print_summary l =
       | [] -> ()
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
 
-let repeats = 10
 
 let _ = 
   if daemon then (
@@ -186,7 +209,7 @@ let _ =
     outfd := !Log.output_fd;
   );
 
-  List.iter (fun (speed, rate, nodes, sources,  pktssend) ->
+  List.iter (fun (repeats, hotspot, speed, rate, nodes, sources,  pktssend) ->
     aodvtots :=  (0, 0, 0, 0, 0, 0, 0, 0);
     greptots :=  (0, 0, 0, 0, 0, 0, 0, 0);
 
@@ -207,7 +230,7 @@ let _ =
 	~speed:speed
 	~sources:sources
 	~pkts_to_send:pktssend
-	~hotdest:false;
+	~hotdest:hotspot;
 
       do_one_run 
 	~nodes:nodes
@@ -224,13 +247,25 @@ let _ =
     Printf.fprintf !outfd "\nResults:\n";
     let (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = !aodvtots in
     Printf.fprintf !outfd "DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
-    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (AODV)\n" dorig ts dr ds rreps rreqs
-      dd ddrerr;
+    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (AODV)\n" 
+      (dorig / repeats)
+      (ts  / repeats)
+      (dr  / repeats)
+      (ds  / repeats)
+      (rreps  / repeats)
+      (rreqs / repeats)
+      (dd  / repeats)
+      (ddrerr  / repeats); 
     let (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = !greptots in
-    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (GREP)\n" dorig ts dr ds rreps rreqs
-      dd ddrerr;
-      
-
+    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (GREP)\n" 
+      (dorig / repeats)
+      (ts  / repeats)
+      (dr  / repeats)
+      (ds  / repeats)
+      (rreps  / repeats)
+      (rreqs / repeats)
+      (dd  / repeats)
+      (ddrerr  / repeats); 
     res_summary := []
   ) runs;
   
