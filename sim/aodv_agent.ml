@@ -18,6 +18,9 @@
    let old_hopcount = o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst) in
    (used to be outside if statement, check cvs from about Thu26Jun)
 
+   in recv_l2pkt, we shouldn't update path to source if this is a data packet right??
+
+   in process data packet: can there be packets waiting?
 *)
 
 (*                                  *)
@@ -38,9 +41,7 @@ class type aodv_agent_t =
     method private incr_seqno : unit -> unit
     method newadv : 
       dst:Common.nodeid_t -> 
-      rtent:Rtab.rtab_entry_t ->
-      ?ignorehops:bool -> 
-      unit -> bool
+      rtent:Rtab.rtab_entry_t -> bool
     method objdescr : string
     method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
     method private queue_size : unit -> int
@@ -51,7 +52,9 @@ class type aodv_agent_t =
       sender:Common.nodeid_t -> unit
     method private process_rrep_pkt :
       l3pkt:L3pkt.l3packet_t -> 
-      sender:Common.nodeid_t -> unit
+      sender:Common.nodeid_t ->
+      fresh:bool ->
+      unit
     method private local_repair : 
       src:Common.nodeid_t -> 
       dst:Common.nodeid_t -> 
@@ -174,13 +177,8 @@ object(s)
      buffered packets to that dest and sends them if any *)
   method newadv  
     ~(dst:Common.nodeid_t)
-    ~(rtent:Rtab.rtab_entry_t) 
-    ?(ignorehops=false)
-    () = (
+    ~(rtent:Rtab.rtab_entry_t)  = (
       let update = 
-	if ignorehops then 
-	  Rtab.newadv_ignorehops ~rt:rtab ~dst ~rtent:rtent
-	else 
 	  Rtab.newadv ~rt:rtab ~dst ~rtent:rtent
       in
       if update then (
@@ -237,7 +235,6 @@ object(s)
 	    Rtab.hopcount = Some 1;
 	    Rtab.nexthop = Some sender
 	  } 
-	  ()
       in
       assert (update);
     );
@@ -252,7 +249,6 @@ object(s)
 	  Rtab.hopcount = Some (L3pkt.shc ~l3pkt);
 	  Rtab.nexthop = Some sender
 	} 
-	()
     in
     assert (update = pkt_fresh);
     
@@ -261,7 +257,7 @@ object(s)
       | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
       | L3pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
       | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
-      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender;
+      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
       | L3pkt.GREP_RERR -> s#process_rerr_pkt ~l3pkt ~sender;
       | L3pkt.NOT_GREP | L3pkt.EASE 
 	  -> raise (Failure "Aodv_agent.recv_l2pkt_hook");
@@ -483,7 +479,9 @@ object(s)
 
   method private process_rrep_pkt 
     ~(l3pkt:L3pkt.l3packet_t) 
-    ~(sender:Common.nodeid_t) = (
+    ~(sender:Common.nodeid_t) 
+    ~(fresh:bool)
+    = (
       
       let update = s#newadv 
 	~dst:(L3pkt.osrc ~l3pkt)
@@ -493,7 +491,8 @@ object(s)
 	  Rtab.nexthop = Some sender 
 	}
       in 
-      if ((L3pkt.l3dst ~l3pkt) != owner#id) then
+      if (((L3pkt.l3dst ~l3pkt) != owner#id) &&
+      (update || (fresh && ((L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt))))) then
 	try 
 	  s#send_out ~l3pkt
 	with 

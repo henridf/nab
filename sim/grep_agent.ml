@@ -12,8 +12,14 @@
     0
 Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:300, this_sn: 202, this_hc: 1, next_$    0")
 *)
+(*
 
+  should we set the seqno on a data packet when ours is fresher???
 
+  in process_data_packet, when sent_out fails, is it possible that we don't
+  have a routing entry for the destination? shouldn't normally...
+
+*)
 
 (*                                  *)
 (* mws  multihop wireless simulator *)
@@ -36,8 +42,7 @@ class type grep_agent_t =
     method get_rtab : Rtab.rtab_t
     method newadv : 
       dst:Common.nodeid_t -> 
-      rtent:Rtab.rtab_entry_t ->
-      unit -> bool
+      rtent:Rtab.rtab_entry_t -> bool
     method objdescr : string
     method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
     method private queue_size : unit -> int
@@ -48,7 +53,9 @@ class type grep_agent_t =
       sender:Common.nodeid_t -> unit
     method private process_rrep_pkt :
       l3pkt:L3pkt.l3packet_t -> 
-      sender:Common.nodeid_t -> unit
+      sender:Common.nodeid_t -> 
+      fresh:bool ->
+      unit
     method private process_rreq_pkt :
       l3pkt:L3pkt.l3packet_t -> 
       fresh:bool -> unit
@@ -148,8 +155,7 @@ object(s)
      buffered packets to that dest and sends them if any *)
   method newadv  
     ~(dst:Common.nodeid_t)
-    ~(rtent:Rtab.rtab_entry_t) 
-    () = (
+    ~(rtent:Rtab.rtab_entry_t) = (
       let update = 
 	  Rtab.newadv ~rt:rtab ~dst ~rtent:rtent
       in
@@ -202,7 +208,6 @@ object(s)
 	    Rtab.hopcount = Some 1;
 	    Rtab.nexthop = Some sender
 	  } 
-	  ()
       in
       assert (update);
     );
@@ -217,7 +222,6 @@ object(s)
 	  Rtab.hopcount = Some (L3pkt.shc ~l3pkt);
 	  Rtab.nexthop = Some sender
 	}
-	()
     in
     assert (update = pkt_fresh);
     
@@ -226,7 +230,7 @@ object(s)
       | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
       | L3pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
       | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
-      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender;
+      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
       | L3pkt.NOT_GREP | L3pkt.EASE 
 	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
       | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
@@ -422,8 +426,9 @@ object(s)
     
   method private process_rrep_pkt 
     ~(l3pkt:L3pkt.l3packet_t) 
-    ~(sender:Common.nodeid_t) = (
-      
+    ~(sender:Common.nodeid_t) 
+    ~(fresh:bool)
+    = (
       let update = s#newadv 
 	~dst:(L3pkt.osrc ~l3pkt)
 	~rtent:{
@@ -432,7 +437,10 @@ object(s)
 	  Rtab.nexthop = Some sender 
 	}
       in 
-      if ((L3pkt.l3dst ~l3pkt) != owner#id) then
+
+      if (((L3pkt.l3dst ~l3pkt) != owner#id) &&
+      (update || (fresh && ((L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt))))) then
+
 	try 
 	  s#send_out ~l3pkt
 	with 
