@@ -1,0 +1,34 @@
+		   MWS - MULTIHOP WIRELESS SIMULATOR
+
+		http://lcavwww.epfl.ch/~henridf/mws.html
+
+
+
+To compile mws only:
+
+make bin/mws
+
+To compile mws with gui libraries:
+
+make bin/gui
+
+To compile as native code (runs faster):
+
+make OPT=y bin/gui 
+(or
+ make OPT=y bin/mws)
+
+
+Usually, one compiles mws with a script file:
+
+make SCRIPT=filename bin/mws
+
+where filename is assumed to be a file in the scripts/ directory, as in
+
+make SCRIPT=demo.ml bin/gui
+or
+make OPT=y SCRIPT=demo.ml bin/gui
+or
+make SCRIPT=grep.ml bin/gui
+
+
