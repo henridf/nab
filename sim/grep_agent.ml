@@ -38,6 +38,7 @@ Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:30
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+open Aodv_grep_common
 open Printf
 open Misc
 
@@ -76,7 +77,7 @@ class type grep_agent_t =
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
     method private send_rreq :
-      ttl:int -> dst:Common.nodeid_t -> unit
+      ttl:int -> dst:Common.nodeid_t -> rreq_uid:int -> unit
     method private send_waiting_packets : dst:Common.nodeid_t -> unit
   end
 
@@ -90,10 +91,6 @@ let set_agents arr = agents_array := arr
 let agent i = !agents_array.(i)
 
 
-let _ERS_START_TTL = 2
-let _ERS_MULT_FACT = 2
-let _ERS_MAX_TTL = 64
-
 
 class grep_agent owner : grep_agent_t = 
 object(s)
@@ -104,6 +101,9 @@ object(s)
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
+
+  val rreq_uids = Array.create (Param.get Params.nodes) 0
+    (* see #init_rreq for explanation on this *)
 
   initializer (
     s#set_objdescr ~owner "/GREP_Agent";
@@ -378,21 +378,39 @@ object(s)
 
 
   method private init_rreq ~dst = (
+    (* The use below of rreq_uid is intended to prevent the following race
+       condition:
+       
+       Expanding ring search increases radius to say 16. A node which is 17
+       hops away answers. We still have a pending send_rreq in the event loop
+       (with ttl 32). Normally, when it fires, we would not do it because of
+       the check (in send_rreq) for Rtab.repairing.
+       But say that we have just started a new rreq phase for this
+       destination, and we are currently at ttl 2. Then we would shoot ahead
+       with a ttl 32. So we use these per-destination rreq_uids which are
+       unique across a whole RREQ ERS. Maybe we could have used the dseqno
+       instead, but uids seem safer.
+    *)
+
+    if (not (Rtab.repairing ~rt ~dst)) then (
     (* for the initial route request, we don't do it if there's already one
        going on for this destination (which isn't really expected to happen,
-       but you never know *)
-    if (not (Rtab.repairing ~rt ~dst)) then (
+       but you never know) *)
+
+      rreq_uids.(dst) <- Random.int max_int;
+
+
       Rtab.repair_start ~rt ~dst;
-      s#log_info 
-      (lazy (sprintf "Initializing RREQ for dst %d" dst ));
-      s#send_rreq ~ttl:_ERS_START_TTL ~dst
+      s#log_notice 
+      (lazy (sprintf "Initiating RREQ for dst %d" dst ));
+      s#send_rreq ~ttl:_ERS_START_TTL ~dst ~rreq_uid:rreq_uids.(dst)
     )
   )
 
-  method private send_rreq  ~ttl ~dst = (
+  method private send_rreq ~ttl ~dst ~rreq_uid = (
     
-    if (Rtab.repairing ~rt ~dst) then (
-      s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
+    if (rreq_uids.(dst) = rreq_uid && Rtab.repairing ~rt ~dst) then (
+      s#log_notice (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
 	dst ttl));
       
       let (dseqno,dhopcount) = 
@@ -421,22 +439,17 @@ object(s)
       let l3pkt = 
 	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
       in
-      let next_rreq_ttl = 
-	min _ERS_MAX_TTL (ttl*_ERS_MULT_FACT) in
+      let next_ttl = next_rreq_ttl ttl in
       let next_rreq_timeout = 
-	((i2f next_rreq_ttl) *. 0.02) in
+	((i2f next_ttl) *. (hop_traversal_time())) in
       let next_rreq_event() = 
 	  (s#send_rreq 
-	    ~ttl:next_rreq_ttl
-	    ~dst)
+	    ~ttl:next_ttl
+	    ~dst
+	    ~rreq_uid
+	  )
       in	
-
 	s#send_out ~l3pkt;
-	(* we say that maximum 1-hop traversal is 20ms, 
-	   ie half of value used by AODV. Another difference relative to AODV
-	   is that we use ttl, not (ttl + 2).
-	   This is ok while we use a simple MAC, and ok since our AODV impl 
-	   will use the same values*)
 	
 	
 (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
