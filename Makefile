@@ -9,6 +9,7 @@ else
 endif
 
 
+
 LER_SUBDIR = ler
 BLER_SUBDIR = bler
 MISC_SUBDIR = misc
@@ -34,25 +35,40 @@ DEPENDS = \
 	$(TEST_SUBDIR)test/*.ml	$(TEST_SUBDIR)test/*.mli
 
 
+############
+# Libraries
+
+GFX_LIB = $(LIB_SUBDIR)/graphics$(CMA)
+UNIX_LIB = $(LIB_SUBDIR)/unix$(CMA)
+STR_LIB = $(LIB_SUBDIR)/str$(CMA)
+
 ##########################################
 # Files corresponding to different subdirs
 
 
-LER_OBJ_FILES = \
-	$(LER_SUBDIR)/ler$(CMO) \
-	$(LER_SUBDIR)/ler_main$(CMO) \
-	$(LER_SUBDIR)/ler_graphics$(CMO)
 
-BLER_OBJ_FILES = \
-	$(LER_SUBDIR)/ler_graphics$(CMO) \
-	$(BLER_SUBDIR)/bler$(CMO)
+LER_OBJ_FILES = $(LER_SUBDIR)/ler$(CMO) \
+	$(MISC_OBJ_FILES)
+LER_MAIN_FILE = $(LER_SUBDIR)/ler_main$(CMO)
 
-PROOF_OBJ_FILES = \
-	$(LER_SUBDIR)/proof$(CMO)
 
-MISC_OBJ_FILES = \
-	$(MISC_SUBDIR)/misc$(CMO)
+BLER_OBJ_FILES = $(BLER_SUBDIR)/bler$(CMO) \
+	$(BLER_SUBDIR)/ler_graphics$(CMO) \
+	$(MISC_OBJ_FILES)
+BLER_MAIN_FILE = $(BLER_SUBDIR)/bler_main$(CMO) 
 
+
+PROOF_MAIN_FILE = $(LER_SUBDIR)/proof$(CMO)
+
+DOPLOTS_OBJ_FILES = \
+	$(GFX_LIB) \
+	$(UNIX_LIB) \
+	$(STR_LIB) \
+	$(MISC_OBJ_FILES)
+DOPLOTS_MAIN_FILE = $(MISC_SUBDIR)/doplots$(CMO) 
+
+
+MISC_OBJ_FILES = $(MISC_SUBDIR)/misc$(CMO)
 
 
 TEST_OBJ_FILES = \
@@ -60,12 +76,6 @@ TEST_OBJ_FILES = \
 
 
 
-############
-# Libraries
-
-GFX_LIB = $(LIB_SUBDIR)/graphics$(CMA)
-UNIX_LIB = $(LIB_SUBDIR)/unix$(CMA)
-STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 
 %.cmo: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
@@ -76,17 +86,17 @@ STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-exp: $(LER_OBJ_FILES) 
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GFX_LIB) $(LER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
+exp:  $(LER_MAIN_FILE)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(LER_OBJ_FILES) $(LER_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
-bler: $(BLER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GFX_LIB) $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
+bler: $(BLER_MAIN_FILE)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) $(BLER_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
 doplots:  $(MISC_SUBDIR)/doplots$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(UNIX_LIB) $(STR_LIB) $(GFX_LIB) $(MISC_SUBDIR)/doplots$(CMO) -o $(BIN_SUBDIR)/$@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(DOPLOTS_OBJ_FILES) $(DOPLOTS_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
 proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
 CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo a.out); done
 
