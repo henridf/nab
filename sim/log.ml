@@ -9,10 +9,10 @@ open Printf
 
 
 
-let log_out_channel = ref stderr
+
 let log s = (
-  fprintf !log_out_channel "%s\n" s; 
-  flush !log_out_channel 
+  fprintf stderr "%s\n" s; 
+  flush stderr
 )
 
 type log_level_t = LOG_DEBUG | LOG_INFO | LOG_NOTICE | LOG_WARNING | LOG_ERROR
@@ -54,14 +54,20 @@ let set_log_level ~level:l = current_log_level := l
 class loggable = 
 object(s) 
   val mutable objdescr = ""
-  method private set_objdescr s = objdescr <- s
+  method private set_objdescr s = objdescr <- s ^ " " (* add space here so we
+							 don't have to do it
+							 each time we write a
+							 log *)
   method objdescr = objdescr
 
   method private log_level ~msg:msg ~level:l =
-    if l >= !current_log_level then 
-      log (sprintf "%s %s" s#log_hdr msg);
-
-  method private log_hdr = (sprintf "%f %s:" (Common.get_time()) objdescr)
+    if l >= !current_log_level then (
+(*      prerr_string (string_of_float (Common.get_time());*)
+      prerr_string (sprintf "%f " (Common.get_time()));
+      prerr_string objdescr;
+      prerr_endline (msg)
+(*      prerr_endline (Lazy.force msg)*)
+    )
 
   method private log msg = s#log_level ~level:LOG_INFO ~msg:msg
 
