@@ -6,6 +6,7 @@ open Graph
 open Coord
 open Misc
 open Opt
+open Mwsconv
 
 let draw_node ?(emphasize=false) nid = 
   let cols = [| 
@@ -18,7 +19,7 @@ let draw_node ?(emphasize=false) nid =
   else 
     (cols.(Random.int 3), false)
   in 
-  let pos = Mwsconv.pos_mtr_to_pix ((World.w())#nodepos nid)
+  let pos = pos_mtr_to_pix ((World.w())#nodepos nid)
   in
   Gui_gtk.draw_node ~col ~target pos
 
@@ -44,8 +45,8 @@ let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   let poslist =
   (List.map
     (fun (n1, n2) -> 
-      (Mwsconv.pos_mtr_to_pix ((World.w())#nodepos n1)), 
-      (Mwsconv.pos_mtr_to_pix ((World.w())#nodepos n2)))
+      (pos_mtr_to_pix ((World.w())#nodepos n1)), 
+      (pos_mtr_to_pix ((World.w())#nodepos n2)))
   ) nidlist
   in
   Gui_gtk.draw_segments ~col poslist
@@ -65,13 +66,14 @@ let draw_connectivity () = (
 )
 
 let draw_all_boxes() = (
-  let  list2segs l = 
+  let f point = pos_mtr_to_pix (coord_i2f point) in
+  let list2segs l = 
     match l with 
       | x1::y1::x2::y2::x3::y3::x4::y4::[] -> [
-	  (x1, y1), (x2, y2); 
-	  (x1, y1), (x4, y4);
-	  (x3, y3), (x2, y2);
-	  (x3, y3), (x4, y4)
+	  f (x1, y1), f (x2, y2); 
+	  f (x1, y1), f (x4, y4);
+	  f (x3, y3), f (x2, y2);
+	  f (x3, y3), f (x4, y4)
 	]
       | _ -> raise (Misc.Impossible_Case "Gui_gtk.draw_all_boxes")
   in
@@ -80,7 +82,6 @@ let draw_all_boxes() = (
     (fun n -> 
       Gui_gtk.draw_segments (list2segs (Graph.getinfo_ g n));
     ) g
-
 )
 
 
@@ -92,8 +93,8 @@ let draw_all_routes() = (
       List.iter (
 	fun ngbr ->
 	  Gui_gtk.draw_segments [
-	    (Read_coords.box_centeri n),
-	    (Read_coords.box_centeri ngbr)];
+	    pos_mtr_to_pix (Read_coords.box_centeri n),
+	    pos_mtr_to_pix (Read_coords.box_centeri ngbr)];
       ) ngbrs
     ) g
 )
@@ -162,7 +163,7 @@ let draw_grep_route r =
 	    | Some flood -> 
 		colindex := (!colindex + 1) mod (Array.length colors);
 		let pixtree = NaryTree.map flood 
-		  ~f:(fun nid -> Mwsconv.pos_mtr_to_pix
+		  ~f:(fun nid -> pos_mtr_to_pix
 		    ((World.w())#nodepos nid))
 		in
 		Log.log#log_notice 
@@ -217,7 +218,7 @@ let draw_ease_route
 	      (* we assume that the rectangle ratio of the window and the world
 		 are the same, otherwise this would not be a circle *)
 	      Gui_gtk.draw_circle ~centr:hop1.Route.hop 
-	      ~radius:(Mwsconv.x_mtr_to_pix (o2v hop1.Route.info).Route.searchcost);
+	      ~radius:(x_mtr_to_pix (o2v hop1.Route.info).Route.searchcost);
 	      draw_disks_ (hop2::r);
 	    )
 	  | hop1::r -> ()
@@ -308,7 +309,7 @@ let user_pick_node ?(msg = "Pick a node!") ~node_picked_cb () = (
     (fun b -> 
 
       let x, y = (f2i (GdkEvent.Button.x b), f2i (GdkEvent.Button.y b)) in
-      let node = Mwsconv.closest_node_at (x, y)
+      let node = closest_node_at (x, y)
       in
       remove_get_node_cb();
       node_picked_cb node;
