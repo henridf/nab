@@ -96,7 +96,7 @@ let init_all() =   (
 let install_macs_ ~stack mac_factory = 
   Nodes.iter (fun n -> n#install_mac ~stack (mac_factory n))
 
-let default_bps = 10e7
+let default_bps = 1e6
 
 let install_null_macs ?(stack=0) ?(bps=default_bps) () = 
   let makemac node = ((new Mac_null.nullmac ~stack bps node) :> Mac.t) in
