@@ -40,7 +40,6 @@
 
 open Printf
 open Misc
-open Ether
 
 let max_nstacks = 8
 
