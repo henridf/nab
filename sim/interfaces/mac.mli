@@ -114,6 +114,7 @@ object
   method virtual private backend_recv : L2pkt.t -> unit
 end
 
+
 (**
   This is parameterized by the type ['stats] which is returned by the
   [#other_stats] method, for MAC layers which maintain more statistics than
@@ -129,6 +130,7 @@ end
 (** The types of MAC that are available. *)
 type mactype = 
   | Nullmac  (** See {!Mac_null.nullmac} *)
+  | QueueNullmac  (** See {!Mac_null_queue.nullmac_q} *)
   | Contmac  (** See {!Mac_contention.contentionmac} *)
   | Cheatmac (** See {!Mac_cheat.cheatmac} *)
   | MACA_simple (** See {!MACA_simple.maca_mac} *)

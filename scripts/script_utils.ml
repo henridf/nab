@@ -104,6 +104,10 @@ let install_null_macs ?(stack=0) ?(bps=default_bps) () =
   let makemac node = ((new Mac_null.nullmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
+let install_queue_null_macs ?(stack=0) ?(bps=default_bps) () = 
+  let makemac node = ((new Mac_null_queue.nullmac_q ~stack ~bps node) :> Mac.t) in
+  install_macs_ ~stack makemac
+
 let install_contention_macs ?(stack=0) ?(bps=default_bps) () = 
   let makemac node = ((new Mac_contention.contentionmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
@@ -123,10 +127,13 @@ let install_maca_contention_macs ?(stack=0) ?(bps=default_bps) () =
 let install_macs ?(stack=0) ?(bps=default_bps) () = 
   match Mac.mac() with
     | Mac.Nullmac -> install_null_macs ~stack ~bps ()
+    | Mac.QueueNullmac -> install_queue_null_macs ~stack ~bps ()
     | Mac.Contmac -> install_contention_macs ~stack ~bps ()
     | Mac.Cheatmac -> install_cheat_macs ~stack ~bps ()
     | Mac.MACA_simple -> install_maca_simple_macs ~stack ~bps ()
     | Mac.MACA_contention -> install_maca_contention_macs ~stack ~bps ()
+
+
 
 let install_mobs ?gran () = 
   match Param.get Mob_ctl.mob with 

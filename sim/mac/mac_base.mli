@@ -215,8 +215,27 @@ object
 end
 
 
-(** A Null frontend, which can be inherited from by MAC layers with no backend
-  logic (for example see {!MACA_simple.maca_mac}). *)
+type mac_queue_stats = 
+    { nDrops : int } (* xxx/qmac : add more stats if necessary *)
+(** 
+  A null backend with a packet queue. Like the plain null backend, this backend
+  has no medium-access logic. However, it has an outgoing packet queue, for buffering
+  packets when the frontend is busy.
+*)
+class virtual queue_backend : ?stack:int -> bps:float -> #Node.node ->
+object
+  inherit ['mac_queue_stats] backend
+  method private backend_reset_stats : unit
+  method private backend_stats : mac_queue_stats
+  method private backend_xmit_complete : unit
+  method xmit : L2pkt.t -> unit
+  method virtual private frontend_xmit : L2pkt.t -> unit
+end
+
+
+(** A Null frontend, which can be inherited from by MAC layers with no frontend
+  logic, ie MAC layers which do no carrier sensing and do not model collisions
+  (for example see {!MACA_simple.maca_mac}). *)
 class virtual null_frontend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit [unit] frontend
@@ -224,6 +243,12 @@ object
   method private frontend_stats : unit
   method private frontend_xmit : L2pkt.t -> unit
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
+end
+
+class virtual cb_null_frontend : ?stack:int -> bps:float -> #Node.node ->
+object
+  inherit null_frontend
+  method virtual private backend_xmit_complete : unit
 end
 
 (** {1 Functions for manipulating {!Mac.basic_stats} .} *) 

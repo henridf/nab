@@ -23,36 +23,28 @@
 (* $Id$ *)
 
 (** 
-  A null MAC layer, where there are no collisions, no losses. 
-  A null MAC accepts a packet for reception or transmission even when it is
-  already receiving or sending.
-  Only propagation and transmission delay are applied.
-  No queuing/buffering necessary.
+  A null MAC layer, (no collisions) with a packet send queue.
 
-  The [pkts_RX] and [pkts_TX] fields in the {!Mac.basic_stats} record returned
-  by the method [basic_stats] count all packets (there are no control packets
-  in a null MAC anyway).
 *)
 
-class nullmac :
+class nullmac_q :
   ?stack:int ->
   bps:float ->
   #Node.node ->
   object
     inherit Mac.t
 
-    method other_stats : unit
-      (** A nullmac does not keep any additional stats beyond
-	{!Mac.basic_stats}. *)
+    method other_stats : Mac_base.mac_queue_stats
+
   end
 
-val macs : ?stack:int -> unit -> (Common.nodeid_t, nullmac) Hashtbl.t 
+val macs : ?stack:int -> unit -> (Common.nodeid_t, nullmac_q) Hashtbl.t 
   (** Returns a hashtbl, indexed by {!Common.nodeid_t}, of all the mac objects
     for stack [stack] (stack defaults to 0 if argument not provided). 
     If there are no macs on this stack, returns an empty hashtbl.
   *)
 
-val mac :  ?stack:int -> Common.nodeid_t -> nullmac
+val mac :  ?stack:int -> Common.nodeid_t -> nullmac_q
   (** Returns the nullmac mac object for given node on given stack.
     @raise Not_found if there is no nullmac on this stack/node pair.
   *)

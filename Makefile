@@ -166,6 +166,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_BASE_DIR)/node$(CMO) \
 		$(SIM_MAC_DIR)/mac_base$(CMO) \
 		$(SIM_MAC_DIR)/mac_null$(CMO) \
+		$(SIM_MAC_DIR)/mac_null_queue$(CMO) \
 		$(SIM_MAC_DIR)/contention_frontend$(CMO) \
 		$(SIM_MAC_DIR)/mac_contention$(CMO) \
 		$(SIM_MAC_DIR)/MACA_backend$(CMO) \

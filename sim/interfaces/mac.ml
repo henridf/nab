@@ -70,7 +70,7 @@ object
   method other_stats : 'stats
 end
 
-type mactype = Nullmac | Contmac | Cheatmac | MACA_simple | MACA_contention
+type mactype = Nullmac |  QueueNullmac | Contmac | Cheatmac | MACA_simple | MACA_contention 
 
 let mac_ = ref Nullmac
 

@@ -117,9 +117,58 @@ object(s)
       | d -> s#log_debug  (lazy
 	  (Printf.sprintf "Start RX, l2src %d, l2dst %d (not for us)" (L2pkt.l2src l2pkt) d));
     end
-
+    
   method xmit = s#frontend_xmit
     
+end
+
+type mac_queue_stats = 
+    { nDrops : int } (* xxx/qmac : add more stats if necessary *)
+
+class virtual queue_backend ?(stack=0)  ~(bps:float)
+  (owner:#Node.node) =
+  let myid = owner#id in
+object(s)
+  val pktq = Pkt_queue.create 10 (* xxx/qmac un-hardcode queue size *)
+
+  inherit ['mac_queue_stats] backend ~stack ~bps owner as super
+
+  method private backend_reset_stats  = Pkt_queue.reset_stats pktq
+
+  method private backend_stats = { nDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped} 
+  method private backend_recv l2pkt = 
+    let dst = L2pkt.l2dst l2pkt in
+    
+    (* Throw away unicast packet if not for us, keep it otherwise *)
+    begin match dst with
+      | d when (d = L2pkt.l2_bcast_addr) ->  s#log_debug (lazy
+	  (Printf.sprintf "Start RX, l2src %d, l2dst broadcast" 
+	    (L2pkt.l2src l2pkt)));
+	  super#send_up l2pkt;
+	  
+      | d when (d = myid) ->  s#log_debug  (lazy
+	  (Printf.sprintf "Start RX, l2src %d, l2dst %d" 
+	    (L2pkt.l2src l2pkt) d));
+	  super#send_up l2pkt;
+	  
+      | d -> s#log_debug  (lazy
+	  (Printf.sprintf "Start RX, l2src %d, l2dst %d (not for us)" (L2pkt.l2src l2pkt) d));
+    end
+
+  method virtual private frontend_xmit : L2pkt.t -> unit
+
+  method xmit l2pkt = ()
+    (* xxx/qmac
+       if the packet queue is empty, send it to the mac frontend 
+       ( s#frontend_xmit l2pkt ).
+       otherwise, add it to the queue *)
+
+  method private backend_xmit_complete = 
+    (* xxx/qmac:
+       - check if any packets in queue
+       - if yes, schedule an event to send it right away
+    *)
+    ()
 end
 
 class virtual ['stats] frontend  ?(stack=0) ~(bps:float) (owner:#Node.node) =
@@ -176,6 +225,17 @@ object(s)
 
 end
 
+class virtual cb_null_frontend ?(stack=0) ~(bps:float) (owner:#Node.node) =
+object(s)
+  inherit null_frontend ~stack ~bps owner as null_frontend
+
+  method private frontend_xmit l2pkt = 
+    null_frontend#frontend_xmit l2pkt;
+    let t = xmit_time bps l2pkt in
+    (Sched.s())#sched_in ~t ~f:(fun() -> s#backend_xmit_complete)
+
+  method virtual private backend_xmit_complete : unit 
+end
 
 
 let string_of_bstats s = 
