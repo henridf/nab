@@ -86,6 +86,10 @@ let get param = match param.value with
       (Printf.sprintf "Cannot provide value for param %s which had no default\n"  param.name))
   | Some value -> value
 
+let has_value param = match param.value with 
+  | None -> false
+  | Some value -> true
+
 let as_string p = p.printer (get p)
 
 let make_intargspec param =

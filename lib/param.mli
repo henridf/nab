@@ -144,6 +144,10 @@ val get : 'a t -> 'a
 val as_string : 'a t -> string
   (** Returns a string representation of this parameter. *)
 
+val has_value : 'a t -> bool
+  (** [has_value param] returns true if the value of param has been set, false
+    otherwise. *)
+    
 
 (** {1 Operations on all configured parameters at a time}*)
 
