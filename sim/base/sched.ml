@@ -98,7 +98,7 @@ object(s)
     scheduleds <- scheduleds + 1;
     match t with 
       | ASAP -> 
-	  s#sched_event_at {handle=handle; handler=handler; time=Time.get_time()};
+	  s#sched_event_at {handle=handle; handler=handler; time=min_float +. Time.get_time()};
       | ALAP -> raise (Failure "sched#sched_handler_at: ALAP not implemented\n")
       | Time t -> (
 	  if (t < Time.get_time()) then 
