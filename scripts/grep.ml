@@ -16,28 +16,31 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
   ~pkts_to_recv = (
   Random.init 124231;
   incr run;
-  let mob = new Mob.waypoint in
+
   Log.set_log_level ~level:Log.LOG_NOTICE;
   Param.set Params.nodes nodes;
   init_sched();
   init_world();
-  mob#initialize();
+
+
   begin match agenttype with
     | AODV -> make_aodv_nodes()
     | GREP -> make_grep_nodes();
   end;
+
+  (* Attach a random waypoint mobility process to each node *)
+  Mob_ctl.make_waypoint_mobs();
+  Mob_ctl.start_all();
+  Mob_ctl.set_speed_mps speed;
 
   Grep_hooks.set_sources sources;
   Grep_hooks.set_stop_thresh pkts_to_recv;
 
 
   Nodes.iter (fun n ->
-    n#set_speed_mps speed;
-    n#setmob mob#getnewpos;
-    n#selfmove;
     if (n#id < sources) then (
       let pkt_reception() = n#trafficsource (n#id + 1) packet_rate in
-      (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+      (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
     )
   );
   
