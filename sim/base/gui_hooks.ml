@@ -24,14 +24,10 @@
 
 
 
-
-
-
-
 open Misc
 
 
-let route_done = ref false
+let routes_done = ref 0
 
 let ease_route_pktin_mhook routeref l2pkt node = (
 
@@ -44,7 +40,7 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
 	
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
-	  route_done := true;
+	  incr routes_done;
 	  routeref := Route.add_hop !routeref {
 	    Route.hop=node#id;
 	    Route.info=Some {
@@ -67,9 +63,9 @@ let ease_route_pktout_mhook routeref l2pkt node = (
   
   match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
-    | false ->  (* Packet leaving source node *)
+    | false ->  (* Packet leaving some node *)
 	
-	(Log.log)#log_info (lazy (Printf.sprintf "Leaving src %d" node#id));	
+	(Log.log)#log_info (lazy (Printf.sprintf "Leaving node %d" node#id));	
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#id;
 	  Route.info=Some {
@@ -104,7 +100,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
     | Grep_pkt.GREP_DATA ->
 	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
-	  route_done := true;
+	  incr routes_done;
 	  routeref := Route.add_hop !routeref {
 	    Route.hop=node#id;
 	    Route.info=None

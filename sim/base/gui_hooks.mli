@@ -24,12 +24,6 @@
 
 
 
-
-
-
-
-
-
 (* Nodeid_t Route.t is not possible (as in bler) b/c anchors cannot be
    represented as nodes *)
 val ease_route_pktin_mhook : 
@@ -56,6 +50,6 @@ val grep_route_pktout_mhook :
   Simplenode.simplenode -> 
   unit
 
-val route_done : bool ref
+val routes_done : int ref
 
 
