@@ -50,14 +50,14 @@ This lesson requires the following:
 
 <h2><a name="1">1. Simulation setup</a></h2>
 <p>
-To be filled in... for now, please see <a href="lesson2.ml">lesson2.ml</a> for the full
-commented script.
+To be filled in...<br> 
+For now, please see <a href="lesson2.ml">lesson2.ml</a> for the full commented script.
 <p>
 
 <h2><a name="2">2. Using parallel stacks</a></h2>
 <p>
-To be filled in... for now, please see <a href="lesson2.ml">lesson2.ml</a> for the full
-commented script.
+To be filled in...<br> 
+For now, please see <a href="lesson2.ml">lesson2.ml</a> for the full commented script.
 <p>
 
 
@@ -101,6 +101,99 @@ Stack 2 (Contention MAC, 200Kbps, 3s jitter)
 	4 RX/RX colls, 10 RX/TX colls, 0 TX/TX drops, 101 TX/RX drops
 	133 backward links
 
+</pre>
 
+
+Note that we can directly 'inspect' the generated tree. But this is not, er,
+not easy to parse visually. If you're feeling adventurous, note that a primitive is
+available in the <a href="gen/Gui_ops.html">visualization</a> libraries to
+draw trees on top of the network layout.
+
+<pre class=example>
+# !(!flood_trees.(2));;
+- : Flood.t =
+NaryTree.Node (397,
+ [NaryTree.Node (538, []);
+  NaryTree.Node (498,
+   [NaryTree.Node (560, []); NaryTree.Node (17, []); NaryTree.Node (817, []);
+    NaryTree.Node (519, [])]);
+  NaryTree.Node (353,
+   [NaryTree.Node (368, []);
+    NaryTree.Node (599,
+     [NaryTree.Node (748,
+       [NaryTree.Node (490,
+         [NaryTree.Node (489, []); NaryTree.Node (896, []);
+          NaryTree.Node (270, []); NaryTree.Node (334, []);
+          NaryTree.Node (267, []); NaryTree.Node (347, []);
+          NaryTree.Node (203, []);
+          NaryTree.Node (114,
+           [NaryTree.Node (475,
+             [NaryTree.Node (185,
+               [NaryTree.Node (841, []);
+                NaryTree.Node (215,
+                 [NaryTree.Node (150,
+                   [NaryTree.Node (831, []);
+                    NaryTree.Node (453,
+                     [NaryTree.Node (680, []);
+                      NaryTree.Node (302,
+                       [NaryTree.Node (534,
+                         [NaryTree.Node (83, []); NaryTree.Node (842, []);
+                          NaryTree.Node (774,
+                           [NaryTree.Node (618, [NaryTree.Node (838, [])]);
+                            NaryTree.Node (851, [])]);
+                          NaryTree.Node (65, []); NaryTree.Node (497, [])]);
+                        NaryTree.Node (320,
+                         [NaryTree.Node (823, [NaryTree.Node (601, [])])])]);
+                      NaryTree.Node (525, [])]);
+                    NaryTree.Node (441, [])]);
+                  NaryTree.Node (847, []); NaryTree.Node (879, []);
+                  NaryTree.Node (551,
+                   [NaryTree.Node (115,
+                     [NaryTree.Node (530,
+                       [NaryTree.Node (54,
+                         [NaryTree.Node (808, [NaryTree.Node (149, [])]);
+                          NaryTree.Node (322, [NaryTree.Node (15, [])]);
+                          NaryTree.Node (844, [])])]);
+                      NaryTree.Node (897, []);
+                      NaryTree.Node (167,
+                       [NaryTree.Node (885, [NaryTree.Node (197, [])]);
+                        NaryTree.Node (315, []);
+                        NaryTree.Node (486,
+                         [NaryTree.Node (627, []); NaryTree.Node (742, []);
+                          NaryTree.Node (626, []);
+                          NaryTree.Node (651, [NaryTree.Node (158, [])]);
+                          NaryTree.Node (70, []);
+                          NaryTree.Node (502,
+                           [NaryTree.Node (71, [NaryTree.Node (456, [])]);
+                            NaryTree.Node (645, []); NaryTree.Node (674, []);
+                            NaryTree.Node (752, [NaryTree.Node (62, [])]);
+                            NaryTree.Node (694, []); NaryTree.Node (839, []);
+                            NaryTree.Node (142, [])]);
+                          NaryTree.Node (402, [])]);
+                        NaryTree.Node (266, []); NaryTree.Node (329, [])]);
+                      NaryTree.Node (176,
+                       [NaryTree.Node (417, []);
+                        NaryTree.Node (281,
+                         [NaryTree.Node (633,
+                           [NaryTree.Node (527,
+                             [NaryTree.Node (662,
+                               [NaryTree.Node (97, [NaryTree.Node (588, [])])]);
+                              NaryTree.Node (649, []);
+                              NaryTree.Node (237, []);
+                              NaryTree.Node (629, [])])]);
+                          NaryTree.Node (256, [])]);
+                        NaryTree.Node (685, [])])]);
+                    NaryTree.Node (517, []); NaryTree.Node (512, [])]);
+                  NaryTree.Node (230, []); NaryTree.Node (467, []);
+                  NaryTree.Node (603, [NaryTree.Node (164, [])])]);
+                NaryTree.Node (853, []); NaryTree.Node (541, ...); ...]);
+              ...]);
+            ...]);
+          ...]);
+        ...]);
+      ...]);
+    ...]);
+  ...])
+# 
 </pre>
 </html>

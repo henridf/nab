@@ -28,7 +28,9 @@ let avg_degree = 10
 let nstacks = 3
 
 let originator = ref 0 (* the node from which we will originate floods. *)
-let flood_trees = ref [||] 
+
+let flood_trees = ref [||] (* Array of refs to flood trees - gets populated
+			      below. *)
 
 let stack_descriptions = 
   [|
@@ -113,10 +115,12 @@ let tree_hook flood_tree l2pkt node = (
   flood_tree := 
   try (Flood.addnode  ~parent:l2src ~node:node#id !flood_tree)
   with (Failure "addnode") -> !flood_tree
-
+    (* Adding a node can raise an exception if the node is already in the
+       tree. When that happens, it means that our node is receiving the flood
+       packet for the second (or more) time, so we don't care. *)
 )
 
-(* Install the hooks on each stack. *)
+(* Install the hooks on each stack to reconstruct the flood tree. *)
 let setup_hooks() = (
   flood_trees := Array.init nstacks (fun _ -> ref (Flood.create !originator));
 
