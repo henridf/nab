@@ -1,5 +1,6 @@
 (**
   Run:
+  CHANGE sep3 to whatever!!
   pushd /home/henri/work/caml/contrib/gnuplot && 
   ocaml -I /home/henri/work/caml/misc unix.cma bigarray.cma misc.cmo  gnuplot.cmo  inhib.ml  && popd
 *)
@@ -7,16 +8,18 @@
 open Printf
 module P = Gnuplot.GnuplotArray
 
+let file_extension = ".eps"
+
 let lines_of_file_nocomments fname = 
   let all_lines = Misc.lines_of_file fname in
-  List.filter (fun s -> s.[0] != '#') all_lines
+  List.filter (fun s -> s.[0] <> '#') all_lines
 
 let line_reader line = 
   Scanf.sscanf line "%f %f %f %f" 
     (fun mean conf_low conf_high sinks -> (mean, conf_low, conf_high, sinks))
     
 let line fname  = 
-  let strings = lines_of_file_nocomments  ("/home/henri/censwork/exp/results/processed/"^fname) in
+  let strings = lines_of_file_nocomments  ("/home/henri/censwork/exp/results/sep2/processed/"^fname) in
   let values = List.map line_reader strings
   in 
   let x = Array.of_list (List.map (fun (_,_,_,sinks) -> sinks)  values)
@@ -30,7 +33,7 @@ let () =
   let g = P.init 
 (*    P.X*)
     ~xsize:300. ~ysize:250.
-    (P.device_of_filename "/tmp/data.png") 
+    (P.device_of_filename ("/tmp/data"^file_extension)) 
   in
   P.xlabel g "Sinks";
   P.ylabel g "Packets";
@@ -55,7 +58,7 @@ let () =
   let g = P.init 
     (*    P.X*)
     ~xsize:300. ~ysize:250.
-    (P.device_of_filename "/tmp/interest.png") 
+    (P.device_of_filename ("/tmp/interest"^file_extension)) 
   in
   (*  P.adv g;*)
   P.xlabel g "Sinks";
@@ -83,7 +86,7 @@ let () =
   let g = P.init 
     (*    P.X*)
     ~xsize:300. ~ysize:250.
-    (P.device_of_filename "/tmp/delivered.png") 
+    (P.device_of_filename ("/tmp/delivered"^file_extension) )
   in
   (*  P.adv g;*)
   P.xlabel g "Sinks";
