@@ -99,7 +99,9 @@ let draw_route
       let hops_not_drawn = (List.length r) -
 	truncate ((float (List.length r)) *. portion)
       in
-      Printf.printf "hops_not_drawn %d\n" hops_not_drawn; flush stdout;
+      Printf.printf "hops_not_drawn %d\n" hops_not_drawn; 
+      Printf.printf "portion: %f\n" portion;flush stdout;
+
       let rec draw_disks_ route = (
 	match route with 
 	  | [] -> ()
@@ -128,13 +130,14 @@ let draw_route
 		(*	    Printf.printf "drawing anchor from %s to %s\n" 
 			    (Coord.sprint hop1.Route.hop) (Coord.sprint hop1.Route.anchor);*)
 		colindex := (!colindex + 1) mod (Array.length colors);
-		if lines then
+		if lines then (
 		  Gui_gtk.draw_segments ~col:(`NAME colors.(!colindex))
 		    [hop1.Route.hop, hop1.Route.anchor];
-		if anchors then
+		);
+		if (anchors) then (
 		  Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex)) ~target:true
 		    hop1.Route.anchor
-		  
+		)
 	      );
 	      
 	      (*	    Printf.printf "Ages are %f and %f\n"  hop1.Route.anchor_age hop2.Route.anchor_age*)
@@ -148,7 +151,22 @@ let draw_route
 	match route with 
 	  | [] -> ()
 	  | hop1::hop2::r when (List.length r <= hops_not_drawn)
-	      -> ()
+	      -> (
+		if List.length r = 0 then (
+		  Gui_gtk.draw_node ~target:true ~col:(`NAME "red")
+		  hop2.Route.hop;
+		  Gui_gtk.draw_segments [(hop1.Route.hop, hop2.Route.hop)];
+		  let n = hop1.Route.hop in
+		  let c1 = Coord.xx n  
+		  and c2 = Coord.yy n  in
+		  Gui_gtk.draw_node n;
+		  (*	      let segments = [(c1 - 3, c2), (c1 + 3, c2) ; (c1, c2 - 3), (c1, c2 + 3)] in
+			      Gui_gtk.draw_segments segments ;*)
+		  draw_route_ (hop2::r);
+		  
+	      )
+	      )
+
 	  | hop1::hop2::r -> (
 	      (*	  Graphics.set_color (color ~hop:!i ~routelength:len);
 			  Graphics.set_color (Graphics.rgb 0 0 0);*)
@@ -156,11 +174,14 @@ let draw_route
 	      let n = hop1.Route.hop in
 	      let c1 = Coord.xx n  
 	      and c2 = Coord.yy n  in
-	      let segments = [(c1 - 3, c2), (c1 + 3, c2) ; (c1, c2 - 3), (c1, c2 + 3)] in
-	      Gui_gtk.draw_segments segments ;
+	      Gui_gtk.draw_node n;
+(*	      let segments = [(c1 - 3, c2), (c1 + 3, c2) ; (c1, c2 - 3), (c1, c2 + 3)] in
+	      Gui_gtk.draw_segments segments ;*)
 	      draw_route_ (hop2::r);
 	    )
-	  | hop1::r -> ()
+	  | hop1::r -> (
+	      Gui_gtk.draw_node ~target:true hop1.Route.hop;
+	    )
       )
       in
       draw_route_ r;
