@@ -41,7 +41,7 @@ let set_debug_level s =
       | "error" -> Log.LOG_ERROR
       | _ -> raise (Failure "Bad debug level argument")
   in
-  Log.set_log_level ~level
+  Log.set_log_level level
 
 
 let parse_args() = (
@@ -153,6 +153,13 @@ let make_ler_agents ?(stack=0) proto = (
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
+let make_aodv_nodes () = (
+  make_nodes();
+
+  Nodes.iteri (fun nid n -> 
+    let agent = new Aodv_agent.aodv_agent ~stack:0 n in
+    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
+)
 
 
 let make_grep_nodes () = (

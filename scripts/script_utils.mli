@@ -111,6 +111,11 @@ val make_grep_nodes : unit -> unit
     of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
+val make_aodv_nodes : unit -> unit 
+  (** Create {!Simplenode.simplenode} each with a aodv agent and a mac layer
+    of the type specified in {!Params.mac}.
+    Number of nodes {!Params.nodes} should be set before calling this *)
+
 
 val make_flood_agents : ?stack:int -> unit -> unit 
   (** Creates and adds a simple flooding agent to each node, on [stack]
