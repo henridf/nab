@@ -1,21 +1,15 @@
 <html> 
 <head>
 <title>MWS Tutorial Lesson I</title>
+<link href="emns.css" 
+type=text/css 
+rel=stylesheet>
+
 </head>
 <body BGCOLOR ="#FFFFFF"> 
 
-<table border="0" width="100%" >
-    <tr bgcolor="#b0b0cc">
-      <td width="100%">
-      <b>
-      <font face="tahoma,arial,helvetica" size="+1">
-      Lesson 1: Getting Started with mws
-      </font>
-      </b>  
-      <br>  
-      </td>
-    </tr>
-</table>
+
+<h1>Lesson 1: Getting Started with mws</h1>
 <p>
 In this first lesson, we will see how to start and setup the mws toplevel,
 configure basic simulator parameters, and run a simple flooding protocol
@@ -29,18 +23,8 @@ over a network of static nodes.
 4. <a href="#4">Using hooks to record packet statistics</a><br>
 <p>
 
-<table border="0" width="100%" >
-    <tr bgcolor="#e0e0ff">
-      <td width="100%">
-      <b>
-      <font face="tahoma,arial,helvetica" size="+1">
-      <a name="1"></a>
-      0. Prerequisites
-
-      </font></b>
-      </td>
-    </tr>
-</table>
+<hr>
+<h2><a name="1">0. Prerequisites</a></h2>
 
 This lesson requires the following:
 <ul>
@@ -55,22 +39,12 @@ will run fine, but some of the links to source documentation will not work.
 <li> You have gained basic familiarity with ocaml.
 </ul>
 
-<table border="0" width="100%" >
-    <tr bgcolor="#e0e0ff">
-      <td width="100%">
-      <b>
-      <font face="tahoma,arial,helvetica" size="+1">
-      <a name="1"></a>
-      1. Launching and setting up the mws toplevel
-
-      </font></b>
-      </td>
-    </tr>
-</table>
+      
+<h2><a name="1">1. Launching and setting up the mws toplevel</a></h2>
 
 
 You launch the mws toplevel by simply typing bin/mws-top at the prompt:
-<pre>
+<pre class=example>
 [henridf@lilblue: ~/work/mws] bin/mws-top 
 
    Multihop Wireless Simulator (mws) version 0.1
@@ -88,7 +62,7 @@ files are to be found. This can be done manually, using the #directory
 command:
 <br>
 
-<pre>
+<pre class=example>
 # #directory "/home/henridf/work/mws/lib";;
 </pre>
 
@@ -99,7 +73,7 @@ the included <a href="ocamlinit">.ocamlinit</a> for an example.
 Once you have your .ocamlinit file edited and
 in the right place, you should exit (<code>exit 0;;</code>
 ) and restart the caml toplevel, or type 
-<pre>
+<pre class=example>
 # #use /path/to/homedir/.ocamlinit;;
 </pre>
  to reload the .ocamlinit file without restarting.
@@ -119,17 +93,8 @@ or the caml emacs mode; alternatively you may use the ocamlbrowser tool included
 </font><br>
 
 <p>
-<table border="0" width="100%" >
-    <tr bgcolor="#e0e0ff">
-      <td width="100%">
-      <b>
-      <font face="tahoma,arial,helvetica" size="+1">
-      <a name="2"></a>
-      2. Configuring basic simulation parameters
-      </font></b>
-      </td>
-    </tr>
-</table>
+      
+<h2><a name="2">2. Configuring basic simulation parameters</a></h2>
 
 
 
@@ -142,14 +107,14 @@ or parsing these values as command-line arguments to mws. <br>
 Let's first set the number of nodes. First we might want to see what the
 default number is:<br>
 
-<pre>
+<pre class=example>
 # Param.get Params.nodes;;
 - : int = 500
 </pre>
 
 Maybe we would like more nodes, say 800:
 
-<pre>
+<pre class=example>
 # Param.set Params.nodes 800;;
 - : unit = ()
 </pre>
@@ -162,7 +127,7 @@ viewed <a href="gen/Param.html">here</a>
 Now, let's move on and configure some other basic parameters.
 We'll say the nodes' radio range is 12 meters:<br>
 
-<pre>
+<pre class=example>
 # Param.set Params.rrange 12.;;
 - : unit = ()
 </pre>
@@ -174,21 +139,21 @@ world of size (800  * pi * 12^2) / 7.<br>
 Since we are lazy, we can use a built-in helper function to compute this for
 us:
 
-<pre>
+<pre class=example>
 # let size = Script_utils.size ~rrange:12.0 ~nodes:800 ~avg_degree:8 ();;
 val size : float = 212.640541760032193
 </pre>
 
-<Font  Size="-1">
-<b>Note:</b> : The file scripts/script_utils.ml
+
+<b>Note:</b> <Font  Size="-1"><i>The file scripts/script_utils.ml
 (doc <a href="gen/Script_utils.html">here</a>) contains many useful
 helper functions designed to be used in the toplevel or from scripts. Take a
 look there, you may find that what you need is already implemented. And if you
 write other helpers, please consider contributing them back so they make their
-way into the next release!
+way into the next release!</i>
 </font><br><p>
 
-<pre>
+<pre class=example>
 # Param.set Params.x_size size;;
 - : unit = ()
 # Param.set Params.y_size size;;
@@ -201,7 +166,7 @@ global network knowledge (computing neighborhoods, etc) are done. The world
 object must be instantiated *after* the proper values for rrange and world
 size have been set. 
 
-<pre>
+<pre class=example>
 # Script_utils.init_lazy_world();;
 0.000000 /global World: size (212.64, 212.64), rrange 12.0,  800 nodes
 - : unit = ()
@@ -210,7 +175,7 @@ size have been set.
 
 To instantiate our nodes (which will be uniformly dispersed in the area), we do:
 
-<pre>
+<pre class=example>
 # Script_utils.make_nodes ();;
  - : unit = ()
 </pre>
@@ -222,7 +187,7 @@ sent by a node within radio range are received, with no collisions or loss.
 <a href="gen/Mac.html">here</a>
 </font><br>
 
-<pre>
+<pre class=example>
 # Param.set Params.mac "nullmac";;
 - : unit = ()
 </pre>
@@ -231,37 +196,27 @@ Now, the last thing we need to do before we get packets flowing is to choose
 some sort of routing agent. 
 
 <p>
-<table border="0" width="100%" >
-    <tr bgcolor="#e0e0ff">
-      <td width="100%">
-      <b>
-      <font face="tahoma,arial,helvetica" size="+1">
-      <a name="3"></a>
-      3. Running a simple flooding protocol.
-      </font></b>
-      </td>
-    </tr>
-</table>
+<h2><a name="3">3. Running a simple flooding protocol.</a></h2>
 
 Let's go with a very simple flooding agent. All
 this one does is to receive packets and reforward a packet it receives for the
 first time.
 
-<pre>
+<pre class=example>
 # Script_utils.make_flood_agents();;
 - : unit = ()
 </pre>
 
 Ok! Let's pick a node in the middle of the area to flood from:
 
-<pre>
+<pre class=example>
 # let originator = Opt.get 
     ((World.w())#find_closest ~pos:(size /. 2.0, size /. 2.0) ());;
   val originator : Common.nodeid_t = 397
 </pre>
 
 Now we inject a packet to flood at that node :
-<pre>
+<pre class=example>
 # (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
 - : unit = ()
 </pre>
@@ -269,7 +224,7 @@ Now we inject a packet to flood at that node :
 At this point, the flooding has not happened, because the simulation is not
 running. To make the simulation run, we need to start the event loop:
 
-<pre>
+<pre class=example>
 # (Sched.s())#run();;
 - : unit = ()
 </pre>
@@ -283,7 +238,7 @@ So, we've run the simulator, the flood has happened, but there's not much to
 see at this point. We can see that a little time has elapsed, knowing that the
 simulator clock always starts at 0.0:
 
-<pre>
+<pre class=example>
 # Time.time();;
 - : Time.time_t = 0.0295895411164387376
 </pre>
@@ -292,7 +247,7 @@ If we want a bit more verbosity, we can change the log level to INFO or even DEB
 Now if we start another flood, we will get LOTS of output (press C-c C-c to
 interrupt)!
 
-<pre>
+<pre class=example>
 # Log.set_log_level Log.LOG_DEBUG;;
 - : unit = ()
 # (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
@@ -354,23 +309,14 @@ interrupt)!
 
 Let's set the log level back to INFO for now:
 
-<pre>
+<pre class=example>
 # Log.set_log_level Log.LOG_INFO;;
 - : unit = ()
 </pre>
 
 <p>
-<table border="0" width="100%" >
-    <tr bgcolor="#e0e0ff">
-      <td width="100%">
-      <b>
-      <font face="tahoma,arial,helvetica" size="+1">
-      <a name="4"></a>
-      4. Using hooks to record packet statistics
-      </font></b>
-      </td>
-    </tr>
-</table>
+
+<h2><a name="4"> 4. Using hooks to record packet statistics</a></h2>
 Now, let's say we wanted to compute a very simple statistic on this flood: the
 total number of packets transmitted. To do this, we will use 'hooks', which
 is mechanism in mws to extract packet-level information as a simulation runs. A
@@ -383,7 +329,7 @@ packet.
 Let's define a counter and create a function that increments it each time it
 is called:
 
-<pre>
+<pre class=example>
 # let pkt_count = ref 0;;
 val pkt_count : int ref = {contents = 0}
 # let hook pkt node = incr pkt_count;;
@@ -392,12 +338,12 @@ val hook : 'a -> 'b -> unit = <fun>
 
 Then we add our hook to every node:
 
-<pre>
+<pre class=example>
 # Nodes.iter (fun n -> n#add_pktout_mhook hook);;
 - : unit = ()
 </pre>
 
-<pre>
+<pre class=example>
 # (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
 0.0.092467 /node/397/Flood_Agent Received packet from upper-layer packet for broadcast
 # (Sched.s())#run();;
@@ -406,7 +352,7 @@ Then we add our hook to every node:
 
 And we can see how many packets have been transmitted:
 
-<pre>
+<pre class=example>
 # !pkt_count;;
 - : int = 1601
 </pre>

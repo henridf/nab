@@ -1,0 +1,54 @@
+BODY {
+	BACKGROUND-COLOR: white
+}
+H2 {
+	CLEAR: both
+}
+H3 {
+	CLEAR: both
+}
+.clear {
+	CLEAR: both
+}
+LI {
+	MARGIN-TOP: 0.5em
+}
+TABLE.photo {
+	MARGIN: 1em
+}
+CAPTION {
+	FONT-STYLE: italic
+}
+.copyright {
+	FONT-SIZE: 0.8em
+}
+.note {
+	COLOR: red
+}
+.example {
+	PADDING-RIGHT: 1em; PADDING-LEFT: 1em; FONT-SIZE: 0.9em; MARGIN-LEFT: 10%; MARGIN-RIGHT: 10%; PADDING-TOP: 1em; BACKGROUND-COLOR: #c0c0ff
+}
+IMG {
+	BORDER-TOP-WIDTH: 0px; BORDER-LEFT-WIDTH: 0px; BORDER-BOTTOM-WIDTH: 0px; VERTICAL-ALIGN: bottom; BORDER-RIGHT-WIDTH: 0px
+}
+IMG.frame {
+	BORDER-RIGHT: 5px outset; BORDER-TOP: 5px outset; BORDER-LEFT: 5px outset; BORDER-BOTTOM: 5px outset
+}
+.photo {
+	MARGIN: 1em; TEXT-ALIGN: center
+}
+.photo-left {
+	FLOAT: left; MARGIN: 1em
+}
+.photo-right {
+	FLOAT: right; MARGIN: 1em
+}
+.caption {
+	MARGIN-TOP: 0.25em; FONT-WEIGHT: bold; FONT-STYLE: italic; TEXT-ALIGN: center; max-width: 90%
+}
+.sold {
+	TEXT-DECORATION: line-through
+}
+.sold:unknown {
+	COLOR: red; TEXT-DECORATION: none; content: " SOLD!"
+}
