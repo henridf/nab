@@ -305,8 +305,8 @@ val fresh_cost : float ref = {contents = 0.}
 
 # let route_cost_hook tot_cost l2pkt node =      <!--test_keep-->
   let l3pkt = L2pkt.l3pkt l2pkt in               <!--test_keep-->
-  let ease_hdr =  L3pkt.ease_hdr l3pkt in        <!--test_keep-->
-  tot_cost := !tot_cost +. ((Ease_pkt.search_dist ease_hdr) ** 2.0);;
+  let ler_hdr =  L3pkt.ler_hdr l3pkt in        <!--test_keep-->
+  tot_cost := !tot_cost +. ((Ler_pkt.search_dist ler_hdr) ** 2.0);;
 val route_cost_hook : float ref -> L2pkt.t -> 'a -> unit = <fun>
 
 # Nodes.gpsiter (fun n -> n#add_pktout_mhook ~stack:0 (route_cost_hook grease_cost));;
@@ -331,7 +331,7 @@ explicitly define one function for every hook!
 # let src = (World.w())#find_closest ~pos:(Nodes.gpsnode 0)#pos ~f:(fun nid -> (World.w())#dist_nodeids 0 nid > 100.) ();;
 - : Common.nodeid_t option = Some 632
 <!-- 
-assert (((World.w())#dist_nodeids 0 632) > 100.);;
+assert (((World.w())#dist_nodeids 0 632) > 100.);; <!--test_keep-->
  -->
 # (Nodes.gpsnode 632)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;;
 1023.000000 /node/632/grease_agent/0 received pkt with src 632, dst 0, enc_age 17976931348 ... 99881250404026184124858368.000000, anchor_pos <100.075, 158.195>
@@ -377,7 +377,7 @@ Have fun!!!
 <pre class=example>
 # Gui_gtk.init();;
 - : unit -> unit = <fun>
-# Gui_ease.setup_easeviz_app();; 
+# Gui_ler.setup_easeviz_app();; 
 - : unit = ()
 # Main.main();;<!--test_ignore-->
 - : unit = ()
