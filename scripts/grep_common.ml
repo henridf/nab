@@ -1,44 +1,42 @@
 (*
- *
- *  NAB - Network in a Box
- *  Henri Dubois-Ferriere, LCA/LCAV, EPFL
  * 
- *  Copyright (C) 2004 Laboratory of Audiovisual Communications (LCAV), and
- *  Laboratory for Computer Communications and Applications (LCA), 
- *  Ecole Polytechnique Federale de Lausanne (EPFL),
- *  CH-1015 Lausanne, Switzerland
- *
- *  This file is part of NAB. NAB is free software; you can redistribute it 
- *  and/or modify it under the terms of the GNU General Public License as 
- *  published by the Free Software Foundation; either version 2 of the License,
- *  or (at your option) any later version. 
- *
- *  NAB is distributed in the hope that it will be useful, but WITHOUT ANY
- *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- *  details (enclosed in the file GPL). 
- *
+ * NAB - Network in a Box Henri Dubois-Ferriere, LCA/LCAV, EPFL
+ * 
+ * Copyright (C) 2004 Laboratory of Audiovisual Communications (LCAV), and
+ * Laboratory for Computer Communications and Applications (LCA), Ecole
+ * Polytechnique Federale de Lausanne (EPFL), CH-1015 Lausanne, Switzerland
+ * 
+ * This file is part of NAB. NAB is free software; you can redistribute it
+ * and/or modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of the License,
+ * or (at your option) any later version.
+ * 
+ * NAB is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+ * details (enclosed in the file GPL).
+ * 
  *)
 
 (* $Id$ *)
 
 
-
-
-
-
-
 open Printf
 open Misc
+open Script_utils
+
+let avg_degree = 9
 
 type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
-type agent_type = AODV | GREP | STR
+type agent_type = AODV | GREP | STR_MAX | STR_AGE | STR_AODV
 
 module Config = 
 struct
   let agent_of_string = function
     | "aodv" | "AODV" -> AODV
-    | "str" | "STR" -> STR
+    | "str"  | "str-max" | "str_max" ->STR_MAX
+    | "str-age" | "str_age" -> STR_AGE
+    | "str-aodv" | "str_aodv" -> STR_AODV
     | "grep" | "GREP" -> GREP
     | _ -> raise (Failure "Invalid format for agent type")
 
@@ -79,7 +77,7 @@ struct
     ~doc:"Run number" ()
 
   let packet_rate = 
-    Param.floatcreate ~name:"rate" ~default:1.
+    Param.floatcreate ~name:"rate" ~default:0.03
       ~cmdline:true
       ~doc:"Orig rate [pkt/s]"  ()
 
@@ -92,13 +90,71 @@ struct
   let pktssend = 
     Param.intcreate ~name:"pktssend" 
       ~cmdline:true
+      ~default:50
       ~doc:"Packets originated"  ()
 
     
 end
 
 
+let print_degree() = 
+  let avgn = avg_neighbors_per_node() in
+  Log.log#log_notice (lazy (sprintf "Avg neighbors per node is %f\n" avgn))
+
+
+let is_destination nid = 
+  let sources = (Param.get Config.sources) in
+  match Config.tmat_of_string (Param.get Config.tmat) with
+    | HOTSPOT -> nid = ((Param.get Params.nodes)  - 1 )
+    | UNIDIR -> nid >= (((Param.get Params.nodes)  - 1 ) - sources)
+    | BIDIR -> nid <= sources - 1
+
+
+let setup_sim() = (
+
+  let agenttype = Config.agent_of_string (Param.get Config.agent)
+  and speed = (Param.get Config.speed)
+  and rrange = (Param.get Params.radiorange)
+  in
+
+  Randoms.change_seed ~newseed:(Param.get Config.run) () ;
+
+  Param.set Params.x_size 
+    (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
+  Param.set Params.y_size 
+    (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
+
+(*
+  Param.set Params.x_size 800.;
+  Param.set Params.y_size 600.;
+*)
+
+
+(*  init_epfl_world();*)
+  init_lazy_world();
+
+  begin match agenttype with
+    | AODV -> make_aodv_nodes()
+    | STR_AGE -> make_str_nodes Str_rtab.STR_AGE;
+    | STR_MAX -> make_str_nodes Str_rtab.STR_MAX;
+    | STR_AODV -> make_str_nodes Str_rtab.STR_AODV;
+    | GREP -> failwith "grep not working no more"
+  end;
+
+(*  Mob_ctl.make_epfl_waypoint_mobs();*)
+  Mob_ctl.make_billiard_mobs ~gran:(rrange /. 10.) ();
+  Mob_ctl.set_speed_mps speed;
+(*  Mob_ctl.start_all();*)
+
+  print_degree();
+
+
+)
+
+
 let install_tsources () = 
+
+
   let sources = (Param.get Config.sources) in
   let rndstream = Random.State.copy (Random.get_state()) in
 
@@ -108,8 +164,9 @@ let install_tsources () =
 	match Config.tmat_of_string (Param.get Config.tmat) with
 	  | HOTSPOT -> ((Param.get Params.nodes)  - 1 )
 	  | UNIDIR -> (((Param.get Params.nodes)  - 1 ) - n#id)
-	  | BIDIR -> (sources - n#id)
+	  | BIDIR -> (sources - n#id - 1)
       in
+      assert (is_destination dst);
       if (dst <> n#id) then (
 	(* in case we have n nodes, n sources, then the n/2'th node would have
 	   itself as destination*)
@@ -128,3 +185,16 @@ let install_tsources () =
       )
     )
   )
+
+let clear_tsources () = 
+  Nodes.iter (fun n -> n#clear_trafficsources())
+
+let get_added_stats() = 
+  match Config.agent_of_string (Param.get Config.agent) with
+    | AODV -> let tot = Aodv_agent.total_stats() in
+      Aodv_agent.Aodv_stats.sprint_stats tot
+    | STR_AODV | STR_MAX | STR_AGE -> let tot = Str_agent.total_stats() in
+      Str_agent.sprint_stats tot
+    | GREP -> ""
+
+
