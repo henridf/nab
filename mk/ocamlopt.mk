@@ -17,7 +17,7 @@ CMO		= $(CMOS)
 CMA		= $(CMAS)
 #*************************************************************#
 COMPTYPE	= opt
-MLWARN		=
+MLWARN		= -w Al 
 MLFAST		= -unsafe -inline 10 -noassert
 ifdef PROF
 	PROFILE	= 	 -p

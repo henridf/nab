@@ -62,33 +62,3 @@ module Imperative(X: Ordered) : sig
 
 end
 
-(*S Functional implementation. *)
-
-module Functional(X: Ordered) : sig
-
-  (* Type of functional heaps *)
-  type t
-
-  (* The empty heap *)
-  val empty : t
-
-  (* [add x h] returns a new heap containing the elements of [h], plus [x];
-     complexity $O(log(n))$ *)
-  val add : X.t -> t -> t
-
-  (* [maximum h] returns the maximum element of [h]; raises [EmptyHeap]
-     when [h] is empty; complexity $O(1)$ *)
-  val maximum : t -> X.t
-
-  (* [remove h] returns a new heap containing the elements of [h], except
-     the maximum of [h]; raises [EmptyHeap] when [h] is empty; 
-     complexity $O(log(n))$ *) 
-  val remove : t -> t
-
-  (* usual iterators and combinators; elements are presented in
-     arbitrary order *)
-  val iter : (X.t -> unit) -> t -> unit
-
-  val fold : (X.t -> 'a -> 'a) -> t -> 'a -> 'a
-
-end
