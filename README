@@ -32,6 +32,10 @@ where filename is assumed to be a file in the scripts/ directory, as in
 
 
 ** OTHER TARGETS
+
 To build documentation: 
 
 	make htmldoc
+
+This will create a set of html pages in the doc/ subdir, that you can 
+browse starting from doc/index.html
