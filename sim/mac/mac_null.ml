@@ -53,6 +53,10 @@ object(s)
 
   method reset_stats = super#reset_stats
 
+
+(* Note: here we deviate from the operation described in Mac_base : 
+   the recv method is called at the *end* of the packet reception. this allows
+   us to bypass the Ether module. *)
   method recv ?snr ~l2pkt () = (
 
     let dst = l2dst l2pkt in
@@ -75,6 +79,8 @@ object(s)
     super#send_up l2pkt;
   )
 
+
+  (* xxx/ why does this do address filtering itself?? why not use Null_Ether?? *)
   method xmit l2pkt = 
     let l2dst = L2pkt.l2dst l2pkt in
     let neighbors = (World.w())#neighbors myid in
