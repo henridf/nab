@@ -25,10 +25,14 @@ object
   method run : unit -> unit 
 
   (* same as #run except that continure is called between each event, and
-     processing stops if f returns true *)
+     processing stops if continue() returns false *)
   method run_until : 
     continue:(unit -> bool) -> 
     unit 
+
+  method run_for : duration:Common.time_t -> unit
+    (* runs until no more events or duration secs passed, whichever
+       occurs first*)
 
   method objdescr : string
 
@@ -38,6 +42,8 @@ object
 
   method stop_in :  t:Common.time_t -> unit
   method stop_at :  t:sched_time_t -> unit
+
+
 
   method private next_event : eventlist_entry_t option 
 end
@@ -120,6 +126,11 @@ object(s)
       | o -> raise o
     )
 
-  method run() = s#run_until (fun () -> true)
+  method run_for ~duration = 
+    let t = (Common.get_time()) in
+    let continue  = (fun () -> (Common.get_time()) < duration +. t) in
+    s#run_until ~continue
+
+  method run() = s#run_until ~continue:(fun () -> true)
 
 end
