@@ -28,8 +28,10 @@ GNUPLOT_DIR = contrib/gnuplot
 CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
 INCLUDE_LIBS = -I $(GTK_DIR) -I $(GNUPLOT_DIR)
-INCLUDE_SRC = -I $(MISC_DIR) -I $(PKT_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR)
-INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC)
+INCLUDE_SRC = -I $(MISC_DIR) -I $(PKT_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR) 
+INCLUDE_SCRIPTS = -I $(MWS_SCRIPT_DIR)
+INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) $(INCLUDE_SCRIPTS)
+INCLUDE_DOCS = $(INCLUDE_LIBS) $(INCLUDE_SRC) 
 
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
 
@@ -142,6 +144,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/script_utils$(CMO)
 
 
+
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
 		$(GUI_DIR)/data/epfl$(CMO) \
 		$(GUI_DIR)/gui_hooks$(CMO) \
@@ -182,6 +185,14 @@ mws: bin/mws
 bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
 	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
+mwsgrep: bin/mwsgrep
+bin/mwsgrep: $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO)
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
+
+grepviz: bin/grepviz
+bin/grepviz: $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
+
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES)  $(MWS_SCRIPT) -o $@
@@ -210,10 +221,10 @@ GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
 DOC_DIR = doc
 
 htmldoc: $(MWS_OBJ_FILES)
-	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
+	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE_DOCS)  $(DOC_FILES)
 
 dotdoc:
-	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
+	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE_DOCS)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
 
 camlgtk-th: bin/camlgtk-th
 bin/camlgtk-th: 
