@@ -49,13 +49,13 @@ module DiscrTorusTop : Top.Topology_t =
   let (waypoint_move, waypoint_init) = (
 
     let init_done = ref false in
-    let waypoint_targets = ref (Array.make 1 ([|0;0|]:coordi_t)) in
+    let waypoint_targets = ref (Array.make 1 ([|0.0;0.0|]:coordf_t)) in
     
     let init () = (
-      waypoint_targets := (Array.make params.n ([|0;0|]:coordi_t));
+      waypoint_targets := (Array.make (Param.get Params.nodes) ([|0.0;0.0|]:coordf_t));
       Array.iteri (
 	fun i nothing  -> 
-	  !waypoint_targets.(i) <- [|Random.int !gridsize_; Random.int !gridsize_|]
+	  !waypoint_targets.(i) <- coord_i2f [|Random.int !gridsize_; Random.int !gridsize_|]
       ) !waypoint_targets;
     ) in
     
@@ -69,29 +69,31 @@ module DiscrTorusTop : Top.Topology_t =
 
       let target = !waypoint_targets.(index) in
       let pos = data.pos.(index) in
-      if (dist_sq_reflect target pos) <= 1 then 
+      if (dist target pos) <= 1.0 then 
 	(* arrived at target *)
 	begin
-	  !waypoint_targets.(index) <- [|Random.int !gridsize_; Random.int !gridsize_|];
+	  !waypoint_targets.(index) <- coord_i2f [|Random.int !gridsize_; Random.int !gridsize_|];
 	  if index = 0 then (
-	    Ler_graphics.circle_nodes [|!waypoint_targets.(index)|] 0.3;
+	    (* should do a project_2d before drawing *)
+	    Ler_graphics.circle_nodes [|!waypoint_targets.(index)|] 0.02;
 	    Ler_graphics.draw_nodes [|target|];
 	  );
 	  target
 	end
       else 
 	begin
-	  let direction = normalize (coord_i2f (target --- pos)) in
-	  let increment =
+	  let direction = normalize  (target ---. pos) in
+	  let increment = coord_i2f (
 	    match coordf2pair (coord_round direction) with
 	      | (1.0, 1.0) -> rnd_from_list [[|1; 0|]; [|0;1|]] 
 	      | (1.0, -1.0) -> rnd_from_list [[|1; 0|]; [|0;-1|]] 
 	      | (-1.0, 1.0) -> rnd_from_list [[|-1; 0|]; [|0;1|]] 
 	      | (-1.0, -1.0) -> rnd_from_list [[|-1; 0|]; [|0;-1|]] 
 	      | default -> coord_f2i (coord_round direction) 
+	  )
 	  in
-	  if index = 0 then Ler_graphics.draw_nodes [|pos +++ increment|];
-	  pos +++ increment;
+	  if index = 0 then Ler_graphics.draw_nodes [|pos +++. increment|];
+	  pos +++. increment;
 	end
     )
       
@@ -107,8 +109,8 @@ module DiscrTorusTop : Top.Topology_t =
 	    coord_i2f (rnd_from_list (Graph.neigbors_lattice_ !g (coord_f2i data.pos.(index)) ~side:!gridsize_))
 	| WAYPOINT -> (
 	    Printf.printf "!*!\nWaypoint model has never been tested in this
-      topology. look at the node movement  and make sure it looks ok!\n!*!\n"
-	    raise waypoint_move data ~index:index
+      topology. look at the node movement  and make sure it looks ok!\n!*!\n";
+	    waypoint_move data ~index:index
 	  )
     )
 
