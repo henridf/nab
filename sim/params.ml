@@ -27,7 +27,7 @@ let y_size =
 
 let x_pix_size = 
   Param.intcreate 
-    ~default:400
+    ~default:600
     ~name:"x_pix_size" 
     ~doc:"X [pix] size  of simulation area"
     ()
@@ -35,7 +35,7 @@ let x_pix_size =
 let y_pix_size = 
   Param.intcreate 
     ~name:"y_pix_size" 
-    ~default:300
+    ~default:600
     ~doc:"Y [pix] size of simulation area"
     ()
 
