@@ -10,6 +10,10 @@ let t = ref (Common.get_time())
 let rt = ref None (* keep a copy of last route around so expose_event can
 		     redraw it *)
 
+
+(* current routing stack in use *)
+let stack = ref 0
+
 let start_stop_btn = ref None
 let start_stop_tab:GPack.table option ref = ref None
 let ss_btn() = o2v !start_stop_btn
@@ -69,7 +73,7 @@ let start_stop () = (
 let get_route nid = (
   Grep_hooks.reset();
 
-(*  (Sched.s())#run(); *)
+  (*  (Sched.s())#run(); *)
   src_ := nid;
   
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" !src_ dst);
@@ -88,7 +92,8 @@ let get_route nid = (
   ~continue:(fun () -> 
     Gui_hooks.route_done = ref false;
   );
-  
+
+
 
   rt := Some !routeref;
   refresh();
@@ -98,8 +103,8 @@ let get_route nid = (
 )
 
 let choose_node () = (
-  (* call Mob_ctl.stop_all always because node mobs might not be stopped even when
-     !running is false. *)
+  (* call Mob_ctl.stop_all always because node mobs might not be stopped even 
+     when  !running is false. *)
   Mob_ctl.stop_all();
   
   if !running then (
@@ -131,6 +136,42 @@ let create_buttons_common() = (
 
   ss_tab
 )
+
+
+(* lifted from testgtk.ml (example comes with lablgtk) *)
+let create_menu () = (
+  let menu = GMenu.menu () and group = ref None in
+  for i = 0 to 1 do
+    let menuitem = GMenu.radio_menu_item ?group:!group
+      ~label:("protostack "^(string_of_int i))
+      ~packing:menu#append ~show_toggle:true
+      () in
+    ignore(menuitem#connect#toggled 
+      (fun () -> stack := i ));
+
+    group := Some (menuitem #group);
+  done;
+  menu
+)
+
+let create_menus () = (
+  let window = GWindow.window ~title: "menus"
+    ~border_width: 0 () in
+  ignore(window #connect#destroy ~callback:(fun _ -> ()));
+  ignore(window #event#connect#delete ~callback:(fun _ -> true));
+
+  let box2 = GPack.vbox ~packing:window#add () in
+  
+  let menu = create_menu() in
+  
+  let optionmenu = GMenu.option_menu ~packing: box2#add () in
+  optionmenu #set_menu menu;
+  optionmenu #set_history 3;
+
+  window#show ()
+
+)
+
 
 let create_buttons_grep() = (
 
@@ -179,7 +220,12 @@ let create_buttons_grep() = (
       adj#value/.1000.;
       if (!rt <> None) then refresh ();
     ));
-  Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false)
+  Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false);
+
+  create_menus();
+
+
+
   )
 
 
