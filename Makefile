@@ -28,10 +28,11 @@ SIM_DIRS = $(SIM_BASE_DIR) $(SIM_INTF_DIR) $(SIM_MAC_DIR) $(SIM_MOB_DIR) $(SIM_P
 PROTO_DIR = proto
 PROTO_LER_DIR = $(PROTO_DIR)/ler
 PROTO_GREP_DIR = $(PROTO_DIR)/grep
+PROTO_STR_DIR = $(PROTO_DIR)/str
 PROTO_AODV_DIR = $(PROTO_DIR)/aodv
 PROTO_DIFF_DIR = $(PROTO_DIR)/diff
 PROTO_MISC_DIR = $(PROTO_DIR)/misc
-PROTO_DIRS = $(PROTO_GREP_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
+PROTO_DIRS = $(PROTO_GREP_DIR) $(PROTO_STR_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
 	$(PROTO_MISC_DIR) $(PROTO_LER_DIR) 
 
 SIM_LIB_DIR = lib
@@ -139,11 +140,13 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_PKT_DIR)/l4pkt$(CMO) \
 		$(PROTO_LER_DIR)/ler_pkt$(CMO) \
 		$(PROTO_GREP_DIR)/grep_pkt$(CMO) \
+		$(PROTO_STR_DIR)/str_pkt$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
 		$(PROTO_MISC_DIR)/simple_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l3pkt$(CMO) \
 		$(SIM_MAC_DIR)/macaw_pkt$(CMO) \
+		$(SIM_MAC_DIR)/maca_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l2pkt$(CMO) \
 		$(SIM_LIB_DIR)/log$(CMO) \
 		$(SIM_BASE_DIR)/world$(CMO) \
@@ -164,15 +167,22 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_BASE_DIR)/simplenode$(CMO) \
 		$(SIM_MAC_DIR)/mac_base$(CMO) \
 		$(SIM_MAC_DIR)/mac_null$(CMO) \
+		$(SIM_MAC_DIR)/contention_frontend$(CMO) \
 		$(SIM_MAC_DIR)/mac_contention$(CMO) \
+		$(SIM_MAC_DIR)/MACA_backend$(CMO) \
+		$(SIM_MAC_DIR)/MACA_simple$(CMO) \
+		$(SIM_MAC_DIR)/MACA_contention$(CMO) \
 		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
 		$(SIM_BASE_DIR)/gpsnode$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
+		$(PROTO_STR_DIR)/str_defaults$(CMO) \
+		$(PROTO_STR_DIR)/str_rtab$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_defaults$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_rtab$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
 		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
+		$(PROTO_STR_DIR)/str_agent$(CMO) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
@@ -210,6 +220,9 @@ MODULE_OBJS = \
 SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 		 $(SIM_LIB_DIR)/misc$(CMO) \
 		 $(SIM_LIB_CONTRIB_DIR)/opt$(CMO) \
+		 $(SIM_LIB_CONTRIB_DIR)/enum$(CMO) \
+		 $(SIM_LIB_CONTRIB_DIR)/extHashtbl$(CMO) \
+		 $(SIM_LIB_CONTRIB_DIR)/dynArray$(CMO) \
 		 $(SIM_LIB_DIR)/pkt_queue$(CMO) \
 		 $(SIM_LIB_DIR)/randoms$(CMO) \
 		 $(SIM_LIB_DIR)/coord$(CMO) \
