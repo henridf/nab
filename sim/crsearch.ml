@@ -48,22 +48,13 @@ let xsect_circle_vline ~center ~radius ~x ~worldsize_y_m = (
   in y1 @ y2
 )
 
-(*
-  val xsect_grid_and_circle : center:Coord.coordf_t -> radius:float -> 
-  worldsize_m:int -> Coord.coordi_t list 
 
-  Returns a list of the bottom-left coords of all world squares that are
-  touched by the circle.
-  worldsize_x_m : width of world in meters
-  worldsize_y_m : height of world in meters
-  boxsize_m : size of one grid square in meters
-*)
 
 let xsect_grid_and_circle 
   ~center_m 
   ~radius_m 
-  ~worldsize_y_m 
   ~worldsize_x_m
+  ~worldsize_y_m 
   ~boxsize_m = (
     
     let pos_in_grid pos = coord_f2i (coord_floor (pos ///. boxsize_m)) in
