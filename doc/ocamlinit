@@ -1,7 +1,8 @@
 (*
-   This file should be saved as .ocamlinit in your home directory 
-   (after having changed the /home/henridf/work below to whichever 
-    path leads to your nab directory).
+   This file should be saved as .ocamlinit in your home directory, 
+   after having changed adjusted the paths below:
+   - replace /home/henridf/work by the path to your nab directory.
+   - replace /usr/lib/ocaml/3.07/lablgtk by the path to your lablgtk library installation.
 *)
 
 #directory "/home/henridf/work/nab/lib";;
@@ -10,11 +11,13 @@
 #directory "/home/henridf/work/nab/sim/base";;
 #directory "/home/henridf/work/nab/sim/interfaces";;
 #directory "/home/henridf/work/nab/sim/pkt";;
-
-
+#directory "/home/henridf/work/nab/gui";;
 
 #directory "/home/henridf/work/nab/proto/grep";;
 #directory "/home/henridf/work/nab/proto/aodv";;
 #directory "/home/henridf/work/nab/proto/diff";;
 #directory "/home/henridf/work/nab/proto/misc";;
 #directory "/home/henridf/work/nab/proto/ler";;
+
+
+#directory "/usr/lib/ocaml/3.07/lablgtk";;
