@@ -32,7 +32,7 @@ let var_i (a: int array) =
 type datapoint_f = {x : float ; data : float array}
 type stat_f = {avg : float; var : float}
 type bin_f = {center: float; count: int; stats : stat_f array}
-    (* there is one  stat for each datapoint in the datapoint_f.data *)
+    (* there is one stat for each datapoint in the datapoint_f.data *)
 
 (* val binnify_f : datapoint_f array -> int -> bin_f array = <fun> *)
 let binnify_f (datas: datapoint_f array) nbins = ( 
