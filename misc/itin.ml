@@ -12,6 +12,7 @@ sig
   type t   
   val make_ : itinsize:int -> graphsize:int -> t
   val length_ : t -> int
+  val maxlength_ : t -> int
   val addplace_ : t -> int -> unit
   val get_ : t -> int -> int           (* get an entry in the itinerary, specified by relative age *)
   val hops_to_place_ : t -> int -> int (* throws Failure if place not in itin *)
@@ -28,7 +29,7 @@ struct
   
 
   type place_t = None | Place of int
-  type mytype = place_t LinkedArray.linkedArray_t
+
   type t =  {cbuf: place_t CircBuf.circbuf_t; (* head points to last written entry *)
 	     graphsize: int; (* number of nodes in the graph over which this itinerary goes *)
 	     arr: int array; (* mapping of place to 'time' (from counter) visited. max_int if never visited *)
@@ -42,13 +43,14 @@ struct
     | Place i -> i
 
 
-  let make_ ~itinsize ~graphsize = {cbuf=CircBuf.make_ itinsize None;
+  let make_ ~itinsize ~graphsize = {cbuf=CircBuf.make_ itinsize ;
 				      graphsize=graphsize;
 				      arr=Array.make graphsize (max_int);
 			              counter=0
 				     }
 
   let length_ itin = CircBuf.length_ itin.cbuf
+  let maxlength_ itin = CircBuf.maxlength_ itin.cbuf
 
   let addplace_ itin place = (
     CircBuf.push_ itin.cbuf (Place place);
@@ -63,7 +65,11 @@ struct
 
 	
   let getplace__ itin offset = 
-    try CircBuf.get_ itin.cbuf offset with Invalid_argument "Circbuf.get" -> raise (Invalid_argument "Itinerary.getplace__")
+    try CircBuf.get_ itin.cbuf offset with 
+	Invalid_argument "Circbuf.get_ : No value at this index" -> None
+      | Invalid_argument "Circbuf.get_ : Out-of-bounds" -> raise (Invalid_argument "Itinerary.getplace__ : Out-of-bounds")
+
+
 
   let get_ itin offset = (
       let res = getplace__ itin offset in
@@ -71,31 +77,29 @@ struct
 	p2i__ res;
     )
 
-  let hops_to_place_ itin place = 
+  let hops_to_place_ itin place = (
     if itin.arr.(place) == max_int then 
       failwith "Itinerary.hops_to_place_ : place has never been visited"
     else
       let h = itin.counter - itin.arr.(place)  in
-	if h > CircBuf.length_ itin.cbuf
+	if h > CircBuf.maxlength_ itin.cbuf
 	then 
 	  failwith "Itinerary.hops_to_place_ : place visited, but out of itinerary"
 	else 
 	  h - 1 (* -1 so that the last node in itinerary is 0 hops away *)
+  )
     
-  let have_wrapped__ itin =  (getplace__ itin (length_ itin - 1)) <> None 
-
-
   (* replaces rightitin's itinerary upto given place with leftitin's. *)
-  let splice_ ~leftitin ~rightitin p = (
+  let splice__ ~leftitin ~rightitin p = (
     assert (leftitin.graphsize = rightitin.graphsize);
 
     if (p = None) then rightitin else (
 
     let l1 = hops_to_place_ leftitin (p2i__ p) in
-    let l2 = (length_ rightitin) - (hops_to_place_ rightitin (p2i__ p)) in
+    let l2 = (maxlength_ rightitin) - (hops_to_place_ rightitin (p2i__ p)) in
     let newitin = make_ ~itinsize:(l1 + l2)  ~graphsize:leftitin.graphsize in
 
-      for i = (length_ rightitin) - 1 downto (hops_to_place_ rightitin (p2i__ p)) do
+      for i = (maxlength_ rightitin) - 1 downto (hops_to_place_ rightitin (p2i__ p)) do
 	addplace_ newitin (get_ rightitin i)
       done;
 
@@ -110,13 +114,13 @@ struct
   let shorten_ it1 it2 = (
     assert (it1.graphsize = it2.graphsize);
 
-    if ((getplace__ it1 (length_ it1 - 1)) <> (getplace__ it2 (length_ it2 - 1))) then 
+    if ((getplace__ it1 (maxlength_ it1 - 1)) <> (getplace__ it2 (maxlength_ it2 - 1))) then 
       failwith "Itinerary.shorten_ : Incompatible itineraries have different end points";
     
     (* xxx/canoptimize could compare lengths and iterate over shortest of two itineraries *)
     let opt_gain = ref 0 in
     let opt_place = ref None in
-      for i = 0 to length_ it1 - 1 do
+      for i = 0 to maxlength_ it1 - 1 do
 
 	let p = get_ it1 i in begin
 	  try (
@@ -131,7 +135,7 @@ struct
 	    | Failure "Itinerary.hops_to_place_ : place visited, but out of itinerary" -> ();
 	  end
       done;
-      splice_ it1 it2 !opt_place
+      splice__ it1 it2 !opt_place
   )
 
   let unroll_ itin = (
@@ -142,8 +146,6 @@ struct
     else
       (* to avoid reallocs, reuse the same one across invocations when graphsize doesn't change *)
       ArrayLabels.fill !last_visit_of_place__ ~pos:0 ~len:itin.graphsize  max_int;
-    
-    if not (have_wrapped__ itin) then failwith "Itinerary.unroll_: cannot unroll itinerary which is not full";
     
     (* forward-walk list and keep time of first visit through place *)
     (* xxx/slow since we always will iterate over whole list *)
@@ -211,10 +213,11 @@ struct
       let itin = make_ ~itinsize:size ~graphsize:!graphsize in 
 	array_rev_iter (fun x -> addplace_ itin  x) input; itin;
     ) in
+
     let test_unrolling size input unrolled_check = (
       let itin = make_itin size input in
 	let unrolled = unroll_ itin in
-	  assert (length_ unrolled = Array.length unrolled_check);
+	  assert (maxlength_ unrolled = Array.length unrolled_check);
 	  for i = 0 to Array.length unrolled_check - 1 do
 	    assert ((get_ unrolled i) = unrolled_check.(i));
 	    assert ((hops_to_place_ unrolled unrolled_check.(i)) == i);
@@ -223,7 +226,7 @@ struct
     ) in
 
     let itin = make_ ~itinsize:4 ~graphsize:!graphsize in
-      assert (length_ itin = 4);
+      assert (maxlength_ itin = 4);
       for i = 0 to 3 do
 	try (
 	  ignore (get_ itin i); 
@@ -266,19 +269,30 @@ struct
       
       
       test_unrolling 4 [|3; 2; 1; 0|] [|3; 2; 1; 0|];
+      test_unrolling 6 [|3; 2; 1; 0|] [|3; 2; 1; 0|];
+
       test_unrolling 2 [|3; 2; 1; 0|] [|3; 2|];
 
       test_unrolling 4 [|3; 3; 2; 1|] [|3; 2; 1|];
+      test_unrolling 6 [|3; 3; 2; 1|] [|3; 2; 1|];
+
       test_unrolling 2 [|3; 3; 2; 1|] [|3|];
 
       test_unrolling 4 [|3; 3; 3; 2|] [|3; 2|];
+      test_unrolling 6 [|3; 3; 3; 2|] [|3; 2|];
+
       test_unrolling 4 [|3; 3; 3; 3|] [|3|];
       test_unrolling 4 [|3; 1; 2; 3|] [|3|];
 
       test_unrolling 4 [|3; 2; 2; 1|] [|3; 2; 1|];
+      test_unrolling 6 [|3; 2; 2; 1|] [|3; 2; 1|];
+
       test_unrolling 4 [|3; 1; 1; 3|] [|3|];
+      test_unrolling 6 [|3; 1; 1; 3|] [|3|];
 
       test_unrolling 2 [|3; 3 |] [|3|];
+      test_unrolling 6 [|3; 3 |] [|3|];
+
       test_unrolling 1 [|3|] [|3|];
 
 
@@ -286,16 +300,13 @@ struct
 
       (* incidentally, shows that current unrolling algorithm is not the best! *)
       test_unrolling 12  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 2; 9|] [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9|];
+      test_unrolling 20  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 2; 9|] [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9|];
+
       test_unrolling 12  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 2; 9; 9|] [| 0; 1; 2; 9|];
+      test_unrolling 20  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 2; 9; 9|] [| 0; 1; 2; 9|];
 
 
-      (* cannot unroll an itin which hasn't been completely filled in *)
-      try (
-	test_unrolling 5 [|3; 2; 1; 0|] [|3; 2; 1; 0|];
-	assert false;
-      ) with 
-      	  Failure "Itinerary.unroll_: cannot unroll itinerary which is not full" -> ();
-	    Printf.printf "Itinerary.test_ : passed \n";
+      Printf.printf "Itinerary.test_ : passed \n";
 
 
     (* Itinerary.shorten_ *)
@@ -322,13 +333,13 @@ struct
       assert (shortened1 = it1);
       assert (shortened2 = it1);
 
-    (* Itinerary.splice_ *)
+    (* Itinerary.splice__ *)
     (* splice 3-2-1-0 with 3-2-1-0 at any place -> same itin*)
     let itin = make_itin 4 [|3; 2; 1; 0|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
 	for i = 0 to 3 do
-	  assert ((splice_ itin itin2 (Place i)) = itin)
+	  assert ((splice__ itin itin2 (Place i)) = itin)
 	done;
       end;
       
@@ -336,16 +347,16 @@ struct
     let itin = make_itin 4 [|3; 2; 3; 2|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
-	assert ((splice_ itin itin2 (Place 2)) = itin2);
-	assert ((splice_ itin itin2 (Place 3)) = itin2);
+	assert ((splice__ itin itin2 (Place 2)) = itin2);
+	assert ((splice__ itin itin2 (Place 3)) = itin2);
       end;
 
     (* splice 0-0-0-0 with 3-2-1-0 at Place 0 -> 0*)
     let itin = make_itin 4 [|0; 0; 0; 0;|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
-	let newitin = splice_ itin itin2 (Place 0) in
-	  assert ((length_ newitin) = 1);
+	let newitin = splice__ itin itin2 (Place 0) in
+	  assert ((maxlength_ newitin) = 1);
 	  assert ((get_ newitin 0) =  0);
 	  assert ((hops_to_place_ newitin  0) = 0) ;
       end;
@@ -354,8 +365,8 @@ struct
     let itin = make_itin 4 [|1; 3; 0|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
-	let newitin = splice_ itin itin2 (Place 0) in
-	  assert ((length_ newitin) = 3);
+	let newitin = splice__ itin itin2 (Place 0) in
+	  assert ((maxlength_ newitin) = 3);
 	  assert ((get_ newitin 0) = 1);
 	  assert ((hops_to_place_ newitin  1) = 0) ;
 	  assert ((get_ newitin 1) =  3);
