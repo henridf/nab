@@ -15,6 +15,11 @@ let rec iter ~f =
     | Empty -> ()
     | Node (parent, children) -> f parent; List.iter (iter ~f) children
 
+let size t = 
+  let count = ref 0 in
+  iter ~f:(fun _ -> incr count) t;
+  !count
+
 let iter2 ~f tree = 
   let myf ~parent ~child = 
     match child with

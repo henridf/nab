@@ -4,6 +4,14 @@
 
 (** Functional n-ary trees. *)
 
+
+(*
+  would this be good to disallow Empty in the trees?
+
+  type 'a subtree = Node of 'a * 'a t list
+  type 'a tree = Empty | Tree of 'a subtree
+*)
+
 type 'a t = Empty | Node of 'a * 'a t list
 
 val map : f:('a -> 'b) -> 'a t -> 'b  t
@@ -15,6 +23,8 @@ val root : 'a t -> 'a
   (** Returns the node at the root of the tree. Raise [Failure "root"] if tree
     is empty.*)
 
+val size : 'a t -> int
+  (** Returns the number of (non Empty) nodes in the tree *)
 val iter : f:('a -> unit) -> 'a t -> unit
   (** Iterate over tree, presenting each node once to the provided function. 
     Order is not specified. *)
