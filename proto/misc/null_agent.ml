@@ -73,5 +73,6 @@ object(s)
   )
 
   method stats = ()
+  method reset_stats() = ()
 
 end

@@ -327,6 +327,7 @@ object(s)
   )
     
   method stats = ()
+  method reset_stats() = ()
     
   method dump_state () = 
     {le_state = le_tab#dump_state;

@@ -66,6 +66,7 @@ object
     
   method le_tab : Le_tab.le_tab
   method stats : unit
+  method reset_stats : unit -> unit
   method read_state : persist_t -> unit
   method dump_state : unit -> persist_t
 end

@@ -61,6 +61,7 @@ object
     (** See {!Rt_agent.t} *)
 
   method virtual stats : 'a
+  method virtual reset_stats : unit -> unit
 
   method private mac_bcast_pkt : L3pkt.t -> unit
     (** Call this method from the derived routing agent to send a packet as a

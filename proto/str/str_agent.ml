@@ -194,7 +194,7 @@ object(s)
 
   method stop_hello = send_hellos <- false
   method start_hello = send_hellos <- true
-  method clear_stats = stats <- S.create_stats()
+  method reset_stats() = stats <- S.create_stats()
 
   method private incr_seqno = seqno <- seqno + 1
 

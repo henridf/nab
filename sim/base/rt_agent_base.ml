@@ -49,6 +49,7 @@ object(s : #Rt_agent.t)
 
   method virtual recv_pkt_app : L4pkt.t -> Common.nodeid_t -> unit
   method virtual stats : 'a
+  method virtual reset_stats : unit -> unit
 
   method private bps = (owner#mac ~stack ())#bps
 
