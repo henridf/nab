@@ -33,7 +33,7 @@
   @author Henri Dubois-Ferriere.
 *)
 
-let _ADDR_SIZE = 4
-let _TTL_SIZE = 1
-let _SEQNO_SIZE = 4
-let _FLOAT_SIZE = 8
+let addr_size = 4
+let ttl_size = 1
+let seqno_size = 4
+let float_size = 8

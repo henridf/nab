@@ -28,16 +28,16 @@
 
 
 
-let _ADDR_SIZE = 4
-let _TTL_SIZE = 1
-let _SEQNO_SIZE = 4
-let _FLOAT_SIZE = 8
+let addr_size = 4
+let ttl_size = 1
+let seqno_size = 4
+let float_size = 8
 
 
 (* L4 (APPLICATION) STUFF *)
 
 type hello_payload_t =  Coord.coordf_t
-let hello_payload_size = 2 * _FLOAT_SIZE
+let hello_payload_size = 2 * float_size
 
 
 type t = 

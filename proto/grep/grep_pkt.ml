@@ -45,8 +45,8 @@ type t = {
 let hdr_size _ = (* too lazy to differentiat btw types right now, so
 			     just putting the 'average' size *)
       1  (* grep_flags *)
-      + (2 * _SEQNO_SIZE)  (* ssn, dsn *)
-      + (2 * _TTL_SIZE) (* shc, dhc *)
+      + (2 * seqno_size)  (* ssn, dsn *)
+      + (2 * ttl_size) (* shc, dhc *)
 
 let clone grep_pkt = {grep_pkt with ssn=grep_pkt.ssn}
 

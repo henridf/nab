@@ -34,7 +34,7 @@ type t = {
   mutable search_dist : float;
 }
 
-let size _ = 3 * Pkt_common._FLOAT_SIZE
+let size _ = 3 * Pkt_common.float_size
 
 let make_ler_hdr
   ~enc_age
