@@ -5,29 +5,6 @@ open Coord
 let init_sched() = Gsched.set_sched (new Sched.schedList)
 let init_world() = Gworld.set_world (new Crworld.crworld (Param.get Params.nodes))
 
-let make_bler_nodes ?ntargets () = (
-  let nt = 
-    match ntargets with
-      | None -> (Param.get Params.nodes)
-      | Some n -> n
-  in
-  Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
-  Nodes.set_nodes
-  (Array.init (Param.get Params.nodes)
-    (fun i -> 
-      (new Simplenode.simplenode 
-	~pos_init:((Gworld.world())#random_pos)
-	~id:i
-	~ntargets:nt)));
-
-  (* create bler_agents, who will hook to their owners *)
-  Nodes.iter (fun n -> ignore (new Magic_bler_agent.magic_bler_agent n));
-
-  (* set up initial node position in internal structures of world object *)
-  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
-  assert ((Gworld.world())#neighbors_consistent);
-)
-
 let make_grep_nodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
   Nodes.set_nodes
@@ -136,18 +113,9 @@ let make_app_packet ~srcid ~dstid =
   Packet.make_app_pkt ~l3hdr:(Packet.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
 
   
-let do_one_route ~srcid ~dstid = (
 
-  let routeref = ref (Route.create()) in
-  let bler_mhook = Magic_bler_agent.magic_bler_route_mhook routeref in
-  Nodes.iter (fun n -> n#add_mhook bler_mhook);
-  let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
-  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
-  
-  assert (Route.route_valid !routeref ~src:srcid ~dst:dstid);
-  Route.i2c !routeref
-)
+
+
 
 let hop_col_color ~hop ~routelength = (
   [| Graphics.black; Graphics.red;
@@ -193,131 +161,6 @@ let gui_grep_one_route() = (
   (Gsched.sched())#run();
 )
 
-(*
-let gui_dsdv_flood_route() = (
-
-  draw_nodes();
-  label_nodes();
-  gui_draw_connectivity();
-  let dstid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" in
-
-  let touchedref = ref [] in
-  let dsdv_flood_mhook = Dsdv_agent.dsdv_flood_mhook touchedref in
-  Nodes.iter (fun n -> n#add_mhook dsdv_flood_mhook);
-  let start_dsdv() = (Nodes.node(dstid))#agent_control Node.AGENT_START in
-  (Gsched.sched())#sched_at ~handler:start_dsdv ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
-  
-  Printf.printf "There are %d nodes in touchednodesref\n" (List.length !touchedref);
-
-  Graphics.set_color (Graphics.rgb 100 100 100);    
-
-  Ler_graphics.circle_nodes ~fill:false (Array.of_list 
-    (List.map 
-      (fun n -> ((Gworld.world())#project_2d) (Nodes.node n)#pos)
-      !touchedref)) 0.01;
-
-  let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
-
- let routeref = ref (Route.create()) in
-  let dsdv_route_mhook = Dsdv_agent.dsdv_route_mhook routeref in
-  Nodes.iter (fun n -> n#add_mhook dsdv_route_mhook);
-  let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
-  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
-  
-
-  let route_coords = (Route.i2c !routeref) in
-
-  let route_normalized = 
-    (List.map 
-      (fun x -> {
-	Route.hop = (Gworld.world())#project_2d x.Route.hop;
-	Route.anchor = (Gworld.world())#project_2d x.Route.anchor;
-	Route.anchor_age = x.Route.anchor_age;
-	Route.searchcost = (
-	  Gworld.world())#scale_unit ((x.Route.searchcost) ** 0.5)}
-      )
-      route_coords)
-  in
-  Ler_graphics.draw_route ~color:hop_col_color ~route:route_normalized;
-
-)
-*)
-
-
-let gui_one_route() = (
-
-  draw_nodes();
-  let src = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" 
-  and dst =  Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" 
-  in
-  Printf.printf "src is %d, enc_age %f\n" src (((Nodes.node(src))#db)#encounter_age dst);
-  Printf.printf "dst is %d\n" dst;
-  
-  let route_coords = do_one_route   ~srcid:src ~dstid:dst in
-
-  Printf.printf "Route has length %f, anchor cost %f\n"
-    (Route.eucl_length (Gworld.world())#dist_coords route_coords) (Route.anchor_cost route_coords);
-  
-  printf "%s\n" (Route.sprint route_coords);
-  
-  let route_normalized = 
-    (List.map 
-      (fun x -> {
-	Route.hop = (Gworld.world())#project_2d x.Route.hop;
-	Route.anchor = (Gworld.world())#project_2d x.Route.anchor;
-	Route.anchor_age = x.Route.anchor_age;
-	Route.searchcost = (
-	  Gworld.world())#scale_unit ((x.Route.searchcost) ** 0.5)}
-      )
-      route_coords)
-  in
-  Ler_graphics.draw_route ~color:hop_col_color ~route:route_normalized;
-  route_coords;
-)
-
-let gui_route_color_ages ~route ~targetnid = (
-  
-  let rec whichhop route i age = 
-    match route with
-      | h :: r -> if age > h.Route.anchor_age then i else whichhop r (i+1) age
-      | [] -> raise (Impossible_Case "since last hop has age 0, should have stopped there")
-  in
-	  
-  Nodes.iter 
-    (fun n -> 
-      let hop = whichhop route 0 ((n#db)#encounter_age ~nid:targetnid) in
-      Printf.printf "hop is %d\n" hop;
-      Graphics.set_color (Ler_graphics.hop_col_color ~hop:hop ~routelength:(List.length route));
-      draw_node ~nid:(n#id)
-    )
-)    
-
-
-
-  
-let gui_color_ages ~targetnid = (
-  let max_age = Common.get_time() in
-  let step = Common.get_time() /. 2.0 in
-  let color_of_age age = 
-    Printf.printf "Age is %f, age/step is %f\n" age (age/.step);
-    [|Graphics.red; Graphics.green; Graphics.blue;
-    |].(f2i (age /. step))
-  in
-
-  Nodes.iter 
-    (fun n -> 
-      match (n#db)#encounter_age targetnid with
-	| age when (age = max_float) -> ()
-	| age -> (
-	    Graphics.set_color (color_of_age age);
-	    draw_node ~nid:(n#id)
-	  )
-    )
-)
-
-
 
 let move_nodes ~f ~percent ~targets= (
   let iterations = ((Param.get Params.nodes) / 10) in 
@@ -332,18 +175,6 @@ let move_nodes ~f ~percent ~targets= (
   done;
 )
   
-
-
-
-
-
-
-
-
-
-
-
-
 
 let print_header () = (
   Printf.printf "\n";
