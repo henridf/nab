@@ -2,7 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Discrete event schedulers. *)
+(** Discrete event schedulers. 
+  @author Henri Dubois-Ferriere.
+*)
 
 
 (** 
@@ -33,16 +35,9 @@ type event_t = {
   handler:handler_t;
   time:Common.time_t;}
 
-let set_time t = (
-  (* check log level to avoid these ops when not necessary (this is going to
-     be called a lot *)
-  if !Log.current_log_level >= Log.LOG_INFO then (
-    if ((floor (t /. 10.0)) <> (floor ((Common.get_time()) /. 10.0))) then (
-      Log.log#log_info (lazy (sprintf "Time: %f\n" t));
-    );
-  );
+let set_time t = 
   Common.set_time t
-)    
+
 
 (** The interface that any scheduler implementation must conform to. *)
 class type virtual scheduler_t = 
@@ -88,15 +83,15 @@ class virtual sched  =
 
 object(s)
 
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   method virtual private next_event : event_t option 
 
   method virtual private sched_event_at : ev:event_t -> unit
 
-  initializer (
-    objdescr <- "/sched/list"
-  ) 
+  initializer 
+    s#set_objdescr "/sched/list"
+      
     
     
   method stop_at ~t =  s#sched_handler_at  ~handler:Stop ~t
@@ -104,19 +99,16 @@ object(s)
   method stop_in ~t =  s#stop_at  ~t:(Time (t +. Common.get_time()))
 
   method private sched_handler_at ~handler ~t = (
-    let str = ref "" in (
-
-      match t with 
-	| ASAP -> 
-	    s#sched_event_at {handler=handler; time=Common.get_time()};
-	| ALAP -> raise (Failure "schedList.sched_at: ALAP not implemented\n")
-	| Time t -> (
-	    if (t <= Common.get_time()) then 
-	      raise (Failure "schedList.sched_at: attempt to schedule an event in the past");
-	    s#sched_event_at {handler=handler; time=t};
-	  );
-    );
-(*    s#log_debug (sprintf "scheduling event at %s" !str);*)
+    match t with 
+      | ASAP -> 
+	  s#sched_event_at {handler=handler; time=Common.get_time()};
+      | ALAP -> raise (Failure "schedList.sched_at: ALAP not implemented\n")
+      | Time t -> (
+	  if (t <= Common.get_time()) then 
+	    raise (Failure "schedList.sched_at: attempt to schedule an event in the past");
+	  s#sched_event_at {handler=handler; time=t};
+(*	  s#log_debug (lazy (sprintf "scheduling event at %.8f" t));*)
+	);
   )
 
   method sched_at ~f ~t = s#sched_handler_at ~handler:(Handler f) ~t
