@@ -193,6 +193,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_BASE_DIR)/crsearch$(CMO) \
 		$(SIM_BASE_DIR)/crworld$(CMO) \
 		$(SIM_SCRIPT_DIR)/traffic_utils$(CMO) \
+		$(SIM_SCRIPT_DIR)/test_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/script_utils$(CMO) \
 		$(SIM_BASE_DIR)/persistency$(CMO)\
 		$(SIM_SCRIPT_DIR)/warmup_utils$(CMO)

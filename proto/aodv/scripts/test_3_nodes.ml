@@ -30,33 +30,12 @@
 
 *)
 
+open Test_utils
 
 open Aodv_defaults
 open Aodv_agent
 open Aodv_stats
 
-let testno = ref 1
-let failures = ref 0
-  
-let testsuite msg = 
-  Printf.printf "\n\n";
-  Printf.printf
-    "--------------------------------------------------------------------\n";
-  Printf.printf "Testsuite: %s\n\n" msg;
-  flush stdout
-
-
-let test msg pass = 
-  Printf.printf "Testcase %d: %s... " !testno msg;
-  flush stdout;
-  incr testno;
-  if pass then Printf.printf "Succeeded!\n"
-  else 
-    (Printf.printf "*** FAILED.\n"; incr failures);
-  flush stdout
-    
-
-let msg m = print_endline ("[ "^m^" ]"); flush stdout
 
   
 let install_aodv nid = 
@@ -205,7 +184,7 @@ let _ =
     "Checking packet stats"
     ((agent_stats 0).rrep_xmit = 0
       &&
-      (agent_stats 1).rrep_xmit = 2)
+      (agent_stats 1).rrep_xmit = 2);
 
 
 (*
@@ -224,3 +203,5 @@ let _ =
     &&  
     (Aodv_rtab.have_active_route rt1));
 *)
+
+testsuite_finished()

@@ -33,29 +33,6 @@ open Aodv_defaults
 open Aodv_agent
 open Aodv_stats
 
-let testno = ref 1
-let failures = ref 0
-  
-let testsuite msg = 
-  Printf.printf "\n\n";
-  Printf.printf
-    "--------------------------------------------------------------------\n";
-  Printf.printf "Testsuite: %s\n\n" msg;
-  flush stdout
-
-
-let test msg pass = 
-  Printf.printf "Testcase %d: %s... " !testno msg;
-  flush stdout;
-  incr testno;
-  if pass then Printf.printf "Succeeded!\n"
-  else 
-    (Printf.printf "*** FAILED.\n"; incr failures);
-  flush stdout
-    
-
-let msg m = print_endline ("[ "^m^" ]"); flush stdout
-
 let sortList = List.sort compare
   
 let _ = 
@@ -287,5 +264,6 @@ let _ =
       (Aodv_rtab.nexthop_opt rt5 2 = None) &&
       (Aodv_rtab.nexthop_opt rt6 1 = None) &&
       (Aodv_rtab.nexthop_opt rt6 2 = None)
-    )
+    );
 
+testsuite_finished()
