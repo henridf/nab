@@ -28,7 +28,7 @@ let rec clock_tick() = (
 
 
 let load_nodes() = (
-  let in_chan = open_in "/home/henri/newwork/caml/out.mld" in
+  let in_chan = open_in ((Sys.getcwd())^"out.mld") in
   Persistency.read_state ~in_chan;
 
   Printf.printf "LOAD|| : Prop met: %f\n" (proportion_met_nodes 1);
@@ -42,7 +42,7 @@ let save_nodes() = (
   Nodes.iter (fun n ->   
     Printf.printf "SAVE||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
   flush stdout;
-  let out_chan = open_out "/home/henri/newwork/caml/out.mld" in
+  let out_chan = open_out ((Sys.getcwd())^"/out.mld") in
   Persistency.save_state ~out_chan ~ntargets:1
 )
 
@@ -67,12 +67,12 @@ let do_one_run() = (
     
 
   
-(*
-  move_nodes ~prop:0.4 ~targets:1;
+
+  move_nodes ~prop:0.5 ~targets:1;
   
 
  save_nodes();
- *)
+
 
 
 
@@ -104,7 +104,7 @@ let do_one_run() = (
 let _ = 
   Read_coords.make_graph();
   Param.set Params.nodes 1000;
-  Param.set Params.rrange 50.0;
+  Param.set Params.rrange 20.0;
   Param.set Params.x_size 800.0;
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();
