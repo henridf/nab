@@ -48,6 +48,16 @@ let normdot a = let n = ref 0.0 in Array.iter (fun x -> n := !n +. ((i2f x) ** 2
 
 let id x = x
 
+let facto n = 
+  let rec tailrec x n = 
+    match x with
+      | 0 -> n
+      | v -> tailrec (x - 1) (x * n)
+  in
+  tailrec n 1
+
+let binomial ~pick ~outof = (facto outof) / ((facto pick)  * (facto (outof - pick)))
+
 (**  Lists *)
 
 let listlast l = List.nth l (List.length l - 1)
