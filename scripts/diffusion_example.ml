@@ -2,7 +2,6 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-open Script_utils
 
 
 let setup () = (
@@ -10,9 +9,9 @@ let setup () = (
   (* Set global parameters. For these simulations, we want to have a unit node
      density, over a square lattice, so the lattice size should be the square
      root of the # of nodes *)
-  Param.set Params.nodes 10000; 
-  Param.set Params.x_size 100.0; 
-  Param.set Params.y_size 100.0;
+  Param.set Params.nodes 1600; 
+  Param.set Params.x_size 40.0; 
+  Param.set Params.y_size 40.0;
 
   (* Radio range (this should not change) *)
   Param.set Params.rrange ( 1. +. epsilon_float);
@@ -22,18 +21,18 @@ let setup () = (
      For large simulations, we usually reduce this, so that the total memory
      space for LE tables is #nodes * ntargets
   *)
-  Param.set Params.ntargets (Param.get Param.nodes);
+  Param.set Params.ntargets (Param.get Params.nodes);
 
 
 
   (* Set global objects (scheduler and world). This must be done *after* the
      params above have been set. *)
-  init_sched();
-  init_world();
+  Script_utils.init_sched();
+  Script_utils.init_world();
 
   (* Create gpsnodes. Gps nodes are geographically-aware, ie they know their
      position (unlike simplenodes which do not). *)
-  make_gpsnodes();
+  Script_utils.make_gpsnodes();
 
 )
 
@@ -41,6 +40,9 @@ let setup () = (
 (* this funny construct is equivalent to a 'main', ie this is where the action
    starts *)
 let _ = 
+
+  Script_utils.parse_args();
+
   setup();
   
   (* At creation, nodes have random positions in the surface. We now
@@ -57,19 +59,40 @@ let _ =
   let hello_agents = 
     Nodes.gpsmap 
       (fun n -> new Hello_agents.periodic_hello_agent n) in
-      
+  
+  (* This function computes the encounter ratio, ie the proportion of node pairs for which
+    encounter entries exist *)
+  let proportion_met_nodes()   = 
+    let targets = Param.get Params.ntargets in
+    let total_encounters = 
+      Array.fold_left (fun encs agent -> (agent#db#num_encounters) + encs) 0 hello_agents
+    in
+    (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
+  in
+
   (* Attach a discrete randomwalk mobility process to each node *)
   Mob_ctl.make_discrete_randomwalk_mobs();
-
-  
 
   (* Compute the average # of neighbors per node. Given unit node density,
      this should be close to 5 (4 neighboring nodes + self) 
   *)
-  let avg = avg_neighbors_per_node() in
+  let avg = Script_utils.avg_neighbors_per_node() in
   Printf.printf "Average # ngbrs : %f\n" avg;
 
+  (* Compute the 'encounter ratio', ie the number of encounters in each node's
+     database. At this point, the hello_agents have not done broadcast
+     anything yet, so the all encounter tables should be empty, ie 0.0
+     encounter ratio. *)
+  let enc_ratio = proportion_met_nodes() in
+  Printf.printf "Pre-hello encounter ratio %f \n" enc_ratio;
+  
+  (* Make the simulation run for 1.01 simulated seconds.
+     This will give the periodic_hello_agents time to each broadcast one hello packet
+     (since they each broadcast every second)
+  *)
+  (Gsched.sched())#run_for ~duration:1.01;
 
-    
-    
-    
+  (* Recompute the encounter ratio. It should be non-zero now that nodes have
+     made one hello broadcast. *)
+  let enc_ratio = proportion_met_nodes() in
+  Printf.printf "Post-hello encounter ratio %f \n" enc_ratio;
