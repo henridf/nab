@@ -29,6 +29,7 @@
 
 class nullmac_q :
   ?stack:int ->
+  ?buffer:int ->
   bps:float ->
   #Node.node ->
   object

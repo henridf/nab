@@ -233,7 +233,7 @@ type mac_queue_stats =
   has no medium-access logic. However, it has an outgoing packet queue, for buffering
   packets when the frontend is busy.
 *)
-class virtual queue_backend : ?stack:int -> bps:float -> #Node.node ->
+class virtual queue_backend : ?stack:int -> ?buffer:int -> bps:float -> #Node.node ->
 object
   inherit [mac_queue_stats] backend
   inherit [mac_queue_stats] Mac.backend_t

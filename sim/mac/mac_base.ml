@@ -28,9 +28,9 @@ let macs ?(stack=0) () = macs_array_.(stack)
 let mac ?(stack=0) i = 
   Hashtbl.find macs_array_.(stack) i
 
-let xmit_time bps l2pkt = 
-    let bytes = (L2pkt.l2pkt_size ~l2pkt) in
-    (Misc.i2f (bytes * 8)) /. bps
+let xmit_time bps l2pkt =
+  let bytes = (L2pkt.l2pkt_size ~l2pkt) in
+  (Misc.i2f (bytes * 8)) /. bps
 
 open Misc
 open Ether
@@ -61,7 +61,7 @@ object(s)
     bitsRX <- 0;
     pktsTX <- 0; 
     pktsRX <- 0
-    
+      
   method private send_up l2pkt = 
     owner#mac_recv_pkt ~stack l2pkt
 
@@ -115,22 +115,29 @@ object(s)
 	    (L2pkt.l2src l2pkt) d));
 	  super#send_up l2pkt;
 	  
-      | d -> s#log_debug  (lazy
-	  (Printf.sprintf "Start RX, l2src %d, l2dst %d (not for us)" (L2pkt.l2src l2pkt) d));
+      | d -> ((* this pkt is not for us. Drop it ... *) );
     end
-    
+      
   method xmit = s#frontend_xmit
     
 end
 
+
+(*
+  This mac_queue models the following behaviour:
+  - nodes can only transmit one packet at the time
+  - nodes can receive at the same time from multiple neighbors
+*)
+  
+
 type mac_queue_stats = 
     { nDrops : int } (* xxx/qmac : add more stats if necessary *)
 
-class virtual queue_backend ?(stack=0)  ~(bps:float)
+class virtual queue_backend ?(stack=0)  ?(buffer=2) ~(bps:float)
   (owner:#Node.node) =
   let myid = owner#id in
 object(s)
-  val pktq = Pkt_queue.create 10 (* xxx/qmac un-hardcode queue size *)
+  val pktq = Pkt_queue.create buffer 
 
   inherit ['mac_queue_stats] backend ~stack ~bps owner as super
 
@@ -138,8 +145,9 @@ object(s)
 
   method virtual private state : Mac.frontend_state
 
-  method private backend_stats = { nDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped} 
-  method private backend_recv l2pkt = 
+  method private backend_stats = { nDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped}  
+
+  method private backend_recv l2pkt =  (
     let dst = L2pkt.l2dst l2pkt in
     
     (* Throw away unicast packet if not for us, keep it otherwise *)
@@ -154,24 +162,47 @@ object(s)
 	    (L2pkt.l2src l2pkt) d));
 	  super#send_up l2pkt;
 	  
-      | d -> s#log_debug  (lazy
-	  (Printf.sprintf "Start RX, l2src %d, l2dst %d (not for us)" (L2pkt.l2src l2pkt) d));
-    end
-
+      | d -> ((* this pkt is not for us. Drop it ... *) );
+    end;
+  )
   method virtual private frontend_xmit : L2pkt.t -> unit
 
-  method xmit l2pkt = ()
-    (* xxx/qmac
-       if the packet queue is empty, send it to the mac frontend 
-       (s#frontend_xmit l2pkt).
-       otherwise, add it to the queue *)
+  method xmit l2pkt = (
+    (*   - nodes can only transmit one packet at the time:
+	 if node is not already transmitting a pkt, start transmitting
+	 this packet, otherwise, add it to the queue *) 
+    if s#state = Mac.Idle then (
+      s#log_debug (lazy(Printf.sprintf "Tx is free: txmitting pkt!"));
+      s#frontend_xmit l2pkt
+    )
+    else(
+      (* store the packet in the queue *)
+      s#log_debug (lazy(Printf.sprintf "Tx is busy: storing pkt in the buffer"));
+      if(Pkt_queue.push l2pkt pktq = false) then (
+	(* Queue is full, dropping packet *)
+	s#log_debug (lazy(Printf.sprintf "Pkt lost due to buffer overflow: Queue is FULL"));
+	(Pkt_queue.stats pktq).Pkt_queue.dropped <-
+	  (Pkt_queue.stats pktq).Pkt_queue.dropped + 1;
+      )
+    )
+  )
 
   method private backend_xmit_complete = 
-    (* xxx/qmac:
-       - check if any packets in queue
+    (* xxx/qmac: the frontend has finished a xmition:
+       - check if any packets in queue waiting to be transmitted
        - if yes, schedule an event to send it right away
     *)
-    ()
+    (
+      if not (Pkt_queue.is_empty pktq) then (
+	(* take packet from the queue and send it *)
+	let new_l2pkt = (Pkt_queue.pop pktq) in
+	s#log_debug (lazy(Printf.sprintf "Txmission completed: transmitting new pkt from the buffer to node %i" (L2pkt.l2dst new_l2pkt)));
+	s#frontend_xmit new_l2pkt;
+      )
+      else (
+	s#log_debug (lazy(Printf.sprintf "Txmission completed: not pkt to transmit in the buffer"));
+      )
+    )
 end
 
 class virtual ['stats] frontend  ?(stack=0) ~(bps:float) (owner:#Node.node) =
@@ -220,8 +251,11 @@ object(s)
       
   method private frontend_stats = ()
 
-  method private frontend_xmit l2pkt = 
+
+  method private frontend_xmit l2pkt =
+    s#log_debug  (lazy "Frontend: Attempting txmission ... ");
     if state = Mac.Idle then (
+      s#log_debug  (lazy "Frontend: Mac idle. Txmitting pkt");
       let xmit_done_event() = (
 	assert (state = Mac.Tx);
 	state <- Mac.Idle;
@@ -234,21 +268,19 @@ object(s)
 
       let t = xmit_time bps l2pkt in
       (Sched.s())#sched_in ~t ~f:xmit_done_event
+    ) else (
+      s#log_debug  (lazy "Frontend: Mac busy: TX packet dropped");
     )
 
   method recv ?(snr=1.0) ~l2pkt () = 
-    if state = Mac.Idle then (
-      let recv_event() = begin
-	assert (state = Mac.Rx);
-	state <- Mac.Idle;
-	s#backend_recv l2pkt
-      end in
-      
-      state <- Mac.Rx;
-      pktsRX <- pktsRX + 1;
-      bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
-      (Sched.s())#sched_in ~f:recv_event ~t:(xmit_time bps l2pkt)
-    )
+    let recv_event() = begin
+      s#backend_recv l2pkt
+    end in
+    
+    pktsRX <- pktsRX + 1;
+    bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
+    (Sched.s())#sched_in ~f:recv_event ~t:(xmit_time bps l2pkt)
+
 
   method virtual private backend_xmit_complete : unit 
 
@@ -281,7 +313,7 @@ let add_bstats s1 s2 =
     Mac.pkts_RX = s1.Mac.pkts_RX + s2.Mac.pkts_RX; 
     Mac.pkts_TX = s1.Mac.pkts_TX + s2.Mac.pkts_TX
   }
-  
+    
 
 
 let zero_bstats () = 
@@ -291,4 +323,4 @@ let zero_bstats () =
     Mac.pkts_RX = 0;
     Mac.pkts_TX = 0
   }
-  
+    

@@ -35,5 +35,6 @@
 
 let addr_size = 4
 let ttl_size = 1
+let int_size = 2
 let seqno_size = 4
 let float_size = 8
