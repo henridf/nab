@@ -1,27 +1,30 @@
-(* ugly: the way invalid  is handled.
-   the spaghetti of if (), especially aounrd the places that send data packets 
-    ie near where check for invalid()
-
-   wierd: had to add a check if invalid() inside of send_out, yet this was
-   normally done already in calling methods
-
-   seems wrong: if we originating a packet when the route is invalid, we
-   should simply buffer rather than drop ?
-
-   check if we should to local_repair or not - and if so, needs to be correct
-   
-   we are not doing GRAT RREP - this does not even enter into acct if we have
-   no local repair. If we do, then it should at 1st order be ok since the
-   reverse path will get setup when the DATA packet travels forward. 
-
-   Got a misc.o2v failure at:
-   let old_hopcount = o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst) in
-   (used to be outside if statement, check cvs from about Thu26Jun)
-
+(*
    in recv_l2pkt, we shouldn't update path to source if this is a data packet right??
 
-   in process data packet: can there be packets waiting?
+   don't initiate rreq immediately on route error but wait till send next packet??
 *)
+
+(* meaning of flags:
+
+   repairing: we sent a route request and have not since then received a reply
+   for the node. 
+   invalid: we noticed (through llacks) that the next hop is unreachable, or
+   we received a RERR telling us the route to the dest is broken. an invalid
+   entry can still have the destination seqno and the hopcount
+
+   At the source, invalid and repairing are most of the time the same thing
+   (though corner cases such as receive a data pkt from the dest, therefore we
+   have a valid route but still have 'repairing' turned on).
+   At an intermediate node, not necessarily the same thing, since the
+   intermediate node is probably not doing local repair.
+
+   packets_waiting: we have packets queued for that destination. 
+   this should *not* be read as meaning the route is invalid, since it could
+   just be congestion for example.
+*)
+
+
+
 
 (*                                  *)
 (* mws  multihop wireless simulator *)
@@ -41,7 +44,8 @@ class type aodv_agent_t =
     method private incr_seqno : unit -> unit
     method newadv : 
       dst:Common.nodeid_t -> 
-      rtent:Rtab.rtab_entry_t -> bool
+      sn:int -> hc:int -> nh:int ->
+      bool
     method objdescr : string
     method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
     method private queue_size : unit -> int
@@ -96,7 +100,7 @@ object(s)
   inherit Log.loggable
 
   val owner:#Simplenode.simplenode = owner
-  val rtab = Rtab.create ~size:(Param.get Params.nodes) 
+  val rt = Rtab.create_aodv ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
 
@@ -111,20 +115,19 @@ object(s)
     seqno <- seqno + 1;
     let update = 
       Rtab.newadv 
-	~rt:rtab 
+	~rt 
 	~dst:owner#id
-	~rtent:{
-	  Rtab.seqno = Some seqno;
-	  Rtab.hopcount = Some 0;
-	  Rtab.nexthop = Some owner#id}
+	~sn:seqno
+	~hc:0
+	~nh:owner#id
     in 
     assert(update);
   )
 
   method private local_repair ~src ~dst = false
 (*
-    let fwhops = o2v (Rtab.hopcount ~rt:rtab ~dst)
-    and bwhops = o2v (Rtab.hopcount ~rt:rtab ~dst:src)
+    let fwhops = o2v (Rtab.hopcount ~rt ~dst)
+    and bwhops = o2v (Rtab.hopcount ~rt ~dst:src)
     in 
     if ((i2f fwhops) /. (i2f bwhops) < 0.5) then true else false
 *)
@@ -163,7 +166,7 @@ object(s)
     match s#queue_size() < packet_buffer_size with 
       | true ->
 	  let dst = L3pkt.l3dst ~l3pkt in
-	  assert (dst != L3pkt._L3_BCAST_ADDR);
+	  assert (dst <> L3pkt._L3_BCAST_ADDR);
 	  Queue.push l3pkt pktqs.(dst);
       | false -> (
 	  Grep_hooks.drop_data();
@@ -175,19 +178,15 @@ object(s)
   (* wrapper around Rtab.newadv which additionally checks for 
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
-  method newadv  
-    ~(dst:Common.nodeid_t)
-    ~(rtent:Rtab.rtab_entry_t)  = (
+  method newadv ~dst ~sn ~hc ~nh  = (
       let update = 
-	  Rtab.newadv ~rt:rtab ~dst ~rtent:rtent
+	Rtab.newadv ~rt ~dst ~sn ~hc ~nh
       in
       if update then (
 	s#log_info 
 	(lazy (sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
-	  dst 
-	  (o2v rtent.Rtab.nexthop) 
-	  (o2v rtent.Rtab.hopcount)
-	  (o2v rtent.Rtab.seqno)));
+	  dst nh hc sn));
+	Rtab.repair_done ~rt ~dst;
 	(* if route to dst was accepted, send any packets that were waiting
 	   for a route to this dst *)
 	if (s#packets_waiting ~dst) then (
@@ -202,13 +201,13 @@ object(s)
   (* as in paper *)
   method private packet_fresh ~l3pkt = (
     let pkt_ssn = L3pkt.ssn ~l3pkt in
-    match (Rtab.seqno ~rt:rtab ~dst:(L3pkt.l3src l3pkt)) with
+    match (Rtab.seqno ~rt ~dst:(L3pkt.l3src l3pkt)) with
       | None -> true 
       | Some s when (pkt_ssn > s) -> true
       | Some s when (pkt_ssn = s) -> 
 	  L3pkt.shc l3pkt 
 	  <
-	  o2v (Rtab.hopcount ~rt:rtab ~dst:(L3pkt.l3src l3pkt))
+	  o2v (Rtab.hopcount ~rt ~dst:(L3pkt.l3src l3pkt))
       | Some s when (pkt_ssn < s) -> false
       | _ -> raise (Misc.Impossible_Case "Aodv_agent.packet_fresh()")
   )
@@ -221,20 +220,18 @@ object(s)
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     (* create or update 1-hop route to previous hop *)
     let sender = L2pkt.l2src l2pkt in
-    if (sender != (L3pkt.l3src ~l3pkt)) then (
+    if (sender <> (L3pkt.l3src ~l3pkt)) then (
       let sender_seqno = 
-	match Rtab.seqno ~rt:rtab ~dst:sender with
+	match Rtab.seqno ~rt ~dst:sender with
 	  | None -> 1
 	  | Some n -> n + 1
       in
       let update =  
 	s#newadv 
 	  ~dst:sender
-	  ~rtent:{
-	    Rtab.seqno = Some sender_seqno;
-	    Rtab.hopcount = Some 1;
-	    Rtab.nexthop = Some sender
-	  } 
+	  ~sn:sender_seqno
+	  ~hc:1
+	  ~nh:sender
       in
       assert (update);
     );
@@ -244,11 +241,9 @@ object(s)
     and update =  
       s#newadv 
 	~dst:(L3pkt.l3src ~l3pkt)
-	~rtent:{
-	  Rtab.seqno = Some (L3pkt.ssn ~l3pkt);
-	  Rtab.hopcount = Some (L3pkt.shc ~l3pkt);
-	  Rtab.nexthop = Some sender
-	} 
+	~sn:(L3pkt.ssn ~l3pkt)
+	~hc:(L3pkt.shc ~l3pkt)
+	~nh:sender
     in
     assert (update = pkt_fresh);
     
@@ -279,14 +274,14 @@ object(s)
 	  let answer_rreq = 
 	    (rdst = owner#id)
 	    ||
-	    begin match (Rtab.seqno ~rt:rtab ~dst:rdst) with 
+	    begin match (Rtab.seqno ~rt ~dst:rdst) with 
 	      | None -> false
-	      | Some s when (Rtab.invalid ~rt:rtab ~dst:rdst)
+	      | Some s when (Rtab.invalid ~rt ~dst:rdst)
 		  -> false
-	      | Some s when  (s >= dsn) (* Assume Destination-Only Flag always
+	      | Some s when  (s > dsn) (* Assume Destination-Only Flag always
 					   set *)
 		  -> true
-	      | Some s when (s < dsn) -> false
+	      | Some s when (s <= dsn) -> false
 	      | _ -> raise (Misc.Impossible_Case "Aodv_agent.answer_rreq()") end
 	  in
 	  if (answer_rreq) then 
@@ -310,8 +305,8 @@ object(s)
 	~ssn:seqno
 	~shc:0
 	~osrc:obo
-	~osn:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
-	~ohc:(o2v (Rtab.hopcount ~rt:rtab ~dst:obo))
+	~osn:(o2v (Rtab.seqno ~rt ~dst:obo))
+	~ohc:(o2v (Rtab.hopcount ~rt ~dst:obo))
 	()
     in
     let l3hdr = 
@@ -343,8 +338,8 @@ object(s)
 	~ssn:seqno
 	~shc:0
 	~rdst:obo
-	~dsn:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
-	~dhc:(o2v (Rtab.hopcount ~rt:rtab ~dst:obo))
+	~dsn:(o2v (Rtab.seqno ~rt ~dst:obo))
+	~dhc:(o2v (Rtab.hopcount ~rt ~dst:obo))
 	()
     in
     let l3hdr = 
@@ -370,65 +365,96 @@ object(s)
 
   method private process_data_pkt 
     ~(l3pkt:L3pkt.l3packet_t) =  (
-      
-      if ((L3pkt.l3dst ~l3pkt) = owner#id) then (   (* for us *)
-	s#hand_upper_layer ~l3pkt;
-      ) else (
-	if (Rtab.invalid ~rt:rtab ~dst:(L3pkt.l3dst ~l3pkt)) then (
-	  Grep_hooks.drop_data_rerr()
-	) else (
-	  
-	  if (s#packets_waiting ~dst:(L3pkt.l3dst ~l3pkt)) then (
-	    s#buffer_packet ~l3pkt
-	  ) else (
-	    try 
-	      s#send_out ~l3pkt
-	    with 
-	      | Send_Out_Failure -> 
-		  begin
-		    let dst = (L3pkt.l3dst ~l3pkt) in
-		    s#log_notice 
-		      (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-			dst));
-		    (* important to buffer packet first because send_rreq checks for
-		       this *)
-		    if (s#local_repair ~dst ~src:(L3pkt.l3dst ~l3pkt)) then (
-		      s#buffer_packet ~l3pkt;
-		      let (dseqno,dhopcount) = 
-			begin match (Rtab.seqno ~rt:rtab ~dst) with
-			  | None -> (0, max_int)
-			  | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
-		      in
-		      s#send_rreq 
-			~ttl:_ERS_START_TTL 
-			~dst 
-			~dseqno:dseqno
-			~dhopcount:dhopcount
-		    ) else (
-		      s#invalidate_route ~dst;
-		      Grep_hooks.drop_data_rerr();
-		      s#send_rerr
-			~dst:(L3pkt.l3src ~l3pkt)
-			~obo:(L3pkt.l3dst ~l3pkt)
-		    )
-		  end
-	  )
-	)
-      )
+      let dst = (L3pkt.l3dst ~l3pkt) and 
+	src = (L3pkt.l3src ~l3pkt) in
+      begin try
+
+	if (dst = owner#id) then ( (* pkt for us *)
+	  s#hand_upper_layer ~l3pkt;
+	  raise Break 
+	);
+
+	if (Rtab.repairing ~rt ~dst) || (s#packets_waiting ~dst) then (
+	  s#buffer_packet ~l3pkt;
+	  raise Break
+	);		
+
+	if (owner#id <> src) && (Rtab.invalid ~rt ~dst) then (
+	  Grep_hooks.drop_data_rerr();
+	  raise Break;
+	);
+
+	begin try 
+	  s#send_out ~l3pkt
+	with 
+	  | Send_Out_Failure -> 
+	      begin
+		Rtab.invalidate ~rt ~dst;
+		if (owner#id = src) || (s#local_repair ~dst ~src) then (
+		  (* will need to check this when we do enable local_repairs *)
+		  s#log_notice 
+		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+		    dst));
+		  s#buffer_packet ~l3pkt;
+		  let (dseqno,dhopcount) = 
+		    begin match (Rtab.seqno ~rt ~dst) with
+		      | None -> (0, max_int)
+		      | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
+		  in
+		  s#init_rreq 
+		    ~dst 
+		    ~dseqno:dseqno
+		    ~dhopcount:dhopcount
+		) else (
+		  s#kill_buffered_packets ~dst;
+		  Grep_hooks.drop_data_rerr();
+		  s#send_rerr
+		    ~dst:(L3pkt.l3src ~l3pkt)
+		    ~obo:(L3pkt.l3dst ~l3pkt)
+		)
+	      end
+	end
+      with 
+	| Break -> ()
+	| e -> raise e;
+      end;
+      ()
     )
+
+  method private init_rreq ~dst ~dseqno ~dhopcount = (
+    (* for the initial route request, we don't do it if there's already one
+       going on for this destination (which isn't really expected to happen,
+       but you never know) *)
+    if (not (Rtab.repairing ~rt ~dst)) then (
+      Rtab.repair_start ~rt ~dst;
+      s#log_info 
+      (lazy (sprintf "Initializing RREQ for dst %d" dst ));
+      s#send_rreq ~ttl:_ERS_START_TTL ~dst ~dseqno ~dhopcount
+    )
+  )
 
   method private send_rreq ~ttl ~dst ~dseqno ~dhopcount  = (
     
-    if (Rtab.invalid ~rt:rtab ~dst || s#packets_waiting ~dst) then (
-      (* we check this as a simple way to not do a repeat rreq from a 
-	 previous rreq timeout. Ie, if a rrep came in in the meantime, then we
-	 sent all packets, and don't need to send a new rreq. 
-	 At some point a more detailed implementation would probably need a
-	 separate representation of pending rreqs to know which have been
-	 satisfied, etc *)
+    if (Rtab.repairing ~rt ~dst) then (
       s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
 	dst ttl));
       
+(*      let dsn_new, hopcount_new = *)
+
+      let dseqno, hopcount = 
+	begin match (Rtab.seqno ~rt ~dst) with
+	  | None -> (0, max_int)
+	  | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
+      in
+(*
+
+      if (dsn_new, hopcount_new) <> (dseqno, dhopcount ) then (
+	Printf.printf "At ttl %d, new dsn, dhc are (%d, %d) and old are (%d,
+	%d)\n" ttl dsn_new hopcount_new dseqno dhopcount;
+      );	
+*)
+
+
       let grep_l3hdr_ext = 
 	L3pkt.make_grep_l3hdr_ext
 	  ~flags:L3pkt.GREP_RREQ
@@ -455,24 +481,23 @@ object(s)
       let next_rreq_timeout = 
 	((i2f next_rreq_ttl) *. 0.02) in
       let next_rreq_event() = 
-	  (s#send_rreq 
-	    ~ttl:next_rreq_ttl
-	    ~dst
-	    ~dseqno:dseqno
-	    ~dhopcount:dhopcount
-	  )
+	(s#send_rreq 
+	  ~ttl:next_rreq_ttl
+	  ~dst
+	  ~dseqno
+	  ~dhopcount
+	)
       in	
-	s#send_out ~l3pkt;
-	(* we say that maximum 1-hop traversal is 20ms, 
-	   ie half of value used by AODV. Another difference relative to AODV
-	   is that we use ttl, not (ttl + 2).
-	   This is ok while we use a simple MAC, and ok since our AODV impl 
-	   will use the same values *)
-
-
-(*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
-	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
-
+      s#send_out ~l3pkt;
+      (* we say that maximum 1-hop traversal is 20ms, 
+	 ie half of value used by AODV. Another difference relative to AODV
+	 is that we use ttl, not (ttl + 2).
+	 This is ok while we use a simple MAC, and ok since our AODV impl 
+	 will use the same values *)
+      
+      
+      (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
+      (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
     )
   )
     
@@ -482,17 +507,20 @@ object(s)
     ~(sender:Common.nodeid_t) 
     ~(fresh:bool)
     = (
-      
       let update = s#newadv 
 	~dst:(L3pkt.osrc ~l3pkt)
-	~rtent:{
-	  Rtab.seqno = Some (L3pkt.osn ~l3pkt);
-	  Rtab.hopcount = Some ((L3pkt.ohc ~l3pkt) + (L3pkt.shc ~l3pkt));
-	  Rtab.nexthop = Some sender 
-	}
+	~sn:(L3pkt.osn ~l3pkt)
+	~hc:((L3pkt.ohc ~l3pkt) + (L3pkt.shc ~l3pkt))
+	~nh:sender
       in 
-      if (((L3pkt.l3dst ~l3pkt) != owner#id) &&
-      (update || (fresh && ((L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt))))) then
+      if (update || 
+      (fresh && (
+	(L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt)))) then (
+	(* the second line is for the case where the rrep was originated by the
+	   source, in which case update=false (bc the info from it has already
+	   been looked at in recv_l2pkt_hook) *)
+	Rtab.repair_done ~rt ~dst:(L3pkt.osrc ~l3pkt);
+	if ((L3pkt.l3dst ~l3pkt) <> owner#id) then (
 	try 
 	  s#send_out ~l3pkt
 	with 
@@ -501,42 +529,34 @@ object(s)
 	      (lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
 		(L3pkt.l3dst ~l3pkt) 
 		(L3pkt.osrc ~l3pkt)));
+	)
+      )
     )
 
-  method private invalidate_route ~dst = (
-    Rtab.invalidate ~rt:rtab ~dst;
-    s#kill_buffered_packets ~dst
-  )
-    
   method private process_rerr_pkt 
     ~(l3pkt:L3pkt.l3packet_t) 
     ~(sender:Common.nodeid_t) = (
       
       let invalid_dst = (L3pkt.rdst ~l3pkt) in
-
-
-      if ((L3pkt.l3dst ~l3pkt) != owner#id) then (
-	(* this invalidates entyr + kills waiting packets *)
-	s#invalidate_route ~dst:invalid_dst;
+      Rtab.invalidate ~rt ~dst:invalid_dst;
+      
+      if ((L3pkt.l3dst ~l3pkt) <> owner#id) then (
+	s#kill_buffered_packets ~dst:invalid_dst;
 	try 
 	  s#send_out ~l3pkt
 	with 
 	  | Send_Out_Failure -> ()
       ) else (
 
-	Rtab.invalidate ~rt:rtab ~dst:invalid_dst;
-
 	let (dseqno,dhopcount) = 
-	  begin match (Rtab.seqno ~rt:rtab ~dst:invalid_dst) with
+	  begin match (Rtab.seqno ~rt ~dst:invalid_dst) with
 	    | None -> (0, max_int)
-	    | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst)) end
+	    | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst:invalid_dst)) end
 
 	in
 	s#log_notice (lazy (sprintf "got a rerr for me, doing rreq for node %d hops %d seqno
 		    %d\n" invalid_dst dhopcount dseqno));
-	flush stdout;
-	s#send_rreq 
-	  ~ttl:_ERS_START_TTL 
+	s#init_rreq 
 	  ~dst:invalid_dst 
 	  ~dseqno
 	  ~dhopcount
@@ -544,10 +564,10 @@ object(s)
     )
 
 
-  method private send_out ~l3pkt = (
+  method private send_out  ~l3pkt = (
     
     let dst = L3pkt.l3dst ~l3pkt in
-    assert (dst != owner#id);
+    assert (dst <> owner#id);
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     assert (L3pkt.ssn ~l3pkt >= 1);
 
@@ -573,7 +593,6 @@ object(s)
 	      | false ->
 		  s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-
       | L3pkt.GREP_DATA 
       | L3pkt.GREP_RERR 
       | L3pkt.GREP_RREP ->
@@ -582,9 +601,10 @@ object(s)
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
 	  );
+	    if Rtab.invalid ~rt ~dst then failed();
 	    let nexthop = 
-	      match Rtab.nexthop ~rt:rtab ~dst  with
-		| None -> failed()
+	      match Rtab.nexthop ~rt ~dst  with
+		| None -> raise (Failure "should have failed above")
 		| Some nh -> nh
 	    in 
 	      try begin
@@ -627,60 +647,27 @@ object(s)
     )
   *)
     
-    
+
   method private app_send l4pkt ~dst = (
-    s#log_info (lazy (sprintf "Generating app pkt with dst %d"
-      dst));
-      let l3hdr = 
-	L3pkt.make_l3hdr
-	  ~srcid:owner#id
-	  ~dstid:dst
-	  ~ext:(L3pkt.make_grep_l3hdr_ext 
-	    ~flags:L3pkt.GREP_DATA
-	    ~ssn:seqno
-	    ~shc:0
-	    ()
-	  )
+    s#log_info (lazy (sprintf "Originating app pkt with dst %d"
+     dst));
+    let l3hdr =  
+      L3pkt.make_l3hdr
+	~srcid:owner#id
+	~dstid:dst
+	~ext:(L3pkt.make_grep_l3hdr_ext 
+	  ~flags:L3pkt.GREP_DATA
+	  ~ssn:seqno
+	  ~shc:0
 	  ()
-      in
-	  Grep_hooks.orig_data();
-      let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
-      if (Rtab.invalid ~rt:rtab ~dst) then (
+	)
+	()
+    in 
+    assert (dst <> owner#id);
+    Grep_hooks.orig_data();
+    let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
 
-	Grep_hooks.drop_data_rerr()
-      ) else (
-      if (s#packets_waiting ~dst) then (
-	s#buffer_packet ~l3pkt
-      ) else (
-	try 
-	  s#send_out ~l3pkt
-	with 
-	  | Send_Out_Failure -> 
-	      begin
-		s#log_notice 
-		  (lazy (sprintf 
-		    "Originating DATA pkt to dst %d failed, buffering."
-		    dst));
-		let dst = (L3pkt.l3dst ~l3pkt) in
-		(* important to buffer packet first because send_rreq checks for
-		   this *)
-		s#buffer_packet ~l3pkt;
-		let (dseqno,dhopcount) = 
-		  begin match (Rtab.seqno ~rt:rtab ~dst) with
-		    | None -> (0, max_int)
-		    | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
-		in
-		s#send_rreq 
-		  ~ttl:_ERS_START_TTL 
-		  ~dst 
-		  ~dseqno
-		  ~dhopcount
-	      end
-      )
-      )
+    s#process_data_pkt ~l3pkt;
+
   )
-
-
-
-
 end
