@@ -119,7 +119,12 @@ val install_macs : ?stack:int ->  ?bps:float -> unit -> unit
     Optional [stack] is explained in {!Node.node}. *)
 
 val install_null_macs : ?stack:int ->  ?bps:float -> unit -> unit
-  (** Installs a Nullmac Mac layer on each node.
+  (** Installs a Nullmac Mac layer (see {!Mac_null.nullmac}) on each node.
+    Nodes should be created before calling this.
+    Optional [stack] is explained in {!Node.node}. *)
+
+val install_queue_null_macs : ?stack:int ->  ?bps:float -> unit -> unit
+  (** Installs a Null Mac with sendqueue (see {!Mac_null_queue.nullmac_q}) on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Node.node}. *)
 
