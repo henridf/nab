@@ -12,7 +12,8 @@ rel=stylesheet>
 
 <h1>Lesson 3: Simulating and visualizing FRESH and EASE</h1>
 <p>
-In this lesson, we will see how to set up the FRESH, EASE and GREASE protocols,
+In this lesson, we will see how to set up the FRESH, EASE and GREASE protocols
+(refs <a href="#bib">below</a>),
 compute routes, and visualize them with nabviz. The instructions below show how to do this
 step-by-step with the interactive <code>nab</code> toplevel. It is also a good
 idea to look at the script file <a href="lesson3.ml">lesson3.ml</a> which
@@ -118,7 +119,7 @@ and defaults to 0. That is why we have never had to specify a stack id in
 lessons 1 and 2.
 <p>
 We will use 3 parallel stacks in this simulation, which will run GREASE, EASE,
-and <a href="#FRESH">FRESH</a> respectively. This allows us to compare the different routes
+and FRESH respectively. This allows us to compare the different routes
 obtained by the three protocols in an identical situation. (Easy comparison of
 multiple protocols or configurations is one advantage of parallel
 stacks. Another is efficiency: costly computations such as node neighborhoods
@@ -389,13 +390,18 @@ Have fun!!!
 
 
 <hr>
-<a name="FRESH">
+<h4> Bibliography</h4>
+<a name="bib">
 H. Dubois-Ferri&egrave;re, M. Grossglauser and M. Vetterli. 
 <b>Age Matters: Efficient Route Discovery in Mobile Ad Hoc Networks Using
 Encounter Ages</b>. 
 In <i> Proc ACM International Symposium on Mobile Ad Hoc Networking
 and Computing (MobiHOC), 2003</i> 
-Annapolis, MD, USA, June 2003. 
+Annapolis, MD, USA, June 2003. <br>
+<p>
+ M. Grossglauser, M. Vetterli, <b>Locating Nodes with EASE: Last Encounter
+ Routing for Ad Hoc Networks through Mobility Diffusion</b>, In <i> IEEE INFOCOM 03,
+ San Francisco, March 2003. <i>
 
 
 </html>
