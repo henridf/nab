@@ -49,6 +49,33 @@ struct
     ~printer:string_of_warmup
     ~notpersist:true
     ()
+
+  let move_of_string = function
+    | "all" -> `ALL
+    | "dests" -> `DESTS
+    | "sources" -> `SOURCES
+    | "allbutdests" -> `ALLBUTDESTS
+    | "allbutsources" -> `ALLBUTSOURCES
+    | _ -> raise (Failure "Invalid format for move type")
+
+  let string_of_move = function
+    | `ALL -> "all"
+    | `DESTS -> "dests"
+    | `SOURCES -> "sources"
+    | `ALLBUTDESTS -> "allbutdests"
+    | `ALLBUTSOURCES -> "allbutsources" 
+    | _ -> raise (Failure "Invalid format for move type")
+
+  let move = Param.create
+    ~name:"move"
+    ~cmdline:true
+    ~default:`ALL
+    ~doc:"Which nodes are moving."
+    ~reader:move_of_string 
+    ~printer:string_of_move
+    ~notpersist:true
+    () 
+
   let agent_of_string = function
     | "aodv" | "AODV" -> AODV
     | "str"  | "str-max" | "str_max" -> STR_MAX
@@ -64,7 +91,6 @@ struct
     | STR_AODV -> "str_aodv"
     | GREP -> "grep"
 
-
   let agent = Param.create
     ~name:"agent"
     ~cmdline:true
@@ -77,6 +103,7 @@ struct
       
   let run = Param.intcreate ~name:"run" ~default:1
     ~cmdline:true
+    ~checker:(fun i -> Randoms.change_seed ~newseed:i ())
     ~doc:"Run number" ()
 
 end
@@ -109,10 +136,30 @@ let set_hellos() =
       if List.mem id dests then agent#start_hello else agent#stop_hello
     ) Str_agent.agents_array_.(0)
 
-let mob_warmup() = 
-  let dests = Traffic_utils.all_destinations() in
-  List.iter (fun nid -> Mob_ctl.start_node nid) dests;
+let start_appropriate_nodes() = 
+  let dests = Traffic_utils.all_destinations() 
+  and sources = Traffic_utils.all_sources() in
+  match Param.get Config.move with
+    | `ALL -> 
+	Nodes.iteri (fun nid node -> Mob_ctl.start_node nid);
+    | `DESTS -> 
+	Nodes.iteri (fun nid node -> if (List.mem nid dests) then
+	  Mob_ctl.start_node nid);
+    | `SOURCES -> 
+	Nodes.iteri (fun nid node -> if (List.mem nid sources) then
+	  Mob_ctl.start_node nid);
+    | `ALLBUTDESTS ->
+	Nodes.iteri (fun nid node -> if not (List.mem nid dests) then
+	  Mob_ctl.start_node nid);
+    | `ALLBUTSOURCES ->
+	Nodes.iteri (fun nid node -> if not (List.mem nid sources) then
+	  Mob_ctl.start_node nid);
+    | _ -> raise (Failure "Invalid format for move type")
 
+
+let mob_warmup() = 
+
+  start_appropriate_nodes();
   set_hellos();
   begin try
     while true do
@@ -134,7 +181,8 @@ let traffic_warmup() =
   Log.log#log_always (lazy (sp "Traffic warmup "));
 
   set_hellos();
-  Mob_ctl.start_all();  
+  start_appropriate_nodes();
+
 
   for i = 1 to (Param.get Params.nodes) / 100 do
 
@@ -142,7 +190,8 @@ let traffic_warmup() =
     Mob_ctl.stop_all();
     (Nodes.node src)#originate_app_pkt ~l4pkt:`EMPTY ~dst:0;
     (Sched.s())#run_for ~duration:15.;
-    Mob_ctl.start_all();
+    start_appropriate_nodes();
+
     (Sched.s())#run_for ~duration:20.;
 (*    Hashtbl.iter (fun id agent -> 
       let rt, metric = agent#rtab_metric in
@@ -160,8 +209,7 @@ let setup_sim () =
   let agenttype = Param.get Config.agent
   and rrange = (Param.get Params.radiorange)
   in
-  Randoms.change_seed ~newseed:(Param.get Config.run) () ;
-  
+ 
   Param.set Params.x_size 
     (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
   Param.set Params.y_size 
@@ -196,17 +244,20 @@ let setup_or_restore() =
   )
 
   
-
-
+let warmup_file_basename() = 
+  sp "%s-%dn-%s-%s" 
+    (Param.as_string Config.agent)
+    (Param.get Params.nodes)
+    (Param.as_string Config.warmup)
+    (Param.as_string Mob_ctl.mob)
+    
+let warmup_file_name() = 
+  (warmup_file_basename())^".dat"
+    
 let maybe_warmup() = 
   if Param.get Config.warmup <> NONE then (
     Log.log#log_always (lazy (sp "Warming up with %s" (Param.as_string Config.warmup)));
-    let fname = sp "%s-%dn-%s-%s.dat" 
-      (Param.as_string Config.agent)
-      (Param.get Params.nodes)
-      (Param.as_string Config.warmup)
-      (Param.as_string Mob_ctl.mob)
-    in
+    let fname = warmup_file_name() in
     Log.log#log_always (lazy (sp "Will dump to file %s" fname));
     if Sys.file_exists fname then (
       Log.log#log_always (lazy (sp "OOops! %s already exists!" fname));
