@@ -53,7 +53,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 
   incr run;
 
-  Log.set_log_level ~level:Log.LOG_INFO;
+  Log.set_log_level ~level:Log.LOG_NOTICE;
   Param.set Params.nodes nodes;
   Param.set Params.rrange rrange;
   Param.set Params.x_size (size nodes);
@@ -123,16 +123,42 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 let runs = [
 (* speed routing rate nodes srcs pktsrecv *)
   (* 400 nodes *)
-  (8.0, GREP, 8, 200, 4, 100);
-  (8.0, AODV, 8, 200, 4, 100);
-  (8.0, GREP, 8, 200, 4, 100);
-  (8.0, AODV, 8, 200, 4, 100);
-  (8.0, GREP, 8, 200, 4, 100);
-  (8.0, AODV, 8, 200, 4, 100);
-  (8.0, GREP, 8, 200, 4, 100);
-  (8.0, AODV, 8, 200, 4, 100);
-  (8.0, GREP, 8, 200, 4, 100);
-  (8.0, AODV, 8, 200, 4, 100);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
+  (8.0, GREP, 8, 200, 4, 200);
+  (8.0, AODV, 8, 200, 4, 200);
 ]
 (*
 let runs = [
@@ -170,16 +196,20 @@ let _ =
     ~hotdest:false
   ) runs;
 
+  let aodvtot = ref 0 and greptot = ref 0 in
   let rec print_summary l = 
     match l with 
       | (speed1, aodv_pkts)::(speed2, grep_pkts)::rem ->
+	  aodvtot := aodv_pkts + !aodvtot;
+	  greptot := grep_pkts + !greptot;
 	  Printf.printf "%f %d %d\n" speed1 grep_pkts aodv_pkts;
 	  print_summary rem;
       | [] -> ()
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
   in
   Printf.printf "Speed GREP AODV\n";
-  print_summary !res_summary
+  print_summary !res_summary;
+    Printf.printf "Total GREP: %d , Total AODV: %d\n" !greptot !aodvtot
   
 
 (*
