@@ -14,7 +14,6 @@ open Printf
 class type ease_agent_t = 
   object
     val mutable db : NodeDB.nodeDB
-    val ntargets : Common.nodeid_t
     val mutable objdescr : string
     val owner : Gpsnode.gpsnode
     method add_neighbor : Common.nodeid_t -> unit
@@ -50,7 +49,6 @@ object(s)
 
 
   val mutable db = new NodeDB.nodeDB (Param.get Params.ntargets)
-  val ntargets = Param.get Params.ntargets
 
   method db = db
   method set_db thedb = db <- thedb
@@ -64,7 +62,7 @@ object(s)
 
 
    method add_neighbor nid = (
-     if nid < ntargets then (
+     if nid < (Param.get Params.ntargets) then (
        let n = Nodes.gpsnode nid in
        db#add_encounter ~nid ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
      )
