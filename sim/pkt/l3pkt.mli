@@ -23,7 +23,7 @@ open L4pkt
    long..), not doing until more stability on how this should look *)
 
 
-val _L3_BCAST_ADDR : int
+val l3_bcast_addr : int
 
 
 
@@ -35,6 +35,7 @@ type l3hdr_ext_t =
     | `GREP_HDR of Grep_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
+    | `SIMPLE_HDR of Simple_pkt.t
     ]
 
 (** A l3hdr contains a src, dst, ttl and maybe some protocol-specific
@@ -78,10 +79,9 @@ val ease_hdr : t -> Ease_pkt.t
 val grep_hdr : t -> Grep_pkt.t
 val aodv_hdr : t -> Aodv_pkt.t
 val diff_hdr : t -> Diff_pkt.t
-
+val simple_hdr : t -> Simple_pkt.t
 
 (** {2 L3 Header Manipulators} *)
-
 
 val l3pkt_size : l3pkt:t -> int
 val clone_l3pkt : l3pkt:t -> t

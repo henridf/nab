@@ -10,7 +10,7 @@ open Pkt_common
 
 open Misc
 
-let _L3_BCAST_ADDR = (* 255.255.255.255 *)
+let l3_bcast_addr = (* 255.255.255.255 *)
   255 + 
   powi ~num:2 ~exp:8 + 
   powi ~num:2 ~exp:16 + 
@@ -24,6 +24,7 @@ type l3hdr_ext_t =
     | `GREP_HDR of Grep_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
+    | `SIMPLE_HDR of Simple_pkt.t
     ]
 
 let clone_l3hdr_ext = function
@@ -32,6 +33,7 @@ let clone_l3hdr_ext = function
   | `GREP_HDR e -> `GREP_HDR (Grep_pkt.clone e)
   | `AODV_HDR e -> `AODV_HDR (Aodv_pkt.clone e)
   | `DIFF_HDR e -> `DIFF_HDR (Diff_pkt.clone e)
+  | `SIMPLE_HDR e -> `SIMPLE_HDR (Simple_pkt.clone e)
 
 
 (* note on TTL:
@@ -57,6 +59,7 @@ let l3hdr_ext_size = function
   | `GREP_HDR hdr ->  Grep_pkt.hdr_size hdr 
   | `AODV_HDR hdr ->  Aodv_pkt.hdr_size hdr 
   | `DIFF_HDR hdr ->  Diff_pkt.hdr_size hdr 
+  | `SIMPLE_HDR hdr ->  Simple_pkt.hdr_size hdr 
 
 
  
@@ -112,6 +115,11 @@ let diff_hdr l3pkt =
   match l3pkt.l3hdr.ext with
     | `DIFF_HDR e -> e
     | _ -> raise (Failure "Packet.diff_hdr")
+
+let simple_hdr l3pkt = 
+  match l3pkt.l3hdr.ext with
+    | `SIMPLE_HDR e -> e
+    | _ -> raise (Failure "Packet.simple_hdr")
 
 let get_ease_l3ext (l3hdr:l3hdr_t) = 
   match l3hdr.ext with
