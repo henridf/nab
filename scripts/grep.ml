@@ -10,10 +10,8 @@ let daemon = false
 let outfile = ref (Unix.getcwd())
 let outfile_det = ref (Unix.getcwd())
 
-
 let outfd = ref Pervasives.stderr
 let outfd_det = ref Pervasives.stderr
-
 
 type agent_type = AODV | GREP
 let agent_string t = (
@@ -56,6 +54,11 @@ let nextseed() = (
 let res_summary = ref []
 
 type trafficmatrix = HOTDEST  | BIDIR | UNIDIR
+let trafficmatrix_descr tmat = 
+  match tmat with 
+    | HOTDEST -> "hotspot "
+    | BIDIR  -> "bidirectional"
+    | UNIDIR -> "unidirectional"
 
 let do_one_run ~trafficmat ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_send = (
@@ -198,8 +201,13 @@ let r3 = [
 ]  
 
 let r7 = [
-(* repeats hotspot speed rate nodes srcs pktssend *)
-  (1, UNIDIR,  12.0,  4,   800,  20,  20);
+  (* repeats hotspot speed rate nodes srcs pktssend *)
+  (10, UNIDIR,  0.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  1.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  2.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  4.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  8.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  16.0,  4,   1000,  40,  20);
 ]
 
 
@@ -243,32 +251,32 @@ let argspec = Arg.Int
     match i with 
 	1 ->
 	  runs :=  r1;
-	  outfile := !outfile^"r1"^".txt";
-	  outfile_det := !outfile_det^"r1-det"^".txt";
+	  outfile := !outfile^"/r1"^".txt";
+	  outfile_det := !outfile_det^"/r1-det"^".txt";
       | 2 ->     
 	  runs :=  r2;
-	  outfile := !outfile^"r2"^".txt";
-	  outfile_det := !outfile_det^"r2-det"^".txt";
+	  outfile := !outfile^"/r2"^".txt";
+	  outfile_det := !outfile_det^"/r2-det"^".txt";
       | 3 ->     
 	  runs :=  r3;
-	  outfile := !outfile^"r3"^".txt";
-	  outfile_det := !outfile_det^"r3-det"^".txt";
+	  outfile := !outfile^"/r3"^".txt";
+	  outfile_det := !outfile_det^"/r3-det"^".txt";
       | 4 ->     
 	  runs :=  r4;
-	  outfile := !outfile^"r4"^".txt";
-	  outfile_det := !outfile_det^"r4-det"^".txt";
+	  outfile := !outfile^"/r4"^".txt";
+	  outfile_det := !outfile_det^"/r4-det"^".txt";
       | 5 ->     
 	  runs :=  r5;
-	  outfile := !outfile^"r5"^".txt";
-	  outfile_det := !outfile_det^"r5-det"^".txt";
+	  outfile := !outfile^"/r5"^".txt";
+	  outfile_det := !outfile_det^"/r5-det"^".txt";
       | 6 ->     
 	  runs :=  r6;
-	  outfile := !outfile^"r6"^".txt";
-	  outfile_det := !outfile_det^"r6-det"^".txt";
+	  outfile := !outfile^"/r6"^".txt";
+	  outfile_det := !outfile_det^"/r6-det"^".txt";
       | 7 ->     
 	  runs :=  r7;
-	  outfile := !outfile^"r7"^".txt";
-	  outfile_det := !outfile_det^"r7-det"^".txt";
+	  outfile := !outfile^"/r7"^".txt";
+	  outfile_det := !outfile_det^"/r7-det"^".txt";
       | _ -> failwith "No such run"
   )
   
@@ -295,12 +303,14 @@ let _ =
     Printf.fprintf !outfd "\n#---------------------------\n";
     Printf.fprintf !outfd "# Scenario %d parameters:\n" !run;
     Printf.fprintf !outfd "# %d Nodes, %d repeats\t\t\n" nodes repeats;
-    Printf.fprintf !outfd "# Sources: %d\t\t\n" sources;
+    Printf.fprintf !outfd "# Sources: %d, Traffic: %s\n" sources
+      (trafficmatrix_descr trafficmat);
     Printf.fprintf !outfd "# %d [pkt/s], %f [m/s] \n" rate speed ;
     Printf.fprintf !outfd_det "\n# ---------------------------\n";
     Printf.fprintf !outfd_det "# Scenario %d parameters:\n" !run;
     Printf.fprintf !outfd_det "# %d Nodes, %d repeats\t\t\n" nodes repeats;
-    Printf.fprintf !outfd_det "# Sources: %d\t\t\n" sources;
+    Printf.fprintf !outfd_det "# Sources: %d, Traffic: %s\n" sources
+      (trafficmatrix_descr trafficmat);
     Printf.fprintf !outfd_det "# %d [pkt/s], %f [m/s] \n" rate speed ;
     Printf.fprintf !outfd_det "# DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
     flush !outfd;
