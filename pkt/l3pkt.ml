@@ -53,6 +53,12 @@ type l3hdr_ext_t =
     | `GREP_L3HDR_EXT of grep_l3hdr_ext_t
     ]
 
+let clone_l3hdr_ext = function
+  | `NONE -> `NONE
+  | `EASE_L3HDR_EXT e -> `EASE_L3HDR_EXT {e with enc_age=e.enc_age}
+  | `GREP_L3HDR_EXT e -> `GREP_L3HDR_EXT {e with ssn=e.ssn}
+
+
 (* note on TTL:
    a ttl is decremented before sending a packet. 
    if decrementing makes it -1 then packet is dropped.
@@ -69,7 +75,7 @@ type l3hdr_t = {(* adjust l3hdr_size if this changes *)
 } 
 
 
-let clone_l3hdr ~l3hdr = {l3hdr with src = l3hdr.src}
+let clone_l3hdr ~l3hdr = {l3hdr with src = l3hdr.src; ext=(clone_l3hdr_ext l3hdr.ext) }
 
 let l3hdr_ext_size = function
   | `NONE -> 0
@@ -206,7 +212,9 @@ let make_grep_l3hdr_ext
 	| GREP_RREP ->
 	    assert (ohc <> -1 && osn <> -1 && osrc <> -1 && 
 	    rdst = -1 && dhc = -1 && dsn = -1)
-	| GREP_RADV  -> ()
+	| GREP_RADV  -> 
+	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
+	    rdst = -1 && dhc = -1 && dsn = -1)
     end;
     `GREP_L3HDR_EXT {
       grep_flags=flags;
