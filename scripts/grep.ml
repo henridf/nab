@@ -8,9 +8,35 @@ open Script_utils
 
 type agent_type = AODV | GREP
 let agent_string t = (
-match t with | AODV -> "AODV" | GREP -> "GREP"
+  match t with | AODV -> "AODV" | GREP -> "GREP"
 )
 let run = ref 0
+
+let node_degree = 8
+let rrange = 100.
+let size nodes = 
+  sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
+    float (node_degree))
+
+(*
+  density = area / nodes
+  -> area = nodes * density (1)
+  
+  
+  rsurface = 3.14 * (rrange^2)
+  
+  degree = density * rsurface
+  -> density = rsurface/degree (2)
+  
+  
+  (1) and (2) :
+  area = nodes * rsurface / degree = nodes * (3.14 * (rrange^2)) / degree 
+  
+  side = sqrt(area)
+*)
+
+
+let res_summary = ref []
 
 let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
   ~pkts_to_recv = (
@@ -19,10 +45,13 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
 
   Log.set_log_level ~level:Log.LOG_NOTICE;
   Param.set Params.nodes nodes;
+  Param.set Params.rrange rrange;
+  Param.set Params.x_size (size nodes);
+  Param.set Params.y_size (size nodes);
+  
   init_sched();
   init_world();
-
-
+  
   begin match agenttype with
     | AODV -> make_aodv_nodes()
     | GREP -> make_grep_nodes();
@@ -30,8 +59,9 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
 
   (* Attach a random waypoint mobility process to each node *)
   Mob_ctl.make_waypoint_mobs();
-  Mob_ctl.start_all();
   Mob_ctl.set_speed_mps speed;
+  Mob_ctl.start_all();
+
 
   Grep_hooks.set_sources sources;
   Grep_hooks.set_stop_thresh pkts_to_recv;
@@ -71,6 +101,8 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
   let end_time = Common.get_time() in
   Printf.fprintf stderr "Time elapsed is %f\n" (end_time -. start_time);
   Printf.fprintf stderr "Avg neighbors per node is %f\n" avgn;
+
+  res_summary := (speed, !Grep_hooks.total_pkts_sent)::!res_summary  ;
   
   flush stderr
 )
@@ -100,8 +132,6 @@ let runs = [
 ]
 *)
 
-let pkts_recv_per_node = 2000
-
 let _ = 
  
   List.iter (fun (speed, agenttype, rate, nodes, sources,  pktsrecv) ->
@@ -112,14 +142,18 @@ let _ =
     ~speed:speed
     ~sources:sources
     ~pkts_to_recv:pktsrecv
-  ) runs
+  ) runs;
+
+  let rec print_summary l = 
+    match l with 
+      | (speed1, grep_pkts)::(speed2, aodv_pkts)::rem ->
+	  Printf.printf "%f %d %d\n" speed1 grep_pkts aodv_pkts;
+	  print_summary rem;
+      | [] -> ()
+      | _ -> raise (Misc.Impossible_Case  "print_Summary")
+  in
+  print_summary !res_summary
   
-  
-  (*
-    Ler_graphics.init_gfx();
-    Ler_graphics.clear_gfx();
-    ignore (gui_grep_one_route());;
-  *)
 
 
 
