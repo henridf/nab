@@ -73,6 +73,7 @@ object ('a)
        create the packet and shove it down the app_send_pkt_hooks *)
 
   method trafficsource  : 
+    num_pkts:int ->
     dstid:Common.nodeid_t -> 
     pkts_per_sec:int -> unit
 

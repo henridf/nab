@@ -51,7 +51,7 @@ let nextseed() = (
 let res_summary = ref []
 
 let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed 
-  ~pkts_to_recv = (
+  ~pkts_to_send = (
     (* this assumes that we alternate btw grep and aodv.*)
     if agenttype = GREP then 
       Random.init (nextseed())
@@ -81,14 +81,14 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 
 
   Grep_hooks.set_sources sources;
-  Grep_hooks.set_stop_thresh (pkts_to_recv * sources);
+  Grep_hooks.set_stop_thresh (pkts_to_send * sources);
 
 
   Nodes.iter (fun n ->
     if (n#id < sources) then (
       let dst = if hotdest then ((Param.get Params.nodes)  - 1 ) else (n#id +
       sources) in
-      let pkt_reception() = n#trafficsource  dst packet_rate in
+      let pkt_reception() = n#trafficsource ~num_pkts:pkts_to_send ~dstid:dst ~pkts_per_sec:packet_rate in
       (Gsched.sched())#sched_in ~f:pkt_reception ~t:(((float n#id) *. 5.) +. 0.001);
     )
   );
@@ -200,14 +200,14 @@ let _ =
     Script_utils.detach_daemon outfile;
     outfd := !Log.output_fd;
   );
-  List.iter (fun (speed, agenttype, rate, nodes, sources,  pktsrecv) ->
+  List.iter (fun (speed, agenttype, rate, nodes, sources,  pktssend) ->
     do_one_run 
     ~nodes:nodes
     ~agenttype:agenttype
     ~packet_rate:rate
     ~speed:speed
     ~sources:sources
-    ~pkts_to_recv:pktsrecv
+    ~pkts_to_send:pktssend
     ~hotdest:false
   ) runs;
 

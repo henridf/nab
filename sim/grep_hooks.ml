@@ -13,7 +13,7 @@ let data_pkts_sent = ref 0
 let data_pkts_drop = ref 0
 let data_pkts_drop_rerr = ref 0
 let data_pkts_recv = ref 0
-let pkts_to_recv = ref 0
+let pkts_to_send = ref 0
 let data_pkts_orig = ref 0
 
 let rreq_pkts_sent = ref 0
@@ -32,7 +32,7 @@ let set_sources n = (
   data_pkts_drop := 0;
   data_pkts_drop_rerr := 0;
   data_pkts_recv := 0;
-  pkts_to_recv := 0;
+  pkts_to_send := 0;
   rreq_pkts_sent := 0;
   rrer_pkts_sent := 0;
   rrep_rerr_pkts_sent := 0;
@@ -52,18 +52,18 @@ let sent_data() = (
 
 let orig_data() = (
   incr total_pkts_sent;
-  incr data_pkts_orig
+  incr data_pkts_orig;
+  if !data_pkts_orig = !pkts_to_send then
+      (Gsched.sched())#stop_in 0.1;
 )
 
-let set_stop_thresh thepkts_to_recv = (
-  pkts_to_recv := thepkts_to_recv
+let set_stop_thresh thepkts_to_send = (
+  pkts_to_send := thepkts_to_send
 )
 
 let recv_data() = (
   incr data_pkts_recv;
   flush stdout;
-  if !data_pkts_recv = !pkts_to_recv then
-    (Gsched.sched())#stop_in 0.1;
 (*~t:(Sched.ASAP);*)
 )
 
