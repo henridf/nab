@@ -1,8 +1,3 @@
-
-
-
-
-
 (** Note that there can only be one world object *)
 
 val set_lazy_world : Worldt.lazy_world_t -> unit
@@ -18,3 +13,8 @@ val w : unit -> Worldt.lazy_world_t
 
 val gw : unit -> Worldt.greedy_world_t
   (** Returns the global greedy_world object, if one has been set. *)
+
+(**
+val strset_world : string -> unit
+  (** Set the desired world type via a string (for example provided as cmdline argument). *)
+*)

@@ -34,7 +34,11 @@ val ntargets : int Param.t
     is kept small. For example, in EASE routing, the size of the
     Last-Encounter table depends on the number of targets value. *)
     
-
+(*
+val world : string Param.t
+  (** The type of world representation (taurus vs reflecting, lazy vs greedy, epfl)
+    that is to be used in this simulation. @see 'worldt.ml' for details. *)
+*)
 val log_level : string Param.t
   (** Logging level. *)
 
