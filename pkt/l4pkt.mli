@@ -2,8 +2,10 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-
-(** {2 Application Layer (L4) Packet Types} *)
+(** {2 Application Layer (L4) Packet Types}
+  
+  @author Henri Dubois-Ferriere.
+*)
 
 type hello_payload_t = Coord.coordf_t
 
