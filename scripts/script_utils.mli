@@ -156,8 +156,6 @@ val place_nodes_on_line : unit -> unit
 
 val avg_neighbors_per_node : unit -> float 
 
-val grep_one_route : src:Common.nodeid_t -> dst:Common.nodeid_t -> unit
-
 
 
 (* Graphics *)

@@ -194,13 +194,6 @@ let wait_for_any_keypress() = (
 )
 
   
-let grep_one_route ~src ~dst = (
-  let pkt_reception() = (Nodes.node(src))#originate_app_pkt ~l4pkt:`EMPTY ~dst in
-  (Sched.s())#sched_at ~f:pkt_reception ~t:(Scheduler.ASAP);
-  (Sched.s())#run();
-)
-
-
 let print_header () = (
   Printf.printf "\n";
   Printf.printf "--------------------------------------- \n";
