@@ -168,3 +168,8 @@ end
 let (sched_:sched option ref) = ref None 
 let s () = o2v !sched_
 let set_sched s = sched_ := Some s
+
+let () = 
+  set_sched (new schedHeap)
+
+
