@@ -1,19 +1,19 @@
 (*
    This file should be saved as .ocamlinit in your home directory 
    (after having changed the /home/henridf/work below to whichever 
-    path leads to your mws directory).
+    path leads to your nab directory).
 *)
 
-#directory "/home/henridf/work/mws/lib";;
-#directory "/home/henridf/work/mws/lib/contrib";;
-#directory "/home/henridf/work/mws/scripts";;
-#directory "/home/henridf/work/mws/mws/base";;
-#directory "/home/henridf/work/mws/mws/interfaces";;
-#directory "/home/henridf/work/mws/mws/pkt";;
+#directory "/home/henridf/work/nab/lib";;
+#directory "/home/henridf/work/nab/lib/contrib";;
+#directory "/home/henridf/work/nab/scripts";;
+#directory "/home/henridf/work/nab/sim/base";;
+#directory "/home/henridf/work/nab/sim/interfaces";;
+#directory "/home/henridf/work/nab/sim/pkt";;
 
 
 
-#directory "/home/henridf/work/mws/proto/grep";;
-#directory "/home/henridf/work/mws/proto/aodv";;
-#directory "/home/henridf/work/mws/proto/diff";;
-#directory "/home/henridf/work/mws/proto/misc";;
+#directory "/home/henridf/work/nab/proto/grep";;
+#directory "/home/henridf/work/nab/proto/aodv";;
+#directory "/home/henridf/work/nab/proto/diff";;
+#directory "/home/henridf/work/nab/proto/misc";;
