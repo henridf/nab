@@ -1,6 +1,6 @@
 <html> 
 <head>
-<title>Fake Tutorial Lesson I</title>
+<title>NAB Tutorial Lesson I</title>
 <link href="emns.css" 
 type=text/css 
 rel=stylesheet>
@@ -9,15 +9,15 @@ rel=stylesheet>
 <body BGCOLOR ="#FFFFFF"> 
 
 
-<h1>Lesson 1: Getting Started with fake</h1>
+<h1>Lesson 1: Getting Started with NAB</h1>
 <p>
-In this first lesson, we will see how to start and setup the <code>fake</code> toplevel,
+In this first lesson, we will see how to start and setup the <code>NAB</code> toplevel,
 configure basic simulator parameters, and run a simple flooding protocol
 over a network of static nodes.
 <p>
 
 0. <a href="#0">Prerequisites</a><br>
-1. <a href="#1">Launching and setting up the <code>fake</code> toplevel</a><br>
+1. <a href="#1">Launching and setting up the <code>NAB</code> toplevel</a><br>
 2. <a href="#2">Configuring basic simulation parameters</a><br>
 3. <a href="#3">Running a simple flooding protocol.</a><br>
 4. <a href="#4">Using hooks to record packet statistics</a><br>
@@ -29,9 +29,9 @@ over a network of static nodes.
 This lesson requires the following:
 <ul>
 <li> You have installed the Objective Caml distribution (see <a
-href="../README">README</a> from <code>fake</code> distribution)
-<li> You have built the <code>fake-top</code> interactive toplevel (see <a
-href="../README">README</a> from <code>fake</code> distribution)
+href="../README">README</a> from <code>NAB</code> distribution)
+<li> You have built the <code>NAB-top</code> interactive toplevel (see <a
+href="../README">README</a> from <code>NAB</code> distribution)
 </ul>
 It is recommended that:
 <ul>
@@ -42,31 +42,31 @@ will run fine, but some of the links to source documentation will not work.
 </ul>
 
       
-<h2><a name="1">1. Launching and setting up the <code>fake</code> toplevel</a></h2>
+<h2><a name="1">1. Launching and setting up the <code>NAB</code> toplevel</a></h2>
 
 
-You launch the <code>fake</code> toplevel by simply typing bin/fake-top at the prompt:
+You launch the <code>NAB</code> toplevel by simply typing bin/fake-top at the prompt:
 <pre class=example>
-[henridf@lilblue: ~/work/fake] bin/fake-top 
+[henridf@lilblue: ~/work/NAB] bin/fake-top 
 
-   Multihop Wireless Simulator (fake) version 0.1
+   Multihop Wireless Simulator (NAB) version 0.1
           Objective Caml version 3.07+2
 
 # 
 </pre>
 
 
-Now, you have the <code>fake</code> command-line - similar in all aspects to the ocaml
-toplevel, except that all <code>fake</code> libraries and functionality are
+Now, you have the <code>NAB</code> command-line - similar in all aspects to the ocaml
+toplevel, except that all <code>NAB</code> libraries and functionality are
 linked in.<br>
-Before calling API functions exported by <code>fake</code>, we must inform the
+Before calling API functions exported by <code>NAB</code>, we must inform the
 toplevel about a few paths where source and compiled
 files are to be found. This can be done manually, using the #directory
 command:
 <br>
 
 <pre class=example>
-# #directory "/home/henridf/work/fake/lib";;
+# #directory "/home/henridf/work/NAB/lib";;
 </pre>
 
 
@@ -108,10 +108,10 @@ for more info</a>).
 
 
 Let's start by configuring a few basic parameters such as the number of nodes
-in the simulation, the MAC layer involved, etc. In <code>fake</code>, these key parameters
+in the simulation, the MAC layer involved, etc. In <code>NAB</code>, these key parameters
 are represented using Param values. Param offers a simple interface to get/set
 values, as well as helpful functionality to such as defaults, range checking,
-or parsing these values as command-line arguments to <code>fake</code>. <br>
+or parsing these values as command-line arguments to <code>NAB</code>. <br>
 
 Let's first set the number of nodes. First we might want to see what the
 default number is:<br>
@@ -328,7 +328,7 @@ Let's set the log level back to INFO for now:
 <h2><a name="4"> 4. Using hooks to record packet statistics</a></h2>
 Now, let's say we wanted to compute a very simple statistic on this flood: the
 total number of packets transmitted. To do this, we will use 'hooks', which
-is mechanism in <code>fake</code> to extract packet-level information as a simulation runs. A
+is mechanism in <code>NAB</code> to extract packet-level information as a simulation runs. A
 hook is simply a variable holding one or more function(s) to be called at a
 specific occasion (this customization mechanism will be familiar to emacs
 users). The type of 'occasion' where one would like the hook to call a

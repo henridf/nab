@@ -9,7 +9,7 @@ else
 	include  mk/ocaml.mk	
 endif
 
-CAML_BIN_DIR	= $(dir $(shell which ocamlc))
+CAML_BIN_DIR	= /home/henridf/local/bin
 
 OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc.opt
 OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
@@ -227,38 +227,38 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-alltargets: fake fakegrep grepviz fake-top fakeviz fakevor fakeviz-top
-allopttargets: fake fakegrep grepviz fakeviz fakevor
+alltargets: nab nabgrep grepviz nab-top nabviz nabvor nabviz-top
+allopttargets: nab nabgrep grepviz nabviz nabvor
 
 
-fake: bin/fake
-bin/fake: $(SIM_OBJS) $(SIM_SCRIPT)
+nab: bin/nab
+bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
 
 
-fakegrep: bin/fakegrep
-bin/fakegrep: $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
+nabgrep: bin/nabgrep
+bin/nabgrep: $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
 
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
 
-fakevor: bin/fakevor
-bin/fakevor:  $(SIM_OBJS) scripts/voronoi_common$(CMO)
+nabvor: bin/nabvor
+bin/nabvor:  $(SIM_OBJS) scripts/voronoi_common$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(SIM_OBJS) scripts/voronoi_common$(CMO) $(SIM_SCRIPT) -o $@ 
 
-fake-top: bin/fake-top
-bin/fake-top: $(SIM_OBJS)  $(SIM_SCRIPT)
+nab-top: bin/nab-top
+bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS)  $(SIM_SCRIPT) -o $@
 
-fakeviz: bin/fakeviz
-bin/fakeviz: $(GUI_OBJS) $(SIM_SCRIPT)
+nabviz: bin/nabviz
+bin/nabviz: $(GUI_OBJS) $(SIM_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
 	$(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
-fakeviz-top: bin/fakeviz-top
-bin/fakeviz-top: $(GUI_OBJS) $(SIM_SCRIPT)
+nabviz-top: bin/nabviz-top
+bin/nabviz-top: $(GUI_OBJS) $(SIM_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 

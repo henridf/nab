@@ -1,12 +1,12 @@
-		   FAKE - THE EPFL NETWORK SIMULATOR
+	     	       Network in a Box (NAB) 
 
-		http://lcavwww.epfl.ch/~henridf/fake.html
+		http://lcavwww.epfl.ch/~henridf/nab.html
 
 **             
 ** PREREQUISITES
 **             
 
-To compile and run fake, you must have ocaml installed. The latest version of
+To compile and run NAB, you must have ocaml installed. The latest version of
 ocaml (3.07+2) is recommended. The official site to get ocaml is 
 http://caml.inria.fr. 
 
@@ -63,25 +63,25 @@ To generate code documentation: (will be rooted at doc/gen/index.html)
 
 To compile an interactive toplevel:
 
-	make fake-top
+	make nab-top
 
 To compile an interactive toplevel with gui support linked in:
 (requires lablgtk, see PREREQUISITES above)
 
-	make fakeviz-top
+	make nabviz-top
 
-To compile fake to run script foo.ml in batch mode:
+To compile NAB to run script foo.ml in batch mode:
 (foo.ml is assumed to be in the scripts/ directory)
 
-	make SCRIPT=foo.ml fake
+	make SCRIPT=foo.ml nab
 
 If foo.ml uses gui libraries:
 
-	make SCRIPT=foo.ml fakeviz
+	make SCRIPT=foo.ml nabviz
 
 To compile as native code (runs faster), pass OPT=y flag to make, as in
 
-	make OPT=y SCRIPT=foo.ml fakeviz
+	make OPT=y SCRIPT=foo.ml nabviz
 
 Note: interactive toplevels cannot be compiled to native code.
 

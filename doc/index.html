@@ -1,6 +1,6 @@
 <html> 
 <head>
-<title>Introduction to Fake</title>
+<title>Introduction to NAB (Network in a Box)</title>
 </head>
 
 <table border="0" width="100%" >
@@ -8,23 +8,23 @@
       <td width="100%">
       <b>
       <font face="tahoma,arial,helvetica" size="+1">
-      <font size="+2"><code>fake </code></font>- A network simulator from EPFL
+      <font size="+2"><code>NAB </code></font> - Network in a Box
       </font>
-      </b>  
+      </b>
       <br>  
       </td>
     </tr>
 </table>
 <p>
-<code><b>Fake</b></code> is a network simulator written in Objective Caml (ocaml), a dialect of the
+<code><b>Nab</b></code> is a network simulator written in Objective Caml (ocaml), a dialect of the
 ML family. It is mostly geared toward simulation of multihop (wireless)
-networks, though there is nothing that would prevent using <code>fake</code> to simulate
+networks, though there is nothing that would prevent using <code>nab</code> to simulate
 arbitrary (non-wireless) networks.
 
-<code>Fake</Code> will be released sometime during April 2004; this documentation is
+<code>Nab</Code> will be released sometime during April 2004; this documentation is
 therefore in flux (and growing). Check back for updates!<br>
 
-And if you would like to be notified when <code>fake</code> is released, please send mail to <IMG src="http://lcavwww.epfl.ch/~henridf/email.jpg">
+And if you would like to be notified when <code>nab</code> is released, please send mail to <IMG src="http://lcavwww.epfl.ch/~henridf/email.jpg">
 
 <p>
 <table border="0" width="100%" >
@@ -41,7 +41,7 @@ And if you would like to be notified when <code>fake</code> is released, please 
 
 
 We recommend having at least basic familiarity with ocaml (or another
-ML-derived language) prior to starting out in <code>fake</code>. There are many great
+ML-derived language) prior to starting out in <code>nab</code>. There are many great
 resources 
 (<a href="http://caml.inria.fr/books-eng.html">Books</a> and <a
 href="http://caml.inria.fr/tutorials-eng.html">Tutorials</a>)
@@ -54,7 +54,7 @@ href="http://caml.inria.fr/oreilly-book/">English</a> or in <a
 href="http://www.pps.jussieu.fr/Livres/ora/DA-OCAML/index.html">French</a>) is
 an well-written and well-structured book, with both introductory and advanced
 material. (a good read through chapters 2, 3, and 4 should be sufficient to
-get started in <code>fake</code>). 
+get started in <code>nab</code>). 
 
 <li> Of the many online tutorials, the one by R. Jones is quite nice and
 teaches ocaml by comparing and contrasting it with c and java. This one is
@@ -74,9 +74,9 @@ see what feels most comfortable!
       </td>
     </tr>
 </table>
-To compile and run <code>fake</code>, you must have ocaml installed. If you want gui
+To compile and run <code>nab</code>, you must have ocaml installed. If you want gui
 visualization, you will also need lablgtk. See the the <a
-href="../README">README</a> from <code>fake</code> distribution.
+href="../README">README</a> from <code>nab</code> distribution.
 <p>
 <table border="0" width="100%" >
     <tr bgcolor="#e0e0ff">
@@ -84,7 +84,7 @@ href="../README">README</a> from <code>fake</code> distribution.
       <b>
       <font face="tahoma,arial,helvetica" size="+1">
       <a name="1"></a>
-      3. Using <font size="+2"><code> fake </code></font>
+      3. Using <font size="+2"><code> nab </code></font>
       </font></b>
       </td>
     </tr>
@@ -94,8 +94,8 @@ href="../README">README</a> from <code>fake</code> distribution.
 
 <b>Interactive versus batch</b><br>
 
-<code>Fake</Code> can be used either in interactive or in scripted mode. In interactive
-mode, the user enters commands at the ocaml prompt to tell <code>fake</code> what to do.
+<code>Nab</Code> can be used either in interactive or in scripted mode. In interactive
+mode, the user enters commands at the ocaml prompt to tell <code>nab</code> what to do.
 In batch mode, a binary is compiled with all the simulation script included;
 the simulation then runs unattended. 
 
@@ -116,14 +116,14 @@ in batch mode.
       <b>
       <font face="tahoma,arial,helvetica" size="+1">
       <a name="1"></a>
-      4.  <font size="+2"><code>fake </code></font> tutorial
+      4.  <font size="+2"><code>nab </code></font> tutorial
       </font></b>
       </td>
     </tr>
 </table>
 
 <a href="lesson1.html">Lesson 1</a>: In this first lesson, we will see how to
-start and setup the <code>fake</code> toplevel, configure basic simulator parameters, and
+start and setup the <code>nab</code> toplevel, configure basic simulator parameters, and
 run a simple flooding protocol over a network of static nodes.<br>
 Lesson 2: More interesting flooding, with a CSMA mac layer, and reconstructing
 the flood tree afterward.<br>
