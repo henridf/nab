@@ -180,8 +180,8 @@ class virtual crworld_common ~x ~y ~rrange  = (
 	!consistent
       ) || raise (Failure "Neighbors not correct (slow_compute_neighbors)")
       in
-(*      commutative()
-      &&*)
+      commutative()
+      &&
       correct_neighbors()
       &&
       slow_correct_neighbors()
