@@ -52,7 +52,7 @@ object(s)
 
   initializer (
     s#set_objdescr  "/Ease_Agent";
-    (World.w())#add_new_ngbr_hook theowner#id ~hook:s#add_neighbor
+    (World.gw())#add_new_ngbr_hook theowner#id ~hook:s#add_neighbor
   )
 
    method add_neighbor nid = (

@@ -27,7 +27,7 @@ let parse_args() = (
 let init_sched() = Sched.set_sched (new Sched.schedHeap)
 
 let init_greedy_world() = 
-  World.set_world (new Crworld.crworld_greedy
+  World.set_greedy_world (new Crworld.greedy_reflecting_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange))
@@ -36,14 +36,14 @@ let init_epfl_world() = (
   if (Param.get Params.x_size) <> 800. ||
     (Param.get Params.y_size) <> 600. then
       Log.log#log_warning (lazy "For EPFL, size should be 800x600");
-  World.set_world (new Crworld.epflworld
+  World.set_lazy_world (new Crworld.epflworld
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange))
 )
 
 let init_lazy_world() = 
-  World.set_world (new Crworld.crworld_lazy
+  World.set_lazy_world (new Crworld.lazy_reflecting_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange)
