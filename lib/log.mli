@@ -47,7 +47,7 @@ type log_level_t =
   | LOG_ALWAYS
       
 
-val set_log_level : level:log_level_t -> unit
+val set_log_level : log_level_t -> unit
 
 val strset_log_level : string -> unit
   (** Set the log level via a string (for example provided as cmdline argument). *)

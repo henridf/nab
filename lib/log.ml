@@ -71,7 +71,7 @@ let _ =
   raise (Failure "Unexpected ordering on enumerated type Log.log_level_t"))
   
 let current_log_level = ref LOG_WARNING
-let set_log_level ~level:l = current_log_level := l
+let set_log_level l = current_log_level := l
 
 let strset_log_level s = current_log_level := loglevel_of_string s
 
@@ -108,7 +108,7 @@ object(s)
 
   method objdescr = objdescr
 
-  method private log_level ~level:l msg =
+  method private log_level l msg =
     if l >= !current_log_level then (
       output_string !ochan (sprintf "%f " (Time.get_time()));
       output_string !ochan objdescr;
@@ -117,15 +117,15 @@ object(s)
       flush !ochan;
     )
 
-  method private log msg = s#log_level ~level:LOG_INFO msg
+  method private log msg = s#log_level LOG_INFO msg
 
   (* shorthand wrappers for log_level *)
-  method private log_debug = s#log_level ~level:LOG_DEBUG
-  method private log_info = s#log_level ~level:LOG_INFO 
-  method private log_notice = s#log_level ~level:LOG_NOTICE
-  method private log_warning = s#log_level ~level:LOG_WARNING
-  method private log_error = s#log_level ~level:LOG_ERROR
-  method private log_always = s#log_level ~level:LOG_ALWAYS
+  method private log_debug = s#log_level LOG_DEBUG
+  method private log_info = s#log_level LOG_INFO 
+  method private log_notice = s#log_level LOG_NOTICE
+  method private log_warning = s#log_level LOG_WARNING
+  method private log_error = s#log_level LOG_ERROR
+  method private log_always = s#log_level LOG_ALWAYS
   method private mark_break = (
       output_string !ochan
 	"\n-------------------------------------------------------\n\n";
@@ -159,7 +159,7 @@ object
   inherit standalone_loggable facility as super
   initializer (objdescr <- facility)
 
-  method private log_level ~level:l msg =
+  method private log_level l msg =
     if l >= !current_log_level then (
       output_string !ochan objdescr;
       output_string !ochan (Lazy.force msg);
