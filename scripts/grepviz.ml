@@ -55,7 +55,7 @@ let () =
 
   let s = Param.make_argspeclist () 
   in
-  Myarg.parse s (fun s -> ()) "You messed up!";
+  Arg.parse s (fun s -> ()) "You messed up!";
 
   Gui_gtk.init();
 

@@ -20,8 +20,6 @@ val create :
   name:string                        (* param name *)
   -> ?shortname:string               (* param shorthand (for cmdline parsing)
 					if None, same as name  *)
-  -> ?cmdline:bool                   (* True if settable on cmdline. Default
-					is false.*)
   -> ?default:'a                     (* if None, can raise exception on a get
 					when no value has been set *)
   -> doc:string                      (* documentation string *)
@@ -36,33 +34,46 @@ val create :
 
 
 val intcreate :  
-  name:string  -> ?shortname:string -> ?cmdline:bool
-  -> ?default:int  -> doc:string  
-  -> ?checker:(int -> unit) -> unit 
+  name:string  -> 
+  ?shortname:string -> 
+  ?cmdline:bool ->    (* True if settable on cmdline. Default  is false.*)
+  ?default:int  -> 
+  doc:string  -> 
+  ?checker:(int -> unit) -> 
+  unit 
   -> int t                             
-  (** Create an int parameter *)
+  (** Create an int parameter. Arguments are same as for {!Param.create}. *)
 
 val floatcreate :  
-  name:string  -> ?shortname:string -> ?cmdline:bool
-  -> ?default:float  -> doc:string 
-  -> ?checker:(float -> unit) -> unit 
+  name:string  -> 
+  ?shortname:string -> 
+  ?cmdline:bool ->  (* True if settable on cmdline. Default  is false.*)
+  ?default:float  -> 
+  doc:string -> 
+  ?checker:(float -> unit) -> unit 
   -> float t                             
-  (** Create a float parameter *)
+  (** Create a float parameter. Arguments are same as for {!Param.create}. *)
 
 val boolcreate :  
-  name:string  -> ?shortname:string -> ?cmdline:bool                      
-  -> ?default:bool  -> doc:string  
+  name:string  -> 
+  ?shortname:string -> 
+  ?cmdline:bool  ->  (* True if settable on cmdline. Default  is false.*)
+  ?default:bool  -> 
+  doc:string  
   -> ?checker:(bool -> unit) -> unit 
   -> bool t                             
-  (** Create a bool parameter *)
+  (** Create a bool parameter. Arguments are same as for {!Param.create}. *)
 
 
 val stringcreate :  
-  name:string  -> ?shortname:string -> ?cmdline:bool  
-  -> ?default:string  -> doc:string 
-  -> ?checker:(string -> unit) -> unit 
+  name:string  -> 
+  ?shortname:string -> 
+  ?cmdline:bool  -> (* True if settable on cmdline. Default  is false.*)
+  ?default:string  -> 
+  doc:string -> 
+  ?checker:(string -> unit) -> unit 
   -> string t                             
-  (** Create a string parameter *)
+  (** Create a string parameter. Arguments are same as for {!Param.create}. *)
 
 
 
@@ -71,7 +82,7 @@ val strset : 'a t -> string -> unit
 val get : 'a t -> 'a                 (* fails if default was
 					None and value was not set *)
   
-val make_argspeclist : unit -> (string * Myarg.spec * string) list
+val make_argspeclist : unit -> (string * Arg.spec * string) list
   (** Returns a list of triples [(key, spec, doc)] corresponding to all
     created params which had 'cmdline' set. This list can then be used 
     to call Arg.parse with. *)

@@ -205,7 +205,7 @@ let setup() =
   
   let s = Pm.make_argspeclist () 
   in
-  Myarg.parse s (fun s -> ()) "You messed up!"
+  Arg.parse s (fun s -> ()) "You messed up!"
     
     
     

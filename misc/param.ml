@@ -18,12 +18,13 @@ type 'a t = {
 let intparams = ref []
 let floatparams = ref []
 let stringparams = ref []
+let boolparams = ref []
 
 
 
 exception IllegalValue of string
 
-let create ~name  ?shortname ?(cmdline=false) ?default ~doc ~reader ?checker () =  (
+let create ~name  ?shortname ?default ~doc ~reader ?checker () =  (
 
   if Hashtbl.mem namespace name then 
     raise (Failure (Printf.sprintf "Param.create : %s already taken" name));
@@ -50,23 +51,25 @@ let create ~name  ?shortname ?(cmdline=false) ?default ~doc ~reader ?checker () 
 )
     
 let intcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ~cmdline ?default ~doc ~reader:int_of_string
+  let p = create ~name ?shortname ?default ~doc ~reader:int_of_string
     ?checker () in
   if cmdline then intparams := p::!intparams;
   p
 
 let floatcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ~cmdline ?default ~doc ~reader:float_of_string
+  let p = create ~name ?shortname ?default ~doc ~reader:float_of_string
     ?checker () in
   if cmdline then floatparams := p::!floatparams;
   p
 
 let boolcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  create ~name ?shortname ~cmdline ?default ~doc ~reader:bool_of_string
-    ?checker () 
+  let p = create ~name ?shortname ?default ~doc ~reader:bool_of_string
+    ?checker () in
+  if cmdline then boolparams := p::!boolparams;
+  p
 
 let stringcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
-  let p = create ~name ?shortname ~cmdline ?default ~doc ~reader:(fun s -> s)
+  let p = create ~name ?shortname ?default ~doc ~reader:(fun s -> s)
     ?checker () in
   if cmdline then stringparams := p::!stringparams;
   p
@@ -89,7 +92,7 @@ let set param value = (
 let strset param string = (
   let value = try 
     param.reader string 
-  with e -> raise (Misc.Fatal 
+  with _ -> raise (Misc.Fatal 
     (Printf.sprintf "%s is not correct for param %s\n" string param.name))
   in
   set param value
@@ -104,17 +107,22 @@ let get param = match param.value with
 
 let make_intargspec param = 
 	("-"^param.shortname, 
-	Myarg.Int (fun i -> set param i),
+	Arg.Int (fun i -> set param i),
 	param.doc)
 
 let make_floatargspec param = 
 	("-"^param.shortname, 
-	Myarg.Float (fun i -> set param i),
+	Arg.Float (fun i -> set param i),
 	param.doc)
 
 let make_stringargspec param = 
 	("-"^param.shortname, 
-	Myarg.String (fun i -> set param i),
+	Arg.String (fun i -> set param i),
+	param.doc)
+
+let make_boolargspec param = 
+	("-"^param.shortname, 
+	Arg.Bool (fun i -> set param i),
 	param.doc)
 
 let make_argspeclist () = 
@@ -123,6 +131,8 @@ let make_argspeclist () =
   List.map (fun p -> make_floatargspec p) !floatparams
   @
   List.map (fun p -> make_stringargspec p) !stringparams
+  @
+  List.map (fun p -> make_boolargspec p) !boolparams
     
 let get_value p = 
   match p.value with 
@@ -135,7 +145,9 @@ let configlist () =
     @
     List.map (fun p -> (p.name, string_of_float (get_value p))) !floatparams
     @
-    List.map (fun p -> (p.name, string_of_int (get_value p))) !intparams)
+    List.map (fun p -> (p.name, string_of_int (get_value p))) !intparams
+    @
+    List.map (fun p -> (p.name, string_of_bool (get_value p))) !boolparams)
 
 let configlist_doc () = 
   List.sort (fun (a, _) (b, _) -> String.compare a b)
@@ -143,7 +155,9 @@ let configlist_doc () =
     @
     List.map (fun p -> (p.doc, string_of_float (get_value p))) !floatparams
     @
-    List.map (fun p -> (p.doc, string_of_int (get_value p))) !intparams)
+    List.map (fun p -> (p.doc, string_of_int (get_value p))) !intparams
+    @
+    List.map (fun p -> (p.doc, string_of_bool (get_value p))) !boolparams)
     
   
 let printconfig outchan = (
