@@ -37,13 +37,13 @@ let propdelay p1 p2 = (sqrt (Coord.dist_sq p1 p2)) /. speed_of_light
 
 
 module type Ether_t = sig 
-  val emit : ?stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
+  val emit : stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
 end
 
 
 module SimpleEther : Ether_t = 
 struct 
-  let emit ?(stack=0) ~nid l2pkt = 
+  let emit ~stack ~nid l2pkt = 
     let neighbors = (World.w())#neighbors nid in
     
     List.iter (fun id -> 
@@ -63,9 +63,9 @@ struct
 end
 
 
-module FastEther : Ether_t = 
+module NullEther : Ether_t = 
 struct 
-  let emit ?(stack=0) ~nid l2pkt = 
+  let emit ~stack ~nid l2pkt = 
     let l2dst = L2pkt.l2dst l2pkt in
     let neighbors = (World.w())#neighbors nid in
     

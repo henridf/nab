@@ -23,12 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
-
 (** 
   Ether: The shared medium onto which nodes transmit. 
   @author Henri Dubois-Ferriere 
@@ -41,7 +35,7 @@ val propdelay : Coord.coordf_t -> Coord.coordf_t -> float
 
 
 module type Ether_t = sig 
-  val emit : ?stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
+  val emit : stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
   (** A node's MAC calls this to emit bits into the air. The Ether module
     then takes care of sending them, with appropriate propagation delay and SNR,
     to nodes within range. 
@@ -53,13 +47,13 @@ module SimpleEther : Ether_t
   (** SimpleEther is a shared medium where a packet is propagated intact to
     all nodes within radio range {!Params.radiorange} of the emitting node. *)
 
-module FastEther : Ether_t
-  (** FastEther is identical to SimpleEther except that unicast packets are
+module NullEther : Ether_t
+  (** NullEther is identical to SimpleEther except that unicast packets are
     only propagated to their destination. This can be used in conjunction
     with a MAC layer which does not model contention (for example
-    {!Mac_null.nullmac}) for a slight performance gain. Note that using this
-    with a MAC layer which does model contention would introduce invalid
-    behavior (since the mac layer would not know about the contention occuring
+    {!Mac_null.nullmac}) for a slight performance gain. 
+    This should *not* be used with a MAC layer that does model contention
+    (since the mac layer would not know about the contention occuring
     when a neighbor unicasts a packet to another node).
 *)
   
