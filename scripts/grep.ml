@@ -6,6 +6,10 @@ open Printf
 open Misc
 open Script_utils
 
+let daemon = false
+let outfile = ""
+
+
 let outfd = ref Pervasives.stderr
 
 
@@ -112,7 +116,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
   Printf.fprintf !outfd "DATA recv: \t%d\n" !Grep_hooks.data_pkts_recv;
   Printf.fprintf !outfd "RREQ send: \t%d\n" !Grep_hooks.rreq_pkts_sent;
   Printf.fprintf !outfd "RREP/RERR send: \t%d\n" !Grep_hooks.rrep_rerr_pkts_sent;
-  Printf.fprintf !outfd "Invariant Breaks: \t%d\n" !Grep_hooks.inv_violation();
+  Printf.fprintf !outfd "Invariant Breaks: \t%d\n" !Grep_hooks.inv_viol;
 
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in
@@ -123,6 +127,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
   
   flush !outfd
 )
+
 
 
 let runs = [
@@ -165,6 +170,7 @@ let runs = [
   (8.0, GREP, 8, 200, 4, 200);
   (8.0, AODV, 8, 200, 4, 200);
 ]
+
 (*
 let runs = [
 (* speed routing rate nodes srcs pktsrecv *)
@@ -190,6 +196,10 @@ let runs = [
 
 let _ = 
  
+  if daemon then (
+    Script_utils.detach_daemon outfile;
+    outfd := !Log.output_fd;
+  );
   List.iter (fun (speed, agenttype, rate, nodes, sources,  pktsrecv) ->
     do_one_run 
     ~nodes:nodes
@@ -212,9 +222,9 @@ let _ =
       | [] -> ()
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
   in
-  Printf.printf !outfd "Speed GREP AODV\n";
+  Printf.fprintf !outfd "Speed GREP AODV\n";
   print_summary !res_summary;
-  Printf.printf !outfd "Total GREP: %d , Total AODV: %d\n" !greptot !aodvtot
+  Printf.fprintf !outfd "Total GREP: %d , Total AODV: %d\n" !greptot !aodvtot
   
 
 (*

@@ -245,7 +245,7 @@ let finish () = (
 )
 
 
-let detach_daemon ~outfd =
+let detach_daemon ~outfilename =
     let pid =  Unix.fork () in
     if pid < 0 then failwith "Error in fork";
     if pid > 0 then exit 0;
@@ -253,7 +253,7 @@ let detach_daemon ~outfd =
     Unix.close Unix.stdin;
     Unix.close Unix.stdout;
     Unix.close Unix.stderr;
-    Log.output_fd := outfd;
+    Log.output_fd := (open_out outfilename);
     
         
 

@@ -66,4 +66,4 @@ val gui_draw_connectivity : unit -> unit
 
 *)
 
-val detach_daemon :  outfd:out_channel -> unit
+val detach_daemon :  outfilename:string -> unit
