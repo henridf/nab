@@ -23,23 +23,19 @@
 (* $Id$ *)
 
 
-(** A simple implementation of the AODV routing protocol.
 
-  This implementation is not yet a literal and exhaustive transcription of the
-  RFC, in particular the following functions have yet to be implemented:
-  - Features for dealing with unidirectional links (blacklists, 'A' option to
-  request a RREP-ACK) are not supported.
-  - Actions after reboot.
-  - Section 6.10 of the RFC ("Maintaing Local Connectivity") is partially
-  implemented.
-*)
 
-(* tests:
-   throw RREQ_RATELIMIT + 1 app packets to a node with no routes and check
-   that they don't all go out at once.
+(* 
+   str_agent 'enhancements' :
 
+
+tests:
+
+   make sure a node sends hellos when it should (part of active route, etc)
    do a random mix of mobility and traffic, and check that ttl drops on data
-   packets don't happen (would indicate a loooop)
+   packets don't happen (would indicate a loooop), and that asserts don't happen
+
+
  *)
 
 
@@ -87,12 +83,8 @@ end
 
 
 let agents_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
-
-let make_l3aodv aodvhdr ~src ~dst = 
-  L3pkt.make_l3pkt 
-    ~l3hdr:(L3pkt.make_l3hdr ~src ~dst ~ext:(`AODV_HDR aodvhdr) ()) ~l4pkt:`EMPTY
-
+  Array.init Simplenode.max_nstacks 
+    (fun _ -> Hashtbl.create (Param.get Params.nodes))
 
 module S = Aodv_stats
   (* locally rename module Aodv_stats as 'S' to make things more compact each
@@ -110,7 +102,7 @@ object(s)
 
   val mutable myseqno = 0 (* our sequence number. *)
 
-  val mutable last_bcast_time = Time.time()  
+  val mutable last_bcast_time = Time.time() 
     (* We keep track of the last time since we sent any broadcastpacket in
        order to know when hello message is nec. (rfc 6.9)*)
 
@@ -145,6 +137,8 @@ object(s)
     s#incr_seqno();
     (Sched.s())#sched_in ~f:s#clean_data_structures
     ~t:(aodv_PATH_DISCOVERY_TIME +. 1.);
+    (Sched.s())#sched_in ~f:s#send_hello
+    ~t:(Random.float aodv_HELLO_INTERVAL);
   )
 
   (* 
@@ -153,36 +147,30 @@ object(s)
 
   method myid = myid
 
+  method private make_l3aodv ?(ttl=L3pkt.default_ttl) ?(l4pkt=`EMPTY) ~dst aodvhdr = 
+  L3pkt.make_l3pkt 
+    ~l3hdr:(L3pkt.make_l3hdr ~ttl ~src:myid ~dst ~ext:(`AODV_HDR aodvhdr) ())
+    ~l4pkt
+
   method private send_hello() = (
     let now = Time.time() in
-    let next_t =  
-      if now -. last_bcast_time < aodv_HELLO_INTERVAL then 
-	(last_bcast_time +. aodv_HELLO_INTERVAL) 
-      else (now +. aodv_HELLO_INTERVAL)  in
+    let defer = now -. last_bcast_time < aodv_HELLO_INTERVAL in
+    let last_bcast_time = match last_bcast_time with 0.0 -> now | t -> t in
+    let next_t = 0.01 +. 
+      if defer then (last_bcast_time +. aodv_HELLO_INTERVAL)
+      else (now +. aodv_HELLO_INTERVAL) in
     
-    if Aodv_rtab.have_active_route rt then (
+    if (not defer) && Aodv_rtab.have_active_route rt then (
       let rrep = make_rrep_hdr ~hc:0 ~dst:myid ~dst_sn:myseqno ~orig:myid
 	~lifetime:(aodv_ALLOWED_HELLO_LOSS *. aodv_HELLO_INTERVAL) () in
-      let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst:L3pkt.l3_bcast_addr
-	~ttl:1 ~ext:(`AODV_HDR rrep) () in
-      let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
       s#log_debug (lazy "Sending HELLO"); 
 
-      s#send_out l3pkt;
+      s#send_out (s#make_l3aodv ~dst:L3pkt.l3_bcast_addr ~ttl:1 rrep);
     );
 
     (Sched.s())#sched_in ~f:s#send_hello ~t:next_t;
   )
       
-
-    (* if part of active route AND
-       time elapsed since last broadcast > aodv_HELLO_INTERVAL then
-       send_hello;
-       resched in HELLO_INTERVAL;
-       else
-       resched in time_since_last_broadcast + hello_interval *)
-       
-
 
 
   method private incr_seqno() = myseqno <- myseqno + 1
@@ -271,17 +259,18 @@ object(s)
     
     let aodv_hdr = L3pkt.aodv_hdr l3pkt 
     and src = L3pkt.l3src l3pkt 
-    and dst = L3pkt.l3dst l3pkt in 
+    and dst = L3pkt.l3dst l3pkt 
+    and ttl = L3pkt.l3ttl l3pkt in 
     if aodv_hdr <> DATA then assert(sender = src);
 
     begin match aodv_hdr with
       | DATA -> s#process_data_pkt l3pkt sender;
-      | RREQ rreq -> s#process_rreq_pkt src (L3pkt.l3ttl l3pkt) rreq
-      | RREP rrep -> s#process_rrep_pkt src rrep ;
-      | RERR rerr -> s#process_rerr_pkt src (L3pkt.l3ttl l3pkt) rerr ;
+      | RREQ rreq -> s#process_rreq_pkt src ttl rreq
+      | RREP rrep -> s#process_rrep_pkt src ttl rrep ;
+      | RERR rerr -> s#process_rerr_pkt src ttl rerr ;
       | RREP_ACK -> raise Misc.Not_Implemented;
     end
-  ) 
+  )
 
 
   (* Entry point for incoming packets. *)
@@ -305,9 +294,8 @@ object(s)
     match Aodv_rtab.nexthop_maybe rt orig with
 	Some nh -> 
 	  let rrep = Aodv_pkt.make_rrep_hdr ~hc ~dst ~dst_sn ~orig ~lifetime () in
-	  let l3pkt = make_l3aodv rrep ~src:myid ~dst:nh in
 	  stats.S.rrep_orig <- stats.S.rrep_orig + 1;
-	  s#send_out l3pkt
+	  s#send_out (s#make_l3aodv rrep ~dst:nh)
       | None -> 
 	  s#log_error (lazy "aodv_agent.send_rrep"); 
 	  failwith "aodv_agent.send_rrep"
@@ -365,7 +353,13 @@ object(s)
       (lazy (Printf.sprintf "Originating GRAT RREP for dst %d to originator %d"
 	rreq.rreq_dst rreq.rreq_orig));
       let grat_lifetime = Aodv_rtab.lifetime rt rreq.rreq_orig in
-      s#send_rrep ~hc:hop_count ~dst:rreq.rreq_orig ~dst_sn:rreq.rreq_orig_sn
+      let orig_hc = 
+	match Aodv_rtab.hopcount_maybe rt rreq.rreq_orig with
+	  | Some hc -> hc
+	  | None -> raise (Misc.Impossible_Case "Aodv_agent.reply_rreq") in 
+      (* 'None' should be impossible because we have just received a rreq from
+	 the destination. *) 
+      s#send_rrep ~hc:orig_hc ~dst:rreq.rreq_orig ~dst_sn:rreq.rreq_orig_sn
 	~orig:rreq.rreq_dst grat_lifetime
     )
   )
@@ -381,7 +375,7 @@ object(s)
     Aodv_rtab.add_entry_neighbor rt src;
     s#after_send_any_buffered_pkts src;
 
-    (* 2. If we have received this RREQ recently, discard and don't do
+    (* 2. If we have already received this RREQ, discard and don't do
        anything else. *)
     let discard = try 
       let last_time = Hashtbl.find rreq_cache (rreq.rreq_orig, rreq.rreq_id) in
@@ -391,7 +385,7 @@ object(s)
 
     Hashtbl.replace rreq_cache (rreq.rreq_orig, rreq.rreq_id) (Time.time());
     if discard then 
-      s#log_info (lazy (sprintf "Dropping RREQ pkt (originator %d), dst %d"
+      s#log_debug (lazy (sprintf "Dropping RREQ pkt (originator %d), dst %d"
 	rreq.rreq_orig rreq.rreq_dst))
     else (
       (* 3. Otherwise, continue RREQ processing. 
@@ -412,9 +406,9 @@ object(s)
 	let new_rreq = RREQ {rreq with 
 	  rreq_hopcount = rreq.rreq_hopcount + 1; 
 	  rreq_dst_sn = seqno} in
-	let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst:L3pkt.l3_bcast_addr
-	  ~ttl:(ttl - 1) ~ext:(`AODV_HDR new_rreq) () in
-	let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
+	let l3pkt = s#make_l3aodv 
+	  ~dst:L3pkt.l3_bcast_addr ~ttl:(ttl - 1) new_rreq in
+
 	s#send_out l3pkt
     )
   )
@@ -438,8 +432,7 @@ object(s)
     Aodv_rtab.set_lifetime rt dst aodv_DELETE_PERIOD;
     
     let aodv_hdr = Aodv_pkt.make_rerr_hdr ~flags [(dst, seqno)] in
-    let l3pkt = make_l3aodv aodv_hdr  ~src:myid ~dst:sender in
-    s#send_out l3pkt
+    s#send_out (s#make_l3aodv aodv_hdr ~dst:sender)
   )
 
 
@@ -463,8 +456,15 @@ object(s)
 	  | true, _ -> 
 	      (* route is valid, so we can fw data packet. *)
 	      L3pkt.decr_l3ttl l3pkt;
-	      Aodv_rtab.set_lifetime rt dst aodv_ACTIVE_ROUTE_TIMEOUT;
-	      s#send_out l3pkt;
+	      if (L3pkt.l3ttl l3pkt < 0) then (
+		s#log_error (lazy "DATA packet TTL went to 0. looop???");
+		failwith "DATA packet TTL went to 0. looop???";
+		(* exception can be removed later, only in beta testing to
+		   make SURE i notice any such cases *)
+	      ) else (
+		Aodv_rtab.set_lifetime rt dst aodv_ACTIVE_ROUTE_TIMEOUT;
+		s#send_out l3pkt;
+	      )
     )
 
     
@@ -562,12 +562,8 @@ object(s)
  	(List.find (Aodv_rtab.has_precursors rt) unreachables_with_prec))  in
       let ttl = if dst = L3pkt.l3_bcast_addr then 1 else 255 in
 
-      let l3hdr = 
-	L3pkt.make_l3hdr ~src:myid ~dst ~ttl ~ext:(`AODV_HDR new_rerr) () in
-      let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
-      
       stats.S.rerr_orig <- stats.S.rerr_orig + 1;
-      s#send_out l3pkt
+      s#send_out (s#make_l3aodv ~dst ~ttl new_rerr)
     )
 
   )
@@ -597,7 +593,8 @@ object(s)
 
       | RREP _ -> stats.S.rrep_xmit <- stats.S.rrep_xmit - 1;
       | RERR _ -> stats.S.rerr_xmit <- stats.S.rerr_xmit - 1;
-      | RREQ _ -> stats.S.rreq_xmit <- stats.S.rreq_xmit - 1;
+      | RREQ _ -> raise (Misc.Impossible_Case "Aodv_agent.mac_callback"); 
+	  (* rreqs are always broadcast *)
       | RREP_ACK -> ()
     end
     
@@ -605,15 +602,13 @@ object(s)
     let flags = 
       {default_rreq_flags with u = ((Aodv_rtab.seqno rt dst) = None)} in
     
-    let rreq = make_rreq_hdr ~flags  ~hc:1  ~rreq_id
+    let rreq = make_rreq_hdr ~flags  ~hc:0  ~rreq_id
       ~rreq_dst:dst
       ~rreq_dst_sn:(Opt.default 0 (Aodv_rtab.seqno rt dst))
       ~orig:myid
       ~orig_sn:myseqno () in
 
-    let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst:L3pkt.l3_bcast_addr 
-      ~ext:(`AODV_HDR rreq) ~ttl:radius () in
-    L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY 
+    s#make_l3aodv ~dst:L3pkt.l3_bcast_addr  ~ttl:radius rreq
   )
 
 
@@ -706,7 +701,7 @@ object(s)
   )
     
 
-  method private process_rrep_pkt src rrep  = (
+  method private process_rrep_pkt src ttl rrep  = (
     (* Follows the steps from rfc 6.7 *)
 
     s#log_info (lazy (sprintf "Received RREP pkt (originator %d, dst %d)"
@@ -716,30 +711,29 @@ object(s)
     Aodv_rtab.add_entry_neighbor rt src;
     s#after_send_any_buffered_pkts src;
 
-    (* 2. Update route to destination of route reply. *)
+    (* 2. Update route to dest for which this rrep advertises reachability.*)
     let updated = Aodv_rtab.add_entry_rrep rt rrep src in
     s#after_send_any_buffered_pkts rrep.rrep_dst;
 
     (* 3. We can forward rrep if we're not the originator, have updated the route
        above, and have a next hop. *)
-    if updated && myid <> rrep.rrep_orig then 
+    if updated && myid <> rrep.rrep_orig then (
       match Aodv_rtab.nexthop_maybe rt rrep.rrep_orig with
-	| None -> s#log_info 
+	| None -> s#log_error 
 	    (lazy "Cannot forward RREP because no next hop to originator")
-	| Some nh ->
-	    Aodv_rtab.add_precursor rt ~dst:rrep.rrep_dst ~pre:nh;
-	    (* xxx According to 6.7 update below should be done but seems odd and 
-	       inconsistent with what we do for other onehop routes we've created
-	       Aodv_rtab.add_precursor rt ~dst:src ~pre:nh; *)
-	    
-	    let new_rrep = Aodv_pkt.incr_rrep_hopcount rrep in
-	    let l3pkt = make_l3aodv ~src:myid ~dst:nh (Aodv_pkt.RREP new_rrep) in
-	    s#send_out l3pkt
-    else 
-      if not updated then s#log_info (lazy 
-	"Cannot forward RREP because did not update route to destination.")
-
-      
+	| Some nh -> 
+	    if ttl > 0 then (
+	      Aodv_rtab.add_precursor rt ~dst:rrep.rrep_dst ~pre:nh;
+	      (* xxx According to 6.7 update below should be done but seems odd and 
+		 inconsistent with what we do for other onehop routes we've created
+		 Aodv_rtab.add_precursor rt ~dst:src ~pre:nh; *)
+	      
+	      let new_rrep = {rrep with rrep_hopcount = rrep.rrep_hopcount + 1} in
+	      let l3pkt = s#make_l3aodv ~ttl:(ttl - 1) ~dst:nh (Aodv_pkt.RREP new_rrep) in
+	      s#send_out l3pkt
+	    )
+    ) else if not updated then s#log_info
+      (lazy "Cannot forward RREP because did not update route to destination.")
   )
 
 
@@ -803,11 +797,8 @@ object(s)
  	(List.find (Aodv_rtab.has_precursors rt) n_ur_nodes)) in
       let ttl = if dst = L3pkt.l3_bcast_addr then 1 else ttl - 1 in
 
-      if ttl >= 0 then 
-	let l3hdr = 
-	  L3pkt.make_l3hdr ~src:myid ~dst ~ttl:1 ~ext:(`AODV_HDR new_rerr) () in
-	let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
-	s#send_out l3pkt
+      if ttl > 0 then 
+	s#send_out (s#make_l3aodv ~dst ~ttl new_rerr)
   )
 
 
@@ -869,9 +860,7 @@ object(s)
     stats.S.data_orig <- stats.S.data_orig - 1;
 
     s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
-    let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`AODV_HDR DATA) () in 
-    let l3pkt = (L3pkt.make_l3pkt ~l3hdr ~l4pkt) in
-    s#process_data_pkt l3pkt myid;
+    s#process_data_pkt (s#make_l3aodv ~dst DATA) myid;
   )
 
   method stats = stats
