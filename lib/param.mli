@@ -1,37 +1,55 @@
-
-
-
-
 (** Parameter handling. 
   @author Henri Dubois-Ferriere.
 *)
 
 
-(* todo :
-   - understand unison's one better. 
-   - add ways to save to file a la unison, etc
-*)
-
 type 'a t
+  (** The type of [Param] parameters. *)
 
-exception IllegalValue of string
+exception IllegalParamVal of string
+
+
+(** {1 Getting and Setting parameter values} *)
+
+val set : 'a t -> 'a -> unit
+  (** Set the value of a parameter. 
+    @raise IllegalParamVal if the parameter provided is invalid ('validity' is a
+    parameter-specific notion. *)
+
+val strset : 'a t -> string -> unit
+  (** Set the value of a parameter, by providing a string representation of
+    the value.
+    @raise IllegalParamVal if the string provided cannot be parsed into a
+    param value. *)
+
+val get : 'a t -> 'a                 
+  (** Returns the value of this parameter. *)
+
+
+
+(** {1 Creating and registering parameters} *)
+
 
 val create : 
-  name:string                        (* param name *)
-  -> ?shortname:string               (* param shorthand (for cmdline parsing)
-					if None, same as name  *)
-  -> ?default:'a                     (* if None, can raise exception on a get
-					when no value has been set *)
-  -> doc:string                      (* documentation string *)
-  -> reader:(string -> 'a)           (* convert from string (raise
-					IllegalValue if invalid) *)
-  -> ?checker:('a -> unit)           (* check validity of value (raise
-					IllegalValue if invalid). If this has
-					side-effects, should be idempotent. *)
-  -> unit
-  -> 'a t                            (* -> new param value *)
-  (** Create a parameter of any type *)
-
+  name:string ->             
+  ?shortname:string ->       
+  ?default:'a ->             
+  doc:string ->              
+  reader:(string -> 'a) ->   
+  ?checker:('a -> unit) ->   
+  unit 
+  -> 'a t                    
+(** 
+  Create a parameter, of any type ['a].
+  @param name The name of the parameter.
+  @param shortname Shorter name, used for commandline parsing. Optional; if
+  absent command-line parsing is not possible for this parameter.
+  @param default Default value. Optional.
+  @param doc A textual description of the parameter.
+  @param reader A function which converts a string to the parameter (used by [Param.strset]), should raise any exception if parsing fails.
+  @param checker A function to check validity of value when setting, for
+  example to check that the number of nodes is positive. Optional.
+*)
 
 val intcreate :  
   name:string  -> 
@@ -42,7 +60,10 @@ val intcreate :
   ?checker:(int -> unit) -> 
   unit 
   -> int t                             
-  (** Create an int parameter. Arguments are same as for {!Param.create}. *)
+  (** Create an parameter of type int.
+    @param cmdline Allow the parameter to be set via a command-line
+    argument. Optional; default is [false].
+    Other arguments are same as for {!Param.create}. *)
 
 val floatcreate :  
   name:string  -> 
@@ -52,7 +73,11 @@ val floatcreate :
   doc:string -> 
   ?checker:(float -> unit) -> unit 
   -> float t                             
-  (** Create a float parameter. Arguments are same as for {!Param.create}. *)
+  (** Create an parameter of type float.
+    @param cmdline Allow the parameter to be set via a command-line
+    argument. Optional; default is [false].
+    Other arguments are same as for {!Param.create}. *)
+
 
 val boolcreate :  
   name:string  -> 
@@ -62,7 +87,10 @@ val boolcreate :
   doc:string  
   -> ?checker:(bool -> unit) -> unit 
   -> bool t                             
-  (** Create a bool parameter. Arguments are same as for {!Param.create}. *)
+  (** Create an parameter of type bool.
+    @param cmdline Allow the parameter to be set via a command-line
+    argument. Optional; default is [false].
+    Other arguments are same as for {!Param.create}. *)
 
 
 val stringcreate :  
@@ -73,15 +101,13 @@ val stringcreate :
   doc:string -> 
   ?checker:(string -> unit) -> unit 
   -> string t                             
-  (** Create a string parameter. Arguments are same as for {!Param.create}. *)
+  (** Create an parameter of type string.
+    @param cmdline Allow the parameter to be via a command-line argument. Optional; default is [false].
+    Other arguments are same as for {!Param.create}. *)
 
 
 
-val set : 'a t -> 'a -> unit
-val strset : 'a t -> string -> unit
-val get : 'a t -> 'a                 (* fails if default was
-					None and value was not set *)
-  
+
 val make_argspeclist : unit -> (string * Arg.spec * string) list
   (** Returns a list of triples [(key, spec, doc)] corresponding to all
     created params which had 'cmdline' set. This list can then be used 
