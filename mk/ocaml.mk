@@ -16,11 +16,12 @@ CMAS		= .cma
 CMO		= $(CMOS)
 CMA		= $(CMAS)
 #*************************************************************#
-MLWARN		=
+MLWARN		=# -w I
 MLFAST		=# -unsafe
 DEBUGGER        =-g #-ccopt -lefence
+DTYPES	 	=#-dtypes
 COMP_THR	= #-thread
-MLFLAGS		= $(DEBUGGER) $(MLFAST) $(COMP_THR) 
+MLFLAGS		=  $(DTYPES) $(DEBUGGER) $(MLWARN) $(MLFAST) $(COMP_THR) 
 MLLINKFLAGS	= $(DEBUGGER) $(MLWARN) $(MLFAST) $(MLTHREAD)
 DEPFLAGS	= -noopt
 ENSCOMP		= $(MLCOMP) $(MLFLAGS)
