@@ -52,11 +52,11 @@ let run_id = ref None
 let t = ref (Time.get_time())
 
 
-let run mws_tick display_cb () = (
+let run sim_tick display_cb () = (
 
   t := (Time.get_time());
 
-  let continue() = ((Time.get_time()) < !t +. mws_tick) in
+  let continue() = ((Time.get_time()) < !t +. sim_tick) in
   (Sched.s())#run_until~continue;
 
   display_cb();
@@ -70,9 +70,9 @@ let stop() = (
   run_id := None;
 )
 
-let startmws ~mws_tick ~rt_tick_ms ~display_cb  = (
+let startsim ~sim_tick ~rt_tick_ms ~display_cb  = (
 
-  let do_one_cycle = run mws_tick display_cb in
+  let do_one_cycle = run sim_tick display_cb in
   ignore(do_one_cycle());
   run_id := Some (Timeout.add ~ms:rt_tick_ms ~callback:do_one_cycle);
 )

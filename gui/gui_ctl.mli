@@ -28,18 +28,19 @@
 
 
 
-val startmws : 
-  mws_tick:float -> 
+val startsim : 
+  sim_tick:float -> 
   rt_tick_ms:int ->
   display_cb:(unit -> unit) ->
   unit 
   (** Start running according to the following loop:
 
-    - run the mws event loop for [mws_tick] simulator seconds, 
+    - run the event loop for [sim_tick] simulator seconds, 
     - call [display_cb] (user-provided func to e.g. update display)
 
-    The loop is invoked every [rt_tick_ms] millisecs. If [real_tick] is
-    less than the time it takes to run mws, then there will be backlog.
+    The loop is invoked every [rt_tick_ms] millisecs. If [rt_tick_ms] is
+    less than the time it takes to run [sim_tick] simulated seconds, then
+    there will be backlog.
     Idempotent.
   *)
     
