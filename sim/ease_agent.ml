@@ -30,7 +30,8 @@ let agents_array = ref ([||]: ease_agent_t array)
 let set_agents arr = agents_array := arr
 let agent i = !agents_array.(i)
 
-let proportion_met_nodes ~targets  = 
+let proportion_met_nodes()   = 
+  let targets = Param.get Params.ntargets in
   let total_encounters = 
     Array.fold_left (fun encs agent -> (agent#db#num_encounters) + encs) 0 !agents_array
   in
