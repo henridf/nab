@@ -14,7 +14,10 @@ sig
 
   val neigbors_  : t -> elt -> elt list
   val neigborsi_ : t -> int -> int list
+  val nhop_neigbors_  : t -> node:elt -> radius:int -> elt list
+  val nhop_neigborsi_ : t -> index:int -> radius:int -> int list
 
+  val size_      : t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
   val contains_  : t -> elt -> bool
   val containsi_ : t -> int -> bool
 
@@ -24,6 +27,7 @@ sig
 
   val iteri_ : (int  -> unit) -> t -> unit
   val itern_ : (elt  -> unit) -> t -> unit
+  val print_ : t -> unit
 end;;
 
 
@@ -60,14 +64,9 @@ struct
   let itern_ f g = for i = 0 to (g.ind - 1) do f g.nodes.(i) done
 
 
-  let contains_ g n = try ignore (index__ g n); true with Not_found -> false
-(*
-  let contains_ g n  = (
-    let rec _contains i = i < g.ind && ((g.nodes.(i) = n) or (_contains (i + 1))) in
-      _contains 0
-  )
-*)
+  let size_ g = g.ind
 
+  let contains_ g n = try ignore (index__ g n); true with Not_found -> false
   let containsi_ g i = g.ind > i
 			 
   let add_edge_ g n1 n2 c  = (
@@ -110,9 +109,58 @@ struct
       let i = index__ g n in
 	List.map (fun j -> g.nodes.(j)) (neigborsi_ g i)
     with
-	Not_found -> raise (Invalid_argument "Graph.neigborsi_: node does not exist")
+	Not_found -> raise (Invalid_argument "Graph.neigbors_: node does not exist")
   )
 
+  let neigborsi_list__ g l = (
+    let res = ref [] in
+    let ngbrs = List.flatten (List.map (fun i -> neigborsi_ g i) l) in
+      List.iter (fun i -> if not (List.mem i !res ) then res := i::!res) ngbrs;
+      !res
+  )
+
+
+  let nhop_neigborsi_ g ~index ~radius = (
+    if not (containsi_ g index) then raise (Invalid_argument "Graph.nhop_neigborsi_: index does not exist");
+
+    let seen_yet = Array.create (size_ g) false in
+    let curngbrs = ref [index] in
+      seen_yet.(index) <- true;
+    let step n = (
+      let candidates = neigborsi_list__ g n in
+      let next_hop_ngbrs = ref [] in
+	List.iter (fun n -> 
+		     if not (seen_yet.(n)) then (
+		       next_hop_ngbrs := n::!next_hop_ngbrs;
+		       seen_yet.(n) <- true;
+		     )
+		     else ()
+		  ) candidates;
+	!next_hop_ngbrs;
+    )
+    in
+      for i = 1 to radius do
+	curngbrs := (step !curngbrs);
+      done;
+      !curngbrs
+  )
+
+  let nhop_neigbors_ g ~node ~radius = (
+    try 
+      let i = index__ g node in
+	List.map (fun j -> g.nodes.(j)) (nhop_neigborsi_ g ~index:i ~radius:radius)
+    with
+	Not_found -> raise (Invalid_argument "Graph.nhop_neigbors_: node does not exist")
+  )
+				   
+  let print_ g = (
+    iteri_ (fun i -> 
+	      let ngbrs = neigborsi_ g i in
+		Printf.printf "%d -> " i;
+		List.iter (fun n -> Printf.printf "%d " n) ngbrs;
+		Printf.printf "\n"
+	   ) g
+  )
 end;;
 
 module FloatGraphType = 
@@ -134,7 +182,6 @@ module IntGraph = Make(IntGraphType);;
 
 let test_ () = (
   let module FG = FloatGraph in 
-    
   let g = FG.create_ 0.0 10 FG.Undirected in 
     assert (FG.contains_ g 0.0 = false);
     assert (FG.containsi_ g 0 = false);
@@ -160,11 +207,23 @@ let test_ () = (
     FG.add_edge_ g 2.0 1.0 0.0;
     FG.add_edge_ g 3.0 1.0 0.0;
     
-    let ngbrs = FG.neigborsi_ g 1 in 
+    assert (list_same (FG.neigborsi_list__ g [0; 1; 2; 3]) [0; 1; 2; 3]);
+
+    (* fully connected
+       0 -> 1 2 3 
+       1 -> 0 2 3 
+       2 -> 0 1 3 
+       3 -> 0 1 2 
+    *)
+    let ngbrs = FG.neigborsi_ g 1 
+    and ngbrs_1hop = FG.nhop_neigborsi_ g ~index:1 ~radius:1 
+    and ngbrs_0hop = FG.nhop_neigborsi_ g ~index:1 ~radius:0 
+    and ngbrs_2hop = FG.nhop_neigborsi_ g ~index:1 ~radius:2 in 
       assert (List.length ngbrs = 3);
-      assert (List.mem 0 ngbrs);
-      assert (List.mem 2 ngbrs);
-      assert (List.mem 3 ngbrs);
+      assert (list_same ngbrs [0; 2; 3]);
+      assert (list_same ngbrs ngbrs_1hop);
+      assert (ngbrs_2hop = []);
+      assert (ngbrs_0hop = [1]);
 
       let g = FG.create_ 0.0 10 FG.Directed in 
 	FG.add_node_ g 0.0;
