@@ -66,3 +66,12 @@ val user_pick_node :
   node_picked_cb:(Common.nodeid_t -> unit)
   -> unit
   -> unit
+
+val dialog_pick_node : 
+  ?default:Common.nodeid_t ->
+  node_picked_cb:(Common.nodeid_t -> unit) ->
+  unit ->
+  unit
+  (** Ask user for a node id via a dialog box. Checks that id is valid before
+    accepting. If provided, optional parameter [default] will be displayed in box.*)
+    

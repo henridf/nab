@@ -105,13 +105,25 @@ let draw_tree ?(col=(`NAME "light grey")) tree =
 
 let draw_grep_route r = 
 
-  let colors = [| "LightSlateBlue"; "PaleGreen"; "OrangeRed"|] in
+  let colors = [| "OrangeRed"; "PaleGreen"; "LightSlateBlue"|] in
   let colindex = ref (-1) in
+
+  let nhops = List.length r
+  and nsearches = List.length (List.filter (fun h -> some h.Route.info) r)
+  in
+  List.iter (fun h -> 
+  Log.log#log_notice 
+    (lazy (Printf.sprintf "\n\tHop: %s "  (Coord.sprint h.Route.hop) ))) r;
+
+
+
+  Log.log#log_notice 
+    (lazy (Printf.sprintf "%d Hops, %d Searches"  nhops nsearches ));
 
   let rec draw_hops_ = function
     | [] -> ()
     | hop1::hop2::r -> 
-	Gui_gtk.draw_segments [(hop1.Route.hop, hop2.Route.hop)];
+	Gui_gtk.draw_segments ~thick:2 [(hop1.Route.hop, hop2.Route.hop)];
 	let n = hop1.Route.hop in
 	Gui_gtk.draw_node n;
 	draw_hops_ (hop2::r); 
@@ -128,6 +140,9 @@ let draw_grep_route r =
 		  ~f:(fun nid -> Mwsconv.pos_mtr_to_pix
 		    ((Gworld.world())#nodepos nid))
 		in
+		Log.log#log_notice 
+		  (lazy (Printf.sprintf "Tree touched %d nodes"
+		    (NaryTree.size flood)));
 		draw_tree ~col:(`NAME colors.(!colindex)) pixtree;
 		draw_node ~emphasize:true (NaryTree.root flood)
 	  end;		
@@ -280,7 +295,41 @@ let user_pick_node ?(msg = "Pick a node!") ~node_picked_cb () = (
 	 be taken into account *)
       true)
   )
-)  
+)
+  
+let validate_node_input s = 
+  try 
+    let n = Misc.s2i s in
+    if n < 0 || n > (Param.get Params.nodes) - 1 then 
+      (false, 0)
+    else 
+      (true, n)
+ with _ -> (false, 0)
+
+let dialog_pick_node ?default ~node_picked_cb () = 
+  let n = ref (-1) in
+  let dialog =
+      GWindow.window ~kind:`DIALOG ~border_width:10 ~title:"Node ID" () in
+    let dvbx = GPack.box `VERTICAL ~packing:dialog#add () in
+    let entry  = GEdit.entry ~max_length:5 ~packing: dvbx#add () in
+    if some default then entry#set_text (i2s (o2v default));
+    let dquit = GButton.button ~label:"OK" ~packing: dvbx#add () in 
+    ignore (dquit#connect#clicked ~callback:
+      begin fun _ ->
+	let ok, node = validate_node_input entry#text in
+	if ok then begin
+	  flush stdout;
+          dialog#destroy ();
+	  node_picked_cb node
+	end
+	else 
+	  entry#set_text "";
+      end);
+    dialog#show ()
+    
+      
+
+
 
 
   
