@@ -3,47 +3,42 @@
 (*                                  *)
 
 open Misc
+open GMain
 
-let running = ref false
-let t = ref (Unix.gettimeofday())
-let ctl_wnd = ref None
+let run_id = ref None
+let t = ref (Common.get_time())
 let start_stop_btn = ref None
 let start_stop_tab:GPack.table option ref = ref None
 let ss_btn() = o2v !start_stop_btn
 let ss_tab() = o2v !start_stop_tab
 
 let run() = (
-  Printf.printf "running\n"; flush stdout;
-
-  try 
-    while true do
+(*
       while (Glib.Main.pending()) do
 	ignore (Glib.Main.iteration false)
       done;
-      if (!running) then (
-	t := (Unix.gettimeofday());
-	let continue() = (Unix.gettimeofday() < !t +. 0.01) in
+*)
+
+	t := (Common.get_time());
+	let continue() = ((Common.get_time()) < !t +. 1.0) in
 	(Gsched.sched())#run_until~continue;
-(*	ignore(Gui_gtk.redraw());*)
-	Gui_gtk.clear();
-      ) else (
-	raise Misc.Break
-      )
-    done;
-  with 
-    | Break -> (Gsched.sched())#stop_at ~t:Sched.ASAP
-    | o -> raise o
+(*	Gui_gtk.clear();*)
+	Gui_ops.draw_all_nodes(); 
+(*	ignore(Gui_gtk.redraw());**)
+
+	true
 )
   
 
 let start_stop () = (
-  match !running with
-    | true ->
-	running := false
-    | false ->
-	running := true;
-	run()
-
+  match !run_id with
+    | Some id ->
+	Timeout.remove (id);
+	run_id := None
+    | None ->
+	ignore(run());
+	run_id := Some (Timeout.add ~ms:100 ~callback:run);
+	
 )
 
 let make_ss_btn() = (
@@ -58,17 +53,12 @@ let make_ss_btn() = (
 )
 
 let create_buttons() = (
-  let window = GWindow.window ~title: "Controls" ~border_width: 0 () in
-  ignore (window#connect#destroy ~callback:(fun () -> ()));
 
-  let box1 = GPack.vbox ~packing:window#add () in
-  
   start_stop_tab := Some (GPack.table ~rows:2 ~columns:2 ~homogeneous:false 
     ~row_spacings:3 ~col_spacings:3 ~border_width:10
-    ~packing:box1#add ());
-
+    ~packing:(Gui_gtk.packer()) ());
   make_ss_btn();
-  window#show ()
+
   )    
 (* to kill: window#destroy ()*)
 
