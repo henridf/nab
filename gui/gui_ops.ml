@@ -47,7 +47,7 @@ let connect_nodes nidlist = (
       (Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos n2)))
   ) nidlist
   in
-  Gui_gtk.draw_segments_buf poslist
+  Gui_gtk.draw_segments ~col:(`NAME "dim grey") poslist
 )
 
 let draw_connectivity () = (
