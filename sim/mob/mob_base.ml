@@ -39,9 +39,9 @@ object(s)
   inherit Log.inheritable_loggable 
 
   val owner = owner
-  val mutable speed_mps =  1.0
+  val mutable speed_mps =  Param.get Params.speed
   val mutable moving =  false
-  val mutable granularity = 1.0 (* be careful if high speed and low granularity, then
+  val mutable granularity = 0.0 (* be careful if high speed and low granularity, then
 			   we will load the scheduler with zillions of small
 			   movement events *)
 
@@ -58,7 +58,7 @@ object(s)
     
     begin match gran with 
       | Some g -> granularity <- g
-      | None -> granularity <- Param.get (Params.mob_gran)
+      | None -> granularity <- (Param.get Params.radiorange) /. 10.
     end;
     incr rndseed
   ) 
