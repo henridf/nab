@@ -22,12 +22,6 @@
 
 (* $Id$ *)
 
-
-
-
-
-
-
 (** Low-level interface to some wrappers around GTK functionality.
 
   @author Henri Dubois-Ferriere.
@@ -36,8 +30,13 @@
 
 val init : unit -> unit
 
-(* use this function to pack things into the main vbox *)
-val packer : 
+(* use this function to pack things into the hbox *)
+val hpacker : 
+  unit -> 
+  GObj.widget -> 
+  unit
+
+val vpacker : 
   unit -> 
   GObj.widget -> 
   unit

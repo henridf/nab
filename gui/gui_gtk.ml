@@ -33,10 +33,6 @@ let cl_fg = `NAME "black"
 let cl_hilite = `NAME "red"
 
 let wnd = ref None 
-let (vbx : GPack.box option ref) = ref None
-let vbox() = o2v !vbx
-
-let pkr = ref (fun _ -> ())
 let window () = o2v !wnd 
 
 let gdk_wnd = ref None 
@@ -45,8 +41,16 @@ let gdk_window () = o2v !gdk_wnd
 let (drw : [ `window] GDraw.drawable option ref) = ref None 
 let drawing () = o2v !drw
 
+let (hbx : GPack.box option ref) = ref None
+let hbox() = o2v !hbx
+let (vbx : GPack.box option ref) = ref None
+let vbox() = o2v !vbx
 
-let packer() =  !pkr
+let hpkr = ref (fun _ -> ())
+let vpkr = ref (fun _ -> ())
+
+let hpacker() =  !hpkr
+let vpacker() =  !vpkr
 
 let (fixed : GPack.fixed option ref) = ref None
 let fix() = o2v !fixed
@@ -124,8 +128,13 @@ let init () = (
   ignore ((window())#connect#destroy ~callback:Main.quit);
   
   vbx := Some (GPack.vbox ~packing:(window())#add ());
-  pkr := (vbox())#add;
-  fixed := Some (GPack.fixed ~width ~height ~packing:((vbox())#add) ());
+  vpkr := (vbox())#add;
+
+  hbx := Some (GPack.hbox ~packing:(vpacker()) ());
+  hpkr := (hbox())#add;
+
+  fixed := Some (GPack.fixed ~width ~height ~packing:((hbox())#add) ());
+
 
   gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window);
 
@@ -143,7 +152,7 @@ let init () = (
   Gdk.Window.set_back_pixmap (gdk_window()) (`PIXMAP pixmap_);
 
 
-  txt_label := Some (GMisc.label ~text:"" ~packing:(packer()) ());
+  txt_label := Some (GMisc.label ~text:"" ~packing:(vpacker()) ());
 
 )
 
@@ -284,9 +293,9 @@ let draw_circle ~centr ~radius =
   let _ = (window())#connect#destroy ~callback:Main.quit in
 
   
-  let vbox = GPack.vbox ~packing:(window())#add () in
-  pkr := vbox#add;
-  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:(vbox#add) ());
+  let hbox = GPack.hbox ~packing:(window())#add () in
+  pkr := hbox#add;
+  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:(hbox#add) ());
 
   gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window) ;
 
