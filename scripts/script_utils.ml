@@ -76,10 +76,14 @@ let install_null_macs ?(stack=0) () =
 let install_contention_macs ?(stack=0) () = 
   install_macs_ ~stack (fun n -> new Mac_contention.contentionmac ~stack n)
 
+let install_cheat_macs ?(stack=0) () = 
+  install_macs_ ~stack (fun n -> new Mac_cheat.cheatmac ~stack n)
+
 let install_macs ?(stack=0) () = 
   match Mac.mac() with
     | Mac.Nullmac -> install_null_macs ~stack ()
     | Mac.Contmac -> install_contention_macs ~stack ()
+    | Mac.Cheatmac -> install_cheat_macs ~stack ()
 
 
 let make_nodes ?(with_positions=true) () = (
@@ -146,6 +150,15 @@ let make_diff_agents () = (
 
   Nodes.iteri (fun nid n -> 
     n#install_rt_agent (!Diff_agent.agents_array.(nid) :> Rt_agent.t));
+)
+
+let make_flood_agents () = (
+  (* create grep agents, and 'insert' them into their owner nodes. *)
+  Flood_agent.set_agents
+  (Nodes.map (fun n -> new Flood_agent.flood_agent n));
+  
+  Nodes.iteri (fun nid n -> 
+    n#install_rt_agent (!Flood_agent.agents.(nid) :> Rt_agent.t));
 )
 
 let make_aodv_nodes () = (
@@ -348,3 +361,9 @@ let size
 
   sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
     float (avg_degree))
+
+
+let _ = 
+  if !Sys.interactive then 
+(*    print_endline "             MWS version 0.1";*)
+    print_endline "\n  Multihop Wireless Simulator (mws) version 0.1";

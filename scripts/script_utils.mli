@@ -1,8 +1,3 @@
-
-
-
-
-
 (** General utils and helpers for writing MWS scripts.
   @author Henri Dubois-Ferriere. 
 *)
@@ -20,32 +15,42 @@ val init_sched : unit -> unit
     default. *)
 
 val init_lazy_world : unit -> unit
-  (** Instantiate a {!Crworld.crworld_lazy} global world object with
+  (** Instantiate a {!Crworld.world_lazy} global world object with
     reflecting boundaries.
-    Number of nodes {!Params.nodes} should be set before calling this *)
+    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    set before calling this. *)
+
 
 val init_lazy_taurus_world : unit -> unit
-  (** Instantiate a {!Crworld.crworld_lazy} global world object with wrapping
+  (** Instantiate a {!Crworld.world_lazy} global world object with wrapping
     boundaries (taurus topology).
-    Number of nodes {!Params.nodes} should be set before calling this *)
+    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    set before calling this. *)
+
 
 val init_greedy_world : unit -> unit
-  (** Instantiate a {!Crworld.crworld_greedy} global world object with
+  (** Instantiate a {!Crworld.world_greedy} global world object with
     reflecting boundaries.
-    Number of nodes {!Params.nodes} should be set before calling this *)
+    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    set before calling this. *)
+
   
 val init_greedy_taurus_world : unit -> unit
-  (** Instantiate a {!Crworld.crworld_greedy} global world object with
+  (** Instantiate a {!Crworld.world_greedy} global world object with
     wrapping boundaries (taurus topology).
-    Number of nodes {!Params.nodes} should be set before calling this *)
+    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    set before calling this. *)
+  
 
 val init_epfl_world : unit -> unit
   (** Instantiate a {!Crworld.epflworld} global world object.
-    Number of nodes {!Params.nodes} should be set before calling this *)
+    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    set before calling this. *)
+
 
 val init_all : unit -> unit
-  (** Instantiates both the global world object (a lazy one) and the global scheduler
-    object, and sets the time to 0.0 *)
+  (** Instantiates both the global world object (a lazy one) and the global
+    scheduler object, and sets the time to 0.0 *)
 
 val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
   (** Returns the side of a square surface to get the required average node
@@ -69,9 +74,13 @@ val make_grep_nodes : unit -> unit
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_diff_agents : unit -> unit 
-  (** Adds a diffusion agent to each node.
+  (** Creates and adds a diffusion agent to each node. See {!Diff_agent.diff_agent_t}.
     Nodes should be created before calling this.*)
-
+  
+val make_flood_agents : unit -> unit 
+  (** Creates and adds a simple flooding agent to each node. See {!Flood_agent.flood_agent}.
+    Nodes should be created before calling this.*)
+  
 val make_aodv_nodes : unit -> unit 
   (** Create {!Simplenode.simplenode} each with a aodv agent and a mac layer
     of the type specified in {!Params.mac}.
