@@ -3,11 +3,36 @@
 		http://lcavwww.epfl.ch/~henridf/mws.html
 
 **             
+** PREREQUISITES
+**             
+
+To compile and run mws, you must have ocaml installed. The latest version of
+ocaml (3.07+2) is recommended (though mws should run fine on prior 3.0* ocaml
+releases). The official site to get ocaml is http://caml.inria.fr.
+
+In order to build and use the gui functionality, you must also install
+lablgtk. Lablgtk is available from XXXX.
+
+
+**             
+** DOCUMENTATION
+**             
+
+The html documentation and a tutorial are located under doc/ and can be 
+browsed starting from doc/index.html.
+
+More detailed documentation of the internals can be generated from the 
+source code with the ocamldoc tool - see COMPILING below.
+
+For pointers on getting started in ocaml, please see the documentation 
+in mws/doc/index.html
+
+**             
 ** SOURCE LAYOUT                                              
 **             
 
   mws/               -> simulator core
-  mws/interfaces/    -> class interfaces
+  mws/interfaces/    -> core class and module interfaces
   mws/base/          -> implementation of core functions
   mws/pkt/           -> packet representations and related functions
   mws/mob/           -> mobility and related functions
@@ -21,45 +46,43 @@
   gui/               -> GUI-related code
 				       
   lib/               -> Helper libs 
-  lib/contrib        -> Helper libs by external people (GPL-level licenses)
+  lib/contrib        -> Helper libs from external sources (GPL-level licenses)
 
+  doc		     -> Documentation (see above)
 
 
 **
 ** COMPILING
 **
 
-To compile mws only:
-
-	make bin/mws
-
-To compile mws with gui libraries:
-
-	make bin/gui
-
-To compile as native code (runs faster), pass OPT=y flag to make, as in
-
-	make OPT=y bin/gui 
-
-Usually, one compiles mws with a script file:
-
-	make SCRIPT=filename bin/mws
-
-where filename is assumed to be a file in the scripts/ directory, as in
-
-	make SCRIPT=demo.ml bin/gui
-	or
-	make OPT=y SCRIPT=demo.ml bin/gui
-	or
-	make SCRIPT=grep.ml bin/mws
-
-**
-** OTHER TARGETS
-**
-
-To build documentation: 
+To generate code documentation: (will be rooted at doc/gen/index.html)
+[Note: don't worry about warnings when building doc!]
 
 	make htmldoc
 
-This will create a set of html pages in the doc/ subdir, that you can 
-browse starting from doc/index.html
+To compile an interactive mws toplevel:
+
+	make mws-top
+
+To compile an interactive mws toplevel with gui support linked in:
+(requires lablgtk, see PREREQUISITES above)
+
+	make mwsviz-top
+
+To compile mws to run script foo.ml in batch mode:
+(foo.ml is assumed to be in the scripts/ directory)
+
+	make SCRIPT=foo.ml mws
+
+If foo.ml uses gui libraries:
+
+	make SCRIPT=foo.ml mwsviz
+
+To compile as native code (runs faster), pass OPT=y flag to make, as in
+
+	make OPT=y SCRIPT=foo.ml mwsviz
+	or	
+	make OPT=y SCRIPT=foo.ml mwsgui
+
+Note: interactive toplevels cannot be compiled to native code.
+

@@ -1,0 +1,187 @@
+1. Launching and Setting up the toplevel
+
+You launch the mws toplevel by simply typing bin/mws-top at the prompt.
+Now, you have the mws command-line - similar in all aspects to the ocaml
+toplevel (see ocaml(1)), except that all mws libraries and functionality are
+linked in.
+
+First, we must inform the toplevel about a few paths where source and compiled
+files are to be found. This can be done manually, using the #directory
+command:
+
+# #directory "/home/henridf/work/mws/lib";;
+
+Since there are several directories to add to the path, it is simpler to 
+place these in a .ocamlinit file (which should go in your homedir). See <a
+href=ocamlinit> for an example. Once you have your .ocamlinit file edited and
+in the right place, you should exit ("exit 0;;") and restart the caml
+toplevel, or type "#use "/path/to/homedir/.ocamlinit" to reload the .ocamlinit
+without restarting.
+
+Note: For more information on the ocaml toplevel, see
+file:///fat32/kb/lang/ocaml/htmlman/manual023.html
+
+Note: You will quickly notice that the ocaml toplevel does not have the
+ability to navigate previous commands, or other textual navigation. It is
+best to be used the toplevel in conjunction with an emacs mode such as tuareg
+or the caml emacs mode. (xxx pointers) 
+
+
+2. Configuring basic simulation parameters
+
+
+Let's start by configuring a few basic parameters such as the number of nodes
+in the simulation, the MAC layer involved, etc. In mws, these key parameters
+are represented using Param values. Param offers a simple interface to get/set
+values, as well as helpful functionality to such as defaults, range checking,
+or parsing these values as command-line arguments to mws. 
+
+Let's first set the number of nodes. First we might want to see what the
+default number is:
+
+# Param.get Params.nodes;;
+- : int = 500
+# 
+
+Maybe we would like more nodes, say 800:
+
+Param.set Params.nodes 800;;
+- : unit = ()
+
+Note: If you've compiled the documentation (see README), the Param API can be
+viewed at file:///home/henridf/work/mws/doc/gen/Param.html
+
+Now, let's move on and set some other basic parameters.
+
+Let's set the nodes' radio range to 12 meters:
+
+Param.set Params.rrange 12.;;
+- : unit = ()
+
+Ok, so we have 800 nodes with a 12 meter radio range. What size area should we
+set? Assume that nodes will be uniformly distributed, and that we want an
+average node degree of 7, and that our area is square, then we should have a
+world of size (800  * pi * 12^2) / 7.
+Since we are lazy, we can use a built-in helper function to compute this for
+us:
+
+Script_utils.size ~rrange:12.0 ~nodes:800 ~avg_degree:8 ();;
+- : float = 212.640541760032193
+
+
+Note: The file scripts/script_utils.ml
+(file:///home/henridf/work/mws/doc/gen/Script_utils.html) contains many useful
+helper functions designed to be used in the toplevel or from scripts. Take a
+look there, you may find that what you need is already implemented. And if you
+write other helpers, please consider contributing them back so they make their
+way into the next release!
+
+# Param.set Params.x_size 212.;;
+- : unit = ()
+# Param.set Params.y_size 1772.;;
+- : unit = ()
+# 
+
+We now instantiate the global object - this is where all operations requiring
+global network knowledge (computing neighborhoods, etc) are done. The world
+object must be instantiated *after* the proper values for rrange and world
+size have been set. 
+
+Script_utils.init_lazy_world();
+
+
+To instantiate our nodes (which will be uniformly dispersed in the area), we do:
+
+Script_utils.make_nodes ();
+  
+We choose to use a null mac layer - this is a 'perfect' mac where all packets
+sent by a node within radio range are received, with no collisions or loss.
+[Note: for an overview of other MAc layers available, see
+file:///home/henridf/work/mws/doc/gen/Mac.html]
+
+Param.set Params.mac "nullmac";;
+
+Now, the last thing we need to do before we get packets flowing is to choose
+some sort of routing agent. Let's go with a very simple flooding agent. All
+this one does is to receive packets and reforward a packet it receives for the
+first time.
+
+Script_utils.make_flood_agents();;
+
+Ok! Let's pick a node in the middle of the area to flood from:
+
+let originator = Opt.get 
+    ((World.w())#find_closest ~pos:(size /. 2.0, size /. 2.0) ());;
+
+Now we inject a packet to flood at that node :
+  (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+
+At this point, the flooding has not happened, because the simulation is not
+running. To make the simulation run, we need to start the event loop:
+
+  (Sched.s())#run();;
+
+[This call simply tells the event loop to run until there are no more events
+to process. One can also run for a fixed amount of simulated seconds, or run
+untils a condition is met, etc. To see the scheduler interface, see
+(file:///home/henridf/work/mws/doc/gen/Scheduler.t.html)
+
+So, we've run the simulator, the flood has happened, but there's not much to
+see at this point. We can see that a little time has elapsed:
+
+Time.time();;
+
+If we want to really see more verbosity, we could change the log level:
+
+Log.set_log_level Log.LOG_DEBUG;;
+
+Now if we start another flood, we will get LOTS of output (press C-c C-c to interrupt)!
+
+(Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+(Sched.s())#run();;
+Log.set_log_level Log.LOG_DEBUG;;
+
+Now, let's say we wanted to compute a very simple statistic on this flood: the
+total number of packets transmitted. To do this, we will use 'hooks', which
+is mechanism in mws to extract packet-level information as a simulation runs. A
+hook is simply a variable holding one or more function(s) to be called at a
+specific occasion (this customization mechanism will be familiar to emacs
+users). The type of 'occasion' where one would like the hook to call a
+function is related to packet events, ie a node receives or transmits a
+packet.
+
+Let's define a counter and create a function that increments it each time it
+is called:
+
+let pkt_count = ref 0;;
+let hook pkt node = incr pkt_count;;
+
+Then we add our hook to every node:
+
+Nodes.iter (fun n -> n#add_pktout_mhook hook);
+
+
+(Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+(Sched.s())#run();;
+
+
+And we can see how many packets have been transmitted:
+
+!pkt_count;;
+
+Note that this example represents the most basic use of hooks. Our hook in
+fact does not do anything with the two parameters it is passed, which are the
+packet being sent and the node transmitting the packet. But hooks are a very
+powerful and generic mechanism to extract just about any information from
+ongoing protocol interactions, without having to put any explicit support in
+the protocol code itself. For example, hooks can be used to record the
+sequence of hops in a route. To do this, our hook would simply add the next
+hop to a global data structure, and maybe set a boolean to true when the
+packet arrives at the destination, so that the scheduler check this and stop
+processing events once the route is established. 
+Or, we could have a hook to keep per-node statistics on the number of bytes
+transmitted, or the number of packets of a particular type transmitted. And
+all of this can be done without messing about with the protocol internals -
+which is much cleaner and more modular than if we had to hack each routing
+protocol with our statistics gathering functions.
+

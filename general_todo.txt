@@ -1,3 +1,11 @@
+- mhooks must be stack-aware
+- maybe with -I to ocamlmktop, we don't need the dirs in ocamlinit?????
+  that would be great to automate from makefile
+- why l3_bcast_addr is a special int, and l2_bcast is a variant type?
+- convert hello_agent to inherit form rt_base, etc
+- MACs without ACK should silently drop a packet to non-neighbor node, rather
+  than complain.
+
 - a bit odd to have both mac_recv_l{2,3}_pkt in agents, no?
   in a way do we expect that an agent *has* to only implement one?
   should we put default null methods in rt_agent_base???
