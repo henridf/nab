@@ -237,15 +237,14 @@ let print_header () = (
   flush stdout;
 )
 
-let seed = ref 12
-let change_seed() =  seed := !seed + 14
-  
+
+
 let dumpconfig outchan = (
   let conf = Param.dumpconfig () in
   List.iter (fun (name, value) ->
     output_string outchan ((padto name 20)^value^"\n")
   ) conf;
-  output_string outchan ((padto "RNG Seed" 20)^(string_of_int !seed)^"\n");
+  output_string outchan ((padto "RNG Seed" 20)^(string_of_int !Rnd_manager.seed)^"\n");
   flush outchan;
 )
     
@@ -257,7 +256,7 @@ let finish () = (
 )
 
 
-let detach_daemon ~outfilename =
+let detach_daemon ~outfilename = (
     let pid =  Unix.fork () in
     if pid < 0 then failwith "Error in fork";
     if pid > 0 then exit 0;
@@ -265,7 +264,11 @@ let detach_daemon ~outfilename =
     Unix.close Unix.stdin;
     Unix.close Unix.stdout;
     Unix.close Unix.stderr;
-    Log.output_fd := (open_out outfilename);
+    Log.output_fd := (open_out outfilename)
     
-        
+)
 
+
+let size ~rrange ~avg_degree ~nodes = 
+  sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
+    float (avg_degree))
