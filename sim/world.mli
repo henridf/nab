@@ -7,7 +7,7 @@
   Things like:
   - finding neighbors of a node
   - finding the nearest node to a point satisfying some property
-  - computing a delaunay triangulation
+  - computing a delaunay triangulation (not implemented)
   - computing the shortest path between two nodes
   - checking connectedness of a network.
 
