@@ -47,7 +47,7 @@ type 'a hop = {hop:'a; anchor:'a; anchor_age: Common.time_t ; mutable searchcost
     (* this is not enforced, but 'a should normally be an int or a coordf_t *)
 
 type 'a t = 'a hop list
-    (* the type is not abstract so that list operations can be easily used on
+    (* the type is exposed so that list operations can be easily used on
        routes *)
 
 val create : unit -> 'a t
