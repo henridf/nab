@@ -103,7 +103,7 @@ object(s)
       ((World.w())#are_neighbors myid l2dst)
     then (
       s#log_debug (lazy (sprintf "TX packet to %d" l2dst));
-      SimpleEther.emit ~stack ~nid:myid l2pkt;
+      FastEther.emit ~stack ~nid:myid l2pkt;
       pktsTX <- pktsTX + 1;
       bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
     ) else s#unicast_failure l2pkt

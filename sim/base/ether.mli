@@ -50,3 +50,16 @@ module type Ether_t = sig
 end
 
 module SimpleEther : Ether_t
+  (** SimpleEther is a shared medium where a packet is propagated intact to
+    all nodes within radio range {!Params.radiorange} of the emitting node. *)
+
+module FastEther : Ether_t
+  (** FastEther is identical to SimpleEther except that unicast packets are
+    only propagated to their destination. This can be used in conjunction
+    with a MAC layer which does not model contention (for example
+    {!Mac_null.nullmac}) for a slight performance gain. Note that using this
+    with a MAC layer which does model contention would introduce invalid
+    behavior (since the mac layer would not know about the contention occuring
+    when a neighbor unicasts a packet to another node).
+*)
+  

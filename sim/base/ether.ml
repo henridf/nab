@@ -61,3 +61,28 @@ struct
     ) neighbors
 
 end
+
+
+module FastEther : Ether_t = 
+struct 
+  let emit ?(stack=0) ~nid l2pkt = 
+    let l2dst = L2pkt.l2dst l2pkt in
+    let neighbors = (World.w())#neighbors nid in
+    
+    List.iter (fun id -> 
+      if id <> nid && (l2dst = L2pkt.l2_bcast_addr || l2dst = id)
+	
+      then (
+	let n = (Nodes.node(id)) in
+	let recvtime = 
+	  Time.get_time()
+	  +. propdelay 
+	  ((World.w())#nodepos id)
+	    ((World.w())#nodepos nid) in
+	let recv_event() = 
+	  (n#mac ~stack ())#recv ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in
+	(Sched.s())#sched_at ~f:recv_event ~t:(Scheduler.Time recvtime)
+      )
+    ) neighbors
+
+end
