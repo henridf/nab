@@ -110,9 +110,9 @@ object
        wrapping around on borders).
 
        Note: for efficiency, some implementations of world may assume that the
-       is at most one world size outside of the boundaries - if this is not
-       the case, behavior will be undefined.
-*)
+       position is at most one world size outside of the boundaries - if this
+       is not the case, behavior is undefined.
+    *)
     
   method project_2d : Coord.coordf_t -> Coord.coordf_t 
     (* return position projected to a unit square *)
