@@ -4,6 +4,63 @@
 
 (** Graph representation of EPFL campus *)
 
+open Mods
+open Misc
+
+(* The list below represents the coordinates of each "node" of the epfl
+   campus.
+
+   Each string contains fields broken down as follows:
+   a) first the label of the node (ie "BP" in first string)
+   b) then the coords of the 4 corners of the "box" surrounding the node
+   (ie 386 290 408 290 408 159 386 159 in first string).
+   This is because nodes are represented as rectangular boxes rather than
+   single points, which allows (a very simple) modelling of individual
+   buildings and "places".
+   c) then the labels of any neighboring nodes.
+   (ie AN-1 AN-2 P-ARCHI in first string).
+
+
+   The coordinates are given in pixels (they were manually read off the screen
+   by Jennifer Muller).
+   The code below is used to create a l_mtr representation which scales all
+   coordinates into meters (otherwise identical representation to l_pix, but
+   as a string list list rather than string list).
+*)
+
+(* both axis are effectively scaled by 1/3. *)
+let y_pix_to_mtr y = 600. *. ((i2f y) /. 900.)
+let x_pix_to_mtr x = 800. *. ((i2f x) /. 1200.)
+
+
+let translate_x x = 
+  let x_mtr = x_pix_to_mtr (int_of_string x) in
+  string_of_float x_mtr
+
+let translate_y y = 
+  let y_mtr = y_pix_to_mtr (int_of_string y) in
+  string_of_float y_mtr
+
+let translate_list l = 
+  let tx = translate_x
+  and ty = translate_y in
+
+  match l with 
+    | label :: 
+	p1 :: p2 :: 
+	q1 :: q2 :: 
+	r1 :: r2 :: 
+	s1 :: s2 :: 
+	r 
+      -> 
+	label ::	
+	tx p1 :: ty p2 ::
+	tx q1 :: ty q2 ::
+	tx r1 :: ty r2 ::
+	tx s1 :: ty s2 ::
+	r
+    | _ -> failwith "Epflcoords.translate_line"
+
 
 let l_pix = [
 "BP 386 290 408 290 408 159 386 159 AN-1 AN-2 P-ARCHI";
@@ -126,10 +183,6 @@ let l_pix = [
 "TSOL 407 120 617 120 617 101 407 101 R-SOR-1 P-FAV";
 "R-SOR-1 445 139 679 139 679 132 445 132 TSOL GC-H GC-G LE"]
 
-(*
-let y_pix_to_mtr y = 600. *. ((i2f y) /. 900.)
-let x_pix_to_mtr x = 800. *. ((i2f x) /. 1200.)
-let pos_mtr (x, y) = ((x_pix_to_mtr x), (y_pix_to_mtr y));;
+let s_split = List.map (fun s -> Str.split (Str.regexp "[ \t]+")  s) l_pix;;
 
-let s_split = List.map (fun s -> Str.split (Str.regexp " ") s) l_pix;;
-*)
+let (l_mtr : string list list) = List.map  translate_list s_split
