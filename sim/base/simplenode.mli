@@ -54,7 +54,7 @@ type node_state_t = Coord.coordf_t
 
   We explain the notion of multiple stacks below:
 
-  It is possible in mws to simultaneously run multiple protocol stacks on each
+  It is possible in nab to simultaneously run multiple protocol stacks on each
   node. These are completely oblivious to, and independent of, each
   other. Running multiple stacks can be helpful for example when comparing
   different routing protocols, parameters, MAC layers, or combinations
@@ -140,7 +140,7 @@ object ('a)
   method mac_bcast_pkt : ?stack:int -> L3pkt.t -> unit
     (** Broadcast packet to all neighbors. *)
     
-  method originate_app_pkt : dst:Common.nodeid_t -> unit
+  method originate_app_pkt : l4pkt:L4pkt.t -> dst:Common.nodeid_t -> unit
     (** originates a packet from an application on this node to dst:
       create the packet and shove it down the app_send_pkt_hooks *)
     

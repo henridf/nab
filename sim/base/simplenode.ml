@@ -97,7 +97,7 @@ object(s)
     let l3pkt  = (L2pkt.l3pkt l2pkt) in
 
     s#log_debug (lazy (sprintf "Pkt received from source %d on stack %d" 
-      (L3pkt.l3src ~l3pkt:(L2pkt.l3pkt l2pkt)) stack));
+      (L3pkt.l3src l3pkt) stack));
 
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
@@ -130,7 +130,7 @@ object(s)
 
     let dst = (Nodes.node(dstid)) in
 
-    assert (L3pkt.l3ttl ~l3pkt:l3pkt >= 0);
+    assert (L3pkt.l3ttl l3pkt >= 0);
 
     let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:(L2pkt.L2_DST dst#id)
       ~l3pkt:l3pkt in
@@ -154,7 +154,7 @@ object(s)
 
   method mac_bcast_pkt ?(stack=0) l3pkt = (
 
-    assert (L3pkt.l3ttl ~l3pkt:l3pkt >= 0);
+    assert (L3pkt.l3ttl l3pkt >= 0);
 
     let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:L2pkt.L2_BCAST
       ~l3pkt:l3pkt in
@@ -175,7 +175,7 @@ object(s)
       | None -> ()
 	  
   method private trafficsource gen dst = 
-    s#originate_app_pkt ~dst;
+    s#originate_app_pkt ~l4pkt:`EMPTY ~dst;
     (* when gen() returns None, this trafficsource is done sending *)
     match gen() with
       | Some time_to_next_pkt ->
@@ -183,9 +183,9 @@ object(s)
 	  (Sched.s())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       | None -> ()
       
-  method originate_app_pkt ~dst = 
+  method originate_app_pkt ~l4pkt ~dst = 
     Array.iter 
-      (Opt.may (fun agent -> agent#app_recv_l4pkt `APP_PKT dst))
+      (Opt.may (fun agent -> agent#app_recv_l4pkt l4pkt dst))
       rt_agents 
 
   method dump_state = (World.w())#nodepos id

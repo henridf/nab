@@ -29,35 +29,53 @@ open Misc
 
 let routes_done = ref 0
 
-let ease_route_pktin_mhook routeref l2pkt node = (
+let check_route_num l2pkt num_opt = 
+  match num_opt with 
+    | None -> true
+    | Some num ->
+	let l3pkt = (L2pkt.l3pkt l2pkt) in
+	let l4pkt = (L3pkt.l4pkt l3pkt) in
+	match l4pkt with 
+	  | `APP_PKT n when (num = n) -> true
+	  | `APP_PKT n -> false
+	  | _ -> failwith 
+	      "Gui_hooks.check_route_num: called with inappropriate packet type"
 
-  let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3dst = L3pkt.l3dst l3pkt in
-  let ease_hdr = L3pkt.ease_hdr l3pkt in
 
-  match (L2pkt.l2src l2pkt) <> node#id with
-    | _ -> 	(* Packet arriving at a node *)
-	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
-	
-	if  node#id = l3dst then ( (* Packet arriving at dst. *)
-	  incr routes_done;
-	  routeref := Route.add_hop !routeref {
-	    Route.hop=node#id;
-	    Route.info=Some {
-	      Route.anchor=(Ease_pkt.anchor ease_hdr);
-	      Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
-	      Route.searchcost=0.0; (* hack see general_todo.txt *)
+
+let ease_route_pktin_mhook ?num routeref l2pkt node = (
+
+  if check_route_num l2pkt num then 
+    let l3pkt = (L2pkt.l3pkt l2pkt) in
+    let l3dst = L3pkt.l3dst l3pkt in
+    let ease_hdr = L3pkt.ease_hdr l3pkt in
+    
+    match (L2pkt.l2src l2pkt) <> node#id with
+      | _ -> 	(* Packet arriving at a node *)
+	  (Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
+	  
+	  if  node#id = l3dst then ( (* Packet arriving at dst. *)
+	    incr routes_done;
+	    routeref := Route.add_hop !routeref {
+	      Route.hop=node#id;
+	      Route.info=Some {
+		Route.anchor=(Ease_pkt.anchor ease_hdr);
+		Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
+		Route.searchcost=0.0; (* hack see general_todo.txt *)
+	      }
 	    }
-	  }
-	)
-	  (* this should not be a failure. ie, a node can send a packet to itself, if 
-	     it was closest to the previous anchor, searches for a new anchor, and is
-	     closest to this anchor too *)
-	  (*    | false ->  assert(false)*)
+	  )
+	    (* this should not be a failure. ie, a node can send a packet to itself, if 
+	       it was closest to the previous anchor, searches for a new anchor, and is
+	       closest to this anchor too *)
+	    (*    | false ->  assert(false)*)
+	    
 )
 
-let ease_route_pktout_mhook routeref l2pkt node = (
+let ease_route_pktout_mhook ?num routeref l2pkt node = (
   
+  if check_route_num l2pkt num then 
+
   let l3pkt = (L2pkt.l3pkt l2pkt) in
   let ease_hdr = L3pkt.ease_hdr l3pkt in
   
