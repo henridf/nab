@@ -34,12 +34,15 @@ open Misc
 
 class gpsnode  id   = 
 
-object
+object(s)
   
   inherit Simplenode.simplenode id
 
   method pos = 
     (World.w())#nodepos id
+
+  method coerce = (s :> Simplenode.simplenode)
+
 
 end
 

@@ -36,6 +36,9 @@ object
   inherit Simplenode.simplenode
     
   method pos : Coord.coordf_t
+  method coerce : Simplenode.simplenode
+
+
 
 end
   

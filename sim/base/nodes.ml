@@ -31,7 +31,7 @@
 open Misc
 
 
-let nodes_array = ref ([||]: Simplenode.simplenode array)
+let nodes_array = ref [||] (* array of Simplenode.simplenode objects. *)
 
 let check() = if !nodes_array = [||] then
   Log.log#log_warning (lazy "Node iterator called but node array is empty")
@@ -50,7 +50,7 @@ let fold f init = check(); Array.fold_right f !nodes_array init
 let node i = !nodes_array.(i)
 
 
-let gpsnodes_array = ref ([||]: Gpsnode.gpsnode array)
+let gpsnodes_array = ref [||] (* array of Gpsnode.gpsnode objects *)
 
 let check_gps() = 
   if !gpsnodes_array = [||] then 
@@ -58,7 +58,7 @@ let check_gps() =
 
 let set_gpsnodes arr = 
   gpsnodes_array := arr;
-  nodes_array := Array.map (fun gpsnode -> (gpsnode :> Simplenode.simplenode)) !gpsnodes_array
+  nodes_array := Array.map (fun gpsnode -> gpsnode#coerce) !gpsnodes_array
 
 let gpsiter f = check_gps(); Array.iter f !gpsnodes_array
 let gpsiteri f = check_gps(); Array.iteri f !gpsnodes_array
