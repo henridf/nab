@@ -18,6 +18,18 @@ val ease_route_pktout_mhook :
   Gpsnode.gpsnode -> 
   unit
 
+val grep_route_pktin_mhook : 
+  Common.nodeid_t Route.t ref ->
+  L2pkt.l2packet_t ->
+  Simplenode.simplenode -> 
+  unit
+
+val grep_route_pktout_mhook : 
+  Common.nodeid_t Route.t ref ->
+  L2pkt.l2packet_t ->
+  Simplenode.simplenode -> 
+  unit
+
 val route_done : bool ref
 
 

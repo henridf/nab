@@ -53,3 +53,56 @@ let ease_route_pktout_mhook routeref l2pkt node = (
 	}
 )
 
+
+
+
+let grep_route_pktin_mhook routeref l2pkt node = (
+  
+  let l3pkt = (L2pkt.l3pkt l2pkt) in
+  let l3hdr = (L3pkt.l3hdr l3pkt) in
+  let l3dst = L3pkt.l3dst l3pkt
+  and l3src = L3pkt.l3src l3pkt in
+  if L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_DATA then (
+
+    match (L2pkt.l2src l2pkt) <> node#id with
+      | _ -> 	(* Packet arriving at a node *)
+	  (Log.log)#log_debug (lazy (Printf.sprintf "Arriving t node %d\n" node#id));	  
+	  
+	  if  node#id = l3dst then ( (* Packet arriving at dst. *)
+	    route_done := true;
+	    routeref := Route.add_hop !routeref {
+	      Route.hop=node#id;
+	      Route.anchor=node#id;
+	      Route.anchor_age=0.0;
+	      Route.searchcost=0.0; 
+	    }
+	  )
+	    (* this should not be a failure. ie, a node can send a packet to itself, if 
+	       it was closest to the previous anchor, searches for a new anchor, and is
+	       closest to this anchor too *)
+	    (*    | false ->  assert(false)*)
+  )
+)
+
+let grep_route_pktout_mhook routeref l2pkt node = (
+  
+  let l3pkt = (L2pkt.l3pkt l2pkt) in
+  let l3hdr = (L3pkt.l3hdr l3pkt) in
+  let l3dst = L3pkt.l3dst l3pkt 
+  and l3src = L3pkt.l3src l3pkt in
+  if L3pkt.l3grepflags ~l3pkt = L3pkt.GREP_DATA then (
+  
+  match (L2pkt.l2src l2pkt) <> node#id with
+    | true -> 	assert(false)
+    | false ->  (* Packet leaving some node *)
+	
+	(Log.log)#log_info (lazy (Printf.sprintf "Leaving node %d\n" node#id));	
+	routeref := Route.add_hop !routeref {
+	  Route.hop=node#id;
+	  Route.anchor=node#id;
+	  Route.anchor_age=0.0;
+	  Route.searchcost=0.0
+	}
+  )
+)
+
