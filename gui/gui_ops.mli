@@ -38,3 +38,7 @@ val draw_all_nodes :
 val draw_all_boxes : 
   unit ->
   unit
+
+val draw_all_routes : 
+  unit ->
+  unit

@@ -49,10 +49,24 @@ let draw_all_boxes() = (
   let g = Read_coords.g() in
   Graph.itern_ 
     (fun n -> 
-(*      let x1::y1::_ = Graph.getinfo_ g n in*)
       Gui_gtk.draw_segments (list2segs (Graph.getinfo_ g n));
     ) g
 
+)
+
+
+let draw_all_routes() = (
+  let g = Read_coords.g() in
+  Graph.iteri_ 
+    (fun n -> 
+      let ngbrs = (Graph.neigborsi_ g n) in
+      List.iter (
+	fun ngbr ->
+	  Gui_gtk.draw_segments [
+	    (Read_coords.box_centeri n),
+	    (Read_coords.box_centeri ngbr)];
+      ) ngbrs
+    ) g
 )
 
 let draw_route r = (
@@ -89,3 +103,4 @@ let draw_route r = (
   draw_route_ r;
   draw_disks_ r;
 )
+
