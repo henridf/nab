@@ -12,7 +12,6 @@
   or common code (like a base class for both aodv and grep).
   need to think. 
 
-
 - multiple traffic sources to multiple destinations (mentioned in
  simplenode.mli, but with XXX)
 - consider the use of named function parameters. maybe going overboard with
