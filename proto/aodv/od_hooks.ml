@@ -35,16 +35,30 @@ let find_last_flood route =
   done;
   !n
 
+type u = [ `RERR | Grep_pkt.grep_flags_t | `NONE]
 
-type u = [ Aodv_pkt.aodv_flags_t | Grep_pkt.grep_flags_t | `NONE]
-    
-let aodv_grep_flags l3pkt = 
-
+let pkt_type l3pkt = 
   match L3pkt.l3hdr_ext l3pkt with 
-    | `AODV_HDR h -> ((Aodv_pkt.flags h) :> u)
+    | `AODV_HDR h -> 
+	begin match h with 
+	  | Aodv_pkt.DATA -> `DATA
+	  | Aodv_pkt.RREQ _ -> `RREQ
+	  | Aodv_pkt.RREP _ -> `RREP
+	  | Aodv_pkt.RERR _ -> `RERR
+	  | Aodv_pkt.RREP_ACK -> `NONE end
     | `GREP_HDR h -> ((Grep_pkt.flags h) :> u)
-    | _ -> `NONE 
+    | _ -> `NONE
 
+let rreq_orig l3pkt = 
+  match L3pkt.l3hdr_ext l3pkt with 
+    | `AODV_HDR h -> begin 
+	match h with
+	  | Aodv_pkt.RREQ rreq -> rreq.Aodv_pkt.rreq_orig
+	  | Aodv_pkt.RREP _ | Aodv_pkt.RERR _ | Aodv_pkt.RREP_ACK 
+	  | Aodv_pkt.DATA  -> failwith "Od_hooks.rreq_orig : not a rreq"
+      end
+    | `GREP_HDR h -> L3pkt.l3src l3pkt
+    | _ -> failwith "Od_hooks.rreq_orig : neither GREP nor AODV"
 
 let od_route_pktin_mhook routeref l2pkt node = (
   
@@ -55,9 +69,9 @@ let od_route_pktin_mhook routeref l2pkt node = (
 
   if (l2src = node#id) then failwith "Od_hooks.od_route_pktin_mhook";
 
-  match aodv_grep_flags l3pkt with
+  match pkt_type l3pkt with
     | `DATA ->
-	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
+	Log.log#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  incr routes_done;
 	  routeref := Route.add_hop !routeref {
@@ -68,8 +82,14 @@ let od_route_pktin_mhook routeref l2pkt node = (
     | `RREQ  ->
 	assert (Route.length !routeref > 0);
 	let hopno = find_last_flood !routeref in
+	(* xxx this seems to implicitly assume that all RREQ flood packets are
+	   from the most recently originated flood - always true? *)
 	assert (hopno <> None);
 	let tree = o2v (Route.nth_hop !routeref (o2v hopno)).Route.info in
+	Log.log#log_debug (lazy 
+	  (Printf.sprintf "packet arriving at %d with l2src %d" node#id l2src));	
+(*	Log.log#log_info (lazy (NaryTree.sprintf ~f:string_of_int tree));*)
+
 	assert (NaryTree.belongs l2src tree);
 
 	let newtree = 
@@ -88,22 +108,22 @@ let od_route_pktin_mhook routeref l2pkt node = (
 
 let od_route_pktout_mhook routeref l2pkt node = (
   
-  let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3src = L3pkt.l3src l3pkt 
+  let l3pkt = (L2pkt.l3pkt l2pkt) 
   and l2src = (L2pkt.l2src l2pkt) in
   
   if (l2src <> node#id) then failwith "Od_hooks.od_route_pktout_mhook";
   
-  match aodv_grep_flags l3pkt with
+  match pkt_type l3pkt with
     | `DATA ->
-	(Log.log)#log_info (lazy (Printf.sprintf "Leaving node %d" node#id));	
+	Log.log#log_info (lazy (Printf.sprintf "Leaving node %d" node#id));	
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#id;
 	  Route.info=None
 	}
 	  
-    | `RREQ when (l3src = l2src) ->	(* RREQ leaving initiator *)
+    | `RREQ when (rreq_orig l3pkt = l2src) ->	(* RREQ leaving initiator *)
 	begin	
+	  let orig = rreq_orig l3pkt in
 	  match Route.length !routeref with
 	      (* Add hop if this node is not yet on the route 
 		 (normally because either 
@@ -112,12 +132,12 @@ let od_route_pktout_mhook routeref l2pkt node = (
 	    | 0 ->
 	      routeref := Route.add_hop !routeref {
 		Route.hop=node#id;
-		Route.info=Some (Flood.create l3src)
+		Route.info=Some (Flood.create orig)
 	      }
 	    | _ when ((Route.last_hop !routeref).Route.hop <> node#id) ->
 	      routeref := Route.add_hop !routeref {
 		Route.hop=node#id;
-		Route.info=Some (Flood.create l3src)
+		Route.info=Some (Flood.create orig)
 	      }
 	  | _ when ((Route.last_hop !routeref).Route.hop = node#id) ->
 	      (* If RREQ initiator is already current last hop, this
@@ -125,7 +145,7 @@ let od_route_pktout_mhook routeref l2pkt node = (
 		 this RREQ), or that this is a new RREQ (because previous
 		 failed) with increase ttl. In either case, we should create a
 		 new flood structure, discarding the old one (if any). *)
-	      (Route.last_hop !routeref).Route.info <- Some (Flood.create l3src);
+	      (Route.last_hop !routeref).Route.info <- Some (Flood.create orig);
 	  | _ -> raise (Misc.Impossible_Case "Od_hooks.od_route_pktout_mhook");
 	end	      
 
