@@ -12,6 +12,7 @@
 class virtual mobility :
   string ->
   #Simplenode.simplenode ->
+  ?gran:float ->
   (newpos:Coord.coordf_t -> unit) ->
   object
     val abbrev : string
@@ -46,6 +47,7 @@ class virtual mobility :
 (** Waypoint mobility class *)
 class waypoint :
   #Simplenode.simplenode ->
+  ?gran:float ->
   (newpos:Coord.coordf_t -> unit) ->
   object
     inherit mobility

@@ -6,9 +6,10 @@
   @author Henri Dubois-Ferriere.
  *)
 
-val make_waypoint_mobs : unit -> unit
+val make_waypoint_mobs : ?gran:float -> unit -> unit
   (** Create {!Mob.mobility} objects that implement a waypoint mobility
-    model. *)
+    model. Optional gran indicates the mobility granularity. (see {Mob.mobility})
+  *)
 
 val make_epfl_waypoint_mobs : unit -> unit
   (** Create {!Mob.mobility} objects that implement a waypoint mobility model

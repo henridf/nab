@@ -30,17 +30,25 @@ let pos_pix_to_mtr pos =
 class virtual mobility 
   (abbrevname:string) 
   (owner:#Simplenode.simplenode) 
+  ?gran
   (movefun:(newpos:Coord.coordf_t -> unit)) =
 object(s)
   val abbrev = abbrevname
   val owner = owner
   val mutable speed_mps =  1.0
   val mutable moving =  false
-  val granularity = 1.0 (* be careful if high speed and low granularity, then
+  val mutable granularity = 1.0 (* be careful if high speed and low granularity, then
 			   we will load the scheduler with zillions of small
 			   movement events *)
 
   val movefun = movefun
+
+  initializer (
+    match gran with 
+      | Some g -> granularity <- g
+      | _ -> ()
+  ) 
+
   method start = (
     if (not moving) then (
       moving <- true;
@@ -85,9 +93,10 @@ end
 
 class waypoint 
   (owner:#Simplenode.simplenode) 
+  ?gran
   (movefun:(newpos:Coord.coordf_t -> unit)) = 
 object 
-  inherit mobility "wp" owner movefun
+  inherit mobility "wp" owner ?gran movefun 
   val mutable target_ = (0.0, 0.0)
 
   initializer (

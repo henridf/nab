@@ -13,8 +13,8 @@ let set_speed_mps ?nidopt speed =
 
       
 
-let make_waypoint_mobs() = mob_array := 
-  (Nodes.map (fun n -> new Mob.waypoint n
+let make_waypoint_mobs ?gran () = mob_array := 
+  (Nodes.map (fun n -> new Mob.waypoint n ?gran
     ((Gworld.world())#movenode ~nid:n#id)))
 
 let make_discrete_randomwalk_mobs() = mob_array := 
