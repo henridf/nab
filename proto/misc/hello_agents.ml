@@ -4,7 +4,7 @@
 
 open Printf
 
-(** A bunch of simple agents who emit and receive hello packets and 
+(** A simple agent to emit and receive hello packets and 
   maintain a last-encounter table. Mostly for illustrational purposes, since
   these agents do not provide any routing or other capability.
 
@@ -78,7 +78,7 @@ object (s)
     let l3hdr = (* the L3 header, with broadcast dst addr *)
       L3pkt.make_l3hdr 
 	~srcid:owner#id
-	~dstid:L3pkt._L3_BCAST_ADDR
+	~dstid:L3pkt.l3_bcast_addr
 	()
     in
 
