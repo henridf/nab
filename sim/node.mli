@@ -5,7 +5,6 @@
 (* this type is used for storing to file *)
 type node_state_t = {
   node_pos : Coord.coordf_t;
-  db_state : NodeDB.nodeDB_state_t
 }
     
 type agent_ctrl_t = AGENT_STOP | AGENT_START
@@ -25,9 +24,6 @@ object
   method x : float
   method y : float
 
-  method db : NodeDB.nodeDB_t
-  method set_db : NodeDB.nodeDB_t -> unit
-    
   method add_neighbor : node_t -> unit
   method lose_neighbor : node_t -> unit
   method is_neighbor : node_t -> bool
