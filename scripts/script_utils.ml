@@ -186,15 +186,6 @@ let make_aodv_nodes () = (
 )
 
 
-let make_grep_nodes () = (
-  make_nodes();
-
-  Nodes.iteri (fun nid n -> 
-    let agent = new Grep_agent.grep_agent ~stack:0 n in
-    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
-)
-
-
 let make_flood_agents ?(stack=0) () = (
   
   Nodes.iteri (fun nid n -> 

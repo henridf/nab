@@ -58,7 +58,6 @@ val l3_bcast_addr : int
 type l3hdr_ext_t = 
     [ `NONE
     | `LER_HDR of Ler_pkt.t 
-    | `GREP_HDR of Grep_pkt.t
     | `STR_HDR of Str_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
@@ -100,7 +99,6 @@ val l3ttl : t -> int
 
 val l3hdr_ext : t -> l3hdr_ext_t
 val ler_hdr : t -> Ler_pkt.t
-val grep_hdr : t -> Grep_pkt.t
 val str_hdr : t -> Str_pkt.t
 val aodv_hdr : t -> Aodv_pkt.t
 val diff_hdr : t -> Diff_pkt.t

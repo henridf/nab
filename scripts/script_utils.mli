@@ -81,11 +81,6 @@ val make_naked_nodes : ?with_positions:bool -> unit -> unit
     for example if node positions are being restored from a prior run.
  *)
 
-val make_grep_nodes : unit -> unit 
-  (** Create {!Node.node} each with a grep agent and a mac layer
-    of the type specified in {!Params.mac}.
-    Number of nodes {!Params.nodes} should be set before calling this *)
-
 val make_aodv_nodes : unit -> unit 
   (** Create {!Node.node} each with a aodv agent and a mac layer
     of the type specified in {!Params.mac}.

@@ -36,7 +36,7 @@ let find_last_flood route rreq_orig =
   done;
   !n
 
-type u = [ `RERR | Grep_pkt.grep_flags_t | `NONE]
+type u = [ `RERR | `NONE]
 
 let pkt_type l3pkt = 
   match L3pkt.l3hdr_ext l3pkt with 
@@ -47,7 +47,6 @@ let pkt_type l3pkt =
 	  | Aodv_pkt.RREP _ -> `RREP
 	  | Aodv_pkt.RERR _ -> `RERR
 	  | Aodv_pkt.RREP_ACK -> `NONE end
-    | `GREP_HDR h -> ((Grep_pkt.flags h) :> u)
     | `STR_HDR h -> 
 	begin match h with 
 	  | Str_pkt.DATA _ -> `DATA
@@ -65,7 +64,6 @@ let rreq_orig l3pkt =
 	  | Aodv_pkt.RREP _
 	  | Aodv_pkt.RERR _
 	  | Aodv_pkt.DATA  | Aodv_pkt.RREP_ACK -> failwith "Od_hooks.rreq_orig" end
-    | `GREP_HDR h -> failwith "Od_hooks.rreq_orig" 
     | `STR_HDR h -> 
 	begin match h with 
 	  | Str_pkt.RREQ (_,r) -> r.Str_pkt.rreq_orig
@@ -82,7 +80,6 @@ let rreq_orig l3pkt =
 	  | Aodv_pkt.RREP _ | Aodv_pkt.RERR _ | Aodv_pkt.RREP_ACK 
 	  | Aodv_pkt.DATA  -> failwith "Od_hooks.rreq_orig : not a rreq"
       end
-    | `GREP_HDR h -> L3pkt.l3src l3pkt
     | `STR_HDR h -> begin 
 	match h with
 	  | Str_pkt.RREQ (_, rreq) -> rreq.Str_pkt.rreq_orig

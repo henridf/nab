@@ -41,7 +41,6 @@ let default_ttl = 255
 type l3hdr_ext_t = 
     [ `NONE
     | `LER_HDR of Ler_pkt.t
-    | `GREP_HDR of Grep_pkt.t
     | `STR_HDR of Str_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
@@ -51,7 +50,6 @@ type l3hdr_ext_t =
 let clone_l3hdr_ext = function
   | `NONE -> `NONE
   | `LER_HDR e -> `LER_HDR (Ler_pkt.clone e)
-  | `GREP_HDR e -> `GREP_HDR (Grep_pkt.clone e)
   | `STR_HDR e -> `STR_HDR (Str_pkt.clone e)
   | `AODV_HDR e -> `AODV_HDR (Aodv_pkt.clone e)
   | `DIFF_HDR e -> `DIFF_HDR (Diff_pkt.clone e)
@@ -78,7 +76,6 @@ let clone_l3hdr ~l3hdr = {l3hdr with src = l3hdr.src; ext=(clone_l3hdr_ext l3hdr
 let l3hdr_ext_size = function
   | `NONE -> 0
   | `LER_HDR hdr -> Ler_pkt.size hdr
-  | `GREP_HDR hdr ->  Grep_pkt.hdr_size hdr 
   | `STR_HDR hdr ->  Str_pkt.hdr_size hdr 
   | `AODV_HDR hdr ->  Aodv_pkt.hdr_size hdr 
   | `DIFF_HDR hdr ->  Diff_pkt.hdr_size hdr 
@@ -126,11 +123,6 @@ let ler_hdr l3pkt =
   match l3pkt.l3hdr.ext with
     | `LER_HDR e -> e
     | _ -> raise (Failure "L3pkt.ler_hdr")
-
-let grep_hdr l3pkt = 
-  match l3pkt.l3hdr.ext with
-    | `GREP_HDR e -> e
-    | _ -> raise (Failure "L3pkt.grep_hdr")
 
 let str_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
