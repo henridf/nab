@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 let nodes = 800
 let rrange = 12.0
 let avg_degree = 8

@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 
 (* 
    do we really need the double addressability of nodes (by int, and by 'a ) ?

@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 
 (** Some simple mobility processes.
   @author Henri Dubois-Ferriere.

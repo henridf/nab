@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 
 (** General utils and helpers for writing MWS scripts.
   @author Henri Dubois-Ferriere. 

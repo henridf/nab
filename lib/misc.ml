@@ -20,6 +20,10 @@
  *
  *)
 
+(* $Header *)
+
+
+
 (** Miscellaneous stuff that is useful everywhere *)
 
 open Printf

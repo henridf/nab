@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 
 (** 
   "Cheat" MAC Layer: A MAC layer which does not take into account connectivity

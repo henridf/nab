@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 
 (** Base class for MAC layers. It is recommended to inherit from
   this class when implementing a new MAC layer.

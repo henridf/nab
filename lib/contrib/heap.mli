@@ -14,6 +14,9 @@
  * (enclosed in the file LGPL).
  *)
 
+(* $Header *)
+
+
 (* Heaps *)
 
 module type Ordered = sig

@@ -20,6 +20,9 @@
  *
  *)
 
+(* $Header *)
+
+
 
 (* Mar03
    wierd: decrementing shopcount when packet not sent seems necessary, 

@@ -19,6 +19,9 @@
  *  details (enclosed in the file GPL). 
  *
  *)
+
+(* $Header *)
+
 (** Simple packet queue functor. 
   This is basically a standard ocaml queue, with two additions:
   - enforce maximum size (drop-tail on overflow)
