@@ -119,7 +119,7 @@ let get_route nid = (
   Nodes.iter (fun n -> n#clear_pkt_mhooks ());
   Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
   Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
-  (Nodes.node (!src_))#originate_app_pkt ~dst;
+  (Nodes.node (!src_))#originate_app_pkt ~l4pkt:`EMPTY ~dst;
 
   (Sched.s())#run_until 
   ~continue:(fun () -> 
@@ -158,7 +158,7 @@ let create_menu () = (
       ~packing:menu#append ~show_toggle:true
       () in
     ignore(menuitem#connect#toggled 
-      (fun () -> stack := i ));
+      ~callback:(fun () -> stack := i ));
 
     group := Some (menuitem #group);
   done;

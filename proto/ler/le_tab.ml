@@ -51,23 +51,23 @@ object(s)
       enc_arr.(nid) <- Some {t = present_time; p = pos}
     with _ -> raise (Failure "Le_tab.add_encounter : nid not in bounds")
 
-  method le ~nid = 
+  method le nid = 
     try 
       enc_arr.(nid) 
     with _ -> raise (Failure "Le_tab.last_encounter : nid not in bounds")
     
-  method le_time ~nid = 
-    match s#le ~nid:nid with
+  method le_time nid = 
+    match s#le nid with
 	None -> None
       | Some enc -> Some enc.t
 
-  method le_pos ~nid = 
-    match s#le ~nid:nid with
+  method le_pos nid = 
+    match s#le nid with
 	None -> None
       | Some enc -> Some enc.p
 
-  method le_age ~nid = 
-    match s#le ~nid:nid with
+  method le_age nid = 
+    match s#le nid with
 	None -> max_float
       | Some encounter -> enc_age encounter
 

@@ -252,17 +252,17 @@ object(s)
 
   method private send_waiting_packets ~dst = 
     while s#packets_waiting ~dst do
-      let pkt = (Queue.pop pktqs.(dst)) in
+      let l3pkt = (Queue.pop pktqs.(dst)) in
       try 
 	s#log_info 
 	  (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
-	    (L3pkt.l3src ~l3pkt:pkt) dst));
-	s#send_out ~l3pkt:pkt
+	    (L3pkt.l3src l3pkt) dst));
+	s#send_out ~l3pkt
       with 
 	| Send_Out_Failure -> 
 	    s#log_warning 
 	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
-	      (L3pkt.l3src ~l3pkt:pkt) dst));
+	      (L3pkt.l3src l3pkt) dst));
     done
     
   (* DATA packets are buffered when they fail on send, 
@@ -270,13 +270,13 @@ object(s)
   method private buffer_packet ~(l3pkt:L3pkt.t) = (
     match s#queue_size() < packet_buffer_size with 
       | true ->
-	  let dst = L3pkt.l3dst ~l3pkt in
+	  let dst = L3pkt.l3dst l3pkt in
 	  assert (dst <> L3pkt.l3_bcast_addr);
 	  Queue.push l3pkt pktqs.(dst);
       | false -> (
 	  Grep_hooks.drop_data();
 	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
-	    (L3pkt.l3dst ~l3pkt)))
+	    (L3pkt.l3dst l3pkt)))
 	)
   )
 
@@ -323,7 +323,7 @@ object(s)
     and grep_hdr = L3pkt.grep_hdr l3pkt in
     let update =  
       s#newadv 
-	~dst:(L3pkt.l3src ~l3pkt)
+	~dst:(L3pkt.l3src l3pkt)
 	~sn:(Grep_pkt.ssn grep_hdr)
 	~hc:(Grep_pkt.shc grep_hdr)
 	~nh:sender
@@ -343,15 +343,15 @@ object(s)
 
   method mac_recv_l2pkt l2pkt = (
     
-    let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
-    assert (L3pkt.l3ttl ~l3pkt >= 0);
+    let l3pkt = L2pkt.l3pkt l2pkt in
+    assert (L3pkt.l3ttl l3pkt >= 0);
 
     (* create or update 1-hop route to previous hop, unless the packet was
        originated by the previous hop, in which case this will happen in l3
        processing.
     *)
     let sender = L2pkt.l2src l2pkt in
-    if (sender <> (L3pkt.l3src ~l3pkt)) then (
+    if (sender <> (L3pkt.l3src l3pkt)) then (
       let sender_seqno = 
 	match Rtab.seqno ~rt ~dst:sender with
 	  | None -> 1
@@ -381,7 +381,7 @@ object(s)
     in
     s#log_info 
       (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
-	(L3pkt.l3src ~l3pkt) rdst));
+	(L3pkt.l3src l3pkt) rdst));
     match fresh with 
       | true -> 
 	  let answer_rreq = 
@@ -399,14 +399,14 @@ object(s)
 	  in
 	  if (answer_rreq) then 
 	    s#send_rrep 
-	      ~dst:(L3pkt.l3src ~l3pkt)
+	      ~dst:(L3pkt.l3src l3pkt)
 	      ~obo:rdst
 	  else (* broadcast the rreq further along *)
 	    s#send_out ~l3pkt
       | false -> 
 	  s#log_info 
 	  (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
-	    (L3pkt.l3src ~l3pkt) rdst));
+	    (L3pkt.l3src l3pkt) rdst));
   )
     
   method private send_rrep ~dst ~obo = (
@@ -431,7 +431,7 @@ object(s)
 	()
     in
     let l3pkt =
-      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
+      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY
     in
     try 
       s#send_out  ~l3pkt
@@ -446,7 +446,7 @@ object(s)
     (* this expects to be called just prior to sending l3pkt*)
     let grep_hdr = L3pkt.grep_hdr l3pkt in
 
-    let dst = (L3pkt.l3dst ~l3pkt) in
+    let dst = (L3pkt.l3dst l3pkt) in
     let next_rt = (agent nexthop)#get_rtab in
     let this_sn = o2v (Rtab.seqno ~rt ~dst)
     and this_hc = o2v (Rtab.hopcount ~rt ~dst)
@@ -474,7 +474,7 @@ object(s)
   method private process_data_pkt 
     ~(l3pkt:L3pkt.t) =  (
       
-      let dst = (L3pkt.l3dst ~l3pkt) in
+      let dst = (L3pkt.l3dst l3pkt) in
       begin try
 	
 	if (dst = myid) then ( (* pkt for us *)
@@ -567,7 +567,7 @@ object(s)
 	()
     in
     let l3pkt = 
-      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
+      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY
 
     in	
     s#send_out ~l3pkt;
@@ -612,7 +612,7 @@ object(s)
 	  ()
       in
       let l3pkt = 
-	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
+	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY
       in
       let next_ttl = next_rreq_ttl ttl in
       let next_rreq_timeout = 
@@ -648,20 +648,20 @@ object(s)
 
       if (update || 
       (fresh && (
-	(Grep_pkt.osrc grep_hdr) = (L3pkt.l3src ~l3pkt))))
+	(Grep_pkt.osrc grep_hdr) = (L3pkt.l3src l3pkt))))
       then (
 	(* the second line is for the case where the rrep was originated by the
 	   source, in which case update=false (bc the info from it has already
 	   been looked at in mac_recv_l2pkt) *)
 	Rtab.repair_done ~rt ~dst:(Grep_pkt.osrc grep_hdr);
-	if ((L3pkt.l3dst ~l3pkt) <> myid) then (
+	if ((L3pkt.l3dst l3pkt) <> myid) then (
 	  try 
 	    s#send_out ~l3pkt
 	  with 
 	    | Send_Out_Failure -> 
 		s#log_notice 
 		(lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
-		  (L3pkt.l3dst ~l3pkt)
+		  (L3pkt.l3dst l3pkt)
 		  (Grep_pkt.osrc grep_hdr)));
 	)
       )
@@ -669,11 +669,11 @@ object(s)
     
   method private send_out ~l3pkt = (
     
-    let dst = L3pkt.l3dst ~l3pkt in
+    let dst = L3pkt.l3dst l3pkt in
     let grep_hdr = L3pkt.grep_hdr l3pkt in
 
     assert (dst <> myid);
-    assert (L3pkt.l3ttl ~l3pkt >= 0);
+    assert (L3pkt.l3ttl l3pkt >= 0);
     assert (Grep_pkt.ssn grep_hdr >= 1);
 
     let failed() = (
@@ -687,8 +687,8 @@ object(s)
       | Grep_pkt.GREP_RADV 
       | Grep_pkt.GREP_RREQ -> 
 	  assert (dst = L3pkt.l3_bcast_addr);
-	  L3pkt.decr_l3ttl ~l3pkt;
-	  begin match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
+	  L3pkt.decr_l3ttl l3pkt;
+	  begin match ((L3pkt.l3ttl l3pkt) >= 0)  with
 	    | true -> 
 		Grep_hooks.sent_rreq() ;
 		s#mac_bcast_pkt l3pkt;
@@ -726,7 +726,7 @@ object(s)
   method private hand_upper_layer ~l3pkt = (
     Grep_hooks.recv_data();
     s#log_info (lazy (sprintf "Received app pkt from src %d"
-      (L3pkt.l3src ~l3pkt)));
+      (L3pkt.l3src l3pkt)));
   )
 
 

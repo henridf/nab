@@ -120,7 +120,7 @@ object(s)
     end_rx_handle <- 0;
     
     assert (interfering_until = Time.get_time());
-    let dst = l2dst ~pkt:l2pkt in
+    let dst = l2dst l2pkt in
     if (dst = L2_BCAST || dst = L2_DST myid) then 
       super#send_up ~l2pkt
   )
@@ -137,7 +137,7 @@ object(s)
 	  (* Not xmiting and not under interference. 
 	     -> Schedule the full packet reception event.*)
 	  s#log_debug (lazy (sprintf "RX packet of (%d bytes)" (l2pkt_size ~l2pkt)));
- 	  receiving_from <- l2src ~pkt:l2pkt;
+ 	  receiving_from <- l2src l2pkt;
 	  let recv_event() =  s#end_rx l2pkt  in
 	  end_rx_handle <- (Sched.s())#sched_at_handle ~f:recv_event ~t:(Scheduler.Time end_rx_time);
 	  
@@ -150,7 +150,7 @@ object(s)
 	  collsRXRX <- collsRXRX + 1;
 	  s#log_debug (lazy (
 	    sprintf "Pkt from %d collided with already receiving packet from %d"
-	    (l2src ~pkt:l2pkt) receiving_from))
+	    (l2src l2pkt) receiving_from))
     end;
     
     (* We will be under interference for the duration of this packet. *)
@@ -174,7 +174,7 @@ object(s)
 	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
 	
-	bTX <- bTX + (L2pkt.l2pkt_size l2pkt);
+	bTX <- bTX + (L2pkt.l2pkt_size ~l2pkt);
 	
 	SimpleEther.emit ~stack ~nid:myid l2pkt
       ) else (

@@ -112,7 +112,7 @@ class virtual world_common ~x ~y ~rrange  = (
       node_positions_ <- Array.make (Param.get Params.nodes) initial_pos;
 
       Log.log#log_notice (lazy 
-	(sprintf "World: %2f[m]x%2f[m] size,  %2f[m] radio range, %d nodes" 
+	(sprintf "World: %.2f x %.2f [m],  %.2f radio range [m], %d nodes" 
 	  x y rrange (Param.get Params.nodes))
       );
       ignore (tile_size_x)
@@ -429,7 +429,7 @@ class virtual world_common ~x ~y ~rrange  = (
       try 
 	Graph.itern_ (fun src -> 
 	  Graph.itern_ (fun dst -> 
-	    ignore (Graph.route_dij_ g src dst);
+	    ignore (Graph.route_dij_ g ~src ~dest:dst);
 	  ) g
 	) g;
 

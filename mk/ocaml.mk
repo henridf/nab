@@ -16,7 +16,7 @@ CMAS		= .cma
 CMO		= $(CMOS)
 CMA		= $(CMAS)
 #*************************************************************#
-MLWARN		= -w Al
+MLWARN		= -w A
 MLFAST		=# -unsafe
 DEBUGGER        =-g #-ccopt -lefence
 DTYPES	 	=#-dtypes

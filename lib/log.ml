@@ -108,7 +108,7 @@ object(s)
 
   method objdescr = objdescr
 
-  method private log_level ~msg:msg ~level:l =
+  method private log_level ~level:l msg =
     if l >= !current_log_level then (
       output_string !ochan (sprintf "%f " (Time.get_time()));
       output_string !ochan objdescr;
@@ -117,7 +117,7 @@ object(s)
       flush !ochan;
     )
 
-  method private log msg = s#log_level ~level:LOG_INFO ~msg:msg
+  method private log msg = s#log_level ~level:LOG_INFO msg
 
   (* shorthand wrappers for log_level *)
   method private log_debug = s#log_level ~level:LOG_DEBUG
@@ -159,7 +159,7 @@ object
   inherit standalone_loggable facility as super
   initializer (objdescr <- facility)
 
-  method private log_level ~msg:msg ~level:l =
+  method private log_level ~level:l msg =
     if l >= !current_log_level then (
       output_string !ochan objdescr;
       output_string !ochan (Lazy.force msg);

@@ -68,12 +68,12 @@ class inheritable_loggable :
 	0.468795 /node/3/cmac TX packet 
       *)
 
-    method private log_always : msg:string Lazy.t -> unit
-    method private log_debug : msg:string Lazy.t -> unit
-    method private log_error : msg:string Lazy.t -> unit
-    method private log_info : msg:string Lazy.t -> unit
-    method private log_notice : msg:string Lazy.t -> unit
-    method private log_warning : msg:string Lazy.t -> unit
+    method private log_always : string Lazy.t -> unit
+    method private log_debug : string Lazy.t -> unit
+    method private log_error : string Lazy.t -> unit
+    method private log_info : string Lazy.t -> unit
+    method private log_notice : string Lazy.t -> unit
+    method private log_warning : string Lazy.t -> unit
 
     method private log : string Lazy.t -> unit
       (** Shorthand for {!Log.inheritable_loggable.log_info} *)
@@ -104,12 +104,12 @@ class standalone_loggable : string ->
   object
     val mutable objdescr : string
     method log : string Lazy.t -> unit
-    method log_always : msg:string Lazy.t -> unit
-    method log_debug : msg:string Lazy.t -> unit
-    method log_error : msg:string Lazy.t -> unit
-    method log_info : msg:string Lazy.t -> unit
-    method log_notice : msg:string Lazy.t -> unit
-    method log_warning : msg:string Lazy.t -> unit
+    method log_always : string Lazy.t -> unit
+    method log_debug : string Lazy.t -> unit
+    method log_error : string Lazy.t -> unit
+    method log_info : string Lazy.t -> unit
+    method log_notice : string Lazy.t -> unit
+    method log_warning : string Lazy.t -> unit
     method mark_break : unit
     method objdescr : string
   end
@@ -127,12 +127,12 @@ class standalone_loggable_notime :
   object
     val mutable objdescr : string
     method log : string Lazy.t -> unit
-    method log_always : msg:string Lazy.t -> unit
-    method log_debug : msg:string Lazy.t -> unit
-    method log_error : msg:string Lazy.t -> unit
-    method log_info : msg:string Lazy.t -> unit
-    method log_notice : msg:string Lazy.t -> unit
-    method log_warning : msg:string Lazy.t -> unit
+    method log_always : string Lazy.t -> unit
+    method log_debug : string Lazy.t -> unit
+    method log_error : string Lazy.t -> unit
+    method log_info : string Lazy.t -> unit
+    method log_notice : string Lazy.t -> unit
+    method log_warning : string Lazy.t -> unit
     method mark_break : unit
     method objdescr : string
   end

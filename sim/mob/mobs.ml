@@ -227,7 +227,7 @@ object(s)
     current_graph_pos_ <- closest_epfl_node ((World.w())#nodepos owner#id);
     graph_hops_ <- 
     List.map (fun i -> Read_coords.box_centeri i) 
-      ((Graph.routei_dij_ (Read_coords.g()) current_graph_pos_ graphtarget_) @
+      ((Graph.routei_dij_ (Read_coords.g()) ~src:current_graph_pos_ ~dest:graphtarget_) @
       [graphtarget_]);
 
   )

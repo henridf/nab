@@ -70,7 +70,7 @@ let length path = List.length path
 
 let i2c route = (
   List.map 
-  (fun h -> 
+  ~f:(fun h -> 
     {h with hop=(World.w())#nodepos h.hop})
     route
 )
@@ -179,7 +179,7 @@ let ease_route_valid route ~src ~dst= (
 (*
       print_endline (Misc.i2s (List.length (List.filter (fun k -> k.hop = h.hop) route)));
       print_endline (Misc.i2s h.hop) ;*)
-      ((List.length (List.filter (fun k -> k.hop = h.hop) route)) = 1) && stat)
+      ((List.length (List.filter ~f:(fun k -> k.hop = h.hop) route)) = 1) && stat)
     ~init:true 
     route
   || raise (Failure "Route has a loooop")
@@ -226,10 +226,10 @@ let search_cost route =
 let sprint_hops f route = (
   String.concat 
   ("\n")
-  (List.map
-    (fun x -> Printf.sprintf "hop:%s" 
-      (f x.hop) )
-    route)
+  (List.map 
+    route 
+    ~f:(fun x -> Printf.sprintf "hop:%s" (f x.hop) ))
+
 ) 
 
 let sprintf_hopsonly route = sprint_hops Coord.sprintf route
@@ -250,6 +250,6 @@ let sprintnid route = (
   String.concat 
   ("\n")
   ("Hop   Anchor               Age     Cost\n"::
-    (List.map printhop route))
+    (List.map route ~f:printhop))
 )
 

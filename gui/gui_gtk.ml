@@ -79,7 +79,7 @@ let set_expose_event_cb f = (
   if !expose_cb_id <> None then
     (fix())#misc#disconnect (o2v !expose_cb_id);
   
-  expose_cb_id := (Some ((fix())#event#connect#expose f))
+  expose_cb_id := (Some ((fix())#event#connect#expose ~callback:f))
 )
   
 let init () = (
@@ -219,7 +219,14 @@ let draw_circle ~centr ~radius =
     ~height:(radius * 2) 
     ()
     
-
+(*
+let _ = 
+  let major, minor, minorminor = Main.version 
+    in
+  let version_string = Printf.sprintf "%d.%d.%d" major minor minorminor in
+  Script_utils.interactive_print_banner 
+    ("nabviz visualization support "^version_string)
+*)
 
 (* (for future reference)
    how to draw on a pixmap, then display the pixmap:

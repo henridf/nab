@@ -95,7 +95,7 @@ object(s)
       (* After #stop() is called, we have one outstanding movement event
 	 still to fire, which we ignore here by the above check. *)
 	
-      let newpos = s#getnewpos granularity in 
+      let newpos = s#getnewpos ~gran:granularity in 
       (World.w())#movenode ~nid:owner#id ~newpos:newpos;
 (*      s#log_debug (lazy (Printf.sprintf "moving to %s" (Coord.sprintf newpos)));*)
       (*   (World.w())#movenode ~nid:owner#id ~newpos:newpos;*)

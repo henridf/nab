@@ -52,7 +52,7 @@ object(s)
   method xmit ~l2pkt = (
     s#log_debug (lazy "TX packet ");
     
-    match L2pkt.l2dst ~pkt:l2pkt with 
+    match L2pkt.l2dst l2pkt with 
       | L2pkt.L2_BCAST ->
 	  SimpleEther.emit ~stack ~nid:theowner#id l2pkt
       | L2pkt.L2_DST dstid ->

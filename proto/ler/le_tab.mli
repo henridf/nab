@@ -55,20 +55,20 @@ object
     (** [add_encounter n pos] stores in the encounter table that we have
       just encountered node [n] at position [pos]. *)
     
-  method le : nid:Common.nodeid_t -> enc_t option
+  method le : Common.nodeid_t -> enc_t option
     (** [le n] returns [Some enc], where enc is an [enc_t]
       representing our last encounter with node [n], or returns [None] if we
       have never encountered [n].  *)
     
-  method le_time : nid:Common.nodeid_t -> Time.time_t option
+  method le_time :Common.nodeid_t -> Time.time_t option
     (** Same as [le] above, except that it returns only the time of the last
       encounter. *)
 
-  method le_pos : nid:Common.nodeid_t -> Coord.coordf_t option
+  method le_pos : Common.nodeid_t -> Coord.coordf_t option
     (** Same as [le] above, except that it returns only the position of 
       the last encounter. *)
     
-  method le_age : nid:Common.nodeid_t -> Time.time_t 
+  method le_age : Common.nodeid_t -> Time.time_t 
     (** [le_age n] returns the age of our last encounter with node [n], or 
       [Pervasives.max_float] if we have never encountered [n].
     *)

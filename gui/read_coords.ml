@@ -86,15 +86,11 @@ let make_graph() = (
 )
 
 
-
-
-
-
 let check_conn() = 
   Graph.itern_ (fun src -> 
     Graph.itern_ (fun dst -> 
       Printf.printf "doing %s-%s\n" src dst;
-      ignore (Graph.route_dij_ (g()) src dst);
+      ignore (Graph.route_dij_ (g()) ~src ~dest:dst);
     ) (g())
   ) (g())
 

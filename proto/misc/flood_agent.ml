@@ -62,7 +62,7 @@ object(s)
      is a null method. *)
   method mac_recv_l3pkt l3pkt = (
 
-    let src = (L3pkt.l3src ~l3pkt) in
+    let src = (L3pkt.l3src l3pkt) in
     s#log_debug (lazy (sprintf "Received flood packet from src %d" src));
     (* If we've haven't already received this packet, we add to our hashtbl
        and reforward. *)
@@ -94,7 +94,7 @@ object(s)
     
     (* Return a full l3 pkt containing the constructed l3 hdr and the l4 packet we
        were passed.*)
-    L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt
+    L3pkt.make_l3pkt ~l3hdr ~l4pkt
   )
 
     (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
