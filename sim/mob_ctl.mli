@@ -24,15 +24,15 @@ val set_speed_mps : ?nidopt:Common.nodeid_t -> float -> unit
     node's speed is set, otherwise all nodes are set to the given value *)
 
 val start_node : Common.nodeid_t -> unit
-  (** Starts mobility of given node. *)
+  (** Starts mobility of given node. Idempotent. *)
 
 val stop_node : Common.nodeid_t -> unit
-  (** Stops mobility of given node. *)
+  (** Stops mobility of given node. Idempotent.*)
 
 val start_all : unit -> unit
-  (** Starts mobility of all nodes. *)
+  (** Starts mobility of all nodes. Idempotent.*)
 
 val stop_all : unit -> unit
-  (** Stops mobility of all nodes. *)
+  (** Stops mobility of all nodes. Idempotent.*)
 
 

@@ -25,10 +25,10 @@ class virtual mobility :
       (** Set the speed in meters/sec. *)
 
     method  start : unit
-      (** Stop movement *)
+      (** Stop movement. Idempotent. *)
 
     method stop : unit
-      (** Start movement *)
+      (** Start movement. Idempotent. *)
 
     method virtual getnewpos : gran:float -> Coord.coordf_t
       (** This method is called in order to get the next position for the node
