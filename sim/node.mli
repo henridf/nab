@@ -27,9 +27,6 @@ object
   method is_neighbor : node_t -> bool
   method neighbors : Common.nodeid_t list
     
-  method setmob : (node:node_t -> Coord.coordf_t) -> unit
-  method set_speed_mps : float -> unit
-  method selfmove : unit
   method move : Coord.coordf_t -> unit
 
   method mac_recv_pkt : l2pkt:Packet.l2packet_t -> unit
@@ -75,6 +72,9 @@ object
        the node.
        If multiple apps, order in which called is unspecified.*)
     
+  method clear_pkt_mhooks :  unit 
+    (* clears pktin and pktout mhooks *)
+
   method add_app_send_pkt_hook : hook:(Packet.l4pld_t -> dst:Common.nodeid_t -> unit) -> unit
     (* Routing/Protocol agents should hook here to touch packets being sent by 
        applications. 
