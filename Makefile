@@ -112,7 +112,11 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/linkedlist$(CMO) \
 		$(MISC_DIR)/data$(CMO) \
 		$(MWS_DIR)/common$(CMO) \
+		$(PKT_DIR)/pkt_common$(CMO) \
 		$(PKT_DIR)/l4pkt$(CMO) \
+		$(PKT_DIR)/grep_pkt$(CMO) \
+		$(PKT_DIR)/aodv_pkt$(CMO) \
+		$(PKT_DIR)/diff_pkt$(CMO) \
 		$(PKT_DIR)/l3pkt$(CMO) \
 		$(PKT_DIR)/l2pkt$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
@@ -172,6 +176,7 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
+		 $(MISC_DIR)/mods$(CMO) \
 		 $(MISC_DIR)/opt$(CMO) \
 		 $(MISC_DIR)/randoms$(CMO) \
 		 $(MISC_DIR)/coord$(CMO) \
@@ -194,21 +199,24 @@ TEST_OBJ_FILES = \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
+alltargets: mws mwsgrep grepviz mwstop gui mwsvor guitop
+
+
 mws: bin/mws
 bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
 mwsgrep: bin/mwsgrep
 bin/mwsgrep: $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
 
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
 
 mwsvor: bin/mwsvor
 bin/mwsvor:  $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
