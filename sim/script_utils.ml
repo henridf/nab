@@ -25,13 +25,23 @@ let set_simplenodes() = (
 )
 
 let make_grease_nodes () = (
-  set_simplenodes();
+  let get_init_pos() = 
+    let nodeind = Random.int 113 in
+    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
+  in
+  Nodes.set_nodes [||];
+  Nodes.set_nodes 
+    (Array.init (Param.get Params.nodes)
+      (fun i -> 
+	(new Simplenode.simplenode 
+	  ~pos_init:(get_init_pos())
+	  ~id:i
+	)));
 
   (* create grease agents, who will hook to their owners *)
   Ease_agent.set_agents
-    (Array.init (Param.get Params.nodes)
-      (fun i -> 
-	(new Ease_agent.ease_agent (Nodes.node(i)))));
+    (Nodes.map (fun n -> new Ease_agent.ease_agent n));
+
 
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
@@ -44,9 +54,7 @@ let make_grep_nodes () = (
 
   (* create grep agents, who will hook to their owners *)
   Grep_agent.set_agents
-    (Array.init (Param.get Params.nodes)
-      (fun i -> 
-	(new Grep_agent.grep_agent (Nodes.node(i)))));
+    (Nodes.map (fun n -> new Grep_agent.grep_agent n));
 
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
@@ -58,9 +66,7 @@ let make_aodv_nodes () = (
 
   (* create aodv agents, who will hook to their owners *)
   Aodv_agent.set_agents
-    (Array.init (Param.get Params.nodes)
-      (fun i -> 
-	(new Aodv_agent.aodv_agent (Nodes.node(i)))));
+    (Nodes.map (fun n -> new Aodv_agent.aodv_agent n));
 
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
@@ -110,7 +116,8 @@ let redraw_and_label_nodes() = (
   label_nodes()
 )
 
-let proportion_met_nodes ~targets  = 0.0
+let proportion_met_nodes ~targets  = 
+  Ease_agent.proportion_met_nodes ~targets
   
 let avg_neighbors_per_node() = 
   let total_neighbors = 
@@ -128,8 +135,6 @@ let make_app_packet ~srcid ~dstid =
   Packet.make_app_pkt ~l3hdr:(Packet.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
 
   
-
-
 
 
 let hop_col_color ~hop ~routelength = (
@@ -177,17 +182,23 @@ let gui_grep_one_route() = (
 )
 
 
-let move_nodes ~f ~percent ~targets= (
-  let iterations = ((Param.get Params.nodes) / 10) in 
-  while ((proportion_met_nodes targets) < percent) do 
-    repeat iterations (fun x -> 
-      Nodes.iter (fun n -> f ~node:n); 
-      Common.set_time (Common.get_time() +. 1.0);
-    );
-    Log.log#log_notice 
-      (Printf.sprintf "prop_met_nodes %f\n"
-	(proportion_met_nodes ~targets:targets));
-  done;
+let move_nodes ~prop ~targets = (
+  let iterations = ( (Param.get Params.nodes) * (Param.get Params.nodes) / 10) in 
+  let ctr = ref 0 in 
+  let continue() = (
+    incr ctr; 
+    if !ctr = iterations then (
+      ctr := 0;
+      let p = (proportion_met_nodes ~targets:targets) in
+      Log.log#log_notice 
+	(Printf.sprintf "prop_met_nodes %f\n" p);
+      p < prop 
+    ) else true
+  )
+  in
+  Mob.start_all();
+  (Gsched.sched())#run_until ~continue;
+  Mob.stop_all();
 )
   
 

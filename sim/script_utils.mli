@@ -14,8 +14,10 @@ val make_aodv_nodes : unit -> unit (* consults Params.nodes *)
 val cleanup : unit -> unit
 
 (* Actions *)
-val move_nodes : f:(node:Node.node_t -> unit) -> percent:float ->
-  targets:int -> unit
+val move_nodes : 
+  prop:float -> (* btw 0 and 1 *)
+  targets:int -> 
+  unit
 
 (* Stats *)
 val proportion_met_nodes : targets:int -> float 
