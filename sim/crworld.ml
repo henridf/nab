@@ -235,12 +235,15 @@ class virtual crworld_common ~x ~y ~rrange  = (
       
       node_positions_.(nid) <- pos;
 
-      Printf.printf "%s %d %d %d %d " 
+      (*
+	Printf.printf "%s %d %d %d %d " 
 	(Coord.sprintf pos)
-	newx 
-	newy 
+	newx
+	newy
 	(Array.length grid_of_nodes_)
 	(Array.length grid_of_nodes_.(0));
+      *)
+
       assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
       
       grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
@@ -248,7 +251,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
       s#update_node_neighbors_ nid;
       
       List.iter 
-	(fun mhook -> mhook pos nid )
+	(fun mhook -> mhook pos nid)
 	mob_mhooks;
     )
       
