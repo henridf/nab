@@ -235,14 +235,14 @@ class virtual crworld_common ~x ~y ~rrange  = (
       
       node_positions_.(nid) <- pos;
 
-      (*
-	Printf.printf "%s %d %d %d %d " 
+(*
+	Printf.printf "%s %d %d %d %d \n" 
 	(Coord.sprintf pos)
 	newx
 	newy
 	(Array.length grid_of_nodes_)
 	(Array.length grid_of_nodes_.(0));
-      *)
+*)
 
       assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
       
@@ -424,11 +424,11 @@ class virtual crworld_common ~x ~y ~rrange  = (
 )
 
 
-(** Implementation of {!World.world(t} using a greedy approach to maintaining
+(** Implementation of {!World.world_t} using a greedy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only re-computed
   each time it moves. This is usually slower than the lazy approach of
   {!Crworld.crworld_lazy}, but is necessary if using the [add_new_ngbr_hook]
-  facility of {!World.world(t}.
+  facility of {!World.world_t}.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
@@ -540,12 +540,12 @@ class crworld_greedy ~x ~y ~rrange : World.world_t = (
 )
 
 
-(** Implementation of {!World.world(t} using a lazy approach to maintaining
+(** Implementation of {!World.world_t} using a lazy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only computed
   when needed (for example by when the [#neighbors] method is invoked).
   This is usually faster than the greedy approach of
   {!Crworld.crworld_greedy}, but disallows using the [add_new_ngbr_hook]
-  facility of {!World.world(t}.
+  facility of {!World.world_t}.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
