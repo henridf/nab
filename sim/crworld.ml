@@ -13,15 +13,15 @@ open Printf
 open Graph
 
 
-(** The base class from which {!Crworld.crworld_lazy} and
-  {!Crworld.crworld_greedy} inherit.
+(** The base class from which {!Crworld.world_lazy} and
+  {!Cworld.world_greedy} inherit.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
   @param rrange Radio range of nodes. Used to determine the coarseness 
   of the discrete grid (quantification) of node positions.
 *)
-class virtual crworld_common ~x ~y ~rrange  = (
+class virtual world_common ~x ~y ~rrange  = (
   object(s)
 
     val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 ([]:Common.nodeid_t list))
@@ -35,12 +35,9 @@ class virtual crworld_common ~x ~y ~rrange  = (
 
     val rrange_sq_ = rrange ** 2.0
       
-    val mutable new_ngbr_hooks = 
-      (Array.make (Param.get Params.nodes) ([]:((Common.nodeid_t -> unit) list)))
     val mutable mob_mhooks = []
 
     val initial_pos = (0.0, 0.0)
-
 
       
     (** See {!World.world_t.neighbors}.
@@ -59,13 +56,10 @@ class virtual crworld_common ~x ~y ~rrange  = (
       node_positions_ <- Array.make (Param.get Params.nodes) initial_pos;
 
       Log.log#log_notice (lazy 
-	(sprintf "New CRWorld : size <%f,%f>, rrange %f, #nodes %d" 
+	(sprintf "New World : size <%f,%f>, rrange %f, #nodes %d" 
 	  x y rrange (Param.get Params.nodes))
       );
     )
-
-    method add_new_ngbr_hook nid ~hook =
-      new_ngbr_hooks.(nid) <- new_ngbr_hooks.(nid) @ [hook]
 
     (* takes a 'real' position  (ie, in meters) and returns the 
        discrete grid position *)
@@ -93,12 +87,12 @@ class virtual crworld_common ~x ~y ~rrange  = (
       (!newx, !newy)
     )
 
-    method boundarize pos = s#reflect pos
-
-    method dist_coords a b = sqrt (Coord.dist_sq a b)
+    method virtual get_nodes_within_radius :  nid:Common.nodeid_t -> radius:float -> Common.nodeid_t list
+    method virtual boundarize : Coord.coordf_t -> Coord.coordf_t
+    method virtual dist_coords :  Coord.coordf_t -> Coord.coordf_t -> float
+    method virtual are_neighbors : Common.nodeid_t -> Common.nodeid_t -> bool
+      
     method dist_nodeids id1 id2 = s#dist_coords (node_positions_.(id1)) (node_positions_.(id2))
-    method are_neighbors nid1 nid2 = 
-      nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
 
     method private slow_compute_neighbors_ nid = (
       let neighbors = ref [] in
@@ -223,7 +217,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
       );
       s#update_node_neighbors_ ~oldpos nid;
 
-(*      ignore (s#neighbors_consistent || failwith "not consistent");*)
+      ignore (s#neighbors_consistent || failwith "not consistent");
 
       List.iter 
 	(fun mhook -> mhook newpos nid )
@@ -240,7 +234,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
       let (newx, newy) = s#pos_in_grid_ pos in
 
       if node_positions_.(nid) <> initial_pos then 
-	failwith "Crworld.init_pos: node already positioned";
+	failwith "world.init_pos: node already positioned";
       
       node_positions_.(nid) <- pos;
 
@@ -436,7 +430,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
 (** Implementation of {!World.world_t} using a greedy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only re-computed
   each time it moves. This is usually slower than the lazy approach of
-  {!Crworld.crworld_lazy}, but is necessary if using the [add_new_ngbr_hook]
+  {!Crworld.world_lazy}, but is necessary if using the [add_new_ngbr_hook]
   facility of {!World.world_t}.
 
   @param x X size of World.in meters.
@@ -444,14 +438,18 @@ class virtual crworld_common ~x ~y ~rrange  = (
   @param rrange Radio range of nodes. Used to determine the coarseness 
   of the discrete grid (quantification) of node positions.
 *)
-class crworld_greedy ~x ~y ~rrange : World.world_t = (
+class virtual world_greedy  = (
   object(s)
-    inherit crworld_common ~x ~y ~rrange
 
     val ngbrs = (Array.make (Param.get Params.nodes) ([]:Common.nodeid_t list))
-      (* should not be referencd in virtual class crworld_ since the way this
-	 array is maintained up-to-date is different in crworld_greedy than 
-	 crworld_lazy *)
+      (* not exposed in virtual class world_ because the way it is
+	 maintained up-to-date is different depending on lazy/greedy style *)
+
+    val mutable new_ngbr_hooks = 
+      (Array.make (Param.get Params.nodes) ([]:((Common.nodeid_t -> unit) list)))
+
+    method add_new_ngbr_hook nid ~hook =
+      new_ngbr_hooks.(nid) <- new_ngbr_hooks.(nid) @ [hook]
 
     method private update_node_neighbors_ ?oldpos nid = (
 
@@ -491,16 +489,16 @@ class crworld_greedy ~x ~y ~rrange : World.world_t = (
 
 
     method private update_node_neighbors_old node = (
-
+      
       (* 
 	 For all neighbors, do a lose_neighbor_ on the neighbor and on this node.
 	 Then, compute new neighbors, and add them to this node and to the neighbors.
       *)
-
+      
       let old_neighbors = s#neighbors node#id in
       let new_neighbors = s#compute_neighbors_ node#id in
       let old_and_new = old_neighbors @ new_neighbors in
-
+      
       let changed_neighbors = 
 	(* nodes which have changed status (entered or exited neighborhood)
 	   are those which are in only one of old_neighbors and new_neighbors *)
@@ -549,11 +547,14 @@ class crworld_greedy ~x ~y ~rrange : World.world_t = (
 )
 
 
+
+
+
 (** Implementation of {!World.world_t} using a lazy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only computed
   when needed (for example by when the [#neighbors] method is invoked).
   This is usually faster than the greedy approach of
-  {!Crworld.crworld_greedy}, but disallows using the [add_new_ngbr_hook]
+  {!Crworld.world_greedy}, but disallows using the [add_new_ngbr_hook]
   facility of {!World.world_t}.
 
   @param x X size of World.in meters.
@@ -561,14 +562,12 @@ class crworld_greedy ~x ~y ~rrange : World.world_t = (
   @param rrange Radio range of nodes. Used to determine the coarseness 
   of the discrete grid (quantification) of node positions.
 *)
-class crworld_lazy ~x ~y ~rrange : World.world_t = (
+class virtual world_lazy = (
   object(s)
-    inherit crworld_common ~x ~y ~rrange
 
     val ngbrs = (Array.make (Param.get Params.nodes) ([]:Common.nodeid_t list))
-      (* should not be referencd in virtual class crworld_ since the way this
-	 array is maintained up-to-date is different in crworld_greedy than 
-	 crworld_lazy *)
+      (* not exposed in virtual class world_ because the way it is
+	 maintained up-to-date is different depending on lazy/greedy style *)
 
     val dirty =  (Array.make (Param.get Params.nodes) true)
 
@@ -580,28 +579,66 @@ class crworld_lazy ~x ~y ~rrange : World.world_t = (
 
     method private update_node_neighbors_ ?oldpos nid = 
 
-      List.iter (fun n -> dirty.(n) <- true) (s#grid_neighbors_ node_positions_.(nid));
+      let nodepos = s#nodepos nid in 
+      List.iter (fun n -> dirty.(n) <- true) (s#grid_neighbors_ nodepos);
       
       match oldpos with 
 	  (* if the node moved across a grid boundary, then potentially nodes
 	     from its previous grid_neighbors are dirty as well *)
 	| Some p -> 
-	    let (newx, newy) = s#pos_in_grid_ node_positions_.(nid)
+	    let (newx, newy) = s#pos_in_grid_ nodepos
 	    and (oldx, oldy) = s#pos_in_grid_ p in
 	    if (oldx, oldy) <> (newx, newy) then 
 	      List.iter (fun n -> dirty.(n) <- true) (s#grid_neighbors_ p)
 	| None -> ()
 	    
-    method add_new_ngbr_hook nid ~hook =
-      raise Misc.Not_Implemented
+  end
+)
+
+class virtual reflecting_world ~x ~y ~rrange = (
+  object(s)
+
+    inherit world_common ~x ~y ~rrange
+
+    method get_nodes_within_radius  ~nid ~radius = (
+      let radius_sq = radius ** 2.0 in
+      let center = node_positions_.(nid) in
+      let l = ref [] in
+      Nodes.iteri (fun cand_id _ -> if s#dist_coords center node_positions_.(cand_id) <= radius then l := (cand_id)::!l);
+      !l
+    )
+
+    method boundarize pos = s#reflect pos
+    method dist_coords a b = sqrt (Coord.dist_sq a b)
+    method are_neighbors nid1 nid2 = 
+      nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
 
   end
 )
 
-class epflworld ~x ~y ~rrange : World.world_t = 
+
+class lazy_reflecting_world ~x ~y ~rrange : Worldt.lazy_world_t = (
+  object(s)
+    inherit world_lazy
+    inherit reflecting_world ~x ~y ~rrange
+  end
+)
+
+class greedy_reflecting_world ~x ~y ~rrange : Worldt.greedy_world_t = (
+  object(s)
+    inherit world_greedy
+    inherit reflecting_world ~x ~y ~rrange
+  end
+)
+
+
+class epflworld ~x ~y ~rrange = 
 object(s)
-  inherit crworld_lazy ~x ~y ~rrange
+  inherit lazy_reflecting_world ~x ~y ~rrange
   method random_pos =  
     let nodeind = Random.int 113 in
-    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind) 
+    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
 end
+
+
+
