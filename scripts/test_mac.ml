@@ -43,7 +43,7 @@ let run_and_print_stats() =
 
 let test_2_nodes ()= 
 
-  Param.set Params.rrange rrange;
+  Param.set Params.radiorange rrange;
   Param.set Params.mac "cont";
   Param.set Params.nodes 2;
 
@@ -80,7 +80,7 @@ let test_2_nodes ()=
 let test_long_string ()= 
 
 
-  Param.set Params.rrange rrange;
+  Param.set Params.radiorange rrange;
   Param.set Params.nodes 10;
 
   let pkts_to_send = 100 in
@@ -115,7 +115,7 @@ let test_long_string ()=
 
 
 let test_3_nodes() = 
-  Param.set Params.rrange rrange;
+  Param.set Params.radiorange rrange;
   Param.set Params.nodes 3;
 
   let pkts_to_send = 100 in
