@@ -733,7 +733,7 @@ object(s)
 	  ~ttl:0 (* will be set by send_out *)
 	  ()
       in
-      let l3pkt = (Packet.make_l3_pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
+      let l3pkt = (Packet.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
       if (Rtab.invalid ~rt:rtab ~dst:dst) then (
 
 	Grep_hooks.drop_data_rerr()

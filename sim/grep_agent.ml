@@ -612,7 +612,7 @@ object(s)
 	  ~ttl:0 (* will be set by send_out *)
 	  ()
       in
-      let l3pkt = (Packet.make_l3_pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
+      let l3pkt = (Packet.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
       if (s#packets_waiting ~dst:dst) then (
 	s#buffer_packet ~l3pkt:l3pkt
       ) else (

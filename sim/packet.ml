@@ -25,6 +25,9 @@ let _FLOAT_SIZE = 8
 
 (* L4 (APPLICATION) STUFF *)
 
+type hello_payload_t =  Coord.coordf_t
+let hello_payload_size = 2 * _FLOAT_SIZE
+
 type bler_payload_t = 
   | ANCH_REQ of (Common.nodeid_t * Common.time_t)  (* dst, current encounter age *)
   | ANCH_RPLY of (Common.nodeid_t * Common.time_t) (* anchorid, encounter age *)
@@ -75,6 +78,7 @@ type l4pld_t =
        change clone_l4pkt below *)
   | NONE
   | APP_PLD 
+  | HELLO_PLD of hello_payload_t
   | BLER_PLD of bler_payload_t
   | DSDV_PLD of dsdv_payload_t
   | GREP_RREP_PLD of grep_adv_payload_t
@@ -87,6 +91,7 @@ let l4pkt_size ~l4pkt =
   match l4pkt with
     | APP_PLD -> 1500
     | NONE -> 0
+    | HELLO_PLD p -> hello_payload_size
     | BLER_PLD p  -> raise Misc.Not_Implemented
     | DSDV_PLD p -> raise Misc.Not_Implemented
     | GREP_RREP_PLD p
@@ -220,7 +225,7 @@ let make_app_pkt ~l3hdr = {
   l4pkt=APP_PLD
 }
 
-let make_l3_pkt ~l3hdr ~l4pkt = {
+let make_l3pkt ~l3hdr ~l4pkt = {
   l3hdr=l3hdr;
   l4pkt=l4pkt
 }
