@@ -56,6 +56,10 @@ DEPENDS = \
 	$(MISC_DIR)/*.mli
 
 
+ifdef SCRIPT
+	MWS_SCRIPT = $(MWS_SCRIPT_DIR)/$(SCRIPT)
+endif
+
 ############
 # Libraries
 
@@ -83,6 +87,7 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 
 
 MWS_OBJ_FILES = $(GFX_LIB) \
+		$(STR_LIB) \
 		$(MISC_OBJ_FILES) \
 		$(MISC_DIR)/graph$(CMO) \
 		$(GUI_DIR)/epflcoords$(CMO) \
@@ -96,6 +101,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MWS_DIR)/trace$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
+		$(MISC_DIR)/heap$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
 		$(MWS_DIR)/gsched$(CMO) \
 		$(MWS_DIR)/gworld$(CMO) \
@@ -161,12 +167,12 @@ im2png: misc/im2png$(CMO)
 	$(CAMLIMAGES_LIBS) misc/im2png$(CMO) -o bin/$@
 
 mws: bin/mws
-bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
+bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
-bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT)
-	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@
+bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
+	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES)  $(MWS_SCRIPT) -o $@
 
 gui: bin/gui
 bin/gui: $(GUI_OBJ_FILES) scripts/demo.ml
