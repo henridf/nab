@@ -138,7 +138,6 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
 		$(GUI_DIR)/data/epfl$(CMO) \
-		$(GUI_DIR)/gui_pos$(CMO) \
 		$(GUI_DIR)/gui_hooks$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
