@@ -245,18 +245,20 @@ let detach_daemon ?outfilename () = (
   Unix.close Unix.stdin;
   Unix.close Unix.stdout;
   Unix.close Unix.stderr;
-  let oc =
+  let fname =
     begin match outfilename with 
-      | Some f -> open_out f
+      | Some f -> f
       | None -> 
 	  let status, name = 
 	    command_output "date +%F-%Hh%Mm%S" in
 	  if status <> 0 then 
-	    failwith "Script_utils.detach: date command failed"
-	  else open_out ("nab-"^(List.hd name)^".log")
-    end in
-    
-    Log.ochan := oc
+	    failwith "Script_utils.detach: date command failed";
+	  ("nab-"^(List.hd name)^".log")
+    end 
+  in 
+  if Sys.file_exists fname then failwith ("Eeeeek!!! File "^fname^" already exists!!!");
+  
+  Log.ochan := open_out fname
     
 )
 
