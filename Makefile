@@ -122,6 +122,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/gworld$(CMO) \
 		$(MWS_DIR)/nodes$(CMO) \
 		$(MWS_DIR)/route$(CMO) \
+		$(MWS_DIR)/flood$(CMO) \
 		$(MISC_DIR)/ler_graphics$(CMO) \
 		$(MWS_DIR)/nodeDB$(CMO) \
 		$(MWS_DIR)/rtab$(CMO) \
@@ -132,6 +133,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/simplenode$(CMO) \
 		$(MWS_DIR)/gpsnode$(CMO) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
+		$(MWS_DIR)/aodv_grep_common$(CMO) \
 		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
 		$(MWS_DIR)/diff_agent$(CMO) \
@@ -153,7 +155,8 @@ GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
 		$(GUI_DIR)/mwsconv$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
-		$(GUI_DIR)/gui_ctl$(CMO) 
+		$(GUI_DIR)/gui_ctl$(CMO) \
+		$(GUI_DIR)/gui_grep$(CMO) 
 
 MODULE_OBJ_FILES = \
 	$(MISC_DIR)/graph$(CMO) \
@@ -165,7 +168,8 @@ MODULE_OBJ_FILES = \
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
 		 $(MISC_DIR)/randoms$(CMO) \
 		 $(MISC_DIR)/myarg$(CMO) \
-		 $(MISC_DIR)/coord$(CMO)
+		 $(MISC_DIR)/coord$(CMO) \
+		 $(MISC_DIR)/naryTree$(CMO)
 
 TEST_OBJ_FILES = \
 	$(TEST_DIR)/testUtils$(CMO) \
@@ -208,6 +212,7 @@ bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
 guitop: bin/guitop
 bin/guitop: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+
 
 DOC_FILES = \
 	$(MWS_DIR)/*.ml \
