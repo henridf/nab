@@ -46,7 +46,7 @@ open Printf
 open Misc
 open Ether
 
-let max_nstacks = 4
+let max_nstacks = 8
 
 type node_state_t = Coord.coordf_t
 
@@ -58,9 +58,9 @@ object(s)
   
   inherit Log.inheritable_loggable 
 
-  val mutable pktin_mhooks = []
-  val mutable pktout_mhooks = []
-  val mutable macs = Array.make  max_nstacks (None : Mac.t option)
+  val mutable pktin_mhooks = Array.make max_nstacks []
+  val mutable pktout_mhooks = Array.make max_nstacks []
+  val mutable macs = Array.make max_nstacks (None : Mac.t option)
   val mutable rt_agents = Array.make max_nstacks (None : Rt_agent.t option)
 
   val id = id
@@ -108,7 +108,7 @@ object(s)
        it should not rely on any ordering *)
     List.iter 
       (fun mhook -> mhook l2pkt s)
-      pktin_mhooks;
+      pktin_mhooks.(stack);
     
     Array.iter 
       (Opt.may (fun agent -> agent#mac_recv_l3pkt l3pkt))
@@ -119,15 +119,15 @@ object(s)
       rt_agents 
   )
     
-  method add_pktin_mhook ~hook =
-    pktin_mhooks <- hook::pktin_mhooks
+  method add_pktin_mhook ?(stack=0) f =
+    pktin_mhooks.(stack) <- f::pktin_mhooks.(stack)
       
-  method add_pktout_mhook ~hook =
-    pktout_mhooks <- hook::pktout_mhooks
+  method add_pktout_mhook ?(stack=0) f =
+    pktout_mhooks.(stack) <- f::pktout_mhooks.(stack)
       
-  method clear_pkt_mhooks = (
-    pktout_mhooks <- [];
-    pktin_mhooks <- []
+  method clear_pkt_mhooks ?(stack=0) () = (
+    pktout_mhooks.(stack) <- [];
+    pktin_mhooks.(stack) <- []
   )
 
   method private send_pkt_ ?(stack=0) ~l3pkt dstid = (
@@ -142,8 +142,8 @@ object(s)
       ~l3pkt:l3pkt in
 
     List.iter 
-      (fun mhook -> mhook l2pkt s )
-      pktout_mhooks;
+      (fun mhook -> mhook l2pkt s)
+      pktout_mhooks.(stack);
     
     (s#mac ~stack ())#xmit ~l2pkt
   )
@@ -167,7 +167,7 @@ object(s)
 
     List.iter 
     (fun mhook -> mhook l2pkt s )
-      pktout_mhooks;
+      pktout_mhooks.(stack);
 
 (*    Printf.printf "\ngot a bcast on stack %d\n" stack;*)
     (s#mac ~stack ())#xmit ~l2pkt;

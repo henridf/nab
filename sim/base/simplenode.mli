@@ -150,22 +150,24 @@ object ('a)
     
   (** Inserting hooks. *)
     
-  method add_pktin_mhook : hook:(L2pkt.t -> 'a -> unit) -> unit
+  method add_pktin_mhook : ?stack:int -> (L2pkt.t -> 'a -> unit) -> unit
     (** Any monitoring application can register here to see all packets entering
       the node.
       If multiple apps, order in which called is unspecified.*)
     
-  method add_pktout_mhook : hook:(L2pkt.t -> 'a -> unit) -> unit
+  method add_pktout_mhook : ?stack:int -> (L2pkt.t -> 'a -> unit) -> unit
     (** Any monitoring application can register here to see all packets leaving
       the node.
       If multiple apps, order in which called is unspecified.*)
     
-  method clear_pkt_mhooks :  unit 
+  method clear_pkt_mhooks : ?stack:int -> unit -> unit 
     (** clears pktin and pktout mhooks *)
 
 
 end
   
+val max_nstacks : int
+
 (**/**)  
     
     
