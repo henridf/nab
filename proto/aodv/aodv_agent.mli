@@ -46,8 +46,6 @@ module Aodv_stats : sig
 			       an upper layer (ie, data packets whose
 			       destination was this node. *)
     
-    mutable hello_xmit : int; (** Total # hello packets transmitted. *)
-    
     mutable rreq_xmit : int; (** Total # rreq packets transmitted *)
     mutable rreq_init : int; (** Total # rreqs initiated. This is incremented
 			       once at the start of each route request cycle,
@@ -85,10 +83,24 @@ module Aodv_stats : sig
     
 end
 
+val agent_stats : ?stack:int -> Common.nodeid_t -> Aodv_stats.stats
+  (** [agent_stats ~stack nid] returns the stats for node [nid] on stack [stack]
+    (default stack is 0). *)
+
+val reset_stats : ?stack:int -> Common.nodeid_t -> unit
+(** [reset_stats ~stack nid] resets the stats for node [nid] on stack [stack]
+    (default stack is 0). *)
 val total_stats : ?stack:int -> unit -> Aodv_stats.stats
   (** Return the sum of statistics for all nodes running on a given stack
     (default stack is 0). *)
   
+val agent_rtab :  ?stack:int -> Common.nodeid_t -> Aodv_rtab.t
+  (** [agent_rtab ~stack nid] returns the routing table for node [nid] on stack [stack]
+    (default stack is 0). 
+    This is intended for testing and/or debugging purposes.
+  *)
+  
+
 
 type persist_t = {
   localrepair:bool;
@@ -98,24 +110,17 @@ type persist_t = {
   rt:Aodv_rtab.t
 }
 
-class aodv_agent : ?stack:int -> ?localrepair:bool -> ?dstonly:bool -> #Node.node -> 
-object
+val make_aodv_agent : ?stack:int -> ?localrepair:bool -> ?dstonly:bool -> #Node.node -> Rt_agent.t
+  (** [make_aodv_agent ~stack ~localrepair ~dstonly n] creates an AODV routing
+    agent attached to node [n] and stack [stack] (stack defaults to 0 if not
+    provided).
+    @param localrepair corresponds to the local repair operation as defined in
+    the RFC, and is true by default .
+    @param dstonly corresponds to operation with the 'destination only' flag
+    set, as defined in the RFC, and is false by default.
+  *)
 
-  inherit Rt_agent.t 
-
-  method rtab : unit -> Aodv_rtab.t
-    (** Routing table is only exposed so that tests can look at it. *)
-
-  method stats : Aodv_stats.stats
-    (** Return [stats] object for this AODV agent. *)
-
-  method read_state : persist_t -> unit
-    (** Support for persistency (should not be used directly). *)
-
-  method dump_state : unit -> persist_t
-    (** Support for persistency (should not be used directly). *)
-
-end
+    
 
 module Persist : Persist.t 
   (** Aodv agents can be saved and restored as per the {!Persist.t}

@@ -31,7 +31,6 @@
 
 tests:
 
-   make sure a node sends hellos when it should (part of active route, etc)
    do a random mix of mobility and traffic, and check that ttl drops on data
    packets don't happen (would indicate a loooop), and that asserts don't happen
 
@@ -52,7 +51,6 @@ module Aodv_stats = struct
     mutable data_xmit : int; 
     mutable data_orig : int; 
     mutable data_recv : int; 
-    mutable hello_xmit : int;
     mutable rreq_xmit : int; 
     mutable rreq_init : int; 
     mutable rreq_orig : int; 
@@ -70,7 +68,6 @@ module Aodv_stats = struct
     data_xmit = 0; 
     data_orig = 0; 
     data_recv = 0;
-    hello_xmit = 0;
     rreq_xmit = 0; 
     rreq_init = 0; 
     rreq_orig = 0; 
@@ -88,7 +85,6 @@ let add s1 s2 = {
   data_xmit = s1.data_xmit + s2.data_xmit; 
   data_orig = s1.data_orig + s2.data_orig; 
   data_recv = s1.data_recv + s2.data_recv;
-  hello_xmit = s1.hello_xmit + s2.hello_xmit;
   rreq_xmit = s1.rreq_xmit + s2.rreq_xmit; 
   rreq_init = s1.rreq_init + s2.rreq_init; 
   rerr_xmit = s1.rerr_xmit + s2.rerr_xmit; 
@@ -103,7 +99,7 @@ let add s1 s2 = {
 
 let sprint_stats s = 
   let b = Buffer.create 64 in
-  let p = Printf.sprintf in 
+  let p = sp in 
   Buffer.add_string b "-- Basic Stats:\n";
   Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
   Buffer.add_string b (p "   Delivery ratio: %f (Data orig: %d, Data recv: %d) \n"
@@ -113,8 +109,8 @@ let sprint_stats s =
 
 
   Buffer.add_string b "-- Packet Transmission Breakdown:\n";
-  Buffer.add_string b (p "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
-    s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
+  Buffer.add_string b (p "   DATA: %d, RREQ: %d, RREP: %d\n"
+    s.data_xmit s.rreq_xmit s.rrep_xmit);
 
   Buffer.add_string b "-- Protocol Phases:\n";
   Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d\n"
@@ -140,6 +136,20 @@ type persist_t = {
 let agents_array_  =  Array.init Node.max_nstacks 
   (fun _ -> Hashtbl.create (Param.get Params.nodes))
 
+let agent_stats ?(stack=0) nid = 
+  let agent = Hashtbl.find agents_array_.(stack) nid in
+  agent#stats
+
+let reset_stats ?(stack=0) nid = 
+  let agent = Hashtbl.find agents_array_.(stack) nid in
+  agent#reset_stats()
+
+let agent_rtab  ?(stack=0) nid = 
+  let agent = Hashtbl.find agents_array_.(stack) nid in
+  agent#rtab()
+
+
+
 module S = Aodv_stats
   (* locally rename module Aodv_stats as 'S' to make things more compact each
      time we refer to a stats field. *)
@@ -155,10 +165,6 @@ object(s)
    *)
 
   val mutable myseqno = 0 (* our sequence number. *)
-
-  val mutable last_bcast_time = Time.time() 
-    (* We keep track of the last time since we sent any broadcastpacket in
-       order to know when hello message is nec. (rfc 6.9)*)
 
   val default_rreq_flags = {g=true; d=dstonly; u=false}
 
@@ -191,8 +197,6 @@ object(s)
     s#incr_seqno();
     (Sched.s())#sched_in ~f:s#clean_data_structures
     ~t:(aodv_PATH_DISCOVERY_TIME +. 1.);
-    (Sched.s())#sched_in ~f:s#send_hello
-    ~t:(Random.float aodv_HELLO_INTERVAL);
   )
 
   (* 
@@ -208,26 +212,6 @@ object(s)
   L3pkt.make_l3pkt 
     ~l3hdr:(L3pkt.make_l3hdr ~ttl ~src:myid ~dst ~ext:(`AODV_HDR aodvhdr) ())
     ~l4pkt
-
-  method private send_hello() = (
-    let now = Time.time() in
-    let defer = now -. last_bcast_time < aodv_HELLO_INTERVAL in
-    let last_bcast_time = match last_bcast_time with 0.0 -> now | t -> t in
-    let next_t = 0.01 +. 
-      if defer then (last_bcast_time +. aodv_HELLO_INTERVAL)
-      else (now +. aodv_HELLO_INTERVAL) in
-    
-    if (not defer) && Aodv_rtab.have_active_route rt then (
-      let rrep = make_rrep_hdr ~hc:0 ~dst:myid ~dst_sn:myseqno ~orig:myid
-	~lifetime:(aodv_ALLOWED_HELLO_LOSS *. aodv_HELLO_INTERVAL) () in
-      s#log_debug (lazy "Sending HELLO"); 
-
-      s#send_out (s#make_l3aodv ~dst:L3pkt.l3_bcast_addr ~ttl:1 rrep);
-    );
-
-    (Sched.s())#sched_in ~f:s#send_hello ~t:next_t;
-  )
-      
 
 
   method private incr_seqno() = myseqno <- myseqno + 1
@@ -361,7 +345,7 @@ object(s)
   (* called when we have a route request which we can reply to. *)
   method private reply_rreq rreq = (
     s#log_info 
-    (lazy (Printf.sprintf "Originating RREP for dst %d to originator %d"
+    (lazy (sp "Originating RREP for dst %d to originator %d"
       rreq.rreq_dst rreq.rreq_orig));
     
     (* There is a contradiction in the rfc regarding own seqno handling when
@@ -407,7 +391,7 @@ object(s)
     (* send out grat rrep if appropriate *)
     if rreq.rreq_dst <> myid && rreq.rreq_flags.g then (
       s#log_info 
-      (lazy (Printf.sprintf "Originating GRAT RREP for dst %d to originator %d"
+      (lazy (sp "Originating GRAT RREP for dst %d to originator %d"
 	rreq.rreq_dst rreq.rreq_orig));
       let grat_lifetime = Aodv_rtab.lifetime rt rreq.rreq_orig in
       let orig_hc = 
@@ -534,6 +518,9 @@ object(s)
     Hashtbl.replace ers_uids dst ers_uid;
 
     Aodv_rtab.repair_start rt dst;
+
+    Aodv_rtab.incr_seqno rt dst;(* see README in this directory. *)
+
     s#log_info (lazy (sp "Originating RREQ for dst %d" dst));
     let start_ttl = match Aodv_rtab.hopcount_opt rt dst with 
       | Some hc -> aodv_TTL_INCREMENT + hc
@@ -550,6 +537,8 @@ object(s)
     Hashtbl.replace ers_uids dst ers_uid;
 
     Aodv_rtab.repair_start rt dst;
+    Aodv_rtab.incr_seqno rt dst;
+
     s#log_info (lazy (sp "Originating RREQ for dst %d (local repair)" dst));
 
     let aodv_MIN_REPAIR_TTL = Opt.default 0 (Aodv_rtab.hopcount_opt rt dst)
@@ -565,9 +554,9 @@ object(s)
       | None -> false
 
     
-(* Originate a route error, when forwarding a data packet failed (either
-   immediately if no local repair attempted, or after doing a local repair).
-   nd is a boolean representing the 'No Delete' RERR flag.*)
+  (* Originate a route error, when forwarding a data packet failed (either
+     immediately if no local repair attempted, or after doing a local repair).
+     nd is a boolean representing the 'No Delete' RERR flag.*)
   method private orig_rerr nd dst = (
     (* Follows the steps from rfc 6.11, case (i) *)
 
@@ -601,7 +590,8 @@ object(s)
 	Aodv_rtab.invalidate rt thedst;
 	s#drop_buffered_packets ~dst:thedst;
 	Aodv_rtab.incr_seqno rt thedst;
-	Aodv_rtab.set_lifetime rt thedst aodv_DELETE_PERIOD) in
+	Aodv_rtab.set_lifetime rt thedst aodv_DELETE_PERIOD
+      ) in
     
       List.iter update_dst unreachables;
 
@@ -630,10 +620,8 @@ object(s)
   (* Callback from MAC layer when a unicast packet can not be delivered
      (for those MAC layers which support link-layer acknowledgements). *)
   method mac_callback l3pkt (nexthop : Common.nodeid_t) = 
-    stats.S.total_xmit <- stats.S.total_xmit - 1;
     begin match L3pkt.aodv_hdr l3pkt with
       | DATA ->     
-	  stats.S.data_xmit <- stats.S.data_xmit - 1;
 	  let src, dst = L3pkt.l3src l3pkt, L3pkt.l3dst l3pkt in
 	  List.iter (Aodv_rtab.invalidate rt) 
 	    (Aodv_rtab.dests_thru_hop rt nexthop);
@@ -648,15 +636,13 @@ object(s)
 	      s#init_rreq_localrepair ~dst ~src:(L3pkt.l3dst l3pkt)
 	  ) else 
 	    s#orig_rerr false dst 
-
-      | RREP _ -> stats.S.rrep_xmit <- stats.S.rrep_xmit - 1;
-      | RERR _ -> stats.S.rerr_xmit <- stats.S.rerr_xmit - 1;
+      | RREP _ | RERR _ | RREP_ACK -> ()
       | RREQ _ -> raise (Misc.Impossible_Case "Aodv_agent.mac_callback"); 
 	  (* rreqs are always broadcast *)
-      | RREP_ACK -> ()
     end
     
   method private make_l3_rreq_pkt ~radius ~dst = (
+
     let flags = 
       {default_rreq_flags with u = ((Aodv_rtab.seqno rt dst) = None)} in
     
@@ -763,8 +749,9 @@ object(s)
     (* Follows the steps from rfc 6.7 *)
 
     s#log_info (lazy (sp "Received RREP pkt (originator %d, dst %d)"
-	rrep.rrep_orig rrep.rrep_dst));
+      rrep.rrep_orig rrep.rrep_dst));
 
+    
     (* 1. Update route to previous hop.*)
     Aodv_rtab.add_entry_neighbor rt src;
     s#after_send_any_buffered_pkts src;
@@ -893,12 +880,10 @@ object(s)
 	  Queue.push (Time.time()) rreq_times;
 	  if Queue.length rreq_times > aodv_RREQ_RATELIMIT then 
 	    ignore (Queue.pop rreq_times);
-	  last_bcast_time <- Time.time(); 
 	  s#mac_bcast_pkt l3pkt
       | RERR _ -> 
 	  stats.S.rerr_xmit <- stats.S.rerr_xmit + 1;
 	  if dst = L3pkt.l3_bcast_addr then (
-	    last_bcast_time <- Time.time(); 
 	    s#mac_bcast_pkt l3pkt
 	  ) else s#mac_send_pkt l3pkt dst
       | RREP_ACK -> raise Misc.Not_Implemented
@@ -925,7 +910,7 @@ object(s)
   )
 
   method stats = stats
-
+  method reset_stats() = stats <- S.create_stats()
   method read_state s = 
     stats <- s.stats;
     myseqno <- s.seqno;
@@ -935,7 +920,7 @@ object(s)
   localrepair=localrepair;
   dstonly=dstonly;
   seqno=myseqno;
-stats=stats;
+  stats=stats;
   rt=rt
   }
 
@@ -990,3 +975,6 @@ module Persist : Persist.t = struct
     Log.log#log_notice (lazy "Done. (restoring AODV agent states)")
 
 end
+
+let make_aodv_agent ?(stack=0) ?(localrepair=true) ?(dstonly=false) n  = 
+  ((new aodv_agent ~stack ~localrepair ~dstonly n) :> Rt_agent.t)
