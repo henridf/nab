@@ -27,11 +27,27 @@ class virtual world_common ~x ~y ~rrange  = (
     val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 ([]:Common.nodeid_t list))
     val mutable node_positions_ =  [|(0., 0.)|]
 
-    val world_size_x_ =  x 
-    val world_size_y_ =  y
+    method private grid_of_nodes = grid_of_nodes_
+
+    val world_size_x =  x 
+    val world_size_y =  y
     val rrange_ = rrange
-    val grid_size_x_ = (f2i (x /. rrange)) + 1
-    val grid_size_y_ = (f2i (y /. rrange)) + 1
+
+    (* We assume that nodes inhabit a rectangular surface.
+       We tile that surface into rectangular tiles of which are chosen
+       as small as possible (under the constraint that they have both sides
+       bigger than the radio range. 
+       
+       So for example, if the world is 15x10, and radio range is 3, we will
+       have tiles of size 3x3.3
+    *)
+
+    val grid_size_x = f2i (floor (x /. rrange));
+    val grid_size_y = f2i (floor (y /. rrange));
+    val tile_size_x = x /. (floor (x /. rrange));
+    val tile_size_y = y /. (floor (y /. rrange));
+
+
 
     val rrange_sq_ = rrange ** 2.0
       
@@ -40,41 +56,77 @@ class virtual world_common ~x ~y ~rrange  = (
     val initial_pos = (0.0, 0.0)
 
       
-    (** See {!Worldt.lazy_world_t.neighbors}.
-      Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
+    (*                                                        *)
+    (* The virtual methods which are lazy vs greedy specific. *)
+    (*                                                        *)
     method virtual neighbors : Common.nodeid_t -> Common.nodeid_t list
-
-    (** This method is called each time a node has moved. 
-      Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
+      (* See {!Worldt.lazy_world_t.neighbors}.
+	 Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
     method virtual private update_node_neighbors_ : ?oldpos:Coord.coordf_t -> Common.nodeid_t -> unit
+      (* This method is called each time a node has moved. 
+	 Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
 
+    (*                                                             *)
+    (* The virtual methods which are taurus vs reflecting specifig.*)
+    (*                                                             *)
+    method virtual boundarize : Coord.coordf_t -> Coord.coordf_t
+      (* Documented in worldt.ml *)
+    method virtual dist_coords :  Coord.coordf_t -> Coord.coordf_t -> float
+      (* Distance between two points. *)
+    method virtual are_neighbors : Common.nodeid_t -> Common.nodeid_t -> bool
+      (* One-hop neighborhood. *)
+    method virtual private neighboring_tiles : int * int -> (int * int) list
+      (* Return the 8 neigboring tiles of a tile. *)
 
 
     initializer (
       grid_of_nodes_ <- 
-      (Array.make_matrix grid_size_x_ grid_size_y_ []);
+      (Array.make_matrix grid_size_x grid_size_y []);
       node_positions_ <- Array.make (Param.get Params.nodes) initial_pos;
 
       Log.log#log_notice (lazy 
 	(sprintf "New World : size <%f,%f>, rrange %f, #nodes %d" 
 	  x y rrange (Param.get Params.nodes))
       );
+      ignore (tile_size_x)
     )
 
     (* takes a 'real' position  (ie, in meters) and returns the 
-       discrete grid position *)
-    method private pos_in_grid_ pos = coord_f2i (coord_floor (pos ///. rrange_))
+       discrete grid position.
+       Note: replicated in crsearch.ml
+    *)
+    method private pos_in_grid_ (x, y) = (
+      assert (x >= 0. && y >= 0. && x <= world_size_x && y <= world_size_y);
+
+      (* the 'min' is in case a point lies on the up/right boundary, in which case
+	 the x /. tile_size_x division "fits" and we would get a grid_pos = to 
+	 grid_size_x (resp. grid_size_y). *)
+      let x_pos = 
+	min (grid_size_x - 1) (f2i (floor (x /. tile_size_x)))
+      and y_pos =
+	min (grid_size_y - 1) (f2i (floor (y /. tile_size_y)))
+      in (x_pos, y_pos)
+    )
+	
+
+
+    (* Returns a list of all nodes which are in the same tile as pos, or in one of
+       the 8 neighboring tiles *)
+    method private grid_neighbors_ pos = (
+      let tile = s#pos_in_grid_ pos in
+      let tiles = s#neighboring_tiles tile in
+      List.fold_left 
+	(fun l tile -> l @ grid_of_nodes_.(xx tile).(yy tile) )
+	[]
+	tiles
+    )
+
 
     method random_pos  = (
-      let pos = (Random.float world_size_x_, Random.float world_size_y_) in
+      let pos = (Random.float world_size_x, Random.float world_size_y) in
       pos
     )
 
-    method virtual get_nodes_within_radius :  nid:Common.nodeid_t -> radius:float -> Common.nodeid_t list
-    method virtual boundarize : Coord.coordf_t -> Coord.coordf_t
-    method virtual dist_coords :  Coord.coordf_t -> Coord.coordf_t -> float
-    method virtual are_neighbors : Common.nodeid_t -> Common.nodeid_t -> bool
-      
     method dist_nodeids id1 id2 = s#dist_coords (node_positions_.(id1)) (node_positions_.(id2))
 
     method private slow_compute_neighbors_ nid = (
@@ -85,35 +137,10 @@ class virtual world_common ~x ~y ~rrange  = (
       !neighbors;
     )
 
-    method private grid_neighbors_ pos = (
-      let gridpos = s#pos_in_grid_ pos in
-      let grid_at_pos p = 
-	if (s#is_in_grid p)  
-	then grid_of_nodes_.(xx p).(yy p) 
-	else [] 
-      in
-      let north = 0,1
-      and south = 0,-1 
-      and west = -1,0 
-      and east = 1,0 in
-      let northeast = north +++ east 
-      and northwest = north +++ west
-      and southeast = south +++ east
-      and southwest = south +++ west in
-      
-      grid_at_pos gridpos @
-      grid_at_pos (gridpos +++ north) @
-      grid_at_pos (gridpos +++ east) @
-      grid_at_pos (gridpos +++ west) @
-      grid_at_pos (gridpos +++ south) @
-      grid_at_pos (gridpos +++ northeast) @
-      grid_at_pos (gridpos +++ southeast) @
-      grid_at_pos (gridpos +++ northwest) @
-      grid_at_pos (gridpos +++ southwest)
-    )
-      
+
     method private compute_neighbors_ nid = 
-      List.filter (fun cand_nid -> s#are_neighbors nid cand_nid)  
+	List.filter (fun cand_nid -> 
+	s#are_neighbors nid cand_nid)  
 	(s#grid_neighbors_ node_positions_.(nid))
 
     method neighbors_consistent = (
@@ -200,7 +227,7 @@ class virtual world_common ~x ~y ~rrange  = (
       );
       s#update_node_neighbors_ ~oldpos nid;
 
-(*      ignore (s#neighbors_consistent || failwith "not consistent");*)
+      (* ignore (s#neighbors_consistent || failwith "not consistent");*)
 
       List.iter 
 	(fun mhook -> mhook newpos nid )
@@ -221,14 +248,14 @@ class virtual world_common ~x ~y ~rrange  = (
       
       node_positions_.(nid) <- pos;
 
-(*
+      (*
 	Printf.printf "%s %d %d %d %d \n" 
 	(Coord.sprintf pos)
 	newx
 	newy
 	(Array.length grid_of_nodes_)
 	(Array.length grid_of_nodes_.(0));
-*)
+      *)
 
       assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
       
@@ -241,65 +268,43 @@ class virtual world_common ~x ~y ~rrange  = (
 	mob_mhooks;
     )
       
-
     method private is_in_grid p = 
       (xx p) >= 0 && (yy p) >= 0 && 
-      ((xx p) < grid_size_x_) && ((yy p) < grid_size_y_)
-
-
+      ((xx p) < grid_size_x) && ((yy p) < grid_size_y)
 
     (* Returns nodes in squares that are touched by a ring of unit width. 
        List may have repeated elements.
        radius: outer radius of ring *)
-    method private get_nodes_in_ring ~center_m ~radius_m = (
+    method private get_nodes_in_ring ~center ~radius = (
 
-      let grid_squares_at_radius r = (
+      let tiles_at_radius r = (
 	let coords = (
 	  match r with
 	    | rad when (rad <= rrange_) -> 
-		let gridpos = s#pos_in_grid_ center_m in
-		
-		let north = 0,1
-		and south = 0,-1 
-		and west = -1,0 
-		and east = 1,0 in
-		let northeast = north +++ east 
-		and northwest = north +++ west
-		and southeast = south +++ east
-		and southwest = south +++ west in
-		
-		[gridpos;
-		(gridpos +++ north);
-		(gridpos +++ east);
-		(gridpos +++ west);
-		(gridpos +++ south);
-		(gridpos +++ northeast);
-		(gridpos +++ southeast);
-		(gridpos +++ northwest);
-		(gridpos +++ southwest)
-		]
+		let gridpos = s#pos_in_grid_ center in
+		s#neighboring_tiles gridpos		
 	    | rad  -> 
 		(* xxx/ gridsize can be rectangular *)
 		Crsearch.xsect_grid_and_circle 
-		~center_m:center_m 
-		~radius_m:rad
-		~worldsize_x_m:world_size_x_
-		~worldsize_y_m:world_size_y_
-		~boxsize_m:rrange_
+		~center:center 
+		~radius:rad
+		~world_size_x ~world_size_y
+		~tile_size_x ~tile_size_y
+		~grid_size_x ~grid_size_y
 	) in
 	List.filter (fun p -> s#is_in_grid p) coords
       ) in
       
-      let inner_squares = grid_squares_at_radius (radius_m -. rrange_)
-      and outer_squares = grid_squares_at_radius radius_m
+      let inner_squares = tiles_at_radius (radius -. rrange_)
+      and outer_squares = tiles_at_radius radius
       in 
       let squares = list_unique_elements (
 	inner_squares @ 
 	outer_squares
       ) in
       let is_in_ring = (fun n -> 
-	((s#dist_coords center_m node_positions_.(n)) <=  radius_m) && 
-	((s#dist_coords center_m node_positions_.(n)) >= (radius_m -. rrange_))) in
+	((s#dist_coords center node_positions_.(n)) <=  radius) && 
+	((s#dist_coords center node_positions_.(n)) >= (radius -. rrange_))) in
       
       List.fold_left (fun l sq -> 
 	l @
@@ -313,9 +318,9 @@ class virtual world_common ~x ~y ~rrange  = (
 	(ceil 
 	  (sqrt
 	    ( 
-	      (world_size_x_ ** 2.0)
+	      (world_size_x ** 2.0)
 	      +.
-	      (world_size_y_ ** 2.0)
+	      (world_size_y ** 2.0)
 	    )
 	  ))
       in
@@ -325,7 +330,7 @@ class virtual world_common ~x ~y ~rrange  = (
 
       while (!r <= diagonal_length) && (!closest = None) do
 	let candidates = Misc.list_unique_elements
-	  (s#get_nodes_in_ring ~center_m:pos ~radius_m:!r) in
+	  (s#get_nodes_in_ring ~center:pos ~radius:!r) in
 	let (closest_id, closest_dist) = (ref None, ref max_float) in
 	List.iter 
 	  (fun nid -> 
@@ -385,7 +390,7 @@ class virtual world_common ~x ~y ~rrange  = (
 
     (*  method scale_unit f = f /. gridsize_*)
 
-    method project_2d (x, y) =  (x /. world_size_x_, y /. world_size_y_)
+    method project_2d (x, y) =  (x /. world_size_x, y /. world_size_y)
 
     method is_connected () = (
       (* Create a graph object reflecting current connectivity *)
@@ -549,19 +554,47 @@ class virtual reflecting_world ~x ~y ~rrange = (
 
     inherit world_common ~x ~y ~rrange
 
+    method private neighboring_tiles tile = 
+      let is_in_grid p = 
+	(xx p) >= 0 && (yy p) >= 0 && 
+	((xx p) < grid_size_x) && ((yy p) < grid_size_y) in
+
+      let north = 0,1 and south = 0,-1 and west = -1,0 and east = 1,0 in
+      let northeast = north +++ east 
+      and northwest = north +++ west
+      and southeast = south +++ east
+      and southwest = south +++ west in
+      List.filter is_in_grid 
+	[tile;
+	tile +++ north;
+	tile +++ east; 
+	tile +++ west;
+	tile +++ south;
+	tile +++ northeast; 
+	tile +++ southeast; 
+	tile +++ northwest; 
+	tile +++ southwest]
+	
     method boundarize pos = 
+      assert (
+	(* make sure the point is within bounds as explained in worldt.ml *)
+	(xx pos < (2. *. world_size_x)) &&
+	(xx pos > ~-. world_size_x) &&
+	(yy pos < (2. *. world_size_y)) &&
+	(yy pos > ~-. world_size_y)
+      );
 
       let newx = ref (xx pos) and newy = ref (yy pos) in 
-      if !newx >  world_size_x_ then 
-	newx := (2.0 *. world_size_x_) -. !newx
+      if !newx >  world_size_x then 
+	newx := (2.0 *. world_size_x) -. !newx
       else if !newx < 0.0 then
 	newx := (-1.0) *. !newx;
-      if !newy > world_size_y_  then  
-	newy := (2.0 *. world_size_y_) -. !newy
+      if !newy > world_size_y  then  
+	newy := (2.0 *. world_size_y) -. !newy
       else if !newy < 0.0 then
 	newy := (-1.0) *. !newy;
 
-      assert (!newx >= 0.0 && !newx <=  world_size_x_ && !newy >= 0.0 && !newy <=  world_size_y_);
+      assert (!newx >= 0.0 && !newx <=  world_size_x && !newy >= 0.0 && !newy <=  world_size_y);
       (!newx, !newy)
       
     method dist_coords a b = sqrt (Coord.dist_sq a b)
@@ -577,10 +610,79 @@ class virtual taurus_world ~x ~y ~rrange = (
 
     inherit world_common ~x ~y ~rrange
 
-    method boundarize pos = pos
-    method dist_coords a b = sqrt (Coord.dist_sq a b)
+    method private neighboring_tiles tile = 
+      
+      let taur_xx c = match (Coord.xx c) with
+	| -1 -> grid_size_x -1
+	| x when (x = grid_size_x) -> 0
+	| x when (isin x (0, grid_size_x - 1)) -> x
+	| _ -> raise (Failure ("Crworld.taurus_world.grid_neighbors_"))
+      and taur_yy c = match (Coord.yy c) with
+	| -1 -> grid_size_y -1
+	| y when (y = grid_size_y) -> 0
+	| y when (isin y (0, grid_size_y - 1)) -> y
+	| _ -> raise (Failure ("Crworld.taurus_world.grid_neighbors_"))
+      in
+      let north = 0,1 and south = 0,-1 and west = -1,0 and east = 1,0 in
+      let northeast = north +++ east 
+      and northwest = north +++ west
+      and southeast = south +++ east
+      and southwest = south +++ west in
+      List.map (fun a_tile -> (taur_xx a_tile, taur_yy a_tile))
+	[tile;
+	tile +++ north;
+	tile +++ east; 
+	tile +++ west;
+	tile +++ south;
+	tile +++ northeast; 
+	tile +++ southeast; 
+	tile +++ northwest; 
+	tile +++ southwest]
+
+
+    method boundarize pos = 
+      assert (
+	(* make sure the point is within bounds as explained in worldt.ml *)
+	(xx pos < (2. *. world_size_x)) &&
+	(xx pos > ~-. world_size_x) &&
+	(yy pos < (2. *. world_size_y)) &&
+	(yy pos > ~-. world_size_y)
+      );
+
+      let newx = ref (xx pos) and newy = ref (yy pos) in 
+      if !newx >  world_size_x then 
+	newx := !newx -. world_size_x
+      else if !newx < 0.0 then
+	newx := world_size_x +. !newx;
+      if !newy >  world_size_y then 
+	newy := !newy -. world_size_y
+      else if !newy < 0.0 then
+	newy := world_size_y +. !newy;
+
+      assert (!newx >= 0.0 && !newx <=  world_size_x && !newy >= 0.0 && !newy <=  world_size_y);
+      (!newx, !newy)
+
+    method private dist_squared a b = (
+      
+      let dist_axis x1 x2 size = 
+	(* computes the distance along one axis, given size along that dimension,
+	   and assuming that the range starts at 0 (ie, [0,width]) *)
+	let d = x1 -. x2 in
+	let abs_d = abs_float d in
+	if d < 0. then (* x2 is 'to the right' of x1 *)
+	  min abs_d (abs_float (d +. size))
+	else (* x2 is 'to the left' of x1 *)
+	  min abs_d (abs_float (d -. size))
+      in
+      ((dist_axis (xx a) (xx b) world_size_x) ** 2.0)
+      +.
+	((dist_axis (yy a) (yy b) world_size_y) ** 2.0)
+    )
+
+    method dist_coords a b = sqrt (s#dist_squared a b)
+
     method are_neighbors nid1 nid2 = 
-      nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
+      nid1 <> nid2 && ((s#dist_squared (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
 
   end
 )
