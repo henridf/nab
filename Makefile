@@ -16,7 +16,7 @@ OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
 
 LIB_DIR = $(shell $(CAML_BIN_DIR)/ocamlc -where)
 
-SIM_DIR = mws
+SIM_DIR = sim
 SIM_BASE_DIR = $(SIM_DIR)/base
 SIM_INTF_DIR = $(SIM_DIR)/interfaces
 SIM_MAC_DIR = $(SIM_DIR)/mac
