@@ -14,7 +14,7 @@ object
   method dump_state : nodeDB_state_t
     (* returns db state for marshalling. *)
 
-  method load_state : dbstate:nodeDB_state_t -> unit
+  method load_state : nodeDB_state_t -> unit
 
 end
 

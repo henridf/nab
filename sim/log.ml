@@ -36,6 +36,7 @@ let _ =
 let current_log_level = ref LOG_NOTICE
 let set_log_level ~level:l = current_log_level := l
 
+
 (* Logging-related behavior that classes can inherit from.
    s#objdescr should be set in the initializer of the inheritor.
 
@@ -56,7 +57,6 @@ object(s)
   method private set_objdescr s = objdescr <- s
   method objdescr = objdescr
 
-  (* General (non-naml) message logging *)
   method private log_level ~msg:msg ~level:l =
     if l >= !current_log_level then 
       log (sprintf "%s %s" s#log_hdr msg);

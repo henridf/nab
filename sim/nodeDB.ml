@@ -13,7 +13,7 @@ object
   method encounter_age : nid:Common.nodeid_t -> Common.time_t 
   method num_encounters : int
   method dump_state :   nodeDB_state_t
-  method load_state : dbstate:nodeDB_state_t -> unit
+  method load_state : nodeDB_state_t -> unit
 end
 
 
@@ -43,7 +43,7 @@ object(s: #nodeDB_t)
 
   method dump_state = enc_arr
 
-  method load_state ~dbstate = 
+  method load_state dbstate = 
     Array.iteri
       (fun i encopt -> 
 	match encopt with
