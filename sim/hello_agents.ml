@@ -23,7 +23,7 @@ object(s)
   method set_db thedb = db <- thedb
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/Hello_Agent");
+    objdescr <- (owner#objdescr ^  "/Hello_Agent ");
     owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
 (*    (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor*)
   )
@@ -42,6 +42,7 @@ object(s)
 	    (* the sender of this hello message *)
 	  in
 
+	  s#log_debug (lazy (sprintf "Adding encounter with %d" src));
 	  (* This encounter value encapsulates time & place of this encounter *)
 	  let encounter = 
 	    (Common.enc ~time:(Common.get_time()) ~place:pos) 
@@ -89,8 +90,8 @@ object (s)
     let l3pkt = (* stick L3 hdr and L4 payload together to obtain
 		   full L3 packet *)
       Packet.make_l3pkt ~l3hdr ~l4pkt 
-	
     in
+
     (* Broadcast out this packet. It will be received by all nodes within range.*)
     owner#mac_bcast_pkt ~l3pkt;
     
@@ -98,3 +99,7 @@ object (s)
     (Gsched.sched())#sched_in ~f:(s#send_hello) ~t:1.0
   )
 end   
+
+
+
+

@@ -47,6 +47,9 @@ object(s)
 
   method mac_recv_pkt ~l2pkt = (
     
+    s#log_debug (lazy (sprintf "Pkt received from %d" 
+      (Packet.get_l3src ~l3pkt:l2pkt.Packet.l3pkt)));
+
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
     List.iter 

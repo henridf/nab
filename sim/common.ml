@@ -1,5 +1,5 @@
 open Printf
-open Coord
+
 
 type nodeid_t = int
 let nid_bcast = max_int
@@ -89,15 +89,16 @@ let string_of_action t = (
 
 type enc_t = {
   mutable t: time_t; 
-  mutable p: coordf_t
+  mutable p: Coord.coordf_t
 }
     
 let time = ref 0.0
 
 let set_time t = (
   if ((floor (t /. 10.0)) <> (floor (!time /. 10.0))) then (
-    Printf.printf "Time: %f\n" t;
+    Printf.printf  "Time: %f\n" t;
     flush stdout;
+(*    Log.log#log_info (lazy (sprintf "Time: %f\n" t));*)
   );
   time := t
 )
