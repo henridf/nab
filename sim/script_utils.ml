@@ -96,6 +96,18 @@ let make_grep_nodes () = (
   assert ((Gworld.world())#neighbors_consistent);
 )
 
+let make_diff_nodes () = (
+  make_simplenodes();
+
+  (* create diff agents, who will hook to their owners *)
+  Diff_agent.set_agents
+    (Nodes.map (fun n -> new Diff_agent.diff_agent n));
+  
+  (* set up initial node position in internal structures of world object *)
+  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
+  assert ((Gworld.world())#neighbors_consistent);
+)
+
 let make_aodv_nodes () = (
   make_simplenodes();
 
@@ -274,6 +286,9 @@ let detach_daemon ~outfilename = (
 )
 
 
-let size ~rrange ~avg_degree ~nodes = 
+let size 
+  ?(rrange=(Param.get Params.rrange))  
+  ?(nodes=(Param.get  Params.nodes)) ~avg_degree () = 
+
   sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
     float (avg_degree))

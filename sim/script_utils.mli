@@ -19,7 +19,7 @@ val init_world : unit -> unit
   (** Instantiate the global world object. 
     Number of nodes (Params.nodes) should be set before calling this *)
 
-val size : rrange:float -> avg_degree:int -> nodes:int -> float
+val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
   (** Returns the side of a square surface to get the required average node
     degree, given the number of nodes and radio range *)
     
@@ -30,6 +30,11 @@ val make_gpsnodes : unit -> unit
 
 val make_grep_nodes : unit -> unit 
   (** Create simplenodes each with a grep agent.
+    Number of nodes (Params.nodes) should be set before calling this *)
+
+val make_diff_nodes : unit -> unit 
+  (** XXX
+Create simplenodes each with a hacked grep agent.
     Number of nodes (Params.nodes) should be set before calling this *)
 
 val make_aodv_nodes : unit -> unit 
