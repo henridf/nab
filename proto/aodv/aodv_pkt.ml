@@ -28,7 +28,7 @@ open Pkt_common
 
 (* L3 STUFF *)
 type aodv_flags_t = 
-    AODV_DATA | AODV_RREQ | AODV_RREP | AODV_RERR | AODV_RADV
+    [ `DATA | `RREQ | `RREP | `RERR | `RADV ]
 
 type t = {
   mutable aodv_flags : aodv_flags_t;
@@ -84,16 +84,16 @@ let make_aodv_hdr
   = (
     begin 
       match flags with 
-	| AODV_DATA -> 
+	| `DATA -> 
 	    assert (dhc = -1 && dsn = -1  && osrc = -1 && 
     ohc = -1 && osn = -1 && rdst = -1)
-	| AODV_RREQ | AODV_RERR ->
+	| `RREQ | `RERR ->
 	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
     rdst <> -1 && dhc <> -1 && dsn <> -1)
-	| AODV_RREP ->
+	| `RREP ->
 	    assert (ohc <> -1 && osn <> -1 && osrc <> -1 && 
 	    rdst = -1 && dhc = -1 && dsn = -1)
-	| AODV_RADV  -> 
+	| `RADV  -> 
 	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
 	    rdst = -1 && dhc = -1 && dsn = -1)
     end;

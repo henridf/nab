@@ -35,7 +35,7 @@
 
 (* L3 STUFF *)
 type grep_flags_t = 
- GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RADV
+    [ `DATA | `RREQ | `RREP | `RADV ]
 
 type t = {
   mutable grep_flags : grep_flags_t;

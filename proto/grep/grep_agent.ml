@@ -112,7 +112,7 @@
 (* RTR 4 not implemented (updating entry to destination node) *)
 
 (* maybe nodes not incrementing seqno on sending rrep??
-17.331472 /node/84 /GREP_Agent this:84, nexthoph:300, dst:300, this_sn: 202, this_hc: 1, next_sn: 200, next_hc:
+17.331472 /node/84 /Agent this:84, nexthoph:300, dst:300, this_sn: 202, this_hc: 1, next_sn: 200, next_hc:
     0
 Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:300, this_sn: 202, this_hc: 1, next_$    0")
 *)
@@ -136,7 +136,7 @@ open Aodv_grep_common
 open Printf
 open Misc
 
-let packet_buffer_size = 50
+let packet_buffer_size = Aodv_grep_common._PKTQUEUE_SIZE
 
 type grep_state_t = 
   {
@@ -166,7 +166,7 @@ class type grep_agent_t =
     method private queue_size : unit -> int
     method private packets_waiting : dst:Common.nodeid_t -> bool
     method private process_data_pkt : l3pkt:L3pkt.t -> unit
-    method private process_radv_pkt :
+    method private process_raod_pkt :
       l3pkt:L3pkt.t -> 
       sender:Common.nodeid_t -> unit
     method private process_rrep_pkt :
@@ -204,7 +204,7 @@ object(s)
 
   val mutable rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
-  val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create())
+  val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create ())
 
   val mutable hello_period_ = None
 
@@ -212,7 +212,7 @@ object(s)
     (* see #init_rreq for explanation on this *)
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Agent";
     Hashtbl.replace agents_array_.(stack) theowner#id (s :> grep_agent);
     s#incr_seqno()
   )
@@ -255,17 +255,17 @@ object(s)
       let l3pkt = (Queue.pop pktqs.(dst)) in
       try 
 	s#log_info 
-	  (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+	  (lazy (sprintf "Sending buffered `DATA pkt from src %d to dst %d."
 	    (L3pkt.l3src l3pkt) dst));
 	s#send_out ~l3pkt
       with 
 	| Send_Out_Failure -> 
 	    s#log_warning 
-	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
+	    (lazy (sprintf "Sending buffered `DATA pkt from src %d to dst %d failed, dropping"
 	      (L3pkt.l3src l3pkt) dst));
     done
     
-  (* DATA packets are buffered when they fail on send, 
+  (* `DATA packets are buffered when they fail on send, 
      or if there are already buffered packets for that destination *)
   method private buffer_packet ~(l3pkt:L3pkt.t) = (
     match s#queue_size() < packet_buffer_size with 
@@ -273,11 +273,12 @@ object(s)
 	  let dst = L3pkt.l3dst l3pkt in
 	  assert (dst <> L3pkt.l3_bcast_addr);
 	  Queue.push l3pkt pktqs.(dst);
-      | false -> (
+	  true;
+      | false -> 
 	  Grep_hooks.drop_data();
 	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
-	    (L3pkt.l3dst l3pkt)))
-	)
+	    (L3pkt.l3dst l3pkt)));
+	  false
   )
 
   (* Wrapper around Rtab.newadv which additionally checks for 
@@ -332,10 +333,10 @@ object(s)
     
     (* hand off to per-type method private *)
     begin match Grep_pkt.flags grep_hdr with
-      | Grep_pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
-      | Grep_pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
-      | Grep_pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
-      | Grep_pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
+      | `DATA -> s#process_data_pkt ~l3pkt;
+      | `RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
+      | `RADV -> s#process_raod_pkt ~l3pkt ~sender;
+      | `RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
     end
   )
 
@@ -371,7 +372,7 @@ object(s)
   )
 
 
-  method private process_radv_pkt ~l3pkt ~sender = ()
+  method private process_raod_pkt ~l3pkt ~sender = ()
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
     let grep_hdr = L3pkt.grep_hdr l3pkt in
@@ -380,7 +381,7 @@ object(s)
     and dsn =  (Grep_pkt.dsn grep_hdr) 
     in
     s#log_info 
-      (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
+      (lazy (sprintf "Received `RREQ pkt from src %d for dst %d"
 	(L3pkt.l3src l3pkt) rdst));
     match fresh with 
       | true -> 
@@ -405,17 +406,17 @@ object(s)
 	    s#send_out ~l3pkt
       | false -> 
 	  s#log_info 
-	  (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
+	  (lazy (sprintf "Dropping `RREQ pkt from src %d for dst %d (not fresh)"
 	    (L3pkt.l3src l3pkt) rdst));
   )
     
   method private send_rrep ~dst ~obo = (
     s#log_info 
-    (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
+    (lazy (sprintf "Sending `RREP pkt to dst %d, obo %d"
       dst obo));
     let grep_hdr = 
       Grep_pkt.make_grep_hdr
-	~flags:Grep_pkt.GREP_RREP
+	~flags:`RREP
 	~ssn:seqno
 	~shc:0
 	~osrc:obo
@@ -438,7 +439,7 @@ object(s)
     with 
       | Send_Out_Failure -> 
 	  s#log_notice 
-	  (lazy (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
+	  (lazy (sprintf "Sending `RREP pkt to dst %d, obo %d failed, dropping"
 	    dst obo));
   )
 
@@ -454,9 +455,9 @@ object(s)
     and next_hc = o2v (Rtab.hopcount ~rt:next_rt ~dst)
     and ptype = 
       begin match (Grep_pkt.flags grep_hdr) with
-	| Grep_pkt.GREP_RREP  -> "rrep"
-	| Grep_pkt.GREP_DATA -> "data" 
-	| Grep_pkt.GREP_RREQ | Grep_pkt.GREP_RADV -> ""
+	| `RREP  -> "rrep"
+	| `DATA -> "data" 
+	| `RREQ | `RADV -> ""
       end
     in
     if not (
@@ -483,7 +484,8 @@ object(s)
 	);
 	
 	if  ((Rtab.repairing ~rt ~dst) || s#packets_waiting ~dst) then (
-	  s#buffer_packet ~l3pkt;
+	  ignore (s#buffer_packet ~l3pkt); (* no difference whether
+					      queue full or not *)
 	  raise Break
 	);		
 
@@ -493,11 +495,12 @@ object(s)
 	  | Send_Out_Failure -> 
 	      begin
 		s#log_notice 
-		  (lazy 
-		    (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-		      dst));
-		s#buffer_packet ~l3pkt;
-		s#init_rreq  ~dst;
+		  (lazy (sprintf "Forwarding `DATA pkt to dst %d failed, buffering."
+		    dst));
+
+		(* If packet was dropped, we don't initiate the route
+		   repair.  *)
+		if s#buffer_packet ~l3pkt then s#init_rreq  ~dst;
 	      end
 	end
       with 
@@ -519,7 +522,7 @@ object(s)
        But say that we have just started a new rreq phase for this
        destination, and we are currently at ttl 2. Then we would shoot ahead
        with a ttl 32. So we use these per-destination rreq_uids which are
-       unique across a whole RREQ ERS. Maybe we could have used the dseqno
+       unique across a whole `RREQ ERS. Maybe we could have used the dseqno
        instead, but uids seem safer.
     *)
 
@@ -532,7 +535,7 @@ object(s)
 
       Rtab.repair_start ~rt ~dst;
       s#log_notice 
-	(lazy (sprintf "Initiating RREQ for dst %d" dst ));
+	(lazy (sprintf "Initiating `RREQ for dst %d" dst ));
       s#send_rreq ~ttl:_ERS_START_TTL ~dst ~rreq_uid:rreq_uids.(dst)
     )
   )
@@ -553,7 +556,7 @@ object(s)
     
     let grep_hdr = 
       Grep_pkt.make_grep_hdr
-	~flags:Grep_pkt.GREP_RADV
+	~flags:`RADV
 	~ssn:seqno
 	~shc:0
 	()
@@ -585,7 +588,7 @@ object(s)
   method private send_rreq ~ttl ~dst ~rreq_uid = (
     
     if (rreq_uids.(dst) = rreq_uid && Rtab.repairing ~rt ~dst) then (
-      s#log_notice (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
+      s#log_notice (lazy (sprintf "Sending `RREQ pkt for dst %d with ttl %d"
 	dst ttl));
       
       let (dseqno, dhopcount) = 
@@ -595,7 +598,7 @@ object(s)
       in
       let grep_hdr = 
 	Grep_pkt.make_grep_hdr
-	  ~flags:Grep_pkt.GREP_RREQ
+	  ~flags:`RREQ
 	  ~ssn:seqno
 	  ~shc:0
 	  ~rdst:dst
@@ -660,7 +663,7 @@ object(s)
 	  with 
 	    | Send_Out_Failure -> 
 		s#log_notice 
-		(lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
+		(lazy (sprintf "Forwarding `RREP pkt to dst %d, obo %d failed, dropping"
 		  (L3pkt.l3dst l3pkt)
 		  (Grep_pkt.osrc grep_hdr)));
 	)
@@ -684,8 +687,8 @@ object(s)
     Grep_pkt.incr_shc_pkt grep_hdr;
     assert (Grep_pkt.shc grep_hdr > 0);
     begin match (Grep_pkt.flags grep_hdr) with
-      | Grep_pkt.GREP_RADV 
-      | Grep_pkt.GREP_RREQ -> 
+      | `RADV 
+      | `RREQ -> 
 	  assert (dst = L3pkt.l3_bcast_addr);
 	  L3pkt.decr_l3ttl l3pkt;
 	  begin match ((L3pkt.l3ttl l3pkt) >= 0)  with
@@ -695,9 +698,9 @@ object(s)
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-      | Grep_pkt.GREP_DATA
-      | Grep_pkt.GREP_RREP ->
-	  begin if ((Grep_pkt.flags grep_hdr) = Grep_pkt.GREP_DATA) then (
+      | `DATA
+      | `RREP ->
+	  begin if ((Grep_pkt.flags grep_hdr) = `DATA) then (
 	    Grep_hooks.sent_data();
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
@@ -735,7 +738,7 @@ object(s)
       dst));
     let grep_hdr = 
       (Grep_pkt.make_grep_hdr
-	~flags:Grep_pkt.GREP_DATA
+	~flags:`DATA
 	~ssn:seqno
 	~shc:0
 	()

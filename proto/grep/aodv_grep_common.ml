@@ -31,6 +31,7 @@ let _HELLO_JITTER_INTERVAL() = _DEFAULT_HELLO_PERIOD /. 5.
 let _ERS_START_TTL = 2
 let _ERS_MULT_FACT = 2
 let _ERS_MAX_TTL = 64
+let _PKTQUEUE_SIZE = 50
 
 let  xmitdelay ~bytes ~bps = (i2f (bytes * 8)) /. bps
 

@@ -1,6 +1,6 @@
 (*
  *
- *  Fake - a network simulator
+ *  NAB - Network in a Box
  *  Henri Dubois-Ferriere, LCA/LCAV, EPFL
  * 
  *  Copyright (C) 2004 Laboratory of Audiovisual Communications (LCAV), and
@@ -8,12 +8,12 @@
  *  Ecole Polytechnique Federale de Lausanne (EPFL),
  *  CH-1015 Lausanne, Switzerland
  *
- *  This file is part of fake. Fake is free software; you can redistribute it 
+ *  This file is part of NAB. NAB is free software; you can redistribute it 
  *  and/or modify it under the terms of the GNU General Public License as 
  *  published by the Free Software Foundation; either version 2 of the License,
  *  or (at your option) any later version. 
  *
- *  Fake is distributed in the hope that it will be useful, but WITHOUT ANY
+ *  NAB is distributed in the hope that it will be useful, but WITHOUT ANY
  *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
  *  details (enclosed in the file GPL). 
@@ -34,7 +34,7 @@
    repairing: we sent a route request and have not since then received a reply
    for the node. 
    invalid: we noticed (through llacks) that the next hop is unreachable, or
-   we received a RERR telling us the route to the dest is broken. an invalid
+   we received a `RERR telling us the route to the dest is broken. an invalid
    entry can still have the destination seqno and the hopcount
 
    At the source, invalid and repairing are most of the time the same thing
@@ -54,14 +54,14 @@ open Aodv_grep_common
 open Printf
 open Misc
 
-let packet_buffer_size = 50
+let packet_buffer_size = Aodv_grep_common._PKTQUEUE_SIZE
 
 class type aodv_agent_t =
   object
     inherit Log.inheritable_loggable
     inherit Rt_agent.t
       
-    method private buffer_packet : l3pkt:L3pkt.t -> unit
+    method private buffer_packet : l3pkt:L3pkt.t -> bool
     method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
     method private newadv : 
@@ -115,14 +115,14 @@ object(s)
 
   val rt = Rtab.create_aodv ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
-  val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
+  val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create ())
 
   val rreq_uids = Array.create (Param.get Params.nodes) 0
     (* see #init_rreq for explanation on this *)
 
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/Agent";
     Hashtbl.replace agents_array_.(stack) theowner#id (s :> aodv_agent);
     s#incr_seqno()
   )
@@ -161,13 +161,13 @@ object(s)
       let l3pkt = (Queue.pop pktqs.(dst)) in
 	try 
 	  s#log_info 
-	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+	    (lazy (sprintf "Sending buffered `DATA pkt from src %d to dst %d."
 	      (L3pkt.l3src l3pkt) dst));
 	  s#send_out ~l3pkt
 	with 
 	  | Send_Out_Failure -> 
 	      s#log_error 
-	      (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
+	      (lazy (sprintf "Sending buffered `DATA pkt from src %d to dst %d failed, dropping"
 		(L3pkt.l3src l3pkt) dst));
     done
 
@@ -178,19 +178,20 @@ object(s)
     done
 
 
-  (* DATA packets are buffered when they fail on send, 
+  (* `DATA packets are buffered when they fail on send, 
      or if there are already buffered packets for that destination *)
   method private buffer_packet ~(l3pkt:L3pkt.t) = (
     match s#queue_size() < packet_buffer_size with 
       | true ->
 	  let dst = L3pkt.l3dst l3pkt in
 	  assert (dst <> L3pkt.l3_bcast_addr);
-	  Queue.push l3pkt pktqs.(dst);
-      | false -> (
+	  Queue.push l3pkt pktqs.(dst); 
+	  true
+      | false -> 
 	  Grep_hooks.drop_data();
 	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
-	    (L3pkt.l3dst l3pkt)))
-	)
+	    (L3pkt.l3dst l3pkt)));
+	  false
   )
 
   (* wrapper around Rtab.newadv which additionally checks for 
@@ -251,11 +252,11 @@ object(s)
     
     (* hand off to per-type method private *)
     begin match Aodv_pkt.flags aodv_hdr with
-      | Aodv_pkt.AODV_DATA -> s#process_data_pkt ~l3pkt;
-      | Aodv_pkt.AODV_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
-      | Aodv_pkt.AODV_RADV -> s#process_radv_pkt ~l3pkt ~sender;
-      | Aodv_pkt.AODV_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
-      | Aodv_pkt.AODV_RERR -> s#process_rerr_pkt ~l3pkt ~sender;
+      | `DATA -> s#process_data_pkt ~l3pkt;
+      | `RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
+      | `RADV -> s#process_radv_pkt ~l3pkt ~sender;
+      | `RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
+      | `RERR -> s#process_rerr_pkt ~l3pkt ~sender;
     end
   ) 
 
@@ -300,7 +301,7 @@ object(s)
     and dsn =  (Aodv_pkt.dsn aodv_hdr) 
     in
     s#log_info 
-    (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
+    (lazy (sprintf "Received `RREQ pkt from src %d for dst %d"
       (L3pkt.l3src l3pkt) rdst));
     match fresh with 
       | true -> 
@@ -324,18 +325,17 @@ object(s)
 	  else (* broadcast the rreq further along *)
 	    s#send_out ~l3pkt
       | false -> 
-	  s#log_info (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
+	  s#log_info (lazy (sprintf "Dropping `RREQ pkt from src %d for dst %d (not fresh)"
 	    (L3pkt.l3src l3pkt) rdst));
   )
       
   method private send_rrep ~dst ~obo = (
     s#log_info 
-    (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
+    (lazy (sprintf "Sending `RREP pkt to dst %d, obo %d"
       dst obo));
     let aodv_hdr = 
-      `AODV_HDR  
-	(Aodv_pkt.make_aodv_hdr
-	  ~flags:Aodv_pkt.AODV_RREP
+      `AODV_HDR (Aodv_pkt.make_aodv_hdr
+	  ~flags:`RREP
 	  ~ssn:seqno
 	  ~shc:0
 	  ~osrc:obo
@@ -358,18 +358,17 @@ object(s)
     with 
       | Send_Out_Failure -> 
 	  s#log_notice 
-	  (lazy (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
+	  (lazy (sprintf "Sending `RREP pkt to dst %d, obo %d failed, dropping"
 	    dst obo));
   )
 
   method private send_rerr ~dst ~obo = (
     s#log_info 
-      (lazy (sprintf "Sending RERR pkt to dst %d, obo %d"
+      (lazy (sprintf "Sending `RERR pkt to dst %d, obo %d"
       dst obo));
     let aodv_hdr = 
-    `AODV_HDR 
-      (Aodv_pkt.make_aodv_hdr
-	~flags:Aodv_pkt.AODV_RERR
+      `AODV_HDR (Aodv_pkt.make_aodv_hdr
+	~flags:`RERR
 	~ssn:seqno
 	~shc:0
 	~rdst:obo
@@ -393,7 +392,7 @@ object(s)
     with 
       | Send_Out_Failure -> 
 	  s#log_notice 
-	  (lazy (sprintf "Sending RERR pkt to dst %d, obo %d failed, dropping"
+	  (lazy (sprintf "Sending `RERR pkt to dst %d, obo %d failed, dropping"
 	    dst obo));
   )
 
@@ -410,9 +409,10 @@ object(s)
 	);
 
 	if (Rtab.repairing ~rt ~dst) || (s#packets_waiting ~dst) then (
-	  s#buffer_packet ~l3pkt;
+	  ignore (s#buffer_packet ~l3pkt);  (* no difference whether
+					       queue full or not *)
 	  raise Break
-	);		
+	);
 
 	if (myid <> src) && (Rtab.invalid ~rt ~dst) then (
 	  Grep_hooks.drop_data_rerr();
@@ -426,18 +426,16 @@ object(s)
 	      begin
 		Rtab.invalidate ~rt ~dst;
 		if (myid = src) || (s#local_repair ~dst ~src) then (
+
 		  (* will need to check this when we do enable local_repairs *)
 		  s#log_notice 
-		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+		  (lazy (sprintf "Forwarding `DATA pkt to dst %d failed, buffering."
 		    dst));
-		  s#buffer_packet ~l3pkt;
-		  let (dseqno,dhopcount) = 
-		    begin match (Rtab.seqno ~rt ~dst) with
-		      | None -> (0, max_int)
-		      | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
-		  in
-		  s#init_rreq 
-		    ~dst 
+
+		  (* If packet was dropped, we don't initiate the route
+		     repair.  *)
+		  if s#buffer_packet ~l3pkt then s#init_rreq  ~dst 
+
 		) else (
 		  s#kill_buffered_packets ~dst;
 		  Grep_hooks.drop_data_rerr();
@@ -465,7 +463,7 @@ object(s)
        But say that we have just started a new rreq phase for this
        destination, and we are currently at ttl 2. Then we would shoot ahead
        with a ttl 32. So we use these per-destination rreq_uids which are
-       unique across a whole RREQ ERS. Maybe we could have used the dseqno
+       unique across a whole `RREQ ERS. Maybe we could have used the dseqno
        instead, but uids seem safer.
     *)
 
@@ -478,7 +476,7 @@ object(s)
 
       Rtab.repair_start ~rt ~dst;
       s#log_info 
-      (lazy (sprintf "Initializing RREQ for dst %d" dst ));
+      (lazy (sprintf "Initializing `RREQ for dst %d" dst ));
       s#send_rreq ~ttl:_ERS_START_TTL ~dst ~rreq_uid:rreq_uids.(dst)
     )
   )
@@ -486,7 +484,7 @@ object(s)
   method private send_rreq ~ttl ~dst ~rreq_uid  = (
     
     if (rreq_uids.(dst) = rreq_uid && Rtab.repairing ~rt ~dst) then (
-      s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
+      s#log_info (lazy (sprintf "Sending `RREQ pkt for dst %d with ttl %d"
 	dst ttl));
       
       let dseqno, dhopcount = 
@@ -498,7 +496,7 @@ object(s)
       let aodv_hdr = 
 	    `AODV_HDR 
 	      (Aodv_pkt.make_aodv_hdr
-	  ~flags:Aodv_pkt.AODV_RREQ
+	  ~flags:`RREQ
 	  ~ssn:seqno
 	  ~shc:0
 	  ~rdst:dst
@@ -566,7 +564,7 @@ object(s)
 	with 
 	  | Send_Out_Failure -> 
 	      s#log_notice 
-	      (lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
+	      (lazy (sprintf "Forwarding `RREP pkt to dst %d, obo %d failed, dropping"
 		(L3pkt.l3dst l3pkt) 
 		(Aodv_pkt.osrc aodv_hdr)));
 	)
@@ -621,8 +619,8 @@ object(s)
     assert (Aodv_pkt.shc aodv_hdr > 0);
     begin match (Aodv_pkt.flags aodv_hdr) with
 
-      | Aodv_pkt.AODV_RADV 
-      | Aodv_pkt.AODV_RREQ -> 
+      | `RADV 
+      | `RREQ -> 
 	  assert (dst = L3pkt.l3_bcast_addr);
 	  L3pkt.decr_l3ttl l3pkt;
 	  begin
@@ -633,10 +631,10 @@ object(s)
 	      | false ->
 		  s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-      | Aodv_pkt.AODV_DATA 
-      | Aodv_pkt.AODV_RERR 
-      | Aodv_pkt.AODV_RREP ->
-	  begin if ((Aodv_pkt.flags aodv_hdr) = Aodv_pkt.AODV_DATA) then (
+      | `DATA 
+      | `RERR 
+      | `RREP ->
+	  begin if ((Aodv_pkt.flags aodv_hdr) = `DATA) then (
 	    Grep_hooks.sent_data();
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
@@ -675,7 +673,7 @@ object(s)
 	~dstid:dst
 	~ext:(`AODV_HDR 
 	  (Aodv_pkt.make_aodv_hdr
-	    ~flags:Aodv_pkt.AODV_DATA
+	    ~flags:`DATA
 	    ~ssn:seqno
 	    ~shc:0
 	  ()))

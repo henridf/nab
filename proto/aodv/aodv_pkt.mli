@@ -35,7 +35,7 @@
 
 (* L3 STUFF *)
 type aodv_flags_t = 
-    AODV_DATA | AODV_RREQ | AODV_RREP | AODV_RERR | AODV_RADV
+    [ `DATA | `RREQ | `RREP | `RERR | `RADV ]
 
 type t = {
   mutable aodv_flags : aodv_flags_t;
