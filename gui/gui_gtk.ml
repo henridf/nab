@@ -1,7 +1,3 @@
-
-
-
-
 open Coord
 open Misc
 open GMain
@@ -180,6 +176,39 @@ let draw_segments ?(col=cl_fg) ?(thick=1) l = (
   (drawing())#set_foreground col;
   (drawing())#set_line_attributes ~width:thick ();
   (drawing())#segments l;
+  (drawing())#set_foreground cl_fg;    
+  (drawing())#set_line_attributes ~width:1 ();
+)
+
+(* compute (vx,vy), the vector going from u to w in a taurus of size a,b *)
+let v (ux, uy) (wx, wy) = 
+  let a = (Param.get Params.x_pix_size) and b = (Param.get Params.y_pix_size)  
+  in
+  let vx = match abs(wx - ux) <= a/2 with 
+    | true -> wx - ux
+    | false -> (a - abs(ux - wx)) * signi (ux - wx)
+  and vy = match abs(wy - uy) <= b/2 with 
+    | true -> wy - uy
+    | false -> (b - abs(uy - wy)) * signi (uy - wy)
+  in vx , vy
+    
+let draw_segment_taur (p1,p2) = 
+  print_endline "hello";
+  Printf.printf "%s to %s\n"
+    (Coord.sprint p1) 
+    (Coord.sprint (p1 +++ (v p1 p2)));
+  Printf.printf "%s to %s\n"
+    (Coord.sprint p2)
+    (Coord.sprint (p2 +++ (v p2 p1)));
+  flush stdout;
+  draw_segments [(p1, p1 +++ (v p1 p2)); (p2, p2 +++ (v p2 p1))]
+
+
+let draw_segments_taur ?(col=cl_fg) ?(thick=1) l = (
+  (drawing())#set_foreground col;
+  (drawing())#set_line_attributes ~width:thick ();
+  List.iter draw_segment_taur l;
+
   (drawing())#set_foreground cl_fg;    
   (drawing())#set_line_attributes ~width:1 ();
 )

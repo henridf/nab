@@ -59,6 +59,12 @@ val draw_segments :
   (Coord.coordi_t * Coord.coordi_t)  list 
   -> unit
 
+val draw_segments_taur : 
+  ?col:GDraw.color ->          
+  ?thick:int ->          
+  (Coord.coordi_t * Coord.coordi_t)  list 
+  -> unit
+
 val draw_segments_buf : 
   ?col:GDraw.color ->
   ?thick:int ->          
