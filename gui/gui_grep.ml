@@ -105,8 +105,6 @@ let get_route nid = (
   
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" !src_ dst);
 
-  Log.set_log_level Log.LOG_NOTICE;
-
   let routeref = (ref (Route.create())) in
   Od_hooks.routes_done := 0;
   let in_mhook = Od_hooks.od_route_pktin_mhook routeref in
@@ -121,12 +119,17 @@ let get_route nid = (
     !Od_hooks.routes_done < 1;
   );
 
-
+  
 
   rt := Some !routeref;
+  Log.log#log_notice (lazy (Route.sprintnid_hopsonly !routeref));
+
   refresh();
 (*  Mob_ctl.start_all();*)
 )
+
+
+
 
 let choose_node () = (
   (* call Mob_ctl.stop_all always because node mobs might not be stopped even 
@@ -140,6 +143,20 @@ let choose_node () = (
     Gui_ops.dialog_pick_node ~default:!src_ ~node_picked_cb:get_route ()
   else
     Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:get_route ()
+)
+
+let show_node_id () = (
+  (* call Mob_ctl.stop_all always because node mobs might not be stopped even 
+     when  !running is false. *)
+  Mob_ctl.stop_all();
+  
+  if !running then (
+    start_stop();
+  );
+  
+  let show_id nid  = Gui_gtk.txt_msg ("Node: "^(string_of_int nid)) in
+
+  Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:show_id ()
 )
   
 (* lifted from testgtk.ml (example comes with lablgtk) *)
@@ -181,6 +198,7 @@ let refresh_fun () = ignore (refresh())
 let buttonlist = [
   ("Move nodes",       `TOGGLE,  [`FUNC start_stop]);
   ("Draw route",       `TOGGLE,  [`FUNC choose_node]);
+  ("Show node id",     `TOGGLE,  [`FUNC show_node_id]);
   ("Show nodes",       `CHECK,   [`TOGGLE show_nodes; `FUNC refresh_fun ]);
   ("Show Connectivity",`CHECK,   [`TOGGLE show_connectivity; `FUNC refresh_fun]);
   ("Text",            `CHECK,    [`TOGGLE text_entry; `FUNC refresh_fun]);

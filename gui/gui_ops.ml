@@ -133,9 +133,6 @@ let draw_grep_route r =
   let nhops = List.length r
   and nsearches = List.length (List.filter (fun h -> Opt.is_some h.info) r)
   in
-  List.iter (fun h -> 
-  Log.log#log_notice 
-    (lazy (Printf.sprintf "\n\tHop: %s "  (Coord.sprint h.hop) ))) r;
 
   Log.log#log_notice 
     (lazy (Printf.sprintf "%d Hops, %d Searches"  nhops nsearches ));
@@ -331,7 +328,8 @@ let user_pick_node ?(msg = "Pick a node!") ~node_picked_cb () = (
       true)
   )
 )
-  
+
+ 
 let validate_node_input s = 
   try 
     let n = Misc.s2i s in
