@@ -1,6 +1,28 @@
 open Printf
 open Coord
 
+type nodeid_t = int
+let nid_bcast = max_int
+type port_t = int
+
+
+
+type time_t = float
+
+module OrderedInt = 
+struct
+  type t = nodeid_t
+  let compare = Pervasives.compare
+end
+
+module NodeSet = Set.Make (OrderedInt)
+let nodeset_of_list ~nodelist = 
+  let rec nodeset_of_list_ set l = match l with 
+    | a :: b -> nodeset_of_list_ (NodeSet.add a set) b
+    | [] -> set
+  in 
+  nodeset_of_list_ NodeSet.empty nodelist
+
 
 type route_algorithm = EASE | GREASE | GRADIENT
 
@@ -22,27 +44,31 @@ let string_of_algo a = (
 type mobility_pattern = RANDOMWALK | WAYPOINT
 let mobility_of_string s = (
   match s with
-    | "randomwalk" | "rndwlk" -> RANDOMWALK
-    | "waypoint" -> WAYPOINT
+    | "randomwalk" | "rndwlk" | "rw" -> RANDOMWALK
+    | "waypoint" | "wp" -> WAYPOINT
     | other -> raise (Failure  (Printf.sprintf "Unknown Mobility pattern %s" other))
 )
+
 let string_of_mobility s = (
   match s with
     | RANDOMWALK -> "random walk"
     | WAYPOINT -> "waypoint"
 )
 
-type topology = DISCRETE | CONTINUOUS
+type topology = DISCRETE | CONTINUOUS_TORUS | CONTINUOUS_REFLECTIVE
 let topology_of_string s = (
   match s with
     | "d" | "disc" | "discrete" -> DISCRETE
-    | "c" | "cont" | "continuous" -> CONTINUOUS
+    | "cr" | "contref" | "continuousreflective" -> CONTINUOUS_REFLECTIVE
+    | "ct" | "conttor" | "continuoustorus" -> CONTINUOUS_TORUS
     | other -> raise (Failure (Printf.sprintf "Unknown Topology %s" other))
 )
+
 let string_of_topology t = (
   match t with
     | DISCRETE -> "Discrete"
-    | CONTINUOUS -> "Continuous"
+    | CONTINUOUS_TORUS -> "Continuous Torus"
+    | CONTINUOUS_REFLECTIVE -> "Reflective Torus"
 )
 
 type action = COMPUTE_ROUTES | SHOW_ROUTES | SHOW_GRAD
@@ -53,6 +79,7 @@ let action_of_string s = (
     | "sg" | "sgrad" | "showg" | "showgrad" -> SHOW_GRAD
     | other -> raise (Failure (Printf.sprintf "Unknown Action %s" other))
 )
+
 let string_of_action t = (
   match t with
     | COMPUTE_ROUTES -> "Compute Routes"
@@ -60,22 +87,27 @@ let string_of_action t = (
     | SHOW_GRAD -> "Show Gradient"
 )
 
-type meeting = {
-  mutable t: int; 
+type enc_t = {
+  mutable t: time_t; 
   mutable p: coordf_t
 }
     
-type ler_data_t = {
-  mutable pos :  coordf_t array;
-  mutable db :  meeting array array;
-}
+let time = ref 0.0
 
-let time = ref 0
-  
-let set_time t = time := t
+let set_time t = (
+  if ((floor (t /. 10.0)) <> (floor (!time /. 10.0))) then (
+    Printf.printf "Time: %f\n" t;
+    flush stdout;
+  );
+  time := t
+)
 let get_time () = !time
-let tick_time () = incr time
   
-let meeting time coord = {t = time; p = coord}
-let meeting_age  m = if m.t == -1 then max_int else (get_time ()) - m.t
+let enc ~time ~place = {t = time; p = place}
+let enc_age  m = (get_time ()) -. m.t
+
+
+
+
+
 

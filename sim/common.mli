@@ -1,5 +1,16 @@
 open Coord
 
+type nodeid_t = int
+val nid_bcast : nodeid_t
+
+type port_t = int
+
+type time_t = float
+
+
+module NodeSet : Set.S with type elt = nodeid_t
+val nodeset_of_list : nodelist:(nodeid_t list) -> NodeSet.t
+
 type route_algorithm = EASE | GREASE | GRADIENT
 val algo_of_string : string -> route_algorithm
 val string_of_algo : route_algorithm -> string
@@ -9,7 +20,7 @@ type mobility_pattern = RANDOMWALK | WAYPOINT
 val mobility_of_string : string -> mobility_pattern
 val string_of_mobility : mobility_pattern -> string
 
-type topology = DISCRETE | CONTINUOUS
+type topology = DISCRETE | CONTINUOUS_TORUS | CONTINUOUS_REFLECTIVE
 val topology_of_string : string -> topology 
 val string_of_topology : topology -> string
 
@@ -17,19 +28,13 @@ type action = COMPUTE_ROUTES | SHOW_ROUTES | SHOW_GRAD
 val action_of_string : string -> action
 val string_of_action : action -> string
 
-type meeting = {
-  mutable t: int; 
+type enc_t = {
+  mutable t: time_t; 
   mutable p: coordf_t
 }
     
-type ler_data_t = {
-  mutable pos :  coordf_t array;
-  mutable db :  meeting array array;
-}
+val enc : time:time_t -> place:Coord.coordf_t -> enc_t
+val enc_age : enc_t -> time_t
 
-val meeting : int -> Coord.coordf_t -> meeting
-val meeting_age : meeting -> int
-
-val set_time : int -> unit
-val get_time : unit -> int
-val tick_time : unit -> unit
+val set_time : time_t -> unit
+val get_time : unit -> time_t

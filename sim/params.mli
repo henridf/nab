@@ -1,6 +1,6 @@
-(* *** ********* *)
-(* LER Simulator *)
-(* *** ********* *)
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
 
 (* Globally accessible parameters.                                       *)
 (* These parameters have not (yet?) been examined to figure out if they  *)
@@ -16,3 +16,4 @@ val algo : Common.route_algorithm Param.t
 val mob : Common.mobility_pattern Param.t
 val nodes_file : string Param.t
 val action : Common.action Param.t
+val trace_enabled : bool Param.t

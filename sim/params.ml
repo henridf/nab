@@ -1,6 +1,6 @@
-(* *** ********* *)
-(* LER Simulator *)
-(* *** ********* *)
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
 
 (* Globally accessible parameters.                                       *)
 (* These parameters have not (yet?) been examined to figure out if they  *)
@@ -109,5 +109,13 @@ let nodes_file =
     ~default: (Some "ler-sim.mld")
     ~doc:"File containing warmed up node positions"
     ~reader:Misc.id 
+    ~checker:None
+
+let trace_enabled = 
+  Param.create 
+    ~name:"trace_enabled" 
+    ~default: (Some false)
+    ~doc:"Save naml trace"
+    ~reader:bool_of_string 
     ~checker:None
 
