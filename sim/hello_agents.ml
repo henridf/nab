@@ -5,7 +5,11 @@
 open Printf
 
 (** A bunch of simple agents who emit and receive hello packets and 
-  maintain a last-encounter table *)
+  maintain a last-encounter table. Mostly for illustrational purposes, since
+  these agents do not provide any routing or other capability.
+
+  @author Henri Dubois-Ferriere.
+ *)
 
 (** @param owner a {!Gpsnode.gpsnode} object representing the node on which
   this agent is running *)
