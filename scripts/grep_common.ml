@@ -60,7 +60,7 @@ struct
   let speed = 
     Param.floatcreate ~name:"speed" 
       ~cmdline:true
-      ~default:2.0
+      ~default:8.0
       ~doc:"Node Speed [m/s]"  ()
 
   let pktssend = 
