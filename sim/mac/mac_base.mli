@@ -40,8 +40,17 @@
 
 
 val macs : ?stack:int -> unit -> (Common.nodeid_t, Mac.t) Hashtbl.t
-val mac : ?stack:int -> Common.nodeid_t -> Mac.t
+  (** Returns a hashtbl, indexed by {!Common.nodeid_t}, of all the mac objects
+    for stack [stack] (stack defaults to 0 if argument not provided). *)
 
+val mac : ?stack:int -> Common.nodeid_t -> Mac.t
+  (** Returns the mac object for given node on given stack.
+    The mac object is coerced down to a {!Mac.t}, so even if the underlying
+    mac is a "more specialized" one (ie, a {!Mac_contention.contentionmac}),
+    any additional methods beyond those defined in {!Mac.t} will be hidden. If
+    you need access to those methods, get the object directly from the module
+    where it is defined  (e.g., in {!Mac_contention.mac}). *)
+    
 
 (** @param stack serves to distinguish the stack when multiple stacks are being
   used. Defaults to 0. (The notion of multiple stacks is explained in
@@ -77,16 +86,21 @@ end
 
 
 
-(** Return string representations of basic_stats. *) 
+(** {1 Functions for manipulating {!Mac.basic_stats} .} *) 
 
 val string_of_bstats : Mac.basic_stats -> string
-val string_of_bstats_bits : Mac.basic_stats -> string
-val string_of_bstats_pkts : Mac.basic_stats -> string
+  (** Return a string representation of a {!Mac.basic_stats}. *)
 
+val string_of_bstats_bits : Mac.basic_stats -> string
+  (** Return a string representation of a {!Mac.basic_stats}, but with only
+    the fields that count bits [bits_TX] and [bits_RX]. *)
+
+val string_of_bstats_pkts : Mac.basic_stats -> string
+  (** Return a string representation of a {!Mac.basic_stats}, but with only
+    the fields that count packets [pkts_TX] and [pkts_RX]. *)
 
 val add_bstats : Mac.basic_stats -> Mac.basic_stats -> Mac.basic_stats
-  (** Add two basic_stats. *)
-
+  (** Add two {!Mac.basic_stats}, field by field. *)
 
 val zero_bstats : unit -> Mac.basic_stats
-  (** Return a basic_stats with all values initialized to 0. *)
+  (** Return a {!Mac.basic_stats} with all values initialized to 0. *)

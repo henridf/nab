@@ -25,24 +25,6 @@
 
 
 
-(** 
-  A MAC layer with modeling of collisions.
-  This MAC can either be sending or receiving.
-  If a packet is received while already receiving, both are lost
-  (collision). Collisions are detected instantaneously; the node immediately
-  stops receiving. Therefore a node can send a packet right after the
-  beginning of a collision.
-  
-  If a packet is received while sending, sending continues ok but reception
-  fails.
-  If node tries to send while either sending or receiving, the packet to be
-  sent is dropped silently.
-  
-  No queuing/buffering of packets.
-
-  @author Henri Dubois-Ferriere.
-*)
-
 
 open Ether
 open L2pkt
@@ -56,21 +38,7 @@ type stats =
     dropsTXTX : int;
     dropsTXRX : int
     }
-    (** Statistics maintained by [mac_contention] MAC layer 
-      (in addition to statistics from {!Mac.basic_stats}).
-      - [collsRXRX] counts the number of "receive on receive" collisions,
-      ie a packet arrives when we are already receiving another packet
-      (causing both to be dropped).
-      - [collsRXTX] counts the number of "receive on send" collisions, ie a
-      packet arrives when we are already sending a packet (causing the
-      incoming packet to be dropped).
-      - [dropsTXTX] counts the number of "send on send" packet drops, ie a
-      packet to send is handed down from upper layers when a packet
-      transmission is ongoing.
-      - [dropsTXRX] counts the number of "send on receive" packet drops, ie a
-      packet to send is handed down from upper layers when a packet reception
-      is ongoing.
-    *)
+
 
 let macs_array_ = 
   Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))

@@ -36,9 +36,20 @@ class nullmac :
   #Simplenode.simplenode ->
   object
     inherit Mac.t
+
     method other_stats : unit
+      (** A nullmac does not keep any additional stats beyond
+	{!Mac.basic_stats}. *)
   end
 
 val macs : ?stack:int -> unit -> (Common.nodeid_t, nullmac) Hashtbl.t 
+  (** Returns a hashtbl, indexed by {!Common.nodeid_t}, of all the mac objects
+    for stack [stack] (stack defaults to 0 if argument not provided). 
+    If there are no macs on this stack, returns an empty hashtbl.
+*)
 
 val mac :  ?stack:int -> Common.nodeid_t -> nullmac
+  (** Returns the nullmac mac object for given node on given stack.
+    @raise Not_found if there is no nullmac on this stack/node pair.
+  *)
+
