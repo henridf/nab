@@ -1,4 +1,4 @@
-(*
+d(*
  *
  *  NAB - Network in a Box
  *  Henri Dubois-Ferriere, LCA/LCAV, EPFL
@@ -28,10 +28,10 @@ open Common
 (** 
   World: All computation requiring omniscience is done here. 
   Things like:
-  - finding neighbors of a node
-  - finding the nearest node to a point satisfying some property
-  - computing a delaunay triangulation (not implemented)
-  - computing the shortest path between two nodes
+  - finding neighbors of a node.
+  - finding the nearest node to a point satisfying some property.
+  - computing a delaunay triangulation (not implemented).
+  - computing the shortest path between two nodes.
   - checking connectedness of a network.
 
   @author Henri Dubois-Ferriere.
@@ -40,7 +40,7 @@ class type lazy_world_t =
 object
     
   method random_pos : Coord.coordf_t 
-    (** Return a uniform random position over the surface of the simulated area *)
+    (** Return a uniform random position over the surface of the simulated area. *)
 
   method dist_coords :  Coord.coordf_t -> Coord.coordf_t -> float
     (** Compute distance between two euclidean coordinates. *)
