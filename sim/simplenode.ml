@@ -1,5 +1,4 @@
-
-(* wierd: decrementing shopcount when packet not send seems necessary, 
+(* wierd: decrementing shopcount when packet not sent seems necessary, 
    ie omission was a bug, but not sure if it changes anything.
    anyway current solution is a bit of a quick hack *)
 
@@ -15,7 +14,7 @@ exception Mac_Bcast_Failure
 
 let coordmult = Coord.( ***. )
 
-class simplenode  ~pos_init ~id ~ntargets : Node.node_t = 
+class simplenode  ~pos_init ~id  : Node.node_t = 
 
 object(s: #Node.node_t)
   
@@ -28,8 +27,7 @@ object(s: #Node.node_t)
 
   val id = id
 
-  val agents = Hashtbl.create 1
-
+  val mutable new_ngbr_hooks = []
   val mutable recv_pkt_hooks = []
   val mutable recv_l2pkt_hooks = []
   val mutable app_send_pkt_hook = fun pkt ~dst -> ()
@@ -76,9 +74,9 @@ object(s: #Node.node_t)
 
   method add_neighbor n = (
     assert (not (List.mem n#id neighbors));
-    if n#id < ntargets then (
-(*      db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);*)
-    );
+    List.iter 
+      (fun hook -> hook n)
+      new_ngbr_hooks;
     neighbors <- n#id::neighbors
   )
 
@@ -89,22 +87,6 @@ object(s: #Node.node_t)
 
   method is_neighbor n = List.mem n#id neighbors
 
-
-  method private bind_agent ~agent ~port = 
-    match (Hashtbl.mem agents port) with
-      | false -> Hashtbl.add agents agent
-      | true -> raise 
-	  (Failure 
-	    (sprintf "Node %d Cannot bind_agent on port %d: already busy\n" 
-	      s#id 
-	      port))
-
-  method private lookup_agent  ~port = 
-    try 
-      Some (Hashtbl.find agents port) 
-    with
-	Not_found -> None
-	
   method neighbors = neighbors
 
   method mac_recv_pkt ~l2pkt = (
@@ -124,7 +106,10 @@ object(s: #Node.node_t)
       recv_l2pkt_hooks
   )
     
-  method add_recv_pkt_hook  ~hook =
+  method add_new_ngbr_hook ~hook =
+    new_ngbr_hooks <- new_ngbr_hooks @ [hook]
+
+  method add_recv_pkt_hook ~hook =
     recv_pkt_hooks <- recv_pkt_hooks @ [hook]
       
   method add_recv_l2pkt_hook  ~hook =
