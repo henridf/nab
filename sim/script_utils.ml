@@ -245,3 +245,15 @@ let finish () = (
 )
 
 
+let detach_daemon ~outfd =
+    let pid =  Unix.fork () in
+    if pid < 0 then failwith "Error in fork";
+    if pid > 0 then exit 0;
+    let sid = Unix.setsid () in
+    Unix.close Unix.stdin;
+    Unix.close Unix.stdout;
+    Unix.close Unix.stderr;
+    Log.output_fd := outfd;
+    
+        
+

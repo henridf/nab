@@ -7,7 +7,7 @@
 
 open Printf
 
-
+let output_fd = ref Pervasives.stderr
 
 
 type log_level_t = LOG_DEBUG | LOG_INFO | LOG_NOTICE | LOG_WARNING | LOG_ERROR
@@ -57,9 +57,10 @@ object(s)
 
   method private log_level ~msg:msg ~level:l =
     if l >= !current_log_level then (
-      prerr_string (sprintf "%f " (Common.get_time()));
-      prerr_string objdescr;
-      prerr_endline (Lazy.force msg)
+      output_string !output_fd (sprintf "%f " (Common.get_time()));
+      output_string !output_fd objdescr;
+      output_string !output_fd (Lazy.force msg);
+      output_char !output_fd '\n'
     )
 
   method private log msg = s#log_level ~level:LOG_INFO ~msg:msg

@@ -172,7 +172,7 @@ TEST_OBJ_FILES = \
 
 mws: bin/mws
 bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
