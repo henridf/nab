@@ -23,43 +23,12 @@
 (* $Id$ *)
 
 
-
 (** Persistency-related functions for saving and 
   restoring simulation state.
-
+  
   @author Henri Dubois-Ferriere.
  *)
 
 
-val save_node_state : 
-  ?gpsnodes:bool -> 
-  out_channel -> 
-  unit
-  (** Save node-specific state. Right now this state consists of node
-    positions only. (Might at a later point contain a spec describing mobility
-    process, traffic sources attached to the node, agent(s), mac layer, etc).
-    Does not close [out_channel].
-  *)
-
-val read_node_state : ?gpsnodes:bool -> 
-  in_channel -> 
-  unit
-  (** Restore node-specific state from in_channel. 
-     Note that world object should be initialized with the appropriate # of
-     nodes before calling this (which is somewhat counterproductive, agreed..)
-    This does not close the [in_channel] (in case the data file contains other
-    state to be read after the node state).
-  *)
-
-val save_str_agents : ?stack:int -> out_channel -> unit
-  (** Save state of all {!Str_agent.grep_agent} objects. 
-    Does not close [out_channel]
-  *)
-
-val read_str_agents : ?stack:int -> in_channel -> unit
-  (** Creates new {!Str_agent.grep_agent} objects initialized with the state
-    read in from the provided channel. Note that any existing grep_agents are
-    lost.
-    This does not close the [in_channel] (in case the data file contains other
-    state to be read after the str state).
-  *)
+val save_sim : out_channel -> unit
+val restore_sim : ?verbose:bool -> in_channel -> unit

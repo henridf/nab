@@ -23,33 +23,9 @@
 (* $Id$ *)
 
 
-(** Handling of time.
-  @author Henri Dubois-Ferriere.
-*)
+module type t = 
+sig
 
-type time_t = float
-type t = time_t
-
-type abs_or_rel_t = ABS of time_t | REL of time_t
-  (** This can be used by methods that take either an absolute or relative. *)
-
-val set_time : time_t -> unit
-  (** Set the current time. This should only be used for good reason, for
-    example if loading agents with pre-generated Last-Encounter tables, when
-    we need to set the clocks to the time at which the warmup ended. *)
-
-val get_time : unit -> time_t
-  (** Returns the present simulator time. *)
-
-val time: unit -> time_t
-  (** Identical to [get_time]. *)
-
-
-module Persist : Persist.t
-
-
-
-(**/**)
-type dtime_t = int
-val maintain_discrete_time : unit -> unit
-val dtime : unit -> dtime_t
+  val restore : ?verbose:bool -> in_channel -> unit
+  val save : out_channel -> unit
+end

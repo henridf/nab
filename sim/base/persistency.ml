@@ -24,13 +24,6 @@
 
 
 
-
-
-
-
-open Printf
-open Mods
-
 (*
   the global simulator state is written to file as:
   
@@ -52,113 +45,86 @@ open Mods
 *)
 
 
-type state_hdr_t = {
-  node_cnt:int;
-  time:Time.time_t
-}
+let sp = Printf.sprintf
 
-type sim_state_t = Simplenode.node_state_t array
-  
-let save_node_state ?(gpsnodes=false) oc = (
-  Log.log#log_notice (lazy "Saving node state..");
-  let node_cnt = (Param.get Params.nodes) in
-  let descr = sprintf "NAB datafile\n Parameters:\n nodes: %d\n time: %f\n" 
-    node_cnt 
-    (Time.get_time())
-  in
-  let state_hdr = {
-    node_cnt=node_cnt;
-    time=(Time.get_time())
-  }
-  in
+module Persist_Nodes : Persist.t = struct
+  (* could not go in node.ml because of reference to script_utils*)
 
-  let (node_states:sim_state_t) = 
-    if gpsnodes then
-     Nodes.gpsmap (fun n -> n#dump_state)
-    else
-      Nodes.map (fun n -> n#dump_state)
-  in 
+  let save oc = 
+    Log.log#log_notice (lazy "Saving node state..");
+    let n_nodes = 
+      Nodes.fold (fun _ tot -> tot + 1) 0
+    in
+    if n_nodes <> Param.get Params.nodes then
+      raise (Failure (sp "Params.nodes is %d, yet there are %d nodes!!?!"
+	(Param.get Params.nodes) n_nodes));
+    Marshal.to_channel oc n_nodes [];
+    Nodes.iter (fun n -> Marshal.to_channel oc n#dump_state []);
+    Log.log#log_notice (lazy "Done saving node state.")
 
-  Marshal.to_channel oc descr [];
-  Marshal.to_channel oc state_hdr [];
-  Marshal.to_channel oc node_states [];
-  Log.log#log_notice (lazy "Done.");
+  let restore ?(verbose=false) ic = 
+  Log.log#log_notice (lazy (sp "Restoring node state..."));
+   let n_nodes = (Marshal.from_channel ic : int) in
+    if n_nodes <> Param.get Params.nodes then (
+      raise (Failure (sp
+	"Persist_Nodes.restore: Params.nodes is %d, yet there are %d nodes"
+	(Param.get Params.nodes) n_nodes));
+      exit (-1));
 
-)
-
-
-let read_node_state ?(gpsnodes=false) ic  = 
-(
-  (* get bits from channel *)
-  let str = (Marshal.from_channel ic : string) in
-  let hdr = (Marshal.from_channel ic : state_hdr_t) in
-  Log.log#log_notice (lazy 
-      (sprintf "Restoring node state..."));
-
-  let (node_states:sim_state_t) = 
-    (Marshal.from_channel ic : sim_state_t) in
-  
-  if (hdr.node_cnt <> Array.length node_states) then 
-    raise (Failure 
-      "Persistency.read_state: node_cnt was different than length of Nodes array");
-  
-  if (hdr.node_cnt <> (Param.get Params.nodes)) then 
-    raise (Failure 
-      "Persistency.read_state: node_cnt was different than Params.nodes");
-  
-  (* set globals *)
-  Time.set_time hdr.time;
-
-  Log.log#log_notice (lazy "Simulation state read in:");
-  Log.log#log_notice (lazy (sprintf "\t Nodes: %d" hdr.node_cnt));
-  Log.log#log_notice (lazy (sprintf "\t Time: %f" hdr.time));
-
-  if gpsnodes then (
-  (* make node objects out of restored node states *)
-    Nodes.set_gpsnodes
-      ((Array.mapi
-	(fun i nodestate -> 
-	  (World.w())#init_pos ~nid:i ~pos:nodestate;
-	  new Gpsnode.gpsnode i)
-      ) node_states)
-  )
-  else (
-    (* No state to restore in the node objects themselves. *)
     Script_utils.make_nodes ~with_positions:false ();
-
-    (* set up initial node position in internal structures of World.object *)
-    Nodes.iteri (fun nid _ -> 
-      (World.w())#init_pos ~nid ~pos:node_states.(nid));
-
-  );
+    for nid = 0 to n_nodes - 1 do
+      let node_state = (Marshal.from_channel ic : Node.node_state_t) in
+      (World.w())#init_pos ~nid ~pos:(Node.state_pos node_state)
+    done;
   assert ((World.w())#neighbors_consistent);
-)
-
-let save_str_agents ?(stack=0) oc = 
-  Log.log#log_notice (lazy "Saving state of str agents..");
-  for i = 0 to (Param.get Params.nodes) - 1 do
-    let agent = Hashtbl.find Str_agent.agents_array_.(stack) i in
-    let (state : Str_agent.persist_t) = (agent#dump_state()) in
-    Marshal.to_channel oc state []
-  done;
-
   Log.log#log_notice (lazy "Done.")
 
-let read_str_agents ?(stack=0) ic = 
+end
 
-  Log.log#log_notice (lazy (sprintf "Restoring str agents..."));
+module Persist_World : Persist.t = struct
 
+  let restore ?(verbose=false) ic = 
+    Script_utils.init_world()
+  let save oc = ()
+end
+
+let save_item oc item = 
+  Marshal.to_channel oc item [];
+  begin match item with
+    | `Params -> Param.Persist.save oc
+    | `Time -> Time.Persist.save oc
+    | `Nodes -> Persist_Nodes.save oc
+    | `World -> Persist_World.save oc
+    | `Str_agents -> Str_agent.Persist.save oc
+  end
+
+
+let restore_item ~verbose ic = 
+  let item = 
+    (Marshal.from_channel ic : [> `Params | `Time | `Nodes | `Str_agents]) in
+  begin match item with
+    | `Params -> 
+	Param.Persist.restore ~verbose ic;
+	(* cmdline args overwrite config state*)
+	Arg.current := 0;
+	Script_utils.parse_args ();
+    | `Time -> Time.Persist.restore ic;
+	Log.log#log_notice (lazy (sp "Time restored to: %f" (Time.time())));
+    | `Nodes -> Persist_Nodes.restore ~verbose ic
+    | `World -> Persist_World.restore ~verbose ic
+    | `Str_agents -> Str_agent.Persist.restore ~verbose ic
+  end
+
+let save_sim_items = [`Params; `Time; `World; `Nodes; `Str_agents]
+
+let save_sim oc = 
+  Marshal.to_channel oc (List.length save_sim_items) [];
+  List.iter (fun item -> save_item oc item) save_sim_items
   
-  Nodes.iter (fun n -> n#remove_rt_agent ~stack ());
-  for i = 0 to (Param.get Params.nodes) - 1 do
-    let state = (Marshal.from_channel ic : Str_agent.persist_t) in
-    let node = Nodes.node i in
-    ignore (new Str_agent.str_agent ~stack ~state state.Str_agent.metric node)
-  done;
-  Nodes.iteri (fun i n -> 
-    n#install_rt_agent ~stack ((Hashtbl.find Str_agent.agents_array_.(stack) i) :> Rt_agent.t))
-
-
-
-
+let restore_sim ?(verbose=true) ic = 
+  let n_items = (Marshal.from_channel ic : int) in
+  for i = 0 to n_items - 1 do 
+    restore_item ~verbose ic
+  done
+    
 

@@ -27,6 +27,8 @@ type t = time_t
 type dtime_t = int
 type abs_or_rel_t = ABS of time_t | REL of time_t
 
+let sp = Printf.sprintf
+
 let maintain_discrete_time_ = ref false
 
 (* Time *)
@@ -48,3 +50,12 @@ let dtime() = !dtime_
 
 
 let time = get_time
+
+module Persist = struct
+  let restore ?(verbose=false) ic = 
+    let t = (Marshal.from_channel ic : time_t) in
+    set_time t
+
+  let save oc = 
+    Marshal.to_channel oc (get_time()) []
+end

@@ -24,12 +24,15 @@
 
 
 
-open Printf
 open Misc
+
+let sp = Printf.sprintf
 
 let max_nstacks = 8
 
-type node_state_t = Coord.coordf_t
+type node_state_t = {pos:Coord.coordf_t}
+let state_pos node_state = node_state.pos
+
 
 exception Mac_Send_Failure
 
@@ -47,8 +50,8 @@ object(s)
   val id = id
 
   initializer (
-    s#set_objdescr (sprintf "/node/%d" id);
-    s#log_debug (lazy (sprintf "New node %d" id));
+    s#set_objdescr (sp "/node/%d" id);
+    s#log_debug (lazy (sp "New node %d" id));
   )
 
   method id = id
@@ -89,7 +92,7 @@ object(s)
     and l2src = (L2pkt.l2src l2pkt) 
     and l3pkt  = (L2pkt.l3pkt l2pkt) in
 
-    s#log_debug (lazy (sprintf "Pkt received from source %d on stack %d" 
+    s#log_debug (lazy (sp "Pkt received from source %d on stack %d" 
       (L3pkt.l3src l3pkt) stack));
 
     (* mhook called before shoving packet up the stack, because 
@@ -107,7 +110,7 @@ object(s)
     let l2dst = (L2pkt.l2dst l2pkt) 
     and l3pkt  = (L2pkt.l3pkt l2pkt) in
 
-    s#log_debug (lazy (sprintf "Pkt xmit to %d failed" l2dst));
+    s#log_debug (lazy (sp "Pkt xmit to %d failed" l2dst));
 
     (Opt.may (fun agent -> agent#mac_callback l3pkt l2dst))
       rt_agents.(stack);
@@ -171,11 +174,16 @@ object(s)
       | None -> ()
     ) 
   method originate_app_pkt ~l4pkt ~dst = 
+    let have_agent = ref false in
     Array.iter 
-      (Opt.may (fun agent -> agent#recv_pkt_app l4pkt dst))
-      rt_agents 
+      (Opt.may 
+	(fun agent -> agent#recv_pkt_app l4pkt dst; 
+	  have_agent :=	true))
+      rt_agents;
+    if !have_agent = false then
+      s#log_warning (lazy "Originated app packet but have no rt agents")
 
-  method dump_state = (World.w())#nodepos id
+  method dump_state = {pos=(World.w())#nodepos id}
 
   method pos = (World.w())#nodepos id
 

@@ -33,9 +33,10 @@
 
 
 
-type node_state_t = Coord.coordf_t
-    (** this type is used for storing node state to file *)
+type node_state_t
+    (** This type is used for storing node state to file *)
 
+val state_pos : node_state_t -> Coord.coordf_t
 
 
 (** Node: Encapsulates most of the state and constituent objects
