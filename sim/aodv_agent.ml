@@ -550,15 +550,16 @@ object(s)
       ) else (
 
 	let (dseqno,dhopcount) = 
-	  begin match (Rtab.seqno ~rt ~dst:invalid_dst) with
+	  begin 
+	    match (Rtab.seqno ~rt ~dst:invalid_dst) with
 	    | None -> (0, max_int)
-	    | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst:invalid_dst)) end
+	    | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst:invalid_dst))
+	  end
 
 	in
-	s#log_notice (lazy (sprintf "got a rerr for me, doing rreq for node %d hops %d seqno
-		    %d\n" invalid_dst dhopcount dseqno));
+	s#log_notice (lazy (sprintf "got a rerr for me, doing rreq for node %d hops %d seqno %d\n" invalid_dst dhopcount dseqno));
 	s#init_rreq 
-	  ~dst:invalid_dst 
+	  ~dst:invalid_dst
 	  ~dseqno
 	  ~dhopcount
       )
