@@ -14,6 +14,7 @@ val draw_route :
 
 (* draw node at current time's position *)
 val draw_node :  
+  ?emphasize:bool ->
   Common.nodeid_t -> 
   unit
 
@@ -24,6 +25,7 @@ val draw_nodes :
 
 (* connect pairs of nodes *)
 val connect_nodes : 
+  ?col:GDraw.color ->          
   (Common.nodeid_t * Common.nodeid_t)  list 
   -> unit
 

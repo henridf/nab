@@ -2,6 +2,22 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(* Notes on hacks/changes for quick cens dirty job.
+   create_buttons_trees was just a cutnpaste/change of create_buttons_ease - 
+   no attempt at figuring out how things could be less hardcoded and more
+   fnexible. same for set_src_trees w.r.t set_src.
+   (basically we shoul distinguish btw generic stuff like offering a
+   fun to pick a node, etc, and stuff which is app-specific (like drawing a
+   route (set_src below), etc).
+
+   in install_get_node_cb() , simply replaced the call to set_src with
+   set_tree_src. 
+
+*)
+
+   
+
+
 open Misc
 open GMain
 
@@ -22,6 +38,9 @@ let show_nodes = ref true
 let show_route_lines = ref true
 let show_route_anchors = ref true
 let show_route_disks = ref true
+let show_connectivity = ref false
+let show_tree = ref true
+
 
 let route_portion = ref 1.0
 
@@ -40,6 +59,7 @@ let run() = (
 
 let refresh ?(clear=false) ()  = (
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
+  if !show_connectivity  then  Gui_ops.draw_connectivity(); 
   (*
     Gui_ops.draw_all_routes 
     (); 
@@ -137,6 +157,122 @@ let set_src x y = (
   rt := Some !routeref;
 )
 
+let get_tree_sink sink = (
+  let sinkdiffagent = !Diff_agent.agents_array.(sink) in
+  let sink_seqno = (sinkdiffagent#seqno()) - 1 in
+    Array.to_list (
+      Nodes.mapi (fun nid -> 
+	  let diffagent = !Diff_agent.agents_array.(nid) in
+	  if (diffagent#is_closest_sink ~op:(>=) sink) then (
+	    let rt = diffagent#get_rtab in 
+	    let nexthop = Rtab.nexthop ~rt ~dst:sink in
+	    
+	    match nexthop with 
+	      | _ when (nid = sink) -> (0, 0)
+	      | None -> (0, 0)
+	      | Some nh  -> (nh, nid)
+
+(*
+  let rt = diffagent#get_rtab in 
+  let nexthop = Rtab.nexthop ~rt ~dst:sink in
+  let seqno = Rtab.seqno ~rt ~dst:sink in
+
+	    
+	  match (nexthop, seqno) with 
+	    | _ when (nid = sink) -> (0, 0)
+	    | None, None -> (0, 0)
+	    | (Some nh, Some sn) when (sn < sink_seqno) -> (0, 0)
+	    | (Some nh, Some sn) when (sn > sink_seqno) ->  raise 
+		(Failure 
+		  "Gui_ctl.set_tree: node had higher seqno for dst than dst itself")
+	    | (Some nh, Some sn) when (sn = sink_seqno) -> (nh, nid)
+	    | _ -> raise (Misc.Impossible_Case "Gui_ctl.set_tree")
+*)
+	  ) else 0,0
+
+
+      )
+    )  
+)
+
+let make_tree_sink sink = 
+  let diffagent = !Diff_agent.agents_array.(sink) in
+  diffagent#app_send  ~dst:123 `APP_PKT 
+
+
+
+let set_tree_src x y = (
+  remove_get_node_cb();
+
+  Printf.printf "src is at %d %d\n" x y; flush stdout;
+  let sink2 = Gui_hooks.closest_node_at (x, y) in
+(*  let sink2 = Random.int (Param.get Params.nodes) in
+  let sink3 = Random.int (Param.get Params.nodes) in
+  let sink4 = Random.int (Param.get Params.nodes) in
+  let sink5 = Random.int (Param.get Params.nodes) in*)
+
+(*  Diff_agent.sinks := [0;sink2;sink3;sink4;sink5 ];*)
+  Diff_agent.sinks := [0;sink2 ];
+  make_tree_sink 0;
+  make_tree_sink sink2;
+(*  make_tree_sink sink3;
+  make_tree_sink sink4;
+  make_tree_sink sink5;*)
+  (Gsched.sched())#run(); 
+
+  let tree1 = get_tree_sink 0 
+  and tree2 = get_tree_sink sink2 
+in
+
+  
+  Gui_ops.connect_nodes ~col:(`NAME "black") tree1;
+  Gui_ops.connect_nodes ~col:(`NAME "red") tree2;
+(*  Gui_ops.connect_nodes ~col:(`NAME "green") tree3;
+  Gui_ops.connect_nodes ~col:(`NAME "blue") tree4;
+  Gui_ops.connect_nodes ~col:(`NAME "white") tree5;*)
+
+  Gui_ops.draw_node ~emphasize:true 0;
+  Gui_ops.draw_node ~emphasize:true sink2;
+(*  Gui_ops.draw_node ~emphasize:true sink3;
+  Gui_ops.draw_node ~emphasize:true sink4;
+  Gui_ops.draw_node ~emphasize:true sink5;*)
+
+
+  
+)
+
+(*
+let set_tree_src x y = (
+  remove_get_node_cb();
+
+  Printf.printf "src is at %d %d\n" x y; flush stdout;
+  let sinksarr = Array.init 40 
+    (fun _ -> Random.int (Param.get Params.nodes)) in
+ 
+  Diff_agent.sinks := Array.to_list sinksarr;
+  Array.iter (fun i -> make_tree_sink i) sinksarr;
+
+  (Gsched.sched())#run(); 
+
+  let treesarr = Array.map (fun i -> get_tree_sink i) sinksarr in
+  let colors = [|
+    "blue";
+    "dim grey";
+    "green";
+    "purple"; 
+    "yellow";
+    "pink";
+    "olive drab";
+    "coral";
+    "tomato"; "black"; "white"; "red"|] in
+  
+  Array.iteri (fun i tree -> 
+    let colindex = (i mod (Array.length colors)) in
+    let col = colors.(colindex) in
+    Gui_ops.connect_nodes ~col:(`NAME col) tree;
+  ) treesarr
+  
+)*)
 
 let install_get_node_cb() = (
   Gui_gtk.txt_msg "Choisissez la source";
@@ -146,7 +282,8 @@ let install_get_node_cb() = (
       let x, y = (GdkEvent.Button.x b, GdkEvent.Button.y b) in
       begin
 	Gui_gtk.txt_msg "Calcul de la route..";	    
-	set_src (f2i x) (f2i y);
+	(* set_src (f2i x) (f2i y);*)
+	 set_tree_src (f2i x) (f2i y);
       end;
       (* returning true or false from this callback does not seem to make any
 	 difference. Read somewhere (API or tut) that this is because it will
@@ -167,7 +304,7 @@ let choose_node () = (
   end;
   install_get_node_cb();
 )
-	
+
   
 let create_buttons_common() = (
 
@@ -244,6 +381,42 @@ let create_buttons_ease() = (
 (*  ignore (counter#connect#changed ~callback:(fun n -> 
     Gui_gtk.txt_msg (Printf.sprintf "New value %s.." (string_of_int n))));
 *)
-  )    
+  )
+
+
+let create_buttons_trees() = (
+
+  let ss_tab = create_buttons_common() in
+
+  let checkbox_tab = (GPack.table ~rows:1 ~columns:4 ~homogeneous:false 
+    ~row_spacings:0 ~col_spacings:0 ~border_width:0
+    ()) in
+
+  ss_tab#attach checkbox_tab#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
+    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+  
+
+  let checkboxlist = [
+    ("Hide nodes", show_nodes, 0, 0);
+    ("Hide connectivity", show_connectivity, 1, 0);
+    ("Hide Tree", show_tree, 2, 0);
+  ] in
+  
+  List.iter (fun (txt, boolref, left, top) ->
+    let btn = (GButton.check_button ~label:txt
+      ()) in
+    checkbox_tab#attach btn#coerce ~left ~top ~right:(left + 1) 
+      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+    
+    ignore (btn#connect#released 
+      ~callback:(fun _ -> 
+	boolref := not !boolref;
+	ignore (refresh ~clear:true ()) ;
+      )
+    )) checkboxlist;
+
+  )
+
+    
 (* to kill: window#destroy ()*)
 

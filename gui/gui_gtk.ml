@@ -45,8 +45,13 @@ let draw_array = ref [||]
 
 
 let copy_pixmap x y = (
-  (drawing())#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width:res
-  ~height:res   (pixmap()) 
+  try 
+    (drawing())#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width:res
+    ~height:res   (pixmap()) 
+  with 
+    | Failure "Misc.o2v : None"
+      -> ()
+    | e -> raise e
 )
 
 let draw ~clear () = (
@@ -87,7 +92,7 @@ let init () = (
 
   wnd := Some (GWindow.window ~show:true ());
 
-  let _ = (window())#connect#destroy ~callback:Main.quit in
+  ignore ((window())#connect#destroy ~callback:Main.quit);
   
   vbx := Some (GPack.vbox ~packing:(window())#add ());
   pkr := (vbox())#add;
@@ -97,6 +102,7 @@ let init () = (
 
   drw := Some (new GDraw.drawable (gdk_window()));
 
+(*
   let (pixmap_, bitmap) = Gdk.Pixmap.create_from_xpm_d
     ~data:Epfl.epfl_xpm
     ~window:(gdk_window())
@@ -105,6 +111,7 @@ let init () = (
   pxm := Some pixmap_;
 
   Gdk.Window.set_back_pixmap (gdk_window()) (`PIXMAP pixmap_);
+*)
 
  txt_label := Some (GMisc.label ~text:"" ~packing:(packer()) ());
 

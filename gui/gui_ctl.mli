@@ -4,3 +4,6 @@
 
 val create_buttons_ease : unit -> unit
 
+val create_buttons_trees : unit -> unit
+
+

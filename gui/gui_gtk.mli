@@ -2,7 +2,7 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Low-leve interface to some wrappers around GTK functionality *)
+(** Low-level interface to some wrappers around GTK functionality *)
 
 
 val init : unit -> unit
@@ -52,6 +52,12 @@ val draw_nodes :
 
 val draw_segments : 
   ?col:GDraw.color ->          
+  (Coord.coordi_t * Coord.coordi_t)  list 
+  -> unit
+
+val draw_segments_buf : 
+  ?col:GDraw.color ->
+  ?thick:int ->          
   (Coord.coordi_t * Coord.coordi_t)  list 
   -> unit
 

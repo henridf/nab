@@ -5,14 +5,14 @@
 open Graph
 open Coord
 
-let draw_node nid = 
+let draw_node ?(emphasize=false) nid = 
   let cols = [| 
     `RGB ( 40, 60, 60);
     `RGB ( 30, 40, 40);
     `RGB ( 50, 80, 80);|] in
 
-  let (col, target) = if (nid < Param.get Params.ntargets) then 
-    (`NAME "red", true)
+  let (col, target) = if emphasize || (nid < Param.get Params.ntargets) then 
+    (`NAME "black", true)
   else 
     (cols.(Random.int 3), false)
   in 
@@ -39,7 +39,7 @@ let draw_all_nodes() = (
 
 )
 
-let connect_nodes nidlist = (
+let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   let poslist =
   (List.map
     (fun (n1, n2) -> 
@@ -47,7 +47,7 @@ let connect_nodes nidlist = (
       (Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos n2)))
   ) nidlist
   in
-  Gui_gtk.draw_segments ~col:(`NAME "dim grey") poslist
+  Gui_gtk.draw_segments ~col poslist
 )
 
 let draw_connectivity () = (
