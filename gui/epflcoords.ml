@@ -5,7 +5,7 @@
 (** Graph representation of EPFL campus *)
 
 
-let l = [
+let l_pix = [
 "BP 386 290 408 290 408 159 386 159 AN-1 AN-2 P-ARCHI";
 "SG 291 352 369 352 369 271 291 270 SG-D SG-C SG-B P-ARCHI AN-2";
 "SG-D 197 286 290 286 290 271 197 271 SG";
@@ -125,3 +125,11 @@ let l = [
 "A-PERO-3 151 320 162 324 227 181 213 178 A-PERO-2 P-ARCHI";
 "TSOL 407 120 617 120 617 101 407 101 R-SOR-1 P-FAV";
 "R-SOR-1 445 139 679 139 679 132 445 132 TSOL GC-H GC-G LE"]
+
+(*
+let y_pix_to_mtr y = 600. *. ((i2f y) /. 900.)
+let x_pix_to_mtr x = 800. *. ((i2f x) /. 1200.)
+let pos_mtr (x, y) = ((x_pix_to_mtr x), (y_pix_to_mtr y));;
+
+let s_split = List.map (fun s -> Str.split (Str.regexp " ") s) l_pix;;
+*)

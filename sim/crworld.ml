@@ -235,6 +235,12 @@ class virtual crworld_common ~x ~y ~rrange  = (
       
       node_positions_.(nid) <- pos;
 
+      Printf.printf "%s %d %d %d %d " 
+	(Coord.sprintf pos)
+	newx 
+	newy 
+	(Array.length grid_of_nodes_)
+	(Array.length grid_of_nodes_.(0));
       assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
       
       grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
@@ -583,5 +589,8 @@ class crworld_lazy ~x ~y ~rrange : World.world_t = (
 class epflworld ~x ~y ~rrange : World.world_t = 
 object(s)
   inherit crworld_lazy ~x ~y ~rrange
-  method random_pos = (0.0, 0.0)
+  method random_pos =  
+  print_endline "random pos";
+    let nodeind = Random.int 113 in
+    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
 end

@@ -6,14 +6,14 @@ let gr = ref None
 let g () = o2v !gr
 
 
-let box_centeri  i = 
+let box_centeri i = 
   let pts = Graph.getinfoi_ (g()) i in
   match pts with 
     | x1::y1::x2::y2::x3::y3::x4::y4::[] -> 
 	(((x1, y1) +++ (x3, y3)) /// 2 )
    | _ -> raise (Misc.Impossible_Case "Read_coords.box_center")
 
-let box_center  n = 
+let box_center n = 
   let i = Graph.index_ (g()) n in
   box_centeri i
 
@@ -22,7 +22,7 @@ let make_graph() = (
 
   let re = Str.regexp "[ \t]+" in
 
-  gr := Some (Graph.make_ "" (List.length Epflcoords.l) Graph.Directed);
+  gr := Some (Graph.make_ "" (List.length Epflcoords.l_pix) Graph.Directed);
 
 
   List.iter (fun line ->
@@ -33,7 +33,7 @@ let make_graph() = (
       (fun s -> int_of_string s) 
       (Array.sub arr 1 8) in
     Graph.setinfo_ (g()) node (Array.to_list info)
-  ) Epflcoords.l;
+  ) Epflcoords.l_pix;
   
 
   List.iter (fun line ->
@@ -52,7 +52,7 @@ let make_graph() = (
 	  Graph.add_edge_ (g()) node ngbr d;
 	)
       ) arr
-  ) Epflcoords.l;
+  ) Epflcoords.l_pix;
 
 )
 
@@ -80,4 +80,9 @@ let check_ngbrs() =
       )
     ) ngbrs
   ) (g())
+
+
+let _ = 
+  make_graph();
+  check_ngbrs();
 

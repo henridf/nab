@@ -1,8 +1,13 @@
+open Misc 
+
 let _DEFAULT_HELLO_PERIOD = 10.
 let _HELLO_JITTER_INTERVAL() = _DEFAULT_HELLO_PERIOD /. 5.
 let _ERS_START_TTL = 2
 let _ERS_MULT_FACT = 2
 let _ERS_MAX_TTL = 64
+
+let  xmitdelay ~bytes = (i2f (bytes * 8)) /. (Mac.bps())
+
 
 (* we say that maximum 1-hop traversal is 20ms, 
    ie half of value used by AODV. Another difference relative to AODV
@@ -13,7 +18,7 @@ let _ERS_MAX_TTL = 64
 let hop_traversal_time() = 
   max 0.2
   ((Param.get Params.rrange) /. Ether.speed_of_light
-  +. Ether.xmitdelay 2000)
+  +.xmitdelay 2000)
 
 
 let next_rreq_ttl ttl = 
