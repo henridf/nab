@@ -200,9 +200,10 @@ MODULE_OBJS = \
 	$(MWS_LIB_DIR)/itin$(CMO)
 
 
-MWS_LIB_OBJS = $(MWS_LIB_DIR)/misc$(CMO) \
-		 $(MWS_LIB_DIR)/mods$(CMO) \
+MWS_LIB_OBJS = 	 $(MWS_LIB_DIR)/mods$(CMO) \
+		 $(MWS_LIB_DIR)/misc$(CMO) \
 		 $(MWS_LIB_CONTRIB_DIR)/opt$(CMO) \
+		 $(MWS_LIB_DIR)/pkt_queue$(CMO) \
 		 $(MWS_LIB_DIR)/randoms$(CMO) \
 		 $(MWS_LIB_DIR)/coord$(CMO) \
 		 $(MWS_LIB_DIR)/naryTree$(CMO) \
