@@ -28,8 +28,6 @@ module Str = Str_pkt
 
 
 module H = Hashtbl
-let hashlen h = H.fold (fun _ _ l -> l + 1) h 0
-
 
 type rtab_entry_t = {
   timestamp:Time.t; (* time at which this entry is added into our rtab *)
@@ -296,7 +294,7 @@ let add_entry rt ~valid ~dst ~ent ~nh  =
       nexthop=nh;
       valid=valid} in
     let entries = get_entries_ rt dst in
-    match hashlen entries with 
+    match Misc.hashlen entries with 
       | 0 -> 
 	  let new_entries = new_entryset_() in
 	  H.add new_entries ent.Str.hc new_entry;

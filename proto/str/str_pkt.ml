@@ -52,12 +52,16 @@ type str_hdr = {
 
 let str_hdr_size = 2 * triple_size + hopcount_size
 
-
+type data_hdr = {
+  last_flooder : Common.nodeid_t option;
+}
 
 type rreq_hdr = {
   rreq_orig :     Common.nodeid_t;
   rreq_id :       int;
   rreq_dst :      Common.nodeid_t; 
+  stem_node :     Common.nodeid_t;
+  stem_distance : int
 }
 
 
@@ -70,15 +74,15 @@ type rrep_hdr = {
 
 type t = 
   | HELLO of seqno_t
-  | DATA of str_hdr
+  | DATA of (str_hdr * data_hdr)
   | RREQ of (str_hdr * rreq_hdr)
   | RREP of (str_hdr * rrep_hdr)
 
 let hdr_size str_hdr = 
   match str_hdr with
     | HELLO _ -> seqno_size
-    | DATA _ -> str_hdr_size
-    | RREQ _ -> str_hdr_size + (2 * addr_size) + rreq_id_size 
+    | DATA _ -> str_hdr_size + addr_size
+    | RREQ _ -> str_hdr_size + (3 * addr_size) + rreq_id_size + hopcount_size
     | RREP _ -> str_hdr_size + (3 * addr_size)
 	
 

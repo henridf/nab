@@ -26,6 +26,10 @@
 
 
 (* 
+
+
+
+
    xxx todo:
 
    currently disabled updating hop to previous node for non-HELLo packets.
@@ -63,6 +67,8 @@ open Str_pkt
 open Str_defaults
 open Printf
 open Misc
+
+let sp = Printf.sprintf
 
 let (>>>) = Str_rtab.(>>>)
 
@@ -124,10 +130,13 @@ module S = Str_stats
 type persist_t = 
     {rt : Str_rtab.t;
     seqno : int;
-    metric : Str_rtab.metric_t}
+    metric : Str_rtab.metric_t;
+    send_hellos : bool;
+    stats : S.stats
+    }
 
 let agents_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+  Array.init Node.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
     
 
 class str_agent ?(stack=0) ?(state : persist_t option) (metric : Str_rtab.metric_t) theowner = 
@@ -143,9 +152,6 @@ object(s)
     (* We keep track of the last time since we sent any broadcastpacket in
        order to know when hello message is nec. (rfc 6.9)*)
 
-  val rt = 
-    if state = None then Str_rtab.create 100 else (Opt.get state).rt
-      (* our routing table *)
 
   val pktqs : (Common.nodeid_t, L3pkt.t Queue.t) Hashtbl.t = 
     Hashtbl.create str_PKTQUEUE_SIZE
@@ -165,9 +171,15 @@ object(s)
 	 is the time this rreq was received, to discard duplicates in
 	 process_rreq_pkt. *)
       
-  val mutable stats = S.create_stats()
-    
-  val mutable send_hellos = true
+  (* These instance vars are saved and restored. *)
+  val rt = 
+    if state = None then Str_rtab.create 100 else (Opt.get state).rt
+      (* our routing table *)
+  val mutable stats = 
+    if state = None then S.create_stats() else (Opt.get state).stats
+
+  val mutable send_hellos = 
+    if state = None then true else (Opt.get state).send_hellos
 
   val mutable seqno = if state = None then 0 else (Opt.get state).seqno
 
@@ -182,6 +194,7 @@ object(s)
 
   method stop_hello = send_hellos <- false
   method start_hello = send_hellos <- true
+  method clear_stats = stats <- S.create_stats()
 
   method private incr_seqno = seqno <- seqno + 1
 
@@ -265,11 +278,11 @@ object(s)
     let pktq = try Hashtbl.find pktqs dst with Not_found -> Queue.create() in
     let f l3pkt = 
       let str_hdr = L3pkt.str_hdr l3pkt in
-      let data_hdr =  match str_hdr with
-	| DATA data_hdr -> data_hdr;
+      let hdr =  match str_hdr with
+	| DATA (h, data) -> (h, {data with last_flooder=(Some myid)});
 	| HELLO _ | RREQ _ | RREP _ -> 
 	    failwith "Str_agent#send_waiting_packets" in
-      if not (s#forward_data_pkt data_hdr l3pkt) then 
+      if not (s#forward_data_pkt hdr l3pkt) then 
 	Queue.push l3pkt pktq 
     in
     for i = 0 to Queue.length pktq - 1 do
@@ -283,25 +296,25 @@ object(s)
   method private drop_buffered_packets ~dst = 
     try 
       let q = Hashtbl.find pktqs dst in
-      s#log_notice (lazy (sprintf "Dropping packet(s) for dst %d" dst));      
+      s#log_notice (lazy (sp "Dropping packet(s) for dst %d" dst));      
       while (not (Queue.is_empty q)) do 
 	let p = Queue.pop q in
 	let str_hdr = L3pkt.str_hdr p in
 	match str_hdr with 
-	  | DATA str -> 
+	  | DATA (common, _) -> 
 	      s#log_info
-	      (lazy (Printf.sprintf 
+	      (lazy (sp 
 		"Dropped DATA has src %d, dst %d" (L3pkt.l3src p) (L3pkt.l3dst p)));
 	      s#log_info
-	      (lazy (Printf.sprintf 
+	      (lazy (sp 
 		"Dropped DATA has valid entry: sn=%d, dist=%d, age=%.2f"
-		str.v_ent.sn str.v_ent.hc str.v_ent.age ));
+		common.v_ent.sn common.v_ent.hc common.v_ent.age ));
 	      s#log_info
-		(lazy (Printf.sprintf 
+		(lazy (sp 
 		  "Dropped DATA has invalid entry: sn=%d, dist=%d, age=%.2f"
-		  str.i_ent.sn str.i_ent.hc str.i_ent.age ));
+		  common.i_ent.sn common.i_ent.hc common.i_ent.age ));
 	      s#log_info 
-		(lazy (Printf.sprintf 
+		(lazy (sp 
 		  "Dest. %d has %d neighbors, I have %d, our distance is %.2f" (L3pkt.l3dst p)
 		  (List.length ((World.w())#neighbors dst))
 		  (List.length ((World.w())#neighbors myid))
@@ -329,7 +342,7 @@ object(s)
 	end
       | false -> 
 	  stats.S.data_drop <- stats.S.data_drop + 1;
-	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" dst));
+	  s#log_notice (lazy (sp "Dropped packet for dst %d" dst));
   )
 
 
@@ -372,7 +385,7 @@ object(s)
     let dst = rreq.rreq_dst in
     if dst = myid then (
       s#log_info 
-	(lazy (Printf.sprintf 
+	(lazy (sp 
 	  "Can answer RREQ from originator %d for myself" rreq.rreq_orig));
       true
     ) else (
@@ -380,15 +393,15 @@ object(s)
       let valid_ok = v_ent <> Str_pkt.null_triple in
       if valid_ok then (
 	s#log_info 
-	(lazy (Printf.sprintf 
+	(lazy (sp 
 	  "Can answer RREQ for dst %d to originator %d (with VALID entry)" rreq.rreq_dst
 	  rreq.rreq_orig));
 	s#log_info 
-	  (lazy (Printf.sprintf 
+	  (lazy (sp 
 	    "RREQ has valid entry: sn=%d, dist=%d, age=%.2f"
 	    str.v_ent.sn str.v_ent.hc str.v_ent.age ));
 	s#log_info 
-	  (lazy (Printf.sprintf 
+	  (lazy (sp 
 	    "We have valid route with sn=%d, dist=(%d  + rreq_hc=%d), age=%.2f"
 	    v_ent.sn v_ent.hc str.orig_hc v_ent.age));
       );
@@ -396,35 +409,35 @@ object(s)
       let invalid_ok = i_ent <> Str_pkt.null_triple in
       if invalid_ok then (
 	s#log_info 
-	(lazy (Printf.sprintf 
+	(lazy (sp 
 	  "Can answer RREQ for dst %d to originator %d (with INVALID entry)" rreq.rreq_dst
 	  rreq.rreq_orig));
 	s#log_info 
-	  (lazy (Printf.sprintf 
+	  (lazy (sp 
 	    "RREQ has invalid entry: age=%.2f, dist=%d, cost=%.2f"
 	    str.i_ent.age str.i_ent.hc (Str_rtab.cost metric str.i_ent)));
 	  s#log_info 
-	    (lazy (Printf.sprintf 
+	    (lazy (sp 
 	      "We have invalid route with age=%.2f, dist=(%d  + rreq_hc=%d)"
 	      i_ent.age i_ent.hc str.orig_hc));
 	  );
       if not (valid_ok || invalid_ok) then (
-	s#log_debug (lazy (Printf.sprintf 
+	s#log_debug (lazy (sp 
 	  "Cannot answer RREQ for dst %d to originator %d" rreq.rreq_dst
 	  rreq.rreq_orig));
-	s#log_info (lazy (Printf.sprintf 
+	s#log_info (lazy (sp 
 	  "RREQ has valid entry: sn=%d, dist=%d, age=%.2f"
 	  str.v_ent.sn str.v_ent.hc str.v_ent.age ));
 	s#log_info 
-	  (lazy (Printf.sprintf 
+	  (lazy (sp 
 	    "Our best valid route has sn=%d, dist=(%d  + rreq_hc=%d + 1), age=%.2f"
 	    v_ent.sn v_ent.hc str.orig_hc v_ent.age));
 	s#log_info 
-	  (lazy (Printf.sprintf 
+	  (lazy (sp 
 	    "RREQ has invalid entry: age=%.2f, dist=%d, cost=%.2f"
 	    str.i_ent.age str.i_ent.hc (Str_rtab.cost metric str.i_ent)));
 	  s#log_info 
-	    (lazy (Printf.sprintf 
+	    (lazy (sp 
 	      "We have invalid route with age=%.2f, dist=(%d  + rreq_hc=%d + 1)"
 	      i_ent.age i_ent.hc str.orig_hc));
       );	
@@ -436,7 +449,7 @@ object(s)
     let orig = rreq.rreq_orig in 
     let dst = rreq.rreq_dst in
     s#log_info 
-      (lazy (Printf.sprintf 
+      (lazy (sp 
 	"Originating RREP for dst %d to originator %d" rreq.rreq_dst orig));
       let rrep =
 	if dst = myid then 
@@ -467,15 +480,15 @@ object(s)
 	
 
 
-  method private process_rreq_pkt src ttl (str, rreq) = (
+  method private process_rreq_pkt src ttl (common, rreq) = (
 
-    s#log_info (lazy (sprintf "Received RREQ pkt (originator %d), dst %d"
+    s#log_info (lazy (sp "Received RREQ pkt (originator %d), dst %d"
 	rreq.rreq_orig rreq.rreq_dst));
 
     (* First, create/update reverse path route to originator.*)
     let fresh = Str_rtab.add_entry rt 
       ~valid:true
-      ~ent:{age=0.0; sn=str.orig_sn; hc=str.orig_hc + 1}
+      ~ent:{age=0.0; sn=common.orig_sn; hc=common.orig_hc + 1}
       ~dst:rreq.rreq_orig
       ~nh:src
     in
@@ -492,14 +505,14 @@ object(s)
     Hashtbl.replace rreq_cache (rreq.rreq_orig, rreq.rreq_id) (Time.time());
 
     if discard then  
-      s#log_debug (lazy (sprintf "Dropping RREQ pkt (originator %d), dst %d"
+      s#log_debug (lazy (sp "Dropping RREQ pkt (originator %d), dst %d"
 	rreq.rreq_orig rreq.rreq_dst))
     else (
     (* 3. Otherwise, continue RREQ processing. *)
-      let str = {str with orig_hc=str.orig_hc + 1} in
-      let new_hdr = RREQ (str, rreq) in
-      if s#can_reply (str, rreq) then 
-	s#send_rrep (str, rreq) 
+      let common = {common with orig_hc=common.orig_hc + 1} in
+      let new_hdr = RREQ (common, rreq) in
+      if s#can_reply (common, rreq) then 
+	s#send_rrep (common, rreq) 
       else if ttl > 0 then
 	let l3pkt = 
 	  s#make_l3str ~ttl:(ttl - 1) ~dst:L3pkt.l3_bcast_addr new_hdr in
@@ -518,20 +531,20 @@ object(s)
       s#log_error (lazy "DATA packet TTL went to 0. looop???");
       failwith "DATA packet TTL went to 0. looop???";
     );
-    let data_hdr =  
-	match L3pkt.str_hdr l3pkt with
-	| DATA data_hdr ->     
-	    {data_hdr with orig_hc = data_hdr.orig_hc + 1}
+    let common_hdr, data_hdr =  
+      match L3pkt.str_hdr l3pkt with
+	| DATA (common_hdr, data_hdr) ->     
+	    {common_hdr with orig_hc = common_hdr.orig_hc + 1}, data_hdr
 	| HELLO _ | RREQ _ | RREP _ -> 
 	    failwith "Str_agent#process_data_pkt" in
       let l3pkt = 
 	s#make_l3str ~l4pkt:(L3pkt.l4pkt l3pkt) 
 	  ~dst ~src ~ttl:(L3pkt.l3ttl l3pkt) 
-	  (DATA data_hdr) in
+	  (DATA (common_hdr, data_hdr)) in
 
       (* Add/update entry to node which originated this packet. *)
       if Str_rtab.add_entry rt ~valid:true ~dst:src ~nh:sender 
-	~ent:{age=0.0; sn=data_hdr.orig_sn; hc=data_hdr.orig_hc}
+	~ent:{age=0.0; sn=common_hdr.orig_sn; hc=common_hdr.orig_hc}
       then
 	s#after_send_any_buffered_pkts src;
       
@@ -540,14 +553,14 @@ object(s)
 	s#hand_upper_layer ~l3pkt
       else if (s#repairing dst) then 
 	s#buffer_packet ~l3pkt
-      else if not (s#forward_data_pkt data_hdr l3pkt) then (
+      else if not (s#forward_data_pkt (common_hdr, data_hdr) l3pkt) then (
 	s#buffer_packet ~l3pkt; 
 	s#init_rreq dst;
       )
   )
 
   (* Assumes orig_hc on packet has already been incremented *)
-  method private forward_data_pkt data_hdr l3pkt = 
+  method private forward_data_pkt (common_hdr, data_hdr) l3pkt = 
     (* basic data forwarding as follows:
        - if we have a valid entry respecting invariant w.r.t valid entry on
        data packet,  forward it onto that route.
@@ -557,45 +570,45 @@ object(s)
        entry being the better of the invalid entry on packet and ours.
     *)
     let dst = L3pkt.l3dst l3pkt and src = L3pkt.l3src l3pkt in
-    let (v_ent, v_nh) = Str_rtab.better_valid_route rt data_hdr dst in
-    let i_ent = Str_rtab.better_invalid_route rt metric data_hdr dst in
-    let (i_u_ent, i_u_nh) = Str_rtab.better_usable_invalid_route rt metric data_hdr dst in
+    let (v_ent, v_nh) = Str_rtab.better_valid_route rt common_hdr dst in
+    let i_ent = Str_rtab.better_invalid_route rt metric common_hdr dst in
+    let (i_u_ent, i_u_nh) = Str_rtab.better_usable_invalid_route rt metric common_hdr dst in
     if v_ent <> Str_pkt.null_triple then (
-      let new_data_hdr = 
-	if Str_rtab.cost metric i_ent < Str_rtab.cost metric data_hdr.i_ent then
-	  {data_hdr with v_ent=v_ent; i_ent=i_ent}
+      let new_common_hdr = 
+	if Str_rtab.cost metric i_ent < Str_rtab.cost metric common_hdr.i_ent then
+	  {common_hdr with v_ent=v_ent; i_ent=i_ent}
 	else
-	  {data_hdr with v_ent=v_ent} in
+	  {common_hdr with v_ent=v_ent} in
       let new_l3pkt = s#make_l3str ~l4pkt:(L3pkt.l4pkt l3pkt) 
-	~dst ~src ~ttl:(L3pkt.l3ttl l3pkt - 1) (DATA new_data_hdr) in
+	~dst ~src ~ttl:(L3pkt.l3ttl l3pkt - 1) (DATA (new_common_hdr, data_hdr)) in
       Str_rtab.using_entry rt dst v_ent;
       (* nexthop should be pulled out at same time as i_ent, v_ent in call
 	 to str_rtab, but not yet sure what form (tuple?) it will come in*)
       s#send_out ~nh:v_nh new_l3pkt;
       true
     ) else if i_u_ent <> Str_pkt.null_triple then  (
-      let new_data_hdr = {data_hdr with i_ent=i_u_ent} in
+      let new_common_hdr = {common_hdr with i_ent=i_u_ent} in
       let new_l3pkt = s#make_l3str ~l4pkt:(L3pkt.l4pkt l3pkt)
-	~dst ~src ~ttl:(L3pkt.l3ttl l3pkt - 1) (DATA new_data_hdr) in
+	~dst ~src ~ttl:(L3pkt.l3ttl l3pkt - 1) (DATA (new_common_hdr, data_hdr)) in
       Str_rtab.using_entry rt dst i_u_ent;
       s#send_out ~nh:i_u_nh new_l3pkt;
       true
     ) else (
-      s#log_info (lazy (sprintf "Could not forward data packet to dst %d" dst));
-      s#log_info (lazy (Printf.sprintf 
+      s#log_info (lazy (sp "Could not forward data packet to dst %d" dst));
+      s#log_info (lazy (sp 
 	"DATA pkt has valid entry: sn=%d, dist=%d, age=%.2f"
-	data_hdr.v_ent.sn data_hdr.v_ent.hc data_hdr.v_ent.age ));
-      s#log_info (lazy (Printf.sprintf 
+	common_hdr.v_ent.sn common_hdr.v_ent.hc common_hdr.v_ent.age ));
+      s#log_info (lazy (sp 
 	"DATA pkt has invalid entry: age=%.2f, dist=%d, cost=%.2f"
-	data_hdr.i_ent.age data_hdr.i_ent.hc (Str_rtab.cost metric data_hdr.i_ent)));
+	common_hdr.i_ent.age common_hdr.i_ent.hc (Str_rtab.cost metric common_hdr.i_ent)));
       let i_ent, _ = Str_rtab.best_usable_invalid_entry rt metric dst in
-      s#log_info (lazy (Printf.sprintf 
-	"Our best usable invalid entry: age=%.2f, dist=%d, cost=%.2f"
-	i_ent.age i_ent.hc (Str_rtab.cost metric i_ent)));
+      s#log_info (lazy (sp 
+	"Our best usable invalid entry: age=%.2f, dist=%d, cost=%.2f, seqno=%d"
+	i_ent.age i_ent.hc (Str_rtab.cost metric i_ent) i_ent.sn));
       let i_ent = Str_rtab.best_invalid_entry rt metric dst in
-      s#log_info (lazy (Printf.sprintf 
-	"Our best invalid entry: age=%.2f, dist=%d, cost=%.2f"
-	i_ent.age i_ent.hc (Str_rtab.cost metric i_ent)));
+      s#log_info (lazy (sp 
+	"Our best invalid entry: age=%.2f, dist=%d, cost=%.2f, seqno=%d"
+	i_ent.age i_ent.hc (Str_rtab.cost metric i_ent) i_ent.sn));
       false
     )
     
@@ -605,7 +618,7 @@ object(s)
     let ers_uid = Random.int max_int in (* explained in send_rreq *)
     Hashtbl.replace ers_uids dst ers_uid;
 
-    s#log_info (lazy (sprintf "Originating RREQ for dst %d" dst));
+    s#log_info (lazy (sp "Originating RREQ for dst %d" dst));
 
     s#send_rreq  ~radius:str_TTL_START ~dst ~ers_uid ()
   )
@@ -639,12 +652,12 @@ object(s)
       with Not_found -> failwith "Str_agent.best_waiting_entries" in 
     let f_valid ent l3pkt = 
       let pkt_ent = match L3pkt.str_hdr l3pkt with 
-	| DATA hdr -> hdr.v_ent
+	| DATA (common_hdr, data_hdr) -> common_hdr.v_ent
 	| RREP _ | RREQ _ | HELLO _ -> failwith "Str_agent.best_waiting_entries: not DATA!" in
       if ent >>> pkt_ent then ent else pkt_ent
     and f_invalid ent l3pkt = 
       let pkt_ent = match L3pkt.str_hdr l3pkt with 
-	| DATA hdr -> hdr.i_ent
+	| DATA (common_hdr, data_hdr) -> common_hdr.i_ent
 	| RREP _ | RREQ _ | HELLO _ -> failwith "Str_agent.best_waiting_entries: not DATA!" in
       if Str_rtab.cost metric ent < Str_rtab.cost metric pkt_ent then ent else pkt_ent
     in
@@ -668,7 +681,7 @@ object(s)
 
     let rreq = RREQ 
       ({orig_hc = 0; orig_sn=seqno; v_ent=v_ent; i_ent=i_ent}, 
-      {rreq_orig=myid; rreq_id= rreq_id; rreq_dst=dst}) in
+      {rreq_orig=myid; rreq_id= rreq_id; rreq_dst=dst; stem_node=myid; stem_distance=0}) in
 
     s#make_l3str ~ttl:(radius-1) ~dst:L3pkt.l3_bcast_addr rreq
   )
@@ -699,16 +712,17 @@ object(s)
        with a ttl 32. So we use these per-destination ers_uids which are
        unique across a whole RREQ ERS. 
     *)
+
     if (s#repairing dst) then
       if beb lsr str_RREQ_RETRIES = 1 then (
-	s#log_info (lazy (sprintf "Reached RREQ_RETRIES for dst %d, abandoning" dst));
+	s#log_info (lazy (sp "Reached RREQ_RETRIES for dst %d, abandoning" dst));
 	s#drop_buffered_packets ~dst;
       ) else if s#ers_uid dst ers_uid then
 	if s#rreq_ratelimit_ok then (
 	  
 	  (* If we are done repairing this route (maybe a rreq from that node
 	     arrived in the meantime) then we would not emit a new RREQ.*)
-	  s#log_info (lazy (sprintf 
+	  s#log_info (lazy (sp 
 	    "ERS RREQ pkt for dst %d with radius %d" dst radius));
 	  
 	  rreq_id <- rreq_id + 1;
@@ -744,7 +758,7 @@ object(s)
 	) else (
 	  (* we cannot send the RREQ immediately, because if so we would not be
 	     respecting RREQ_RATELIMIT. So, we will try again in a little bit.*)
-	  s#log_info (lazy (sprintf 
+	  s#log_info (lazy (sp 
 	    "Delaying RREQ to %d by 0.2 due to rreq ratelimiting" dst));
 	  let evt() = s#send_rreq ~beb ~radius ~dst ~ers_uid ()
 	  in (Sched.s())#sched_in ~f:evt ~t:0.2;
@@ -752,38 +766,39 @@ object(s)
   )
     
 
-  method private process_rrep_pkt src ttl (str, rrep) sender = (
+  method private process_rrep_pkt src ttl (common, rrep) sender = (
     
-    s#log_info (lazy (sprintf 
-      "Received RREP pkt (replier %d originator %d, dst %d)"
-      rrep.rrep_replier rrep.rrep_orig rrep.rrep_dst));
+    s#log_info (lazy (sp 
+      "Received RREP pkt (replier %d originator %d, dst %d, hc %d)"
+      rrep.rrep_replier rrep.rrep_orig rrep.rrep_dst (common.orig_hc + 1)));
 
-    s#log_info (lazy (Printf.sprintf 
+    s#log_info (lazy (sp 
       "RREP pkt has valid entry: sn=%d, dist=%d, age=%.2f"
-      str.v_ent.sn str.v_ent.hc str.v_ent.age ));
-    s#log_info (lazy (Printf.sprintf 
+      common.v_ent.sn common.v_ent.hc common.v_ent.age ));
+    s#log_info (lazy (sp 
       "RREP pkt has invalid entry: age=%.2f, dist=%d, cost=%.2f"
-      str.i_ent.age str.i_ent.hc (Str_rtab.cost metric str.i_ent)));
+      common.i_ent.age common.i_ent.hc (Str_rtab.cost metric common.i_ent)));
 
     
     let (+++) ent offset = {ent with hc = ent.hc + offset} in
     (* Add/update entry to dest for which this rrep advertises reachability.*)
-    let updated_v = if str.v_ent <> Str_pkt.null_triple then
+    let updated_v = if common.v_ent <> Str_pkt.null_triple then
       Str_rtab.add_entry rt ~valid:true ~dst:rrep.rrep_dst ~nh:sender 
-	~ent:(str.v_ent +++ (str.orig_hc + 1))
+	~ent:(common.v_ent +++ (common.orig_hc + 1))
     else false
     in
-    let updated_i = if str.i_ent <> Str_pkt.null_triple then
+    let updated_i = if common.i_ent <> Str_pkt.null_triple then
       Str_rtab.add_entry rt ~valid:false ~dst:rrep.rrep_dst ~nh:sender 
-	~ent:(str.i_ent +++ (str.orig_hc + 1))
+	~ent:(common.i_ent +++ (common.orig_hc + 1))
     else false 
     in
     let updated = updated_i || updated_v in
     
-    if updated then 
+      if updated then 
       s#after_send_any_buffered_pkts rrep.rrep_dst
-    else 
-      s#log_info (lazy (Printf.sprintf "Did not update"));
+      else 
+      s#log_info (lazy (sp "Did not update"));
+
     (* We can forward rrep if we're not the originator, have updated the route
        above, and have a next hop. *)
     if updated && myid <> rrep.rrep_orig then (
@@ -792,14 +807,14 @@ object(s)
       if ent = Str_pkt.null_triple then (
 	stats.S.rrep_drop_nohop <- stats.S.rrep_drop_nohop + 1;
 	s#log_error 
-	(lazy (Printf.sprintf 
+	(lazy (sp 
 	  "Cannot forward RREP because no next hop to originator %d" rrep.rrep_orig));
 	s#log_error (lazy ("Entries are "^(Str_rtab.sprint_entries rt rrep.rrep_orig)))
       ) else 
 	if ttl > 0 then (
 	  Str_rtab.using_entry rt rrep.rrep_orig ent;
 	  let new_hdr = Str_pkt.RREP 
-	    ({str with orig_hc = str.orig_hc + 1}, rrep) in
+	    ({common with orig_hc = common.orig_hc + 1}, rrep) in
 	  let l3pkt =  s#make_l3str ~ttl:(ttl-1) ~dst:nh new_hdr in
 	  s#send_out ~nh l3pkt
 	)
@@ -818,7 +833,7 @@ object(s)
     
     (* a few sanity checks *)
     begin match str_hdr with
-      | RREQ (str, rreq) -> assert (dst = L3pkt.l3_bcast_addr);
+      | RREQ (common, rreq) -> assert (dst = L3pkt.l3_bcast_addr);
 	  assert(rreq.rreq_dst <> myid);
       | HELLO _ | DATA _ | RREP _ -> ()
     end;
@@ -831,7 +846,7 @@ object(s)
       | DATA _ -> 
 	  stats.S.data_xmit <- stats.S.data_xmit + 1;
 	  s#log_info (lazy 
-	    (sprintf "Forwarding DATA pkt from src %d to dst %d, nexthop %d."
+	    (sp "Forwarding DATA pkt from src %d to dst %d, nexthop %d."
 	      (L3pkt.l3src l3pkt) dst nh));
 	  s#mac_send_pkt l3pkt nh
       | RREP _ -> 
@@ -857,20 +872,21 @@ object(s)
      the node *)
   method private hand_upper_layer ~l3pkt = (
     stats.S.data_recv <- stats.S.data_recv + 1;
-    s#log_info (lazy (sprintf "Received app pkt from src %d" (L3pkt.l3src l3pkt)));
+    s#log_info (lazy (sp "Received app pkt from src %d" (L3pkt.l3src l3pkt)));
   )
 
   
   method private recv_pkt_app (l4pkt : L4pkt.t) dst = (
     stats.S.data_orig <- stats.S.data_orig + 1;
-    s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
-    let str_hdr = {
+    s#log_info (lazy (sp "Originating app pkt with dst %d" dst));
+    let common_hdr = {
 	orig_hc = 0; 
 	orig_sn = seqno; 
 	v_ent = Str_pkt.null_triple; 
 	i_ent = Str_pkt.null_triple; 
     } in
-    let l3pkt = s#make_l3str ~l4pkt ~dst (DATA str_hdr) in
+    let data_hdr = {last_flooder = None} in
+    let l3pkt = s#make_l3str ~l4pkt ~dst (DATA (common_hdr, data_hdr)) in
     if dst = myid then
       s#hand_upper_layer ~l3pkt
     else 
@@ -879,7 +895,12 @@ object(s)
 
   method stats = stats
 
-  method dump_state() = {rt=rt; seqno=seqno; metric=metric}
+  method dump_state() = 
+    {rt=rt; 
+    seqno=seqno; 
+    send_hellos=send_hellos;
+    stats=stats;
+    metric=metric}
   method read_state (s : persist_t) = 
     failwith "pass to initializer"; ()
 
@@ -898,7 +919,7 @@ let total_stats ?(stack=0) () =
 open S
 let sprint_stats s = 
   let b = Buffer.create 64 in
-  let p = Printf.sprintf in 
+  let p = sp in 
   Buffer.add_string b "-- Basic Stats:\n";
   Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
   Buffer.add_string b (p "   Delivery ratio: %f (Data orig: %d, Data recv: %d) \n"
@@ -921,4 +942,45 @@ let sprint_stats s =
 
 
 
-let () = Time.maintain_discrete_time()
+module Persist : Persist.t = struct
+
+  type description = int array
+      (* array indexed by stack #, contains the number of agents to be read
+	 for each stack. *)
+
+let save oc = 
+  Log.log#log_notice (lazy "Saving STR agent states..");
+
+  let descr : description = 
+    Array.init Node.max_nstacks 
+      (fun stack -> Misc.hashlen agents_array_.(stack))
+  in
+  Marshal.to_channel oc descr [];
+
+  for stack = 0 to Node.max_nstacks - 1 do
+    let agents = agents_array_.(stack) in
+    Hashtbl.iter (fun nid agent -> 
+      Marshal.to_channel oc (nid, agent#dump_state()) []) agents
+  done;
+  Log.log#log_notice (lazy "Done.")
+
+
+let restore ?(verbose=false) ic = 
+
+  Log.log#log_notice (lazy (sp "Restoring STR agent states..."));
+  let descr = (Marshal.from_channel ic : description) in
+
+  Array.iteri (fun stack n_agents -> 
+    for i = 0 to n_agents - 1 do
+      let (nid, state) = 
+	(Marshal.from_channel ic : Common.nodeid_t * persist_t) in
+      let node = Nodes.node nid in
+      let agent = 
+	(new str_agent ~stack ~state state.metric node) in 
+      node#install_rt_agent ~stack ( agent :> Rt_agent.t);
+    done;
+  ) descr;
+
+  Log.log#log_notice (lazy "Done.")
+
+end
