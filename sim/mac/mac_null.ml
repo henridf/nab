@@ -22,14 +22,6 @@
 
 (* $Id$ *)
 
-(** 
-  A null MAC layer, where there are no collisions, no losses. 
-  A null MAC accepts a packet for reception or transmission even when it is
-  already receiving or sending.
-  Only propagation and transmission delay are applied.
-  No queuing/buffering necessary.
-*)
-
 
 open Ether
 open L2pkt
