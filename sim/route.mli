@@ -17,7 +17,7 @@
 
 open Common
 
-type 'a hop = {hop:'a; anchor:'a; anchor_age: int ; searchcost:float}
+type 'a hop = {hop:'a; anchor:'a; anchor_age: Common.time_t ; mutable searchcost:float}
     (* this is not enforced, but 'a should normally be an int or a coordf_t *)
 
 type 'a t = 'a hop list
@@ -27,20 +27,23 @@ type 'a t = 'a hop list
 val create : unit -> 'a t
 
 val add_hop : 'a t -> 'a hop -> 'a t 
-  (* adds the hop at the end of the list *)
+  (* returns a new route with hop at end *)
 
 val append_hops : front:'a t -> back:'a t -> 'a t
   (* append a route to the end of another *)
 
 val nth_hop : 'a t -> int -> 'a hop
+val last_hop : 'a t -> 'a hop
 
 val length : 'a t -> int
 
-val i2c : ler_data_t -> int t -> Coord.coordf_t t
+(*
+val i2c : int t -> Coord.coordf_t t
   (* convert an int route to a coordf_t route using the coordinates in
      ler_data_t *)
+*)
   
-val route_valid : 'a t -> src:'a -> dest:'a -> bool
+val route_valid : 'a t -> src:'a -> dst:'a -> bool
   (* generic checks:
      - length >= 1
      - searchcost >= 0
@@ -55,6 +58,8 @@ val eucl_length : dist_f:(Coord.coordf_t -> Coord.coordf_t -> float) -> Coord.co
 
 val anchor_cost : 'a t -> float 
   (* Sum of squares of all search radii *)
+
+val i2c : int hop list -> Coord.coordf_t hop list
 
 val sprint : Coord.coordf_t t -> string  
 
