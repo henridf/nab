@@ -24,10 +24,14 @@ open Printf
 
 let rndseed = ref 0 
 
-class contentionmac owner : Mac.mac_t = 
+let bps = 1e7
+
+
+class contentionmac ?(stack=0) owner : Mac.mac_t = 
 object(s)
 
   inherit Log.inheritable_loggable
+  inherit Mac_base.base ~stack ~bps owner as super
 
   val ownerid = owner#id
   val owner:#Simplenode.simplenode = owner
@@ -69,7 +73,7 @@ object(s)
 	assert (interfering_until = Common.get_time());
 	let dst = l2dst ~pkt:l2pkt in
 	if (dst = L2_BCAST || dst = L2_DST ownerid) then 
-	  owner#mac_recv_pkt ~l2pkt
+	  super#send_up ~l2pkt
       end
   )
 
@@ -93,7 +97,7 @@ object(s)
 	
 	let end_rx_time = 
 	  Common.get_time() 
-	  +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	  +. super#xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
 
 	receiving_from <- l2src ~pkt:l2pkt;
 
@@ -119,10 +123,10 @@ object(s)
 	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
 	let end_xmit_time = 
 	  Common.get_time() 
-	  +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	  +. super#xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
 	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
-	SimpleEther.emit ~nid:ownerid ~l2pkt
+	SimpleEther.emit ~nid:ownerid l2pkt
       ) else (
 	let msg = 
 	  if s#sending then "sending" else  "receiving" 
