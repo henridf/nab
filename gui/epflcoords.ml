@@ -183,6 +183,6 @@ let l_pix = [
 "TSOL 407 120 617 120 617 101 407 101 R-SOR-1 P-FAV";
 "R-SOR-1 445 139 679 139 679 132 445 132 TSOL GC-H GC-G LE"]
 
-let s_split = List.map (fun s -> Str.split (Str.regexp "[ \t]+")  s) l_pix;;
+let s_split = List.map l_pix ~f:(fun s -> Str.split (Str.regexp "[ \t]+")  s);;
 
-let (l_mtr : string list list) = List.map  translate_list s_split
+let (l_mtr : string list list) = List.map s_split ~f:translate_list
