@@ -20,52 +20,38 @@ let box_center  n =
 
 let make_graph() = (
 
-  let ic = open_in "/tmp/coordinates.txt" in
-
   let re = Str.regexp "[ \t]+" in
 
   gr := Some (Graph.make_ "" 114 Graph.Undirected);
 
-  begin
-    try 
-      while true do
-	let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") (input_line ic)) in
-	let node = arr.(0) in
-	Graph.add_node_ (g()) node;
-	let info = Array.map 
-	  (fun s -> int_of_string s) 
-	  (Array.sub arr 1 8) in
-	Graph.setinfo_ (g()) node (Array.to_list info)
-      done
-    with 
-      | End_of_file -> ()
-      | e -> raise e;
-  end;
 
-  seek_in ic 0;
+  List.iter (fun line ->
+    let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") line) in
+    let node = arr.(0) in
+    Graph.add_node_ (g()) node;
+    let info = Array.map 
+      (fun s -> int_of_string s) 
+      (Array.sub arr 1 8) in
+    Graph.setinfo_ (g()) node (Array.to_list info)
+  ) Epflcoords.l;
   
-  begin
-    try 
-      while true do
-	let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") (input_line ic)) in
-	let node = arr.(0) in
-	Array.iteri 
-	  (fun i ngbr -> 
-	    if i > 8 then (
-	      let d = 
-		sqrt (float (Coord.disti_sq (box_center node) 
-		  (box_center ngbr)))
-	      in
-	      
-	      Graph.add_edge_ (g()) node ngbr d;
-	    )
-	  ) arr
-      done
-    with 
-      | End_of_file -> ()
-      | e -> raise e
 
-  end;
+  List.iter (fun line ->
+
+    let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") line) in
+    let node = arr.(0) in
+    Array.iteri 
+      (fun i ngbr -> 
+	if i > 8 then (
+	  let d = 
+	    sqrt (float (Coord.disti_sq (box_center node) 
+	      (box_center ngbr)))
+	  in
+	  
+	  Graph.add_edge_ (g()) node ngbr d;
+	)
+      ) arr
+  ) Epflcoords.l;
 
 )
 

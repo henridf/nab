@@ -82,6 +82,7 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_OBJ_FILES) \
 		$(MISC_DIR)/graph$(CMO) \
+		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
 		$(MWS_DIR)/mws_utils$(CMO) \
 		$(MISC_DIR)/param$(CMO) \
