@@ -37,40 +37,54 @@
 
 (** Statistics record maintained by aodv_agent. *)
 module Aodv_stats : sig
-type stats = {
-  mutable total_xmit : int; (** Total # packets transmitted. *)
-  
-  mutable data_xmit : int; (** Total # data packets transmitted. *)
-  mutable data_orig : int; (** Total # data packets originated. *)
-  mutable data_recv : int; (** Total # data packets received and delivered to
-			     an upper layer (ie, data packets whose
-			     destination was this node. *)
+  type stats = {
+    mutable total_xmit : int; (** Total # packets transmitted. *)
+    
+    mutable data_xmit : int; (** Total # data packets transmitted. *)
+    mutable data_orig : int; (** Total # data packets originated. *)
+    mutable data_recv : int; (** Total # data packets received and delivered to
+			       an upper layer (ie, data packets whose
+			       destination was this node. *)
+    
+    mutable hello_xmit : int; (** Total # hello packets transmitted. *)
+    
+    mutable rreq_xmit : int; (** Total # rreq packets transmitted *)
+    mutable rreq_init : int; (** Total # rreqs initiated. This is incremented
+			       once at the start of each route request cycle,
+			       not on subsequent ERS searches within that route
+			       request cycle.   *)
 
-  mutable hello_xmit : int; (** Total # hello packets transmitted. *)
+    mutable rreq_orig : int; (** Total # rreq packets originated. This is
+			       incremented at each new rreq packet originated
+			       (including for subsequent retries when using
+			       ERS). *)
+    
+    mutable rerr_xmit : int; (** Total # rerr packets transmitted. *)
+    mutable rerr_orig : int; (** Total # rerr packets originated. *)
 
-  mutable rreq_xmit : int; (** Total # rreq packets transmitted *)
-  mutable rreq_init : int; (** Total # rreqs initiated. This is incremented
-			     once at the start of each route request cycle,
-			     not on subsequent ERS searches within that route
-			     request cycle.   *)
+    mutable rrep_xmit : int; (** Total # rrep packets transmitted. *)
+    mutable rrep_orig : int; (** Total # rrep packets originated. *)
+    mutable rrep_drop_nohop : int; (** Total # rrep packets dropped because no
+				     route to originator. *)
+    mutable data_drop_overflow : int; (** Total # data packets dropped due to
+					buffer overflow. *)
+    mutable data_drop_rerr : int; (** Total # data packets dropped due to route
+				    error. *)
+  }
 
-  mutable rreq_orig : int; (** Total # rreq packets originated. This is
-			     incremented at each new rreq packet originated
-			     (including for subsequent retries when using
-			     ERS). *)
-  
-  mutable rerr_xmit : int; (** Total # rerr packets transmitted. *)
-  mutable rerr_orig : int; (** Total # rerr packets originated. *)
+  val add : stats -> stats -> stats 
+    (** Return the sum of two a stats records. *)
 
-  mutable rrep_xmit : int; (** Total # rrep packets transmitted. *)
-  mutable rrep_orig : int; (** Total # rrep packets originated. *)
+  val sprint_stats : stats -> string
+    (** Print a stats record into a nice string. *)
 
-  mutable data_drop_overflow : int; (** Total # data packets dropped due to
-				      buffer overflow. *)
-  mutable data_drop_rerr : int; (** Total # data packets dropped due to route
-				  error. *)
-}
+
 end
+
+val total_stats : ?stack:int -> unit -> Aodv_stats.stats
+  (** Return the sum of statistics for all nodes running on a given stack
+    (default stack is 0). *)
+  
 
 class aodv_agent : ?stack:int -> ?localrepair:bool -> ?dstonly:bool -> #Simplenode.simplenode -> 
 object
