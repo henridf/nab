@@ -97,8 +97,8 @@ object(s)
     
     let l3pkt  = (L2pkt.l3pkt l2pkt) in
 
-    s#log_debug (lazy (sprintf "Pkt received from source %d" 
-      (L3pkt.l3src ~l3pkt:(L2pkt.l3pkt l2pkt))));
+    s#log_debug (lazy (sprintf "Pkt received from source %d on stack %d" 
+      (L3pkt.l3src ~l3pkt:(L2pkt.l3pkt l2pkt)) stack));
 
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
@@ -106,13 +106,12 @@ object(s)
       (fun mhook -> mhook l2pkt s)
       pktin_mhooks.(stack);
     
-    Array.iter 
+
       (Opt.may (fun agent -> agent#mac_recv_l3pkt l3pkt))
-      rt_agents;
+      rt_agents.(stack);
     
-    Array.iter 
       (Opt.may (fun agent -> agent#mac_recv_l2pkt l2pkt))
-      rt_agents 
+      rt_agents.(stack)
   )
     
   method add_pktin_mhook ?(stack=0) f =
