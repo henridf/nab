@@ -40,7 +40,7 @@ class virtual world_common ~x ~y ~rrange  = (
     val initial_pos = (0.0, 0.0)
 
       
-    (** See {!World.world_t.neighbors}.
+    (** See {!Worldt.lazy_world_t.neighbors}.
       Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
     method virtual neighbors : Common.nodeid_t -> Common.nodeid_t list
 
@@ -217,7 +217,7 @@ class virtual world_common ~x ~y ~rrange  = (
       );
       s#update_node_neighbors_ ~oldpos nid;
 
-      ignore (s#neighbors_consistent || failwith "not consistent");
+(*      ignore (s#neighbors_consistent || failwith "not consistent");*)
 
       List.iter 
 	(fun mhook -> mhook newpos nid )
@@ -390,6 +390,7 @@ class virtual world_common ~x ~y ~rrange  = (
       !closest_id
     )
 
+
     method get_nodes_within_radius  ~nid ~radius = (
       
       let radius_sq = radius ** 2.0 in
@@ -427,11 +428,11 @@ class virtual world_common ~x ~y ~rrange  = (
 )
 
 
-(** Implementation of {!World.world_t} using a greedy approach to maintaining
+(** Implementation of {!Worldt.lazy_world_t} using a greedy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only re-computed
   each time it moves. This is usually slower than the lazy approach of
   {!Crworld.world_lazy}, but is necessary if using the [add_new_ngbr_hook]
-  facility of {!World.world_t}.
+  facility of {!Worldt.lazy_world_t}.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
@@ -458,7 +459,9 @@ class virtual world_greedy  = (
 	 Then, compute new neighbors, and add them to this node and to the neighbors.
       *)
 
-      (* not really sure if this is necessary (idea was to avoid polymorphic =) *)
+      (* not really sure if redefining List.mem here helps performance
+	 (intention is to avoid polymorphic = ) *)
+
       let rec mem (x:int) = function
 	  [] -> false
 	| a::l -> a = x || mem x l
@@ -487,43 +490,6 @@ class virtual world_greedy  = (
     )
 
 
-
-    method private update_node_neighbors_old node = (
-      
-      (* 
-	 For all neighbors, do a lose_neighbor_ on the neighbor and on this node.
-	 Then, compute new neighbors, and add them to this node and to the neighbors.
-      *)
-      
-      let old_neighbors = s#neighbors node#id in
-      let new_neighbors = s#compute_neighbors_ node#id in
-      let old_and_new = old_neighbors @ new_neighbors in
-      
-      let changed_neighbors = 
-	(* nodes which have changed status (entered or exited neighborhood)
-	   are those which are in only one of old_neighbors and new_neighbors *)
-	List.fold_left (fun l n -> 
-	  if ((Misc.list_count_int ~l:old_and_new n) = 1) then
-	    n::l 
-	  else 
-	    l) [] old_and_new 
-      in
-      List.iter 
-	(fun i -> 
-
-	  if List.mem i ngbrs.(node#id) then ( (* these ones left *)
-	    s#lose_neighbor_ ~nid:node#id  ~ngbrid:i;
-	    s#lose_neighbor_ ~nid:i ~ngbrid:node#id
-
-	  ) else (	  (* these ones entered *)
-	    s#add_neighbor_ ~nid:node#id ~ngbrid:i;
-	    if i <> node#id then
-	      (* don't add twice for node itself *)
-	      s#add_neighbor_ ~nid:i ~ngbrid:node#id 
-	  )
-	) changed_neighbors
-    )
-
     (* adds a new neighbor ngbrid to nid. 
        does NOT do the symetric operation *)
     method private add_neighbor_ ~nid ~ngbrid = (
@@ -550,12 +516,12 @@ class virtual world_greedy  = (
 
 
 
-(** Implementation of {!World.world_t} using a lazy approach to maintaining
+(** Implementation of {!Worldt.lazy_world_t} using a lazy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only computed
   when needed (for example by when the [#neighbors] method is invoked).
   This is usually faster than the greedy approach of
   {!Crworld.world_greedy}, but disallows using the [add_new_ngbr_hook]
-  facility of {!World.world_t}.
+  facility of {!Worldt.lazy_world_t}.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
@@ -600,13 +566,19 @@ class virtual reflecting_world ~x ~y ~rrange = (
 
     inherit world_common ~x ~y ~rrange
 
-    method get_nodes_within_radius  ~nid ~radius = (
-      let radius_sq = radius ** 2.0 in
-      let center = node_positions_.(nid) in
-      let l = ref [] in
-      Nodes.iteri (fun cand_id _ -> if s#dist_coords center node_positions_.(cand_id) <= radius then l := (cand_id)::!l);
-      !l
-    )
+    method boundarize pos = s#reflect pos
+    method dist_coords a b = sqrt (Coord.dist_sq a b)
+    method are_neighbors nid1 nid2 = 
+      nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
+
+  end
+)
+
+
+class virtual taurus_world ~x ~y ~rrange = (
+  object(s)
+
+    inherit world_common ~x ~y ~rrange
 
     method boundarize pos = s#reflect pos
     method dist_coords a b = sqrt (Coord.dist_sq a b)
@@ -631,13 +603,29 @@ class greedy_reflecting_world ~x ~y ~rrange : Worldt.greedy_world_t = (
   end
 )
 
+class lazy_taurus_world ~x ~y ~rrange : Worldt.lazy_world_t = (
+  object(s)
+    inherit world_lazy
+    inherit taurus_world ~x ~y ~rrange
+  end
+)
+
+class greedy_taurus_world ~x ~y ~rrange : Worldt.greedy_world_t = (
+  object(s)
+    inherit world_greedy
+    inherit taurus_world ~x ~y ~rrange
+  end
+)
+
+
+
 
 class epflworld ~x ~y ~rrange = 
 object(s)
   inherit lazy_reflecting_world ~x ~y ~rrange
   method random_pos =  
     let nodeind = Random.int 113 in
-    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
+    Read_coords.box_centeri nodeind
 end
 
 
