@@ -16,13 +16,13 @@ OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
 
 LIB_DIR = $(shell $(CAML_BIN_DIR)/ocamlc -where)
 
-MWS_DIR = mws
-MWS_BASE_DIR = $(MWS_DIR)/base
-MWS_INTF_DIR = $(MWS_DIR)/interfaces
-MWS_MAC_DIR = $(MWS_DIR)/mac
-MWS_MOB_DIR = $(MWS_DIR)/mob
-MWS_PKT_DIR = $(MWS_DIR)/pkt
-MWS_DIRS = $(MWS_BASE_DIR) $(MWS_INTF_DIR) $(MWS_MAC_DIR) $(MWS_MOB_DIR) $(MWS_PKT_DIR)
+SIM_DIR = mws
+SIM_BASE_DIR = $(SIM_DIR)/base
+SIM_INTF_DIR = $(SIM_DIR)/interfaces
+SIM_MAC_DIR = $(SIM_DIR)/mac
+SIM_MOB_DIR = $(SIM_DIR)/mob
+SIM_PKT_DIR = $(SIM_DIR)/pkt
+SIM_DIRS = $(SIM_BASE_DIR) $(SIM_INTF_DIR) $(SIM_MAC_DIR) $(SIM_MOB_DIR) $(SIM_PKT_DIR)
 
 
 PROTO_DIR = proto
@@ -34,12 +34,12 @@ PROTO_MISC_DIR = $(PROTO_DIR)/misc
 PROTO_DIRS = $(PROTO_GREP_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
 	$(PROTO_MISC_DIR) $(PROTO_LER_DIR) 
 
-MWS_LIB_DIR = lib
-MWS_LIB_CONTRIB_DIR = $(MWS_LIB_DIR)/contrib
-MWS_LIB_DIRS = $(MWS_LIB_DIR) $(MWS_LIB_CONTRIB_DIR)
+SIM_LIB_DIR = lib
+SIM_LIB_CONTRIB_DIR = $(SIM_LIB_DIR)/contrib
+SIM_LIB_DIRS = $(SIM_LIB_DIR) $(SIM_LIB_CONTRIB_DIR)
 
 
-MWS_SCRIPT_DIR = scripts
+SIM_SCRIPT_DIR = scripts
 GUI_DIR = gui
 GUI_DATA_DIR = $(GUI_DIR)/data
 MK_DIR = mk
@@ -53,7 +53,7 @@ CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
 INCLUDE_SRC = $(foreach dir,$(DIRS), -I $(dir))
 INCLUDE_LIBS = -I $(GTK_DIR)
-INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(MWS_SCRIPT_DIR) -I $(GUI_DATA_DIR)
+INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(SIM_SCRIPT_DIR) -I $(GUI_DATA_DIR)
 
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
 
@@ -61,17 +61,17 @@ LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"
 THFLAGS = -thread
 
 
-DIRS = 	$(MWS_LIB_DIRS) \
+DIRS = 	$(SIM_LIB_DIRS) \
 	$(GUI_DIR) \
-	$(MWS_DIRS) \
+	$(SIM_DIRS) \
 	$(PROTO_DIRS) 
 
 
 # For clean_* targets, we don't rm gui/data/ files (they are slow to compile and 
 # never change)
-CLEAN_DIRS = $(DIRS) $(MWS_SCRIPT_DIR) $(MK_DIR)
+CLEAN_DIRS = $(DIRS) $(SIM_SCRIPT_DIR) $(MK_DIR)
 
-DEPEND_DIRS = $(DIRS) $(MWS_SCRIPT_DIR)	$(GUI_DATA_DIR)
+DEPEND_DIRS = $(DIRS) $(SIM_SCRIPT_DIR)	$(GUI_DATA_DIR)
 
 DOC_DIRS = $(DIRS) $(GUI_DATA_DIR)
 DOC_DIR = doc
@@ -84,9 +84,9 @@ DEPEND_FILES := $(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*mli)) \
 
 ifdef SCRIPT
   ifeq ($(wildcard $(SCRIPT)),$(SCRIPT))
-    MWS_SCRIPT = $(SCRIPT)
+    SIM_SCRIPT = $(SCRIPT)
   else
-    MWS_SCRIPT = $(MWS_SCRIPT_DIR)/$(SCRIPT)
+    SIM_SCRIPT = $(SIM_SCRIPT_DIR)/$(SCRIPT)
     ifneq ($(wildcard $(SCRIPT)),$(SCRIPT))
       $(error I cannot find $(SCRIPT))
     endif
@@ -121,78 +121,78 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 # Files to generate doc for (all except scripts and gui/data/ files)
 DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
 	$(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*ml)) \
-	$(MWS_SCRIPT_DIR)/script_utils.mli \
-	$(MWS_SCRIPT_DIR)/script_utils.ml
+	$(SIM_SCRIPT_DIR)/script_utils.mli \
+	$(SIM_SCRIPT_DIR)/script_utils.ml
 
 
 ##########################################
 # Files corresponding to different subdirs
 
 
-MWS_OBJS = $(GFX_LIB) \
+SIM_OBJS = $(GFX_LIB) \
 		$(STR_LIB) \
-		$(MWS_LIB_OBJS) \
+		$(SIM_LIB_OBJS) \
 		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
-		$(MWS_LIB_DIR)/param$(CMO) \
-		$(MWS_LIB_DIR)/linkedlist$(CMO) \
-		$(MWS_INTF_DIR)/rt_agent$(CMO) \
-		$(MWS_INTF_DIR)/scheduler$(CMO) \
-		$(MWS_INTF_DIR)/worldt$(CMO) \
-		$(MWS_INTF_DIR)/mac$(CMO) \
-		$(MWS_INTF_DIR)/trafficgen$(CMO) \
-		$(MWS_BASE_DIR)/time$(CMO) \
-		$(MWS_BASE_DIR)/common$(CMO) \
-		$(MWS_PKT_DIR)/pkt_common$(CMO) \
-		$(MWS_PKT_DIR)/l4pkt$(CMO) \
+		$(SIM_LIB_DIR)/param$(CMO) \
+		$(SIM_LIB_DIR)/linkedlist$(CMO) \
+		$(SIM_INTF_DIR)/rt_agent$(CMO) \
+		$(SIM_INTF_DIR)/scheduler$(CMO) \
+		$(SIM_INTF_DIR)/worldt$(CMO) \
+		$(SIM_INTF_DIR)/mac$(CMO) \
+		$(SIM_INTF_DIR)/trafficgen$(CMO) \
+		$(SIM_BASE_DIR)/time$(CMO) \
+		$(SIM_BASE_DIR)/common$(CMO) \
+		$(SIM_PKT_DIR)/pkt_common$(CMO) \
+		$(SIM_PKT_DIR)/l4pkt$(CMO) \
 		$(PROTO_LER_DIR)/ease_pkt$(CMO) \
 		$(PROTO_GREP_DIR)/grep_pkt$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
 		$(PROTO_MISC_DIR)/simple_pkt$(CMO) \
-		$(MWS_PKT_DIR)/l3pkt$(CMO) \
-		$(MWS_PKT_DIR)/l2pkt$(CMO) \
-		$(MWS_LIB_DIR)/log$(CMO) \
-		$(MWS_BASE_DIR)/world$(CMO) \
-		$(MWS_BASE_DIR)/params$(CMO) \
-		$(MWS_LIB_CONTRIB_DIR)/heap$(CMO) \
-		$(MWS_BASE_DIR)/sched$(CMO) \
-		$(MWS_BASE_DIR)/nodes$(CMO) \
-		$(MWS_BASE_DIR)/route$(CMO) \
-		$(MWS_BASE_DIR)/flood$(CMO) \
+		$(SIM_PKT_DIR)/l3pkt$(CMO) \
+		$(SIM_PKT_DIR)/l2pkt$(CMO) \
+		$(SIM_LIB_DIR)/log$(CMO) \
+		$(SIM_BASE_DIR)/world$(CMO) \
+		$(SIM_BASE_DIR)/params$(CMO) \
+		$(SIM_LIB_CONTRIB_DIR)/heap$(CMO) \
+		$(SIM_BASE_DIR)/sched$(CMO) \
+		$(SIM_BASE_DIR)/nodes$(CMO) \
+		$(SIM_BASE_DIR)/route$(CMO) \
+		$(SIM_BASE_DIR)/flood$(CMO) \
 		$(PROTO_LER_DIR)/le_tab$(CMO) \
-		$(MWS_BASE_DIR)/rtab$(CMO) \
-		$(MWS_BASE_DIR)/ether$(CMO) \
-		$(MWS_BASE_DIR)/tsource$(CMO) \
-		$(MWS_BASE_DIR)/simplenode$(CMO) \
-		$(MWS_MAC_DIR)/mac_base$(CMO) \
-		$(MWS_MAC_DIR)/mac_null$(CMO) \
-		$(MWS_MAC_DIR)/mac_contention$(CMO) \
-		$(MWS_MAC_DIR)/mac_cheat$(CMO) \
-		$(MWS_BASE_DIR)/gpsnode$(CMO) \
+		$(SIM_BASE_DIR)/rtab$(CMO) \
+		$(SIM_BASE_DIR)/ether$(CMO) \
+		$(SIM_BASE_DIR)/tsource$(CMO) \
+		$(SIM_BASE_DIR)/simplenode$(CMO) \
+		$(SIM_MAC_DIR)/mac_base$(CMO) \
+		$(SIM_MAC_DIR)/mac_null$(CMO) \
+		$(SIM_MAC_DIR)/mac_contention$(CMO) \
+		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
+		$(SIM_BASE_DIR)/gpsnode$(CMO) \
 		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
-		$(MWS_BASE_DIR)/rt_agent_base$(CMO) \
+		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
 		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_agent$(CMO) \
 		$(PROTO_LER_DIR)/ease_agent$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
-		$(MWS_BASE_DIR)/gui_hooks$(CMO) \
-		$(MWS_MOB_DIR)/mob_base$(CMO) \
-		$(MWS_MOB_DIR)/mobs$(CMO) \
-		$(MWS_BASE_DIR)/mob_ctl$(CMO) \
-		$(MWS_BASE_DIR)/crsearch$(CMO) \
-		$(MWS_BASE_DIR)/crworld$(CMO) \
-		$(MWS_SCRIPT_DIR)/script_utils$(CMO) \
-		$(MWS_BASE_DIR)/persistency$(CMO)
+		$(SIM_BASE_DIR)/gui_hooks$(CMO) \
+		$(SIM_MOB_DIR)/mob_base$(CMO) \
+		$(SIM_MOB_DIR)/mobs$(CMO) \
+		$(SIM_BASE_DIR)/mob_ctl$(CMO) \
+		$(SIM_BASE_DIR)/crsearch$(CMO) \
+		$(SIM_BASE_DIR)/crworld$(CMO) \
+		$(SIM_SCRIPT_DIR)/script_utils$(CMO) \
+		$(SIM_BASE_DIR)/persistency$(CMO)
 # script_utils should be as near to end as possible
 # because only scripts should need to use it
 # persistency gets an exception because it performs 
 # setup-type functions, similar to those done in a script
 
-GUI_OBJS = $(MWS_OBJS) \
+GUI_OBJS = $(SIM_OBJS) \
 		$(GUI_DATA_DIR)/epfl$(CMO) \
 		$(GUI_DATA_DIR)/blank$(CMO) \
 		$(GUI_DIR)/params_gui$(CMO) \
@@ -203,19 +203,19 @@ GUI_OBJS = $(MWS_OBJS) \
 		$(GUI_DIR)/gui_grep$(CMO) 
 
 MODULE_OBJS = \
-	$(MWS_LIB_DIR)/larray$(CMO) \
-	$(MWS_LIB_DIR)/circbuf$(CMO) \
-	$(MWS_LIB_DIR)/itin$(CMO)
+	$(SIM_LIB_DIR)/larray$(CMO) \
+	$(SIM_LIB_DIR)/circbuf$(CMO) \
+	$(SIM_LIB_DIR)/itin$(CMO)
 
 
-MWS_LIB_OBJS = 	 $(MWS_LIB_DIR)/mods$(CMO) \
-		 $(MWS_LIB_DIR)/misc$(CMO) \
-		 $(MWS_LIB_CONTRIB_DIR)/opt$(CMO) \
-		 $(MWS_LIB_DIR)/pkt_queue$(CMO) \
-		 $(MWS_LIB_DIR)/randoms$(CMO) \
-		 $(MWS_LIB_DIR)/coord$(CMO) \
-		 $(MWS_LIB_DIR)/naryTree$(CMO) \
-		$(MWS_LIB_DIR)/graph$(CMO)
+SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
+		 $(SIM_LIB_DIR)/misc$(CMO) \
+		 $(SIM_LIB_CONTRIB_DIR)/opt$(CMO) \
+		 $(SIM_LIB_DIR)/pkt_queue$(CMO) \
+		 $(SIM_LIB_DIR)/randoms$(CMO) \
+		 $(SIM_LIB_DIR)/coord$(CMO) \
+		 $(SIM_LIB_DIR)/naryTree$(CMO) \
+		$(SIM_LIB_DIR)/graph$(CMO)
 
 
 %.cmo: %.ml
@@ -227,39 +227,39 @@ MWS_LIB_OBJS = 	 $(MWS_LIB_DIR)/mods$(CMO) \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-alltargets: mws mwsgrep grepviz mws-top mwsviz mwsvor mwsviz-top
-allopttargets: mws mwsgrep grepviz mwsviz mwsvor
+alltargets: fake fakegrep grepviz fake-top fakeviz fakevor fakeviz-top
+allopttargets: fake fakegrep grepviz fakeviz fakevor
 
 
-mws: bin/mws
-bin/mws: $(MWS_OBJS) $(MWS_SCRIPT)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJS) $(MWS_SCRIPT) -o $@ 
+fake: bin/fake
+bin/fake: $(SIM_OBJS) $(SIM_SCRIPT)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
 
 
-mwsgrep: bin/mwsgrep
-bin/mwsgrep: $(MWS_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
+fakegrep: bin/fakegrep
+bin/fakegrep: $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
 
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
 
-mwsvor: bin/mwsvor
-bin/mwsvor:  $(MWS_OBJS) scripts/voronoi_common$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJS) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
+fakevor: bin/fakevor
+bin/fakevor:  $(SIM_OBJS) scripts/voronoi_common$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(SIM_OBJS) scripts/voronoi_common$(CMO) $(SIM_SCRIPT) -o $@ 
 
-mws-top: bin/mws-top
-bin/mws-top: $(MWS_OBJS)  $(MWS_SCRIPT)
-	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJS)  $(MWS_SCRIPT) -o $@
+fake-top: bin/fake-top
+bin/fake-top: $(SIM_OBJS)  $(SIM_SCRIPT)
+	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS)  $(SIM_SCRIPT) -o $@
 
-mwsviz: bin/mwsviz
-bin/mwsviz: $(GUI_OBJS) $(MWS_SCRIPT)
+fakeviz: bin/fakeviz
+bin/fakeviz: $(GUI_OBJS) $(SIM_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
-	$(GUI_OBJS) $(MWS_SCRIPT) -o $@ 
+	$(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
-mwsviz-top: bin/mwsviz-top
-bin/mwsviz-top: $(GUI_OBJS) $(MWS_SCRIPT)
-	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(MWS_SCRIPT) -o $@ 
+fakeviz-top: bin/fakeviz-top
+bin/fakeviz-top: $(GUI_OBJS) $(SIM_SCRIPT)
+	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 
 

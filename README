@@ -1,12 +1,12 @@
-		   MWS - MULTIHOP WIRELESS SIMULATOR
+		   FAKE - THE EPFL NETWORK SIMULATOR
 
-		http://lcavwww.epfl.ch/~henridf/mws.html
+		http://lcavwww.epfl.ch/~henridf/fake.html
 
 **             
 ** PREREQUISITES
 **             
 
-To compile and run mws, you must have ocaml installed. The latest version of
+To compile and run fake, you must have ocaml installed. The latest version of
 ocaml (3.07+2) is recommended. The official site to get ocaml is 
 http://caml.inria.fr. 
 
@@ -20,24 +20,24 @@ lablgtk. Lablgtk is available from XXXX.
 **             
 
 The html documentation and a tutorial are located under doc/ and can be 
-browsed starting from mws/doc/index.html.
+browsed starting from doc/index.html.
 
 More detailed documentation of the internals can be generated from the 
 source code with the ocamldoc tool - see COMPILING below.
 
 For pointers on getting started in ocaml, please see the documentation 
-in mws/doc/index.html
+in doc/index.html
 
 **             
 ** SOURCE LAYOUT                                              
 **             
 
-  mws/               -> simulator core
-  mws/interfaces/    -> core class and module interfaces
-  mws/base/          -> implementation of core functions
-  mws/pkt/           -> packet representations and related functions
-  mws/mob/           -> mobility and related functions
-  mws/mac/           -> mac layers and related functions
+  sim/               -> simulator core
+  sim/interfaces/    -> core class and module interfaces
+  sim/base/          -> implementation of core functions
+  sim/pkt/           -> packet representations and related functions
+  sim/mob/           -> mobility and related functions
+  sim/mac/           -> mac layers and related functions
 
   proto/             -> protocol agents
   proto/ler          -> last encounter routing (EASE/GREASE)
@@ -61,29 +61,27 @@ To generate code documentation: (will be rooted at doc/gen/index.html)
 
 	make htmldoc
 
-To compile an interactive mws toplevel:
+To compile an interactive toplevel:
 
-	make mws-top
+	make fake-top
 
-To compile an interactive mws toplevel with gui support linked in:
+To compile an interactive toplevel with gui support linked in:
 (requires lablgtk, see PREREQUISITES above)
 
-	make mwsviz-top
+	make fakeviz-top
 
-To compile mws to run script foo.ml in batch mode:
+To compile fake to run script foo.ml in batch mode:
 (foo.ml is assumed to be in the scripts/ directory)
 
-	make SCRIPT=foo.ml mws
+	make SCRIPT=foo.ml fake
 
 If foo.ml uses gui libraries:
 
-	make SCRIPT=foo.ml mwsviz
+	make SCRIPT=foo.ml fakeviz
 
 To compile as native code (runs faster), pass OPT=y flag to make, as in
 
-	make OPT=y SCRIPT=foo.ml mwsviz
-	or	
-	make OPT=y SCRIPT=foo.ml mwsgui
+	make OPT=y SCRIPT=foo.ml fakeviz
 
 Note: interactive toplevels cannot be compiled to native code.
 
