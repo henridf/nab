@@ -7,14 +7,8 @@ open Coord
 
 
 type nodeid_t = int
-val nid_bcast : nodeid_t
-
-type port_t = int
 
 type time_t = float
-
-module NodeSet : Set.S with type elt = nodeid_t
-val nodeset_of_list : nodelist:(nodeid_t list) -> NodeSet.t
 
 type enc_t = {
   mutable t: time_t; 
