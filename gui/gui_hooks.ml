@@ -17,8 +17,6 @@ let pos_mtr_to_pix pos =
 
 
 let node_moved newpos node = (
-  flush stdout;
-  flush stderr;
   let newpos_pix = pos_mtr_to_pix newpos in
   Gui_pos.enter_node_pos (node#id, newpos_pix)
 )
