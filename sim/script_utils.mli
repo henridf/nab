@@ -67,3 +67,21 @@ val gui_draw_connectivity : unit -> unit
 *)
 
 val detach_daemon :  outfilename:string -> unit
+  (** Detach from terminal. All further logs will be spewed to outfilename *)
+
+
+val seed : int ref
+  (** Value last used to seed the RNG (with Random.init) *)
+
+val change_seed : unit -> unit
+  (** Change the RNG seed. *)
+
+val init_seed : unit -> unit
+  (** Change the RNG seed back to the initial value (the one that this starts
+    off with). This would be useful for example when we have run a bunch of
+    GREP tests and now want to start all over again and run a bunch of AODV tests.*)
+
+val dumpconfig : out_channel -> unit
+  (** Dumps out config of all registered Param (not only those from params.ml).
+    Right now only those params that are command-line settable are dumped (ie
+    created with ~cmdline=true).*)

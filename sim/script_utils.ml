@@ -237,7 +237,19 @@ let print_header () = (
   flush stdout;
 )
 
-
+let seed = ref 12
+let change_seed() =  seed := !seed + 14
+  
+let dumpconfig outchan = (
+  let conf = Param.dumpconfig () in
+  List.iter (fun (name, value) ->
+    output_string outchan ((padto name 20)^value^"\n")
+  ) conf;
+  output_string outchan ((padto "RNG Seed" 20)^(string_of_int !seed)^"\n");
+  flush outchan;
+)
+    
+  
 let finish () = (
   Printf.printf ".. done\n";
   flush stdout;
