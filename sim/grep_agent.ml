@@ -306,10 +306,10 @@ object(s)
     and next_hc = Rtab.hopcount ~rt:next_rt ~dst
 
     in
-    assert (
+    if not (
       (this_sn < next_sn) || 
       ((this_sn = next_sn) && (this_hc >= next_hc))
-    )
+    ) then raise (Failure "Inv_packet_upwards")
   )
     
   method private process_data_pkt 
@@ -472,7 +472,7 @@ object(s)
 		| None -> failed()
 		| Some nh -> nh 
 	    in 
-	    (*	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;*)
+	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
 	    try begin
 	      owner#mac_send_pkt ~l3pkt ~dstid:nexthop; end
 	    with Simplenode.Mac_Send_Failure -> failed()
