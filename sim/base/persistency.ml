@@ -117,14 +117,12 @@ let read_node_state ?(gpsnodes=false) ic  =
   if gpsnodes then (
   (* make node objects out of restored node states *)
     Nodes.set_gpsnodes
-      (Array.mapi
+      ((Array.mapi
 	(fun i nodestate -> 
-	  (new Gpsnode.gpsnode ~pos_init:nodestate i)
-	) node_states);
-    
-    (* set up initial node position in internal structures of World.object *)
-    Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos );
-  ) 
+	  (World.w())#init_pos ~nid:i ~pos:nodestate;
+	  new Gpsnode.gpsnode i)
+      ) node_states)
+  )
   else (
     (* No state to restore in the node objects themselves. 
     Script_utils.make_nodes ~with_positions:false ();*)
