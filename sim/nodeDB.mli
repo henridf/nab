@@ -8,11 +8,11 @@ object
     (* None if never met *)
     
   method encounter_age : nid:Common.nodeid_t -> Common.time_t 
-
+    (* max_float if never met *)
   method num_encounters : int
 
-  method dump_state : node_cnt:int ->  nodeDB_state_t
-    (* returns db state for marshalling. Array size will be nodes_cnt *)
+  method dump_state : nodeDB_state_t
+    (* returns db state for marshalling. *)
 
   method load_state : dbstate:nodeDB_state_t -> unit
 

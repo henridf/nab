@@ -12,7 +12,7 @@ object
   method last_encounter : nid:Common.nodeid_t -> Common.enc_t option
   method encounter_age : nid:Common.nodeid_t -> Common.time_t 
   method num_encounters : int
-  method dump_state : node_cnt:int ->  nodeDB_state_t
+  method dump_state :   nodeDB_state_t
   method load_state : dbstate:nodeDB_state_t -> unit
 end
 
@@ -23,9 +23,14 @@ object(s: #nodeDB_t)
   val enc_arr = Array.make ntargets None
 
   method add_encounter ~nid:nid ~enc:enc = 
-    enc_arr.(nid) <- Some enc
-      
-  method last_encounter ~nid = enc_arr.(nid) 
+    try 
+      enc_arr.(nid) <- Some enc
+    with _ -> raise (Failure "NodeDB.add_encounter : nid not in bounds")
+
+  method last_encounter ~nid = 
+    try 
+      enc_arr.(nid) 
+    with _ -> raise (Failure "NodeDB.last_encounter : nid not in bounds")
     
   method encounter_age ~nid = 
     match s#last_encounter ~nid:nid with
@@ -34,10 +39,9 @@ object(s: #nodeDB_t)
 
   method num_encounters = 
     Array.fold_right
-      (fun encopt count  -> count + if encopt <> None then 1 else 0) enc_arr 0
+      (fun encopt count -> count + if encopt <> None then 1 else 0) enc_arr 0
 
-  method dump_state ~node_cnt = 
-    Array.init node_cnt (fun i -> s#last_encounter i)
+  method dump_state = enc_arr
 
   method load_state ~dbstate = 
     Array.iteri
