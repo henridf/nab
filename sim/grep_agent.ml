@@ -38,7 +38,6 @@ Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:30
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-
 open Printf
 open Misc
 
@@ -93,6 +92,7 @@ let agent i = !agents_array.(i)
 
 let _ERS_START_TTL = 2
 let _ERS_MULT_FACT = 2
+let _ERS_MAX_TTL = 64
 
 
 class grep_agent owner : grep_agent_t = 
@@ -241,7 +241,7 @@ object(s)
 	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
       | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
     end
-  ) 
+  )
 
   method private process_radv_pkt ~l3pkt ~sender = 
     raise Misc.Not_Implemented
@@ -422,7 +422,7 @@ object(s)
 	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
       in
       let next_rreq_ttl = 
-	(ttl*_ERS_MULT_FACT) in
+	min _ERS_MAX_TTL (ttl*_ERS_MULT_FACT) in
       let next_rreq_timeout = 
 	((i2f next_rreq_ttl) *. 0.02) in
       let next_rreq_event() = 

@@ -92,6 +92,7 @@ let agent i = !agents_array.(i)
 
 let _ERS_START_TTL = 2
 let _ERS_MULT_FACT = 2
+let _ERS_MAX_TTL = 64
 
 
 class aodv_agent owner : aodv_agent_t = 
@@ -477,7 +478,7 @@ object(s)
 	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
       in
       let next_rreq_ttl = 
-	(ttl*_ERS_MULT_FACT) in
+	min _ERS_MAX_TTL (ttl*_ERS_MULT_FACT) in
       let next_rreq_timeout = 
 	((i2f next_rreq_ttl) *. 0.02) in
       let next_rreq_event() = 
