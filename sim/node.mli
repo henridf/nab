@@ -6,8 +6,6 @@
 type node_state_t = {
   node_pos : Coord.coordf_t;
 }
-    
-type agent_ctrl_t = AGENT_STOP | AGENT_START
 
 class type node_t =
 	  
@@ -56,14 +54,16 @@ object
        those agents which might need it.
     *)
 
-  method add_mhook : hook:(Packet.l2packet_t -> node_t -> unit) -> unit
-    (* the mhook (monitoring hook) on a node gets called each time a packet
-       leaves or enters the node. 
-       This squishes the current mhook if any already in place *)
+  method add_pktin_mhook : hook:(Packet.l2packet_t -> node_t -> unit) -> unit
+    (* Any monitoring application can register here to see all packets entering
+       the node.
+       If multiple apps, order in which called is unspecified.*)
+        
+  method add_pktout_mhook : hook:(Packet.l2packet_t -> node_t -> unit) -> unit
+    (* Any monitoring application can register here to see all packets leaving
+       the node.
+       If multiple apps, order in which called is unspecified.*)
     
-  method add_control_hook : hook:(agent_ctrl_t -> unit) -> unit
-  method agent_control : action:agent_ctrl_t -> unit
-
   method add_app_send_pkt_hook : hook:(Packet.l4pld_t -> dst:Common.nodeid_t -> unit) -> unit
     (* Routing/Protocol agents should hook here to touch packets being sent by 
        applications. 
