@@ -63,7 +63,7 @@ object
       Mac-layer broadcast. This is a wrapper around [method mac_bcast_pkt] in
       {!Simplenode.simplenode}. *)
 
-  method private mac_send_pkt : L3pkt.t -> dstid:Common.nodeid_t -> unit
+  method private mac_send_pkt : L3pkt.t -> Common.nodeid_t -> unit
     (** Call this method from the derived routing agent to send a packet as a
       Mac-layer unicast. This is a wrapper around [method mac_send_pkt] in
       {!Simplenode.simplenode}. *)

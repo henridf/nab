@@ -118,21 +118,12 @@ object(s)
      EASE routing logic. *)
   method app_recv_l4pkt l4pkt dst = (
 
-    let ler_hdr = 
-      Ler_pkt.make_ler_hdr
-	~anchor_pos:owner#pos
-	~enc_age:(le_tab#le_age dst)
-    in	
+    let ler_hdr = Ler_pkt.make_ler_hdr 
+      ~anchor_pos:owner#pos ~enc_age:(le_tab#le_age dst)  in
     let l3hdr = 
-      L3pkt.make_l3hdr 
-	~srcid:myid 
-	~dstid:dst 
-	~ext:(`LER_HDR ler_hdr)
-	() 
-    in
-    let l3pkt =
-      L3pkt.make_l3pkt ~l3hdr ~l4pkt
-    in
+      L3pkt.make_l3hdr ~src:myid ~dst:dst ~ext:(`LER_HDR ler_hdr) () in
+    let l3pkt =  L3pkt.make_l3pkt ~l3hdr ~l4pkt in
+
     s#recv_ler_pkt_ l3pkt;
   )
 

@@ -85,12 +85,7 @@ object(s)
     (* Make complete l3 header, which contains src, dst, and our protocol specific
        extension. *)
     let l3hdr = 
-      L3pkt.make_l3hdr
-	~srcid:myid
-	~dstid:dst
-	~ext:(`SIMPLE_HDR hdr_ext)
-	()
-    in
+      L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`SIMPLE_HDR hdr_ext) () in
     
     (* Return a full l3 pkt containing the constructed l3 hdr and the l4 packet we
        were passed.*)

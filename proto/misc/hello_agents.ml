@@ -110,11 +110,7 @@ object (s)
     (* Prepare a hello packet for broadcasting *)
 
     let l3hdr = (* the L3 header, with broadcast dst addr *)
-      L3pkt.make_l3hdr 
-	~srcid:owner#id
-	~dstid:L3pkt.l3_bcast_addr
-	()
-    in
+      L3pkt.make_l3hdr ~src:owner#id ~dst:L3pkt.l3_bcast_addr () in
 
     let l4pkt = (* the L4 payload, which contains our position *)
       `HELLO_PKT (owner#pos)

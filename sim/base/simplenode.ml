@@ -141,7 +141,7 @@ object(s)
     (s#mac ~stack ())#xmit ~l2pkt
   )
 
-  method mac_send_pkt ?(stack=0) ~dst l3pkt  = (
+  method mac_send_pkt ?(stack=0) dst l3pkt  = (
     if not ((World.w())#are_neighbors s#id dst) then (
 	s#log_notice (lazy (Printf.sprintf "mac_send_pkt: %d not a neighbor." dst));
 	raise Mac_Send_Failure

@@ -80,8 +80,8 @@ type t
 (** {2 Network Layer (L3) Packet Constructors} *)
 
 val make_l3hdr :
-  srcid:Common.nodeid_t ->
-  dstid:Common.nodeid_t ->
+  src:Common.nodeid_t ->
+  dst:Common.nodeid_t ->
   ?ttl:int ->
   ?ext:l3hdr_ext_t -> unit -> 
   l3hdr_t

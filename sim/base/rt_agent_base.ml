@@ -39,11 +39,11 @@ object(s : #Rt_agent.t)
 
   method private mac_bcast_pkt l3pkt = owner#mac_bcast_pkt ~stack l3pkt
 
-  method private mac_send_pkt l3pkt ~dstid = 
-    owner#mac_send_pkt ~stack ~dst:dstid l3pkt
+  method private mac_send_pkt l3pkt dst = 
+    owner#mac_send_pkt ~stack dst l3pkt
 
-  method private cheat_send_pkt l3pkt dstid = 
-    owner#cheat_send_pkt ~stack ~dst:dstid l3pkt 
+  method private cheat_send_pkt l3pkt dst = 
+    owner#cheat_send_pkt ~stack ~dst l3pkt 
 
   method virtual mac_recv_l3pkt : L3pkt.t -> unit
   method virtual mac_recv_l2pkt : L2pkt.t -> unit

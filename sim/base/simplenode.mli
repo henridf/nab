@@ -126,9 +126,10 @@ object ('a)
 
   method mac_send_pkt : 
     ?stack:int -> 
-    dst:Common.nodeid_t -> 
+    Common.nodeid_t -> 
     L3pkt.t ->  unit
-    (** Sent packet to neighbor mac_dst. Raises {!Simplenode.Mac_Send_Failure} if mac_dst is not a neighbor *)
+    (** Send packet to neighbor mac_dst. 
+      Raises {!Simplenode.Mac_Send_Failure} if mac_dst is not a neighbor *)
 
   method cheat_send_pkt : ?stack:int -> dst:Common.nodeid_t -> L3pkt.t -> unit
     (** Same as above except will accept sending pkt to any destination, even

@@ -156,14 +156,14 @@ let get_ler_l3ext (l3hdr:l3hdr_t) =
 
 
 let make_l3hdr 
-  ~srcid 
-  ~dstid 
+  ~src 
+  ~dst 
   ?(ttl=255)
   ?(ext=`NONE)
   ()
   = {
-    src=srcid; 
-    dst=dstid;
+    src=src; 
+    dst=dst;
     ttl=ttl;
     ext=ext
   }
