@@ -9,6 +9,7 @@
 
 open Ether
 open L2pkt
+open Printf 
 
 class nullmac owner : Mac.mac_t = 
 object(s)
@@ -22,15 +23,30 @@ object(s)
     s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/nullmac";
   )
 
-  method recv ?snr ~l2pkt () = 
-    s#log_debug (lazy "RX packet ");
+  method recv ?snr ~l2pkt () = (
     let dst = l2dst ~pkt:l2pkt in
-    if (dst = L2_BCAST || dst = L2_DST ownerid) then 
-      let recvtime = 
-	Common.get_time() 
-	+. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
-      let recv_event() =  owner#mac_recv_pkt ~l2pkt in
-      (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
+
+    match dst with
+      | L2_BCAST ->
+	  s#log_debug (lazy
+	    (sprintf "Start RX, l2src %d, l2dst broadcast" (l2src ~pkt:l2pkt)));
+	  let recvtime = 
+	    Common.get_time() 
+	    +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	  let recv_event() =  owner#mac_recv_pkt ~l2pkt in
+	  (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
+      | L2_DST d when (d = ownerid) ->
+	  s#log_debug  (lazy
+	    (sprintf "Start RX, l2src %d, l2dst %d" (l2src ~pkt:l2pkt) d));
+	  let recvtime = 
+	    Common.get_time() 
+	    +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
+	  let recv_event() =  owner#mac_recv_pkt ~l2pkt in
+	  (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)	  
+      | L2_DST d ->
+	  s#log_debug  (lazy
+	    (sprintf "Start RX, l2src %d, l2dst %d (not for us)" (l2src ~pkt:l2pkt) d));
+  )
 
   method xmit ~l2pkt = (
     s#log_debug (lazy "TX packet ");
