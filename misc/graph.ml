@@ -224,7 +224,7 @@ struct
       !res
   )
 
-  let a_cost c = match c with Nan -> false | _ -> true
+  let a_cost c = match c with Nan -> false | Cost _ -> true
   let float_of_cost c = match c with Nan -> failwith "float_of_cost" | Cost x -> x
 
   exception Found of int
@@ -238,7 +238,7 @@ struct
   let less_cost c1 c2 = match (c1, c2) with
       Cost x, Cost y -> x < y
     | Cost x, Nan -> true
-    | _, _ -> false
+    | Nan, _ -> false
 	
 		     
   exception No_way
