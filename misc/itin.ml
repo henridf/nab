@@ -1,3 +1,8 @@
+(* todo:
+   2. unroll_itin needs to recompute array
+   3. wrapping of max_int in counter needs to be taken care of 
+*)
+
 open Misc
 open Larray
 open Circbuf
@@ -7,13 +12,13 @@ sig
   exception Itin_size_not_set
   type place_t = None | Place of int;;
   type t   
-  val set_itin_size_ : graphsize:int -> unit  (* needed to set size of internal 'scratch' structures. could be avoided *)
-  val create_ : int -> t
+  val create_ : itinsize:int -> graphsize:int -> t
   val length_ : t -> int
   val addplace_ : t -> place_t -> unit
   val get_ : t -> int -> place_t    (* get an entry in the itinerary, specified by relative age *)
   val hops_to_place_ : t -> place_t -> int (* returns max_int if place not in itin *)
-  val unroll_itin_ : t -> t (* itinerary must be full before this can be called *)
+  val unroll_ : t -> t (* itinerary must be full before this can be called *)
+  val print_ : t -> int -> unit
   val test_ : unit -> unit    
 end;;
 
@@ -25,51 +30,62 @@ struct
 
   type place_t = None | Place of int
   type mytype = place_t LinkedArray.linkedArray_t
-  type t =  place_t CircBuf.circbuf_t (* head points to last written entry *)
-		       
-  let graphsize__ = ref 8
-  let last_visit_of_place__ = ref (Array.create !graphsize__ max_int) (* to avoid allocating each time in unroll_itin_ *)
+  type t =  {cbuf: place_t CircBuf.circbuf_t; (* head points to last written entry *)
+	     graphsize: int; (* number of nodes in the graph over which this itinerary goes *)
+	     arr: int array;
+	     mutable counter: int
+	    }
+
+  let last_visit_of_place__ = ref (Array.create 0 max_int) (* to avoid allocating each time in unroll_ *)
     
-  let set_itin_size_ ~graphsize = (
-    if (graphsize <= 0) then raise (Invalid_argument "Itinerary.set_itin_size_ : must be > 0");
-      graphsize__ := graphsize;
-      last_visit_of_place__ := Array.create graphsize max_int;
-  )
-
-  let create_ size = CircBuf.create_ size None
-  let length_ itin = CircBuf.length_ itin
-
-  let addplace_ itin place = CircBuf.push_ itin place
-
-  let get_ itin offset = try CircBuf.get_ itin offset with Invalid_argument "Circbuf.get" -> raise (Invalid_argument "Itinerary.get_")
-
-  let hops_to_place_ itin place = (
-    (* xxx/slow this could be optimized from O(N) to O(1) by keeping an
-        array of places visited *)
-    let get = get_ itin in
-    let rec _hops_to_place  = function
-    	l when (l = length_ itin) -> max_int
-      | l when ((get l) = place) -> l
-      | l -> _hops_to_place (l + 1)
-    in
-      _hops_to_place 0
-  )
-
-
-				  
   let p2i__ = function 
       None -> raise (Invalid_argument "Itinerary.p2i__: Cannot convert None to int")
     | Place i -> i
+
+
+  let create_ ~itinsize ~graphsize = {cbuf=CircBuf.create_ itinsize None;
+				      graphsize=graphsize;
+				      arr=Array.create graphsize (max_int);
+			              counter=0
+				     }
+
+  let length_ itin = CircBuf.length_ itin.cbuf
+
+  let addplace_ itin place = (
+    CircBuf.push_ itin.cbuf place;
+    itin.arr.(p2i__ place) <- itin.counter;
+			       
+    if (!counter == max_int - 1) then failwith 
+      "Itinerary.hops_to_place_ : Counter wrapped. Time to implement wrapping and test .."
+    itin.counter <- itin.counter + 1
+  )
+				
 	
+  let get_ itin offset = try CircBuf.get_ itin.cbuf offset with Invalid_argument "Circbuf.get" -> raise (Invalid_argument "Itinerary.get_")
+
+  let hops_to_place_ itin place = 
+    if itin.arr.(p2i__ place) == max_int then 
+      max_int (* place never been visited *)
+    else
+      let h = itin.counter - itin.arr.(p2i__ place)  in
+	if h > CircBuf.length_ itin.cbuf
+	then 
+	  max_int (* place visited long ago, not in itinerary any more *)
+	else 
+	  h - 1 (* -1 so that the last node in itinerary is 0 hops away *)
     
   let have_wrapped__ itin =  (get_ itin (length_ itin - 1)) <> None 
 
-  let unroll_itin_ itin = (
+  let unroll_ itin = (
     
     (* last_visit_of_place__.(n) = how long ago we last visited place n in the graph  (max_int if never visited)  *)
-    ArrayLabels.fill !last_visit_of_place__ ~pos:0 ~len:!graphsize__  max_int;
+    if (Array.length !last_visit_of_place__ <> itin.graphsize) then 
+      last_visit_of_place__ := Array.create itin.graphsize max_int
+    else
+      (* to avoid reallocs, reuse the same one across invocations when graphsize doesn't change *)
+      ArrayLabels.fill !last_visit_of_place__ ~pos:0 ~len:itin.graphsize  max_int;
     
-    if not (have_wrapped__ itin) then failwith "Itinerary.unroll_itin_: cannot unroll itinerary which is not full";
+    if not (have_wrapped__ itin) then failwith "Itinerary.unroll_: cannot unroll itinerary which is not full";
     
     (* forward-walk list and keep time of first visit through place *)
     (* xxx/slow since we always will iterate over whole list *)
@@ -77,12 +93,12 @@ struct
 		      try (
 			if (!last_visit_of_place__.(p2i__ place) = max_int) then !last_visit_of_place__.(p2i__ place) <- i;
 		      ) with Invalid_argument "Array.get" -> 
-			raise (Invalid_argument "Itinerary.unroll_itin_: itin contained place that was bigger than graphsize")
-		   ) itin; 
+			raise (Invalid_argument "Itinerary.unroll_: itin contained place that was bigger than graphsize")
+		   ) itin.cbuf; 
     
     (* reverse-walk list and each time you encounter a place that's not the first encounter noted above,  *)
     (* make the shortcut. *)
-    let larr = LinkedArray.create_ (CircBuf.toarray_ itin) in (* larr.(0) will be most recently visited place *)
+    let larr = LinkedArray.create_ (CircBuf.toarray_ itin.cbuf) in (* larr.(0) will be most recently visited place *)
       
     let rec revwalk t = (  
       (* recursion over t:int offset going backward in time *)
@@ -110,28 +126,44 @@ struct
 	      revwalk (m - 1)
     )
     in
-      revwalk (CircBuf.length_ itin - 1); 
+      revwalk (CircBuf.length_ itin.cbuf - 1); 
+      let newcb = CircBuf.fromarray_ (LinkedArray.toarray_ larr) in
+      let unroll_len = CircBuf.length_ itin.cbuf in
+      let newarr = Array.create itin.graphsize max_int in
+	CircBuf.iteri_ (fun i place ->  newarr.(p2i__ place) <- unroll_len - i - 1) newcb;
+
       (* xxx/slow 2 allocations here. Could create a CircBuf.fromlinkedarray that skips one alloc *)
-      CircBuf.fromarray_ (LinkedArray.toarray_ larr)
+      {cbuf=newcb;
+       arr=newarr;
+       counter=unroll_len;
+       graphsize=itin.graphsize}
   )		 
 			    
+  let print_ itin l = (
+    for i = 0 to l - 1 do
+      Printf.printf "%d " (p2i__ (get_ itin i))
+    done;
+    Printf.printf "\n"; flush stdout
+  )
 
   let test_ () = (
 
+    let graphsize = ref 5 in
     let test_unrolling size input unrolled_check = (
-      let itin = create_ size in
+      let itin = create_ ~itinsize:size ~graphsize:!graphsize in
 	array_rev_iter (fun x -> addplace_ itin (Place x)) input;
 	
-	let unrolled = unroll_itin_ itin in
+	let unrolled = unroll_ itin in
 	  assert (length_ unrolled = Array.length unrolled_check);
 	  for i = 0 to Array.length unrolled_check - 1 do
-	    assert ((get_ unrolled i) = (Place unrolled_check.(i)))
+	    assert ((get_ unrolled i) = (Place unrolled_check.(i)));
+	    assert ((hops_to_place_ unrolled (Place unrolled_check.(i))) == i);
 	  done;
+
     ) in
 
-    set_itin_size_ 5; (* size of graph (not itineraries!) *)
 
-    let itin = create_ 4 in
+    let itin = create_ ~itinsize:4 ~graphsize:!graphsize in
       assert (length_ itin = 4);
       for i = 0 to 3 do
 	assert ((get_ itin i) = None)
@@ -172,7 +204,7 @@ struct
       test_unrolling 1 [|3|] [|3|];
 
 
-      set_itin_size_ 10; (* size of graph (not itineraries!) *)
+      graphsize := 10;
 
       (* incidentally, shows that current unrolling algorithm is not the best! *)
       test_unrolling 12  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 2; 9|] [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9|];
@@ -184,7 +216,7 @@ struct
 	test_unrolling 5 [|3; 2; 1; 0|] [|3; 2; 1; 0|];
 	assert false;
       ) with 
-      	  Failure "Itinerary.unroll_itin_: cannot unroll itinerary which is not full" -> ();
+      	  Failure "Itinerary.unroll_: cannot unroll itinerary which is not full" -> ();
     Printf.printf "Itinerary.test_ : passed \n";
   )
 
