@@ -103,15 +103,16 @@ let do_one_run() = (
 
 let _ = 
   Read_coords.make_graph();
-  Param.set Params.nodes 1;
-  Param.set Params.rrange 250.0;
-  Param.set Params.x_size 4000.0;
-  Param.set Params.y_size 3000.0;
+  Param.set Params.nodes 1000;
+  Param.set Params.rrange 50.0;
+  Param.set Params.x_size 800.0;
+  Param.set Params.y_size 600.0;
   Gui_gtk.init ();
   Gui_ctl.create_buttons();
   Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();
   do_one_run();
 (*  (Gworld.world())#find_closest ~pos:(10.0, 10.0) ~f:(fun _ -> true);;    *)
+  
   Main.main();
 
