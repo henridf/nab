@@ -24,15 +24,6 @@
 
 
 
-(* Mar03
-   wierd: decrementing shopcount when packet not sent seems necessary, 
-   ie omission was a bug, but not sure if it changes anything.
-   anyway current solution is a bit of a quick hack 
-   May03
-   maybe this is due to the fact that ttl does not appear to be corrected
-   either - should be looked into.
-*)
-
 open Printf
 open Misc
 
