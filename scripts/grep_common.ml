@@ -19,7 +19,7 @@ struct
   let agent = Param.stringcreate
     ~name:"agent"
     ~cmdline:true
-    ~default:"aodv"
+    ~default:"grep"
     ~doc:"Routing protocol"
     ~checker:(fun s -> ignore (agent_of_string s))
     ()

@@ -14,8 +14,8 @@ let rrange = 100.
 
 let print_degree() = 
   let avgn = avg_neighbors_per_node() in
-  Printf.fprintf stderr "Avg neighbors per node is %f\n" avgn;
-  flush stderr
+  Log.log#log_notice (lazy (sprintf "Avg neighbors per node is %f\n" avgn))
+
 
 let do_one_run() = (
 
@@ -37,6 +37,8 @@ let do_one_run() = (
   begin match agenttype with
     | AODV -> make_aodv_nodes()
     | GREP -> make_grep_nodes();
+	Array.iter (fun grep_agent -> grep_agent#start_hello ())
+	  !Grep_agent.agents_array
   end;
 
   Mob_ctl.make_borderwaypoint_mobs ~gran:(rrange /. 10.) ();
@@ -47,9 +49,7 @@ let do_one_run() = (
 
 let () = 
 
-
   Param.set Params.rrange rrange;
-  
 
   Param.set Params.mac "null";
 
@@ -57,22 +57,20 @@ let () =
   in
   Myarg.parse s (fun s -> ()) "You messed up!";
 
-  Gui_gtk.init ();
+  Gui_gtk.init();
 
   Gui_grep.create_buttons_grep();
 
   do_one_run();
+(*  (Gsched.sched())#run_for ~duration:10.;*)
 
-  let src() = (Param.get Params.nodes) - 1 in
+
   let dst = 0 in
   for i = 0 to -1 do 
     (Nodes.node dst)#originate_app_pkt (i + 2);
-    (Gsched.sched())#run_for ~duration:10.;
+
   done;
   
-  
-  
-  (*  (Gsched.sched())#run_for ~duration:1000.;*)
   print_degree();
 
   Main.main();
