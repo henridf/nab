@@ -11,7 +11,7 @@ endif
 
 CAML_BIN_DIR	= $(dir $(shell which ocamlc))
 
-OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc.opt
+OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc
 OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
 
 LIB_DIR = $(shell $(CAML_BIN_DIR)/ocamlc -where)
@@ -108,6 +108,7 @@ GTK_STUFF =  $(GTK_LIBS) $(GTK_INIT_OBJS)
 
 
 
+ODOC_FHTML_SRC = $(SIM_LIB_CONTRIB_DIR)/odoc_fhtml.ml
 
 # Files to generate doc for (all except scripts and gui/data/ files)
 DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
@@ -115,6 +116,7 @@ DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
 	$(SIM_SCRIPT_DIR)/script_utils.mli \
 	$(SIM_SCRIPT_DIR)/script_utils.ml
 
+DOC_FILES := $(filter-out $(DOC_FILES), $(ODOC_FHTML_SRC))
 
 ##########################################
 # Files corresponding to different subdirs
@@ -167,6 +169,8 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
+		$(PROTO_AODV_DIR)/aodv_defaults$(CMO) \
+		$(PROTO_AODV_DIR)/aodv_rtab$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
 		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
@@ -251,9 +255,12 @@ bin/nabviz-top: $(GUI_OBJS) $(SIM_SCRIPT)
 	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 
+ODOC_FHTML_OBJ = $(SIM_LIB_CONTRIB_DIR)/odoc_fhtml$(CMO)
+$(ODOC_FHTML_OBJ): $(ODOC_FHTML_SRC)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -I +ocamldoc -c $<
 
-htmldoc: $(GUI_OBJS)
-	-$(OCAMLDOC) -html -sort -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES)
+htmldoc: $(GUI_OBJS) $(ODOC_FHTML_OBJ)
+	-$(OCAMLDOC) -g $(ODOC_FHTML_OBJ) -sort -d $(DOC_GEN_DIR)  $(INCLUDE)  $(DOC_FILES)
 	@echo "*"
 	@echo "* Note: it is ok if there are warnings/errors above as a result of generating documentation. "
 	@echo "*"
