@@ -40,7 +40,8 @@ let res_summary = ref []
 
 let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_recv = (
-  Random.init 124231;
+    if agenttype = GREP then 
+      Random.self_init();
   incr run;
 
   Log.set_log_level ~level:Log.LOG_NOTICE;
@@ -64,7 +65,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 
 
   Grep_hooks.set_sources sources;
-  Grep_hooks.set_stop_thresh pkts_to_recv;
+  Grep_hooks.set_stop_thresh (pkts_to_recv * sources);
 
 
   Nodes.iter (fun n ->
@@ -110,31 +111,41 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 )
 
 
-
 let runs = [
 (* speed routing rate nodes srcs pktsrecv *)
   (* 400 nodes *)
-  (0.0, GREP, 8, 800, 4,1000);
-  (0.0, AODV, 8, 800, 4,1000);
-  (1.0, GREP, 8, 800, 4,1000);
-  (1.0, AODV, 8, 800, 4,1000);
-  (2.0, GREP, 8, 800, 4,1000);
-  (2.0, AODV, 8, 800, 4,1000);
-  (4.0, GREP, 8, 800, 4,1000);
-  (4.0, AODV, 8, 800, 4,1000);
-  (8.0, GREP, 8, 800, 4,1000);
-  (8.0, AODV, 8, 800, 4,1000);
+  (8.0, GREP, 8, 200, 4, 100);
+  (8.0, AODV, 8, 200, 4, 100);
+  (8.0, GREP, 8, 200, 4, 100);
+  (8.0, AODV, 8, 200, 4, 100);
+  (8.0, GREP, 8, 200, 4, 100);
+  (8.0, AODV, 8, 200, 4, 100);
+  (8.0, GREP, 8, 200, 4, 100);
+  (8.0, AODV, 8, 200, 4, 100);
+  (8.0, GREP, 8, 200, 4, 100);
+  (8.0, AODV, 8, 200, 4, 100);
 ]
-
-
-
 (*
 let runs = [
 (* speed routing rate nodes srcs pktsrecv *)
-  (2.0, GREP, 1, 100, 1, 100);
-  (2.0, AODV, 1, 100, 1, 100)
+  (* 400 nodes *)
+  (0.0, GREP, 8, 200, 4, 100);
+  (0.0, AODV, 8, 200, 4, 100);
+  (1.0, GREP, 8, 200, 4, 100);
+  (1.0, AODV, 8, 200, 4, 100);
+  (2.0, GREP, 8, 200, 4, 100);
+  (2.0, AODV, 8, 200, 4, 100);
+  (4.0, GREP, 8, 200, 4, 100);
+  (4.0, AODV, 8, 200, 4, 100);
+  (8.0, GREP, 8, 200, 4, 100);
+  (8.0, AODV, 8, 200, 4, 100);
+  (16.0, GREP, 8, 200, 4, 100);
+  (16.0, AODV, 8, 200, 4, 100);
 ]
-*)
+  *)
+
+
+
 
 
 let _ = 
@@ -152,12 +163,13 @@ let _ =
 
   let rec print_summary l = 
     match l with 
-      | (speed1, grep_pkts)::(speed2, aodv_pkts)::rem ->
+      | (speed1, aodv_pkts)::(speed2, grep_pkts)::rem ->
 	  Printf.printf "%f %d %d\n" speed1 grep_pkts aodv_pkts;
 	  print_summary rem;
       | [] -> ()
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
   in
+  Printf.printf "Speed GREP AODV\n";
   print_summary !res_summary
   
 
