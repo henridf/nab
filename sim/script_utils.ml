@@ -128,7 +128,7 @@ let make_diff_agents () = (
     (Nodes.map (fun n -> new Diff_agent.diff_agent n));
 
   Nodes.iteri (fun nid n -> 
-    n#install_rt_agent (!Grep_agent.agents_array.(nid) :> Rt_agent.t));
+    n#install_rt_agent (!Diff_agent.agents_array.(nid) :> Rt_agent.t));
 )
 
 let make_aodv_nodes () = (
