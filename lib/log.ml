@@ -134,6 +134,27 @@ object(s)
 
 end 
 
+class virtual virtual_loggable =
+
+  object
+
+    method virtual private log_always : string Lazy.t -> unit
+    method virtual private log_debug : string Lazy.t -> unit
+    method virtual private log_error : string Lazy.t -> unit
+    method virtual private log_info : string Lazy.t -> unit
+    method virtual private log_notice : string Lazy.t -> unit
+    method virtual private log_warning : string Lazy.t -> unit
+
+    method virtual private log : string Lazy.t -> unit
+
+    method virtual private mark_break : unit
+
+    method virtual objdescr : string
+
+    method virtual private set_objdescr : ?owner:inheritable_loggable -> string -> unit
+  end
+
+
 class standalone_loggable facility = 
 object
   inherit inheritable_loggable as super

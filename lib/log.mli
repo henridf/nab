@@ -96,6 +96,38 @@ class inheritable_loggable :
 
   end
 
+class virtual virtual_loggable :
+
+  object
+
+    method virtual private log_always : string Lazy.t -> unit
+    method virtual private log_debug : string Lazy.t -> unit
+    method virtual private log_error : string Lazy.t -> unit
+    method virtual private log_info : string Lazy.t -> unit
+    method virtual private log_notice : string Lazy.t -> unit
+    method virtual private log_warning : string Lazy.t -> unit
+
+    method virtual private log : string Lazy.t -> unit
+      (** Shorthand for {!Log.inheritable_loggable.log_info} *)
+
+    method virtual private mark_break : unit
+      (** Inserts a breaking line (a line of '-') into the logging steam. Use
+	(sparingly) to visually separate portions of the log. *)
+
+    method virtual objdescr : string
+      (** Returns this object's objdescr *)
+
+    method virtual private set_objdescr : ?owner:inheritable_loggable -> string -> unit
+      (** This should be used by an inheriting class to set the objdescr. If
+	the object is "owned" by another object, it can pass along the owner
+	so that the objdescr will be built as the concatenation of the owner's
+	objdescr and the ownee's objdescr. 
+	For example, a mac object belonging to node 3 may simply set its
+	objdescr as "/cmac", and the resulting objdescr will be
+	"/node/3/cmac".*)
+
+  end
+
 (** This class is equivalent to {!Log.inheritable_loggable} except that its
   logging methods are public. It is intended to be used outside of objects, by
   simply instanciating a new object of this class. 
