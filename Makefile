@@ -10,7 +10,7 @@ else
 endif
 
 
-OCAMLDOC = ocamldoc
+OCAMLDOC = ocamldoc.opt
 
 LIB_DIR = $(shell ocamlc -where)
 
@@ -249,11 +249,20 @@ ocamlgfx:
 ocamlstr: 
 	ocamlmktop -o bin/ocamlstr $(STR_LIB) 
 
-CLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out *.annot); done
+OPTCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.cmx); done
+BYTECLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.cmi *.cmo); done
+MISCCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.o *.out *.annot); done
 EMACSCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *~; rm -f .*~); done
 
-clean:
-	$(CLEANALL)
+bclean:
+	$(BYTECLEANALL)
+	rm -f  *.cmi *.cmo 
+
+oclean:
+	$(OPTCLEANALL)
+	rm -f  *.cmx
+clean:  bclean oclean
+	$(MISCCLEANALL)
 	rm -f *.o *.cmx *.cmi *.cmo a.out 
 eclean:
 	$(EMACSCLEANALL)
