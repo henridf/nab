@@ -28,10 +28,35 @@ open Coord
 open Graph
 open Misc
 
+
+
+type base_state = {
+  rnd : Random.State.t;
+  speed : float;
+  moving : bool;
+  granularity : float
+}
+
 module Random = Random.State 
 let rndseed = ref 0
 
-class virtual mobility 
+let sp = Printf.sprintf 
+
+let mobs : (Common.nodeid_t, Mob.t) Hashtbl.t= Hashtbl.create (Param.get Params.nodes)
+
+let mob nid = Hashtbl.find mobs nid
+
+let delete_all_mobs() = Hashtbl.clear mobs
+
+let add_mob nid mob = 
+  if Hashtbl.mem mobs nid then 
+    failwith 
+      (sp "Mob_base: Mob already taken for %d" nid)
+  else
+    Hashtbl.add mobs nid mob
+
+
+class virtual ['a] mobility 
   (owner:#Node.node) 
   ?gran
   () =
@@ -45,7 +70,7 @@ object(s)
 			   we will load the scheduler with zillions of small
 			   movement events *)
 
-  val rnd = Random.make [|!rndseed|]
+  val mutable rnd = Random.make [|!rndseed|]
 
   val seqno = ref 1
     (* Monontonically increasing seqno used to disqualify a #move event that remains in the scheduler
@@ -55,7 +80,7 @@ object(s)
     *)
 
   initializer (
-    
+    add_mob owner#id (s :> Mob.t);
     begin match gran with 
       | Some g -> granularity <- g
       | None -> granularity <- (Param.get Params.radiorange) /. 10.
@@ -107,7 +132,34 @@ object(s)
     )
   )
 
+  method private dump_base_state() = 
+    {rnd=rnd; 
+    moving=moving; 
+    speed=speed_mps;
+    granularity=granularity
+    }
+
+  method dump_state() = (s#dump_base_state(), s#dump_other_state())
+
+  method private restore_base_state state = 
+    rnd <- state.rnd;
+    speed_mps <- state.speed;
+    granularity <- state.granularity;
+    if state.moving then s#start else s#stop
+      
+
+  method restore_state (base_state, other_state) = 
+    s#restore_base_state base_state;
+    s#restore_other_state other_state
+
+
+  method private virtual dump_other_state : unit -> 'a
+  method private virtual restore_other_state : 'a -> unit
+
 end
 
-
-
+class no_other_state_mixin =
+object 
+  method private dump_other_state () = ()
+  method private restore_other_state () = ()
+end

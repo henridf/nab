@@ -130,12 +130,12 @@ let install_macs ?(stack=0) ?(bps=default_bps) () =
 
 let install_mobs ?gran () = 
   match Param.get Mob_ctl.mob with 
-    | Mobs.Uniwaypoint  -> Mob_ctl.make_uniwaypoint_mobs ?gran ()
-    | Mobs.Borderwaypoint  -> Mob_ctl.make_borderwaypoint_mobs ?gran ()
-    | Mobs.Epfl_waypoint  -> Mob_ctl.make_epfl_waypoint_mobs ()
-    | Mobs.Billiard  -> Mob_ctl.make_billiard_mobs ?gran ()
-    | Mobs.Randomwalk  -> Mob_ctl.make_discrete_randomwalk_mobs ?gran ()
-    | Mobs.None -> ()
+    | `Uniwaypoint  -> Mob_ctl.make_uniwaypoint_mobs ?gran ()
+    | `Borderwaypoint  -> Mob_ctl.make_borderwaypoint_mobs ?gran ()
+    | `Epfl_waypoint  -> Mob_ctl.make_epfl_waypoint_mobs ()
+    | `Billiard  -> Mob_ctl.make_billiard_mobs ?gran ()
+    | `Randomwalk  -> Mob_ctl.make_discrete_randomwalk_mobs ?gran ()
+    | `None -> ()
 
 
 let make_naked_nodes ?(with_positions=true) () = (

@@ -27,6 +27,8 @@
   @author Henri Dubois-Ferriere.
  *)
 
+module Persist : Persist.t
+
 val make_uniwaypoint_mobs : ?gran:float -> unit -> unit
   (** Create {!Mob.t} objects that implement a uniform waypoint mobility
     model (see {!Mobs.uniwaypoint}). Optional gran indicates the mobility granularity. 
@@ -52,11 +54,16 @@ val make_discrete_randomwalk_mobs : ?gran:float -> unit -> unit
     Optional [gran] indicates the step size.
   *)
 
-val set_speed_mps : ?nidopt:Common.nodeid_t -> float -> unit
-  (** Set mobility speed in meters/sec. If optional nodeid is given, only that
-    node's speed is set, otherwise all nodes are set to the given value *)
+val set_speed : Common.nodeid_t -> float -> unit
+  (** [set_speed nid speed] sets the mobility speed of node [nid] to [speed]
+    (in meters/sec). *)
 
-val get_speed_mps : Common.nodeid_t -> float
+val set_speed_all : float -> unit
+  (** [set_speed_all speed] sets the mobility speed of all nodes to [speed]
+    (in meters/sec). *)
+
+
+val get_speed : Common.nodeid_t -> float
   (** Returns the speed of given node. *)
 
 val start_node : Common.nodeid_t -> unit
@@ -74,5 +81,13 @@ val start_all : unit -> unit
 val stop_all : unit -> unit
   (** Stops mobility of all nodes. Idempotent.*)
 
-val mob : Mobs.mob_t Param.t
+type mob_t = 
+    [ `Borderwaypoint 
+    | `Uniwaypoint 
+    | `Epfl_waypoint
+    | `Randomwalk 
+    | `Billiard]
+
+
+val mob : [ mob_t | `None] Param.t
   (** Mob param *)

@@ -24,27 +24,6 @@
 
 
 
-(*
-  the global simulator state is written to file as:
-  
-  descr: string  
-  hdr: state_hdr_t (size of simulation, etc)
-  state: sim_state_t
-  
-  1. descr is not used by mws per se. The intention is to keep a readable
-     trace in the .mld, so that the user can do a 'strings xxx.mld' to figure
-     out how many nodes, what type of scenario, etc, if e.g. the filename is 
-     not self-descriptive enough.
-  2. hdr is the structured way of representing the params that are
-     described in descr. This is used by mws, for example to know how many
-     nodes there are, and hence what the size of the array is.
-  3. state : The raw data. For now this is only le_tab's and node
-     positions. Complete node state (what agents it has instanciated, their
-     state, etc) might be non trivial, so for now we only store le_tab, since
-     that is what takes longest to generate and is reusable.
-*)
-
-
 let sp = Printf.sprintf
 
 module Persist_Nodes : Persist.t = struct
@@ -62,31 +41,45 @@ module Persist_Nodes : Persist.t = struct
     Nodes.iter (fun n -> Marshal.to_channel oc n#dump_state []);
     Log.log#log_notice (lazy "Done saving node state.")
 
+
   let restore ?(verbose=false) ic = 
-  Log.log#log_notice (lazy (sp "Restoring node state..."));
-   let n_nodes = (Marshal.from_channel ic : int) in
+
+    Log.log#log_notice (lazy (sp "Restoring node state..."));
+    let n_nodes = (Marshal.from_channel ic : int) in
     if n_nodes <> Param.get Params.nodes then (
       raise (Failure (sp
 	"Persist_Nodes.restore: Params.nodes is %d, yet there are %d nodes"
 	(Param.get Params.nodes) n_nodes));
       exit (-1));
-
+    
     Script_utils.make_nodes ~with_positions:false ();
     for nid = 0 to n_nodes - 1 do
       let node_state = (Marshal.from_channel ic : Node.node_state_t) in
       (World.w())#init_pos ~nid ~pos:(Node.state_pos node_state)
     done;
-  assert ((World.w())#neighbors_consistent);
-  Log.log#log_notice (lazy "Done.")
+    assert ((World.w())#neighbors_consistent);
+    Log.log#log_notice (lazy "Done (restoring node state).")
 
 end
 
 module Persist_World : Persist.t = struct
-
+  
   let restore ?(verbose=false) ic = 
     Script_utils.init_world()
   let save oc = ()
 end
+
+
+
+
+
+type persistable_item = 
+    [ `Params 
+    | `Time 
+    | `World 
+    | `Nodes 
+    | `Mobs
+    | `Str_agents]
 
 let save_item oc item = 
   Marshal.to_channel oc item [];
@@ -94,14 +87,15 @@ let save_item oc item =
     | `Params -> Param.Persist.save oc
     | `Time -> Time.Persist.save oc
     | `Nodes -> Persist_Nodes.save oc
+    | `Mobs -> Mob_ctl.Persist.save oc
     | `World -> Persist_World.save oc
     | `Str_agents -> Str_agent.Persist.save oc
   end
-
+  
 
 let restore_item ~verbose ic = 
   let item = 
-    (Marshal.from_channel ic : [> `Params | `Time | `Nodes | `Str_agents]) in
+    (Marshal.from_channel ic : persistable_item) in
   begin match item with
     | `Params -> 
 	Param.Persist.restore ~verbose ic;
@@ -111,11 +105,18 @@ let restore_item ~verbose ic =
     | `Time -> Time.Persist.restore ic;
 	Log.log#log_notice (lazy (sp "Time restored to: %f" (Time.time())));
     | `Nodes -> Persist_Nodes.restore ~verbose ic
+    | `Mobs -> Mob_ctl.Persist.restore ~verbose ic
     | `World -> Persist_World.restore ~verbose ic
     | `Str_agents -> Str_agent.Persist.restore ~verbose ic
   end
 
-let save_sim_items = [`Params; `Time; `World; `Nodes; `Str_agents]
+let save_sim_items = 
+  ([`Params; `Time; `World; `Nodes; `Mobs; `Str_agents] : 
+  [> persistable_item ] list)
+  (* this cast is to 'open' the type, since when it is read back the type may
+     have grown. not sure if not doing this would be dangerous, but playing it
+     safe anyway...*)
+  
 
 let save_sim oc = 
   Marshal.to_channel oc (List.length save_sim_items) [];

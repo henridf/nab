@@ -23,30 +23,6 @@
 (* $Id$ *)
 
 
-
-(** Some simple mobility processes.
-  @author Henri Dubois-Ferriere.
-*)
-
-type mob_t = Uniwaypoint  | Borderwaypoint | Epfl_waypoint | Billiard |
-  Randomwalk | None
-
-
-(** Uniform waypoint mobility class: waypoints are chosen at random uniformly
-  over surface. *)
-class uniwaypoint : 
-  #Node.node ->  
-  ?gran:float ->
-  unit ->
-  Mob.t
-
-(** Border waypoint mobility class: waypoints are chosen only on the borders. *)
-class borderwaypoint :
-  #Node.node ->
-  ?gran:float ->
-  unit ->
-  Mob.t
-
 (** Waypoint over EPFL mobility class. 
 
   The campus is modeled as a set of 'points of interest' (ie buildings,
@@ -65,29 +41,8 @@ class borderwaypoint :
   straight line toward their target, but of course move along paths and
   around obstacles.      
 *)
-class epfl_waypoint :
-  #Node.node ->
-  unit ->
-  Mob.t
-  
-  
-(** Billiard mobility model: 
-  Pick a uniform random direction, advance in that direction. A new random
-  direction is selected every T seconds, where T is exponentially distributed;
-  E(T) is {!Params.x_size}[ * speed ], ie the time it takes to traverse the
-  network.
-  Boundaries are reflecting, ie a node bounces off as off of a mirror.
-*)
-class billiard : 
-  #Node.node ->
-  ?gran:float ->
-  unit ->
-  Mob.t
+val make_epfl_waypoint :  #Node.node -> unit
 
-(** Discrete Random Walk, moves by 1.0 in one of 4 cardinal directions at each
-  step *)
-class discreteRandomWalk :
-  #Node.node ->
-  ?gran:float ->
-  unit ->
-  Mob.t
+module Persist : Persist.t
+
+

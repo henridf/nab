@@ -25,20 +25,29 @@
 
 
 
-
-
-
 (** Base class for mobility processes following the {!Mob.t} signature.
   @author Henri Dubois-Ferriere.
 *)
 
+
+val mob : Common.nodeid_t -> Mob.t
+
+
+type base_state = {
+  rnd : Random.State.t;
+  speed : float;
+  moving : bool;
+  granularity : float
+}
+
+val delete_all_mobs : unit -> unit
 
 
 (** The base class for all classes implementing a mobility process.
   To implement a new mobility process, one must inherit from this class and
   implement the virtual method [getnewpos].
 *)
-class virtual mobility :
+class virtual ['a] mobility :
   #Node.node ->
   ?gran:float ->
   unit ->
@@ -75,6 +84,19 @@ object
       Be careful: If high speed and low granularity, then load the scheduler
       will be given "large" numbers of small movement events.
     *)
-    
+
+  method dump_state : unit -> base_state * 'a
+
+  method restore_state : base_state * 'a -> unit
+
+  method virtual private dump_other_state : unit -> 'a
+  method virtual private restore_other_state : 'a -> unit
+
+end
+
+class no_other_state_mixin : 
+object 
+  method private dump_other_state : unit -> unit
+  method private restore_other_state : unit -> unit
 end
 

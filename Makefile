@@ -177,7 +177,10 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_MOB_DIR)/mob_base$(CMO) \
-		$(SIM_MOB_DIR)/mobs$(CMO) \
+		$(SIM_MOB_DIR)/waypoint$(CMO) \
+		$(SIM_MOB_DIR)/billiard$(CMO) \
+		$(SIM_MOB_DIR)/walk$(CMO) \
+		$(SIM_MOB_DIR)/epfl_mob$(CMO) \
 		$(SIM_BASE_DIR)/mob_ctl$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
 		$(PROTO_STR_DIR)/str_defaults$(CMO) \
@@ -196,8 +199,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_SCRIPT_DIR)/traffic_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/script_utils$(CMO) \
 		$(SIM_BASE_DIR)/persistency$(CMO)\
-		$(SIM_SCRIPT_DIR)/warmup_utils$(CMO) \
-		$(SIM_SCRIPT_DIR)/grep_common$(CMO)
+		$(SIM_SCRIPT_DIR)/warmup_utils$(CMO)
 # script_utils should be as near to end as possible
 # because only scripts should need to use it
 # persistency gets an exception because it performs 

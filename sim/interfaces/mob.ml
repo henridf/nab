@@ -23,15 +23,9 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 (** Mobility generators and related stuff. 
   @author Henri Dubois-Ferriere.
 *)
-
 
 
 (** The base class for all classes implementing a mobility process *)
