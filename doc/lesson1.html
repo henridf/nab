@@ -1,0 +1,430 @@
+<html> 
+<head>
+<title>MWS Tutorial Lesson I</title>
+</head>
+<body BGCOLOR ="#FFFFFF"> 
+
+<table border="0" width="100%" >
+    <tr bgcolor="#b0b0cc">
+      <td width="100%">
+      <b>
+      <font face="tahoma,arial,helvetica" size="+1">
+      Lesson 1: Getting Started with mws
+      </font>
+      </b>  
+      <br>  
+      </td>
+    </tr>
+</table>
+<p>
+In this first lesson, we will see how to start and setup the mws toplevel,
+configure basic simulator parameters, and run a simple flooding protocol
+over a network of static nodes.
+<p>
+
+0. <a href="#0">Prerequisites</a><br>
+1. <a href="#1">Launching and setting up the mws toplevel</a><br>
+2. <a href="#2">Configuring basic simulation parameters</a><br>
+3. <a href="#3">Running a simple flooding protocol.</a><br>
+4. <a href="#4">Using hooks to record packet statistics</a><br>
+<p>
+
+<table border="0" width="100%" >
+    <tr bgcolor="#e0e0ff">
+      <td width="100%">
+      <b>
+      <font face="tahoma,arial,helvetica" size="+1">
+      <a name="1"></a>
+      0. Prerequisites
+
+      </font></b>
+      </td>
+    </tr>
+</table>
+
+This lesson requires the following:
+<ul>
+<li> You have installed the Objective Caml distribution (see <a
+href="../README">README</a> from mws distribution)
+</ul>
+It is recommended that:
+<ul>
+<li> You have built the source documentation by typing <code>make
+htmldoc</code>(see <a href="../README">README</a>). If you haven't, things
+will run fine, but some of the links to source documentation will not work.
+<li> You have gained basic familiarity with ocaml.
+</ul>
+
+<table border="0" width="100%" >
+    <tr bgcolor="#e0e0ff">
+      <td width="100%">
+      <b>
+      <font face="tahoma,arial,helvetica" size="+1">
+      <a name="1"></a>
+      1. Launching and setting up the mws toplevel
+
+      </font></b>
+      </td>
+    </tr>
+</table>
+
+
+You launch the mws toplevel by simply typing bin/mws-top at the prompt:
+<pre>
+[henridf@lilblue: ~/work/mws] bin/mws-top 
+
+   Multihop Wireless Simulator (mws) version 0.1
+          Objective Caml version 3.07+2
+
+# 
+</pre>
+
+
+Now, you have the mws command-line - similar in all aspects to the ocaml
+toplevel, except that all mws libraries and functionality are
+linked in.<br>
+Before calling mws functions, we must inform the toplevel about a few paths where source and compiled
+files are to be found. This can be done manually, using the #directory
+command:
+<br>
+
+<pre>
+# #directory "/home/henridf/work/mws/lib";;
+</pre>
+
+
+Since there are several directories to add to the path, it is simpler to 
+place these in a .ocamlinit file (which should go in your homedir). See 
+the included <a href="ocamlinit">.ocamlinit</a> for an example.
+Once you have your .ocamlinit file edited and
+in the right place, you should exit (<code>exit 0;;</code>
+) and restart the caml toplevel, or type 
+<pre>
+# #use /path/to/homedir/.ocamlinit;;
+</pre>
+ to reload the .ocamlinit file without restarting.
+<p>
+
+<font  size="-1">
+<b>Note:</b> For more information on the ocaml toplevel, see ocaml(1) or 
+<a href="http://caml.inria.fr/htmlman/manual023.html">the ocaml manual</a>
+</font><br>
+
+
+<font  size="-1">
+<b>Note:</b> You will quickly notice that the ocaml toplevel does not have the
+ability to navigate previous commands, or other textual navigation. It is
+intended to be used the toplevel in conjunction with an emacs mode such as tuareg
+or the caml emacs mode; alternatively you may use the ocamlbrowser tool included in the ocaml distribution. (xxx pointers) 
+</font><br>
+
+<p>
+<table border="0" width="100%" >
+    <tr bgcolor="#e0e0ff">
+      <td width="100%">
+      <b>
+      <font face="tahoma,arial,helvetica" size="+1">
+      <a name="2"></a>
+      2. Configuring basic simulation parameters
+      </font></b>
+      </td>
+    </tr>
+</table>
+
+
+
+Let's start by configuring a few basic parameters such as the number of nodes
+in the simulation, the MAC layer involved, etc. In mws, these key parameters
+are represented using Param values. Param offers a simple interface to get/set
+values, as well as helpful functionality to such as defaults, range checking,
+or parsing these values as command-line arguments to mws. <br>
+
+Let's first set the number of nodes. First we might want to see what the
+default number is:<br>
+
+<pre>
+# Param.get Params.nodes;;
+- : int = 500
+</pre>
+
+Maybe we would like more nodes, say 800:
+
+<pre>
+# Param.set Params.nodes 800;;
+- : unit = ()
+</pre>
+
+<font  size="-1">
+<b>Note:</b> If you've compiled the documentation (see README), the Param API can be
+viewed <a href="gen/Param.html">here</a>
+</font><p>
+
+Now, let's move on and configure some other basic parameters.
+We'll say the nodes' radio range is 12 meters:<br>
+
+<pre>
+# Param.set Params.rrange 12.;;
+- : unit = ()
+</pre>
+
+Ok, so we have 800 nodes with a 12 meter radio range. What size area should we
+set? Assume that nodes will be uniformly distributed, and that we want an
+average node degree of 7, and that our area is square, then we should have a
+world of size (800  * pi * 12^2) / 7.<br>
+Since we are lazy, we can use a built-in helper function to compute this for
+us:
+
+<pre>
+# let size = Script_utils.size ~rrange:12.0 ~nodes:800 ~avg_degree:8 ();;
+val size : float = 212.640541760032193
+</pre>
+
+<Font  Size="-1">
+<b>Note:</b> : The file scripts/script_utils.ml
+(doc <a href="gen/Script_utils.html">here</a>) contains many useful
+helper functions designed to be used in the toplevel or from scripts. Take a
+look there, you may find that what you need is already implemented. And if you
+write other helpers, please consider contributing them back so they make their
+way into the next release!
+</font><br><p>
+
+<pre>
+# Param.set Params.x_size size;;
+- : unit = ()
+# Param.set Params.y_size size;;
+- : unit = ()
+</pre>
+
+
+We now instantiate the global world object - this is where all operations requiring
+global network knowledge (computing neighborhoods, etc) are done. The world
+object must be instantiated *after* the proper values for rrange and world
+size have been set. 
+
+<pre>
+# Script_utils.init_lazy_world();;
+0.000000 /global World: size (212.64, 212.64), rrange 12.0,  800 nodes
+- : unit = ()
+</pre>
+
+
+To instantiate our nodes (which will be uniformly dispersed in the area), we do:
+
+<pre>
+# Script_utils.make_nodes ();;
+ - : unit = ()
+</pre>
+
+We choose to use a null mac layer - this is a 'perfect' mac where all packets
+sent by a node within radio range are received, with no collisions or loss.
+<Font  Size="-1">
+<B>Note:</B> : for an overview of other MAC layers available, see
+<a href="gen/Mac.html">here</a>
+</font><br>
+
+<pre>
+# Param.set Params.mac "nullmac";;
+- : unit = ()
+</pre>
+
+Now, the last thing we need to do before we get packets flowing is to choose
+some sort of routing agent. 
+
+<p>
+<table border="0" width="100%" >
+    <tr bgcolor="#e0e0ff">
+      <td width="100%">
+      <b>
+      <font face="tahoma,arial,helvetica" size="+1">
+      <a name="3"></a>
+      3. Running a simple flooding protocol.
+      </font></b>
+      </td>
+    </tr>
+</table>
+
+Let's go with a very simple flooding agent. All
+this one does is to receive packets and reforward a packet it receives for the
+first time.
+
+<pre>
+# Script_utils.make_flood_agents();;
+- : unit = ()
+</pre>
+
+Ok! Let's pick a node in the middle of the area to flood from:
+
+<pre>
+# let originator = Opt.get 
+    ((World.w())#find_closest ~pos:(size /. 2.0, size /. 2.0) ());;
+  val originator : Common.nodeid_t = 397
+</pre>
+
+Now we inject a packet to flood at that node :
+<pre>
+# (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+- : unit = ()
+</pre>
+
+At this point, the flooding has not happened, because the simulation is not
+running. To make the simulation run, we need to start the event loop:
+
+<pre>
+# (Sched.s())#run();;
+- : unit = ()
+</pre>
+
+[This call simply tells the event loop to run until there are no more events
+to process. One can also run for a fixed amount of simulated seconds, or run
+untils a condition is met, etc. To see the scheduler interface, see
+(<a href="gen/Scheduler.t.html">here</a>)
+
+So, we've run the simulator, the flood has happened, but there's not much to
+see at this point. We can see that a little time has elapsed, knowing that the
+simulator clock always starts at 0.0:
+
+<pre>
+# Time.time();;
+- : Time.time_t = 0.0295895411164387376
+</pre>
+
+If we want a bit more verbosity, we can change the log level to INFO or even DEBUG.
+Now if we start another flood, we will get LOTS of output (press C-c C-c to
+interrupt)!
+
+<pre>
+# Log.set_log_level Log.LOG_DEBUG;;
+- : unit = ()
+# (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+0.062878 /node/397/Flood_Agent Received packet from upper-layer packet for broadcast
+- : unit = ()
+# (Sched.s())#run();;
+0.059179 /node/518/nullmac Start RX, l2src 397, l2dst broadcast
+0.059179 /node/22/nullmac Start RX, l2src 397, l2dst broadcast
+0.059179 /node/440/nullmac Start RX, l2src 397, l2dst broadcast
+0.059179 /node/3/nullmac Start RX, l2src 397, l2dst broadcast
+0.059179 /node/328/nullmac Start RX, l2src 397, l2dst broadcast
+0.059179 /node/249/nullmac Start RX, l2src 397, l2dst broadcast
+0.059179 /node/353/nullmac Start RX, l2src 397, l2dst broadcast
+0.060412 /node/518 Pkt received from source 397
+0.060412 /node/518/Flood_Agent Received flood packet from src 397
+0.060412 /node/518/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/518/nullmac TX packet 
+0.060412 /node/22 Pkt received from source 397
+0.060412 /node/22/Flood_Agent Received flood packet from src 397
+0.060412 /node/22/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/22/nullmac TX packet 
+0.060412 /node/397/nullmac Start RX, l2src 518, l2dst broadcast
+0.060412 /node/397/nullmac Start RX, l2src 22, l2dst broadcast
+0.060412 /node/22/nullmac Start RX, l2src 518, l2dst broadcast
+0.060412 /node/440 Pkt received from source 397
+0.060412 /node/440/Flood_Agent Received flood packet from src 397
+0.060412 /node/440/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/440/nullmac TX packet 
+0.060412 /node/518/nullmac Start RX, l2src 22, l2dst broadcast
+0.060412 /node/3 Pkt received from source 397
+0.060412 /node/3/Flood_Agent Received flood packet from src 397
+0.060412 /node/3/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/3/nullmac TX packet 
+0.060412 /node/3/nullmac Start RX, l2src 22, l2dst broadcast
+0.060412 /node/440/nullmac Start RX, l2src 518, l2dst broadcast
+0.060412 /node/328 Pkt received from source 397
+0.060412 /node/328/Flood_Agent Received flood packet from src 397
+0.060412 /node/328/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/328/nullmac TX packet 
+0.060412 /node/328/nullmac Start RX, l2src 22, l2dst broadcast
+0.060412 /node/249 Pkt received from source 397
+0.060412 /node/249/Flood_Agent Received flood packet from src 397
+0.060412 /node/249/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/249/nullmac TX packet 
+0.060412 /node/249/nullmac Start RX, l2src 440, l2dst broadcast
+0.060412 /node/353 Pkt received from source 397
+0.060412 /node/353/Flood_Agent Received flood packet from src 397
+0.060412 /node/353/Flood_Agent Packet received for first time; reforwarding 397
+0.060412 /node/353/nullmac TX packet 
+0.060412 /node/249/nullmac Start RX, l2src 518, l2dst broadcast
+0.060412 /node/440/nullmac Start RX, l2src 22, l2dst broadcast
+0.060412 /node/3/nullmac Start RX, l2src 518, l2dst broadcast
+0.060412 /node/328/nullmac Start RX, l2src 3, l2dst broadcast
+0.060412 /node/538/nullmac Start RX, l2src 353, l2dst broadcast
+.
+.
+.
+</pre>
+
+Let's set the log level back to INFO for now:
+
+<pre>
+# Log.set_log_level Log.LOG_INFO;;
+- : unit = ()
+</pre>
+
+<p>
+<table border="0" width="100%" >
+    <tr bgcolor="#e0e0ff">
+      <td width="100%">
+      <b>
+      <font face="tahoma,arial,helvetica" size="+1">
+      <a name="4"></a>
+      4. Using hooks to record packet statistics
+      </font></b>
+      </td>
+    </tr>
+</table>
+Now, let's say we wanted to compute a very simple statistic on this flood: the
+total number of packets transmitted. To do this, we will use 'hooks', which
+is mechanism in mws to extract packet-level information as a simulation runs. A
+hook is simply a variable holding one or more function(s) to be called at a
+specific occasion (this customization mechanism will be familiar to emacs
+users). The type of 'occasion' where one would like the hook to call a
+function is related to packet events, ie a node receives or transmits a
+packet.
+
+Let's define a counter and create a function that increments it each time it
+is called:
+
+<pre>
+# let pkt_count = ref 0;;
+val pkt_count : int ref = {contents = 0}
+# let hook pkt node = incr pkt_count;;
+val hook : 'a -> 'b -> unit = <fun>
+</pre>
+
+Then we add our hook to every node:
+
+<pre>
+# Nodes.iter (fun n -> n#add_pktout_mhook hook);;
+- : unit = ()
+</pre>
+
+<pre>
+# (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+0.0.092467 /node/397/Flood_Agent Received packet from upper-layer packet for broadcast
+# (Sched.s())#run();;
+- : unit = ()
+</pre>
+
+And we can see how many packets have been transmitted:
+
+<pre>
+# !pkt_count;;
+- : int = 1601
+</pre>
+
+Note that this example represents the most basic use of hooks. Our hook in
+fact does not do anything with the two parameters it is passed, which are the
+packet being sent and the node transmitting the packet. <br>
+Hooks are a very powerful and generic mechanism to extract just about any
+information from ongoing protocol interactions, without having to put any
+explicit support in the protocol code itself. For example, hooks can be used
+to record the sequence of hops in a route. To do this, our hook would simply
+add the next hop to a global data structure, and maybe set a boolean to true
+when the packet arrives at the destination, so that the scheduler check this
+and stop processing events once the route is established. <br>
+Or, we could have a hook to keep per-node statistics on the number of bytes
+transmitted, or the number of packets of a particular type transmitted. And
+all of this can be done without messing about with the protocol internals -
+which is much cleaner and more modular than if we had to hack each routing
+protocol with our statistics gathering functions.
+
+</html>
