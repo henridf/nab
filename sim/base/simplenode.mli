@@ -117,7 +117,10 @@ object ('a)
       Multiple trafficsources to multiple destinations can be installed (XXX not
       tested though)
     *)
-   
+
+  method clear_trafficsources : unit -> unit
+    (** Removes all trafficsources from this node. *)
+
   method mac_recv_pkt : ?stack:int -> L2pkt.t -> unit
 
   method mac_send_pkt : 

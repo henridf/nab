@@ -52,7 +52,7 @@ object(s)
   val mutable pktout_mhooks = Array.make max_nstacks []
   val mutable macs = Array.make max_nstacks (None : Mac.t option)
   val mutable rt_agents = Array.make max_nstacks (None : Rt_agent.t option)
-
+  val mutable trafficsource_set = false
   val id = id
 
   initializer (
@@ -160,21 +160,25 @@ object(s)
   )
 
   method set_trafficsource ~gen ~dst = 
+    trafficsource_set <- true;
     match gen() with
       | Some time_to_next_pkt ->
 	  let next_pkt_event() = s#trafficsource gen dst in
 	  (Sched.s())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       | None -> ()
+
+  method clear_trafficsources () = trafficsource_set <- false
 	  
   method private trafficsource gen dst = 
-    s#originate_app_pkt ~l4pkt:`EMPTY ~dst;
+    if trafficsource_set then (
+      s#originate_app_pkt ~l4pkt:`EMPTY ~dst;
     (* when gen() returns None, this trafficsource is done sending *)
     match gen() with
       | Some time_to_next_pkt ->
 	  let next_pkt_event() = s#trafficsource gen dst in
 	  (Sched.s())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       | None -> ()
-      
+    ) 
   method originate_app_pkt ~l4pkt ~dst = 
     Array.iter 
       (Opt.may (fun agent -> agent#recv_pkt_app l4pkt dst))
