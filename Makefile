@@ -9,7 +9,6 @@ else
 	include  mk/ocaml.mk	
 endif
 
-
 MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
 NAML_DIR = naml
@@ -28,14 +27,12 @@ INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
 THFLAGS = -thread
 
-
 DIRS = \
 	$(MISC_DIR) \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
 	$(MWS_SCRIPT_DIR) \
 	$(NAML_DIR)
-
 
 DEPEND = .depend
 
@@ -87,6 +84,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/ports$(CMO) \
 		$(MWS_DIR)/packet$(CMO) \
 		$(NAML_DIR)/naml_msg$(CMO) \
+		$(MWS_DIR)/params$(CMO) \
 		$(MWS_DIR)/trace$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
@@ -95,16 +93,16 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/nodes$(CMO) \
 		$(MWS_DIR)/route$(CMO) \
 		$(MISC_DIR)/ler_graphics$(CMO) \
-		$(MWS_DIR)/params$(CMO) \
 		$(MWS_DIR)/nodeDB$(CMO) \
 		$(MWS_DIR)/magic_bler_agent$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
+		$(MWS_DIR)/crsearch$(CMO) \
 		$(MWS_DIR)/crworld$(CMO) \
-		$(MWS_DIR)/script_utils$(CMO) 
+		$(MWS_DIR)/script_utils$(CMO) \
+		$(MWS_SCRIPT)
 
-MWS_SCRIPT = $(MWS_SCRIPT_DIR)/current$(CMO)
 
 NAML_OBJ_FILES = $(MISC_OBJ_FILES) \
 		$(MWS_DIR)/common$(CMO) \
@@ -149,8 +147,8 @@ im2png: misc/im2png$(CMO)
 	$(CAMLIMAGES_LIBS) misc/im2png$(CMO) -o bin/$@
 
 mws: bin/mws
-bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+bin/mws: $(MWS_OBJ_FILES) 
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES)  -o $@ 
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)
