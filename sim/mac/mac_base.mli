@@ -253,20 +253,70 @@ object
 end
 
 
-(** A Null frontend, which can be inherited from by MAC layers with no
-  frontend logic, ie MAC layers which do no carrier sensing and do not model
-  collisions. (for example see {!MACA_simple.maca_mac}). 
 
-  All this one does is 
-  - apply transmission delay.
-  - provides a 'state' method to indicate current status of the frontend
-  (idle, receiving, transmitting).
-  - silently drops packets that it gets for transmission from the backend, if
-  it is already transmitting or receiving.
-  - does not receive packets if already receiving or transmitting.
-  - provides a callback to the backend when a packet transmission is complete.
+
+type mac_cts_stats = 
+    { ctsDrops : int } 
+      (** 
+	  A queue backend with an ideal collision detection
+	  mechanishm. Nodes can be in any of these three states: Idle,
+	  transmitting (Tx) or receiving (Rx).
+	  Before transmitting a paquet, nodes check if this packet will
+	  generate a collision in any of their neighbors
+	  (equivalently, nodes check wether any of the neighbors is
+	  not idle). If so, the packet is stored in the buffer and
+	  re-scheduled after a random time which is uniformly
+	  distributed between  0 and the packet transmission time. 
+	  It models the following behavior:
+	  - nodes can only transmit or receive one packet at the time
+	  - nodes can only transmit when this transmission will not
+	  result into a collision.
+      *)
+class virtual cts_backend : ?stack:int -> ?queuesize:int -> bps:float -> #Node.node ->
+object
+  inherit [mac_cts_stats] backend
+  inherit [mac_cts_stats] Mac.backend_t
+    
+  method virtual private frontend_xmit : L2pkt.t -> unit
+    (** To be implemented by the frontend class which is mixed in with this
+	backend (method documented in {!Mac.frontend_t}). *)
+    
+  method virtual private state : Mac.frontend_state
+    (** To be implemented by the frontend class which is mixed in with this
+	backend (method documented in {!Mac.frontend_t}). *)
+end
+  
+  
+  
+  
+(** A Null frontend, which can be inherited from by MAC layers with no
+    frontend logic, ie MAC layers which do no carrier sensing and do not model
+    collisions. (for example see {!MACA_simple.maca_mac}). 
+    
+    All this one does is 
+    - apply transmission delay.
+    - provides a 'state' method to indicate current status of the frontend
+    (idle, receiving, transmitting).
+    - silently drops packets that it gets for transmission from the backend, if
+    it is already transmitting or receiving.
+    - does not receive packets if already receiving or transmitting.
+    - provides a callback to the backend when a packet transmission is complete.
 *)
 class virtual null_frontend : ?stack:int -> bps:float -> #Node.node ->
+object
+  inherit [unit] frontend
+  inherit [unit] Mac.frontend_t
+    
+  method virtual private backend_xmit_complete : unit
+    (** To be implemented by backend class which is mixed in with this
+	frontend (method documented in {!Mac.backend_t}). *)
+
+end
+  
+(** Collision-free frontend. It receives and transmits packets only if the node is
+    Idle. Otherwise, packets are just dropped without causing any interference
+*)
+class virtual cf_frontend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit [unit] frontend
   inherit [unit] Mac.frontend_t
