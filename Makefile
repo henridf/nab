@@ -151,7 +151,6 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
-		 $(MISC_DIR)/naryTree$(CMO) \
 		 $(MISC_DIR)/coord$(CMO)
 
 TEST_OBJ_FILES = \
