@@ -50,17 +50,14 @@
   time. Multiple events scheduled to be run at the same time
   (or at ASAP) are executed in FIFO order.
 *)
-class schedList : Scheduler.t
+val makeSchedList : unit -> unit
 
 (**  
   [schedHeap] : A heap-based, with O(logn) insert and O(logn) pop time.
   Multiple events scheduled at the same time (or at ASAP) are executed in
   undefined order.
 *)
-class schedHeap : Scheduler.t
-
-val set_sched : Scheduler.t -> unit
-  (** Sets the global scheduler object. *)
+val makeSchedHeap : unit -> unit
 
 val s : unit -> Scheduler.t
   (** Returns the global scheduler object, if one has been set. *)

@@ -84,6 +84,8 @@ object(s)
        otherwise.*)
        
 
+  val mutable killed = false
+  method die = killed <- true
 
 
   method virtual private next_event : event_t option 
@@ -221,6 +223,7 @@ object(s)
 
 
   method private dump_stats = 
+    s#mark_break;
     s#log_always (lazy (Printf.sprintf "%d events scheduled." scheduleds));
     s#log_always (lazy (Printf.sprintf "%d cancellable events scheduled." cancellables));
     s#log_always (lazy (Printf.sprintf "%d events cancelled." cancels));
@@ -229,16 +232,13 @@ object(s)
 
 end
 
-class schedList : Scheduler.t = 
+class schedList = 
 object(s)
   inherit sched 
 
-
-
-
   initializer 
     s#set_objdescr "/sched/list";
-    Pervasives.at_exit (fun () -> s#dump_stats)
+    Pervasives.at_exit (fun () -> if not killed then s#dump_stats)
 
   val ll = Linkedlist.create()
 
@@ -248,7 +248,6 @@ object(s)
     Linkedlist.insert ~ll:ll ~v:ev ~compare:compare
 
 end
-
 
 
 module Compare =
@@ -261,13 +260,13 @@ struct
 end
 module EventHeap = Heap.Imperative (Compare)
 
-class  schedHeap : Scheduler.t = 
+class  schedHeap = 
 object(s)
   inherit sched
 
   initializer 
     s#set_objdescr "/sched/heap";
-    Pervasives.at_exit (fun () -> s#dump_stats)
+    Pervasives.at_exit (fun () -> if not killed then s#dump_stats)
 
   val heap = EventHeap.create 2048
 
@@ -275,16 +274,25 @@ object(s)
     if EventHeap.is_empty heap then 
       None 
     else 
-      Some (EventHeap.pop_maximum  heap)
+      Some (EventHeap.pop_maximum heap)
     
   method private sched_event_at ev = 
     EventHeap.add  heap ev
 
 end
 
-let (sched_:Scheduler.t option ref) = ref None 
-let s () = o2v !sched_
-let set_sched s = sched_ := Some s
+
+let sched_ = ref None 
+let s () = ((o2v !sched_) :> Scheduler.t)
+let set_sched s = 
+  begin match !sched_ with 
+    | None -> ()
+    | Some s -> s#die
+  end;
+sched_ := Some s
+
+let makeSchedHeap () = set_sched (new schedHeap)
+let makeSchedList () = set_sched (new schedList)
 
 let () = 
   set_sched (new schedHeap)
