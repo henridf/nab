@@ -3,7 +3,7 @@
 (*                                  *)
 
 open Misc
-open Packet
+
 
 let x_pix_size = ref (Param.get Params.x_pix_size)
 let y_pix_size = ref (Param.get Params.y_pix_size)
@@ -52,9 +52,9 @@ let route_done = ref false
 let ease_route_pktin_mhook routeref l2pkt node = (
 
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3hdr = (Packet.l3hdr l3pkt) in
-  let l3dst = Packet.l3dst l3pkt
-  and l3src = Packet.l3src l3pkt in
+  let l3hdr = (L3pkt.l3hdr l3pkt) in
+  let l3dst = L3pkt.l3dst l3pkt
+  and l3src = L3pkt.l3src l3pkt in
 
   match (L2pkt.l2src l2pkt) <> node#id with
     | _ -> 	(* Packet arriving at a node *)
@@ -64,8 +64,8 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 	  route_done := true;
 	  routeref := Route.add_hop !routeref {
 	    Route.hop=node#pos;
-	    Route.anchor=(Packet.l3anchor l3pkt);
-	    Route.anchor_age=(Packet.l3enc_age l3pkt);
+	    Route.anchor=(L3pkt.l3anchor l3pkt);
+	    Route.anchor_age=(L3pkt.l3enc_age l3pkt);
 	    Route.searchcost=0.0; (* hack see general_todo.txt *)
 	  }
 	)
@@ -78,9 +78,9 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 let ease_route_pktout_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3hdr = (Packet.l3hdr l3pkt) in
-  let l3dst = Packet.l3dst l3pkt 
-  and l3src = Packet.l3src l3pkt in
+  let l3hdr = (L3pkt.l3hdr l3pkt) in
+  let l3dst = L3pkt.l3dst l3pkt 
+  and l3src = L3pkt.l3src l3pkt in
   
   match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
@@ -89,9 +89,9 @@ let ease_route_pktout_mhook routeref l2pkt node = (
 	(Log.log)#log_info (lazy (Printf.sprintf "Leaving src %d\n" node#id));	
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#pos;
-	    Route.anchor=(Packet.l3anchor l3pkt);
-	    Route.anchor_age=(Packet.l3enc_age l3pkt);
-	    Route.searchcost=(Packet.l3search_dist l3pkt)
+	    Route.anchor=(L3pkt.l3anchor l3pkt);
+	    Route.anchor_age=(L3pkt.l3enc_age l3pkt);
+	    Route.searchcost=(L3pkt.l3search_dist l3pkt)
 	}
 )
 

@@ -116,7 +116,7 @@ let set_src x y = (
   Nodes.gpsiter (fun n -> n#clear_pkt_mhooks);
   Nodes.gpsiter (fun n -> n#add_pktin_mhook in_mhook);
   Nodes.gpsiter (fun n -> n#add_pktout_mhook out_mhook);
-  (Nodes.node srcnode)#originate_app_pkt ~dstid:0;
+  (Nodes.node srcnode)#originate_app_pkt ~dst:0;
 
   (Gsched.sched())#run_until 
   ~continue:(fun () -> 
