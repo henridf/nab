@@ -116,8 +116,6 @@ let draw_grep_route r =
   Log.log#log_notice 
     (lazy (Printf.sprintf "\n\tHop: %s "  (Coord.sprint h.Route.hop) ))) r;
 
-
-
   Log.log#log_notice 
     (lazy (Printf.sprintf "%d Hops, %d Searches"  nhops nsearches ));
 
@@ -130,6 +128,32 @@ let draw_grep_route r =
 	draw_hops_ (hop2::r); 
     | hop1::r ->   Gui_gtk.draw_node ~target:true hop1.Route.hop 
   in
+
+  let draw_disks_ route = (
+    let rec aux route = (
+      match route with 
+	| [] -> ()
+	| hop1::hop2::r -> (
+	    begin
+	      match hop1.Route.info with
+		| None -> ()
+		| Some flood -> 
+		    let radius = 
+		      (f2i (sqrt (i2f(Coord.disti_sq hop1.Route.hop hop2.Route.hop)))) 
+		    in
+		    Printf.printf "drawing circle, radius %d" radius;
+		    flush stdout;
+		    Gui_gtk.draw_circle ~centr:hop1.Route.hop ~radius;
+	    end;
+	    aux (hop2::r);
+	  )
+	| hop1::r -> ()
+    ) in
+    let route_only_anchors = 
+      List.filter (fun hop -> hop.Route.info != None) route
+    in aux (route_only_anchors@[listlast route])
+  )
+  in 
   let rec draw_trees_ = function 
     | hop1::hop2::r -> (
 	begin
@@ -151,6 +175,7 @@ let draw_grep_route r =
 	)
       | _ -> ()
   in
+  draw_disks_ r;
   draw_trees_ r; 
   draw_hops_ r
     
