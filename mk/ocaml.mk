@@ -6,8 +6,8 @@
 # Author: Mark Hayden, 2/96
 #
 #*************************************************************#
-MLCOMP		= ocamlc.opt
-MLTOP		= ocamlmktop
+MLCOMP		= $(CAML_BIN_DIR)/ocamlc.opt
+MLTOP		= $(CAML_BIN_DIR)/ocamlmktop
 MLLINK		= $(MLCOMP)
 MLLIBR		= $(MLCOMP) -a $(DEBUGGER)
 CMI		= .cmi

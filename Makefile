@@ -9,11 +9,13 @@ else
 	include  mk/ocaml.mk	
 endif
 
+CAML_BIN_DIR	= /home/henridf/local/bin
 
-OCAMLDOC = ocamldoc.opt
-OCAMLDEP = ocamldep.opt
+OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc.opt
+OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
 
-LIB_DIR = $(shell ocamlc -where)
+LIB_DIR = $(shell $(CAML_BIN_DIR)/ocamlc -where)
+
 
 MWS_DIR = mws
 PKT_DIR = pkt
@@ -205,7 +207,7 @@ bin/grepviz: $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
 
 mwsvor: bin/mwsvor
 bin/mwsvor:  $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(GTK_STUFF) $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
