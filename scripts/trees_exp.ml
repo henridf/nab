@@ -16,7 +16,7 @@ let do_one_run ~duration ~sinks ~difftype ~mactype ~nth_top =
 
 let _ = 
 
-(*
+
   begin try Sys.remove tmpfile with _ -> () end;
 
   List.iter 
@@ -38,7 +38,7 @@ let _ =
     ) durations;
 
 
-  *)
+
   ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
 
 
