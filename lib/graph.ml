@@ -29,7 +29,6 @@
 *)
 
 open Misc
-open Set
 open Hashtbl
 
 module type Graph_t = 
