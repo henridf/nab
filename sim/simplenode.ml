@@ -1,3 +1,4 @@
+
 (* wierd: decrementing shopcount when packet not send seems necessary, 
    ie omission was a bug, but not sure if it changes anything.
    anyway current solution is a bit of a quick hack *)
@@ -32,6 +33,7 @@ object(s: #Node.node_t)
   val mutable recv_pkt_hooks = []
   val mutable recv_l2pkt_hooks = []
   val mutable app_send_pkt_hook = fun pkt ~dst -> ()
+  val mutable mob_mhooks = []
   val mutable pktin_mhooks = []
   val mutable pktout_mhooks = []
    
@@ -43,18 +45,16 @@ object(s: #Node.node_t)
   initializer (
     objdescr <- (sprintf "/node/%d" id);
 
-    let nmsg = (Naml_msg.mk_init_nodepos ~nid:s#id ~pos:pos_init) in
-    s#logmsg_debug nmsg;
-    Trace.namltrace ~msg:nmsg;
+    s#log_debug (sprintf "New node %d" id);
   )
 
   method move newpos = (
     let oldpos = pos in
     pos <- newpos;
     
-    let nmsg = (Naml_msg.mk_node_move ~nid:s#id ~pos:newpos) in
-    s#logmsg_debug nmsg;
-    Trace.namltrace ~msg:nmsg;
+    List.iter 
+    (fun mhook -> mhook newpos (s :> Node.node_t))
+      mob_mhooks;
 
     (* important to call update_pos *after* our own position has been updated *)
     (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:(Some oldpos);
@@ -108,13 +108,6 @@ object(s: #Node.node_t)
   method neighbors = neighbors
 
   method mac_recv_pkt ~l2pkt = (
-    let nmsg = 
-      (Naml_msg.mk_node_recv 
-	~src:s#id 
-	~sender:(Packet.get_l2src ~pkt:l2pkt)) in
-
-    s#logmsg_info nmsg;
-    Trace.namltrace ~msg:nmsg;
     
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
@@ -140,6 +133,9 @@ object(s: #Node.node_t)
   method add_app_send_pkt_hook ~hook = 
     app_send_pkt_hook <- hook
 
+  method add_mob_mhook  ~hook =
+    mob_mhooks <- hook::mob_mhooks
+      
   method add_pktin_mhook  ~hook =
     pktin_mhooks <- hook::pktin_mhooks
       
@@ -150,9 +146,7 @@ object(s: #Node.node_t)
     let dst = (Nodes.node(dstid)) in
       (* this method only exists to factor code out of 
 	 mac_send_pkt and cheat_send_pkt *)
-    let nmsg = (Naml_msg.mk_node_send ~srcnid:s#id ~dstnid:dstid) in
-    s#logmsg_info nmsg;
-    Trace.namltrace ~msg:nmsg;
+
     assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
 
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:(Packet.L2_DST dst#id)
@@ -185,10 +179,6 @@ object(s: #Node.node_t)
   method cheat_send_pkt ~l3pkt ~dstid = s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
 
   method mac_bcast_pkt ~l3pkt = (
-
-    let nmsg = (Naml_msg.mk_node_bcast ~nid:s#id ) in
-    s#logmsg_info nmsg;
-    Trace.namltrace ~msg:nmsg;
 
     assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
 

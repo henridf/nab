@@ -59,6 +59,11 @@ object
        the node.
        If multiple apps, order in which called is unspecified.*)
         
+  method add_mob_mhook : hook:(Coord.coordf_t -> node_t -> unit) -> unit
+    (* Any monitoring application can register here to receive update each
+       time the node moves.
+       If multiple apps, order in which called is unspecified.*)
+    
   method add_pktout_mhook : hook:(Packet.l2packet_t -> node_t -> unit) -> unit
     (* Any monitoring application can register here to see all packets leaving
        the node.
