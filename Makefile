@@ -116,7 +116,7 @@ DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
 	$(SIM_SCRIPT_DIR)/script_utils.mli \
 	$(SIM_SCRIPT_DIR)/script_utils.ml
 
-DOC_FILES := $(filter-out $(DOC_FILES), $(ODOC_FHTML_SRC))
+DOC_FILES := $(filter-out $(ODOC_FHTML_SRC), $(DOC_FILES))
 
 ##########################################
 # Files corresponding to different subdirs
