@@ -118,6 +118,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
 		$(MWS_DIR)/ease_agent$(CMO) \
+		$(MWS_DIR)/hello_agents$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/mob_ctl$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
@@ -198,8 +199,7 @@ htmldoc:
 	$(OCAMLDOC) -html -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
-	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
-
+	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
 
 camlgtk-th: bin/camlgtk-th
 bin/camlgtk-th: 
