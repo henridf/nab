@@ -1,10 +1,9 @@
 let durations = [1200]
 let sinks = [8]
-let runs = [1]
-(*let runs = [1; 2; 3; 4; 5]*)
+let runs = [1; 2; 3; 4; 5]
 let difftypes = ["voronoi"; "opp"; "ess"]
 let mactypes = ["nullmac"]
-let floodints = [30.; 60.; 90.; 120.; 240.; 360.; 480.]
+let floodints = [30.; 60.; 90.; 120.; 180.; 240.]
 let tmpfile = "/tmp/out.txt"
 let resfile = "./out.txt"
   
@@ -44,10 +43,13 @@ let _ =
     ) durations;
 
 
-
 (*
   ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
 
+
+(*
+cat out.txt | dbcoladd data interest total > out.tmp.txt
+*)
 
 
   let chop = Filename.chop_extension in

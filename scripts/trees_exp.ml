@@ -46,6 +46,10 @@ let _ =
 
   let chop = Filename.chop_extension in
 
+(*
+cat out.txt | dbcoladd data interest total > out.tmp.txt
+*)
+
   ignore (Sys.command (Printf.sprintf 
     "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks interest | sort -n  > vor-int.txt"
     resfile));
