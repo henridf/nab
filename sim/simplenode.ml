@@ -4,6 +4,7 @@
 
 open Printf
 exception Mac_Send_Failure
+exception Mac_Bcast_Failure
 
 class simplenode  ~pos_init ~id ~ntargets : Node.node_t = 
 
@@ -14,6 +15,8 @@ object(s: #Node.node_t)
   val mutable neighbors  = []
   val mutable pos = pos_init
   val mutable bler_agent = None
+  val mutable mob_getnewpos = fun ~node -> (0.0,0.0)
+  val mutable speed = 0.0
 
   val id = id
   val mutable db = new NodeDB.nodeDB ntargets
@@ -39,20 +42,38 @@ object(s: #Node.node_t)
     objdescr <- (sprintf "/node/%d" id);
 
     let nmsg = (Naml_msg.mk_init_nodepos ~nid:s#id ~pos:pos_init) in
-    s#logmsg_info nmsg;
+    s#logmsg_debug nmsg;
     Trace.namltrace ~msg:nmsg;
   )
 
   method move newpos = (
     let oldpos = pos in
     pos <- newpos;
-
+    
     let nmsg = (Naml_msg.mk_node_move ~nid:s#id ~pos:newpos) in
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
 
     (* important to call update_pos *after* our own position has been updated *)
     (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:(Some oldpos);
+  )
+
+  method setmob themob = mob_getnewpos <- themob
+  method set_speed_mps thespeed = speed <- thespeed
+
+  method selfmove  = (
+
+    let newpos = mob_getnewpos ~node:(s :> Node.node_t) in
+    s#move newpos;
+    
+    if (s#id = 1) then 
+      s#log_notice (sprintf "new pos: %s" (Coord.sprintf newpos));
+    
+    (* mob is assumed to move us by one meter, so we should schedule the next
+       one in 1 / speed_mps seconds *)
+    let move_event() = s#selfmove in
+    (Gsched.sched())#sched_in ~handler:move_event ~t:(1.0/.speed)
+
   )
 
   method add_neighbor n = (
@@ -89,7 +110,11 @@ object(s: #Node.node_t)
   method neighbors = neighbors
 
   method mac_recv_pkt ~l2pkt = (
-    let nmsg = (Naml_msg.mk_node_recv ~nid:s#id) in
+    let nmsg = 
+      (Naml_msg.mk_node_recv 
+	~src:s#id 
+	~sender:(Packet.get_l2src ~pkt:l2pkt)) in
+
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
     
@@ -130,7 +155,7 @@ object(s: #Node.node_t)
     let nmsg = (Naml_msg.mk_node_send ~srcnid:s#id ~dstnid:dstid) in
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
-
+    assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
 
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:(Packet.L2_DST dst#id)
       ~l3pkt:l3pkt in
@@ -149,7 +174,7 @@ object(s: #Node.node_t)
   method mac_send_pkt ~l3pkt ~dstid = (
     let dst = (Nodes.node(dstid)) in
       if not (s#is_neighbor dst) then (
-	s#log_error (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid);
+	s#log_notice (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid);
 	raise Mac_Send_Failure
       ) else
 	s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
@@ -159,16 +184,18 @@ object(s: #Node.node_t)
 
   method mac_bcast_pkt ~l3pkt = (
 
-    let nmsg = (Naml_msg.mk_node_bcast ~nid:s#id) in
+    let nmsg = (Naml_msg.mk_node_bcast ~nid:s#id ) in
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
 
+    assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
+
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:Packet.L2_BCAST
       ~l3pkt:l3pkt in
-
-
     mhook l2pkt (s :> Node.node_t);
 
+    if (List.length neighbors = 0) then 
+      raise Mac_Bcast_Failure;
     List.iter (fun nid -> 
       let n = (Nodes.node(nid)) in
     let recvtime = 
@@ -189,7 +216,6 @@ object(s: #Node.node_t)
     Node.node_pos=s#pos;
     Node.db_state=db#dump_state
   } 
-
 
 end
 
