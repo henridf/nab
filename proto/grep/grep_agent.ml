@@ -221,10 +221,12 @@ object(s)
     begin match Grep_pkt.flags grep_hdr with
       | `DATA -> s#process_data_pkt ~l3pkt;
       | `RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
-      | `RADV -> s#process_raod_pkt ~l3pkt ~sender;
+      | `RADV -> s#process_radv_pkt ~l3pkt ~sender;
       | `RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
     end
   )
+
+  method private process_radv_pkt ~l3pkt ~sender = ()
 
   method recv_pkt_mac ~l2src ~l2dst l3pkt = (
     
@@ -254,8 +256,6 @@ object(s)
     s#recv_l3pkt_ ~l3pkt ~sender:l2src
   )
 
-
-  method private process_raod_pkt ~l3pkt ~sender = ()
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
     let grep_hdr = L3pkt.grep_hdr l3pkt in
