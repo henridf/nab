@@ -8,7 +8,6 @@
      - computing delaunay triangulation
      - shortest path
      - etc..
-
 *)
 
 open Misc
