@@ -287,6 +287,13 @@ let pushd dir =
 let popd () = let dir = Stack.pop dirstack in Sys.chdir dir
 
 
+let command_output cmd = 
+  let name = Filename.temp_file "" "" in
+  let status = Sys.command (cmd^" > "^name) in
+  status, lines_of_file name
+
+
+
 (** Common Functorized modules. *)
 
 module OrderedType = 
@@ -296,3 +303,5 @@ module OrderedType =
   end
 
 module SimpleSet = Set.Make(OrderedType)
+
+
