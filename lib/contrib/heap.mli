@@ -14,7 +14,7 @@
  * (enclosed in the file LGPL).
  *)
 
-(* $Header$ *)
+(* $Id$ *)
 
 
 (* Heaps *)

@@ -20,7 +20,7 @@
  *
  *)
 
-(* $Header$ *)
+(* $Id$ *)
 
 (** Simple packet queue functor. 
   This is basically a standard ocaml queue, with two additions:
