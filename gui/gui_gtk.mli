@@ -30,6 +30,7 @@ val draw :
 
 val draw_node :  
   ?col:GDraw.color ->          
+  ?target:bool ->
   Coord.coordi_t -> 
   unit
 

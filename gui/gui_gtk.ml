@@ -114,15 +114,18 @@ let txt_msg msg = (
   (txt())#set_text msg
 )
 
-let draw_segments_buf ?(col=cl_fg) s = (
+let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
 
 
   List.iter 
   (fun (p1, p2) ->
 	let f() = 
-	    (drawing())#set_foreground col;
-	    (drawing())#segments s;
-	    (drawing())#set_foreground cl_fg;    
+	  (drawing())#set_line_attributes ~width:thick ();
+	  (drawing())#set_foreground col;
+	  (drawing())#segments s;
+	  (drawing())#set_foreground cl_fg;    
+	  (drawing())#set_line_attributes ~width:1 ();
+
 	in
 	let (g1x, g1y) = p1 /// res
 	and (g2x, g2y) = p2 /// res
@@ -139,14 +142,14 @@ let draw_segments_buf ?(col=cl_fg) s = (
 
 (* pixcenter in gtk pixels *)
 
-let draw_cross ?(col=cl_fg) (x, y) = 
-  let pixwid = 3 in
-  draw_segments_buf ~col
+let draw_cross ?(col=cl_fg) ?(target=false) (x, y) = 
+  let (pixwid, thick) = if target then (4, 2) else (2, 1) in
+
+  draw_segments_buf ~col ~thick
     [
       (x, y - pixwid), (x, y + pixwid);
       (x - pixwid, y), (x + pixwid, y)
     ]
-
 
 let draw_segments ?(col=cl_fg) l = (
   (drawing())#set_foreground col;
@@ -154,10 +157,8 @@ let draw_segments ?(col=cl_fg) l = (
   (drawing())#set_foreground cl_fg;    
 )
 
-
-
-let draw_node ?(col=cl_fg) pos = (
-  draw_cross ~col pos;
+let draw_node ?(col=cl_fg) ?(target=false) pos = (
+  draw_cross ~col ~target pos;
 )
 
 

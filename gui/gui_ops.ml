@@ -6,15 +6,15 @@ open Graph
 open Coord
 
 let draw_node_time nid t = 
-  let col = if (nid < Param.get Params.ntargets) then 
-    `NAME "red" 
+  let (col, target) = if (nid < Param.get Params.ntargets) then 
+    (`NAME "red", true)
   else 
-    `NAME "black"
+    (`NAME "black", false)
   in 
   let (_, pos) = Gui_pos.node_pos_inst nid (Common.get_time())
   in
 
-  Gui_gtk.draw_node ~col pos
+  Gui_gtk.draw_node ~col ~target pos
   
 let draw_nodes_time nidlist t = 
   List.iter (fun nid -> draw_node_time nid t) nidlist
@@ -27,7 +27,7 @@ let draw_nodes nidlist =
   List.iter (fun nid -> draw_node nid) nidlist
 
 
-let draw_all_nodes() = 
+let draw_all_nodes() = (
   let rec rec_ n = 
     match n with 
       |	0  -> ()
@@ -36,7 +36,10 @@ let draw_all_nodes() =
 	  rec_ (nid - 1)
 	)
   in
-  rec_ (Param.get Params.nodes)
+  rec_ (Param.get Params.nodes);
+  rec_ ((Param.get Params.ntargets) + 1);
+
+)
 
 
 
