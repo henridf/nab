@@ -7,9 +7,7 @@
    either - should be looked into.
 *)
 
-(* changelog
-   don't decrement grep_shopcount when not sent - this is the job of the
-   grep_agent, simplenode should be unaware of these fields *)
+
 (*                                  *)
 (* mws  multihop wireless simulator *)
 (*                                  *)
@@ -31,8 +29,6 @@ class simplenode  ~id   =
 object(s)
   
   inherit Log.loggable
-
-  val mutable neighbors  = []
 
   val id = id
 
@@ -135,11 +131,8 @@ object(s)
     (fun mhook -> mhook l2pkt s )
       pktout_mhooks;
 
-    if (List.length neighbors = 0) then (
-      let l3hdr = Packet.get_l3hdr l3pkt in
-      l3hdr.Packet.grep_shopcount <- l3hdr.Packet.grep_shopcount - 1;
-(*      raise Mac_Bcast_Failure;*)
-    );
+    let neighbors = (Gworld.world())#neighbors id in
+
     List.iter (fun nid -> 
       let n = (Nodes.node(nid)) in
     let recvtime = 
