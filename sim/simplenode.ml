@@ -6,7 +6,7 @@ open Printf
 
 class simplenode  ~pos_init ~id  : Node.node_t = 
 
-object(s)
+object(s: #Node.node_t)
   
   inherit Log.loggable
 
@@ -18,26 +18,27 @@ object(s)
   val mutable db = new NodeDB.nodeDB
   val agents = Hashtbl.create 1
 
-  val mutable pkt_recv_hooks = []
+  val mutable recv_pkt_hooks = []
+  val mutable app_send_pkt_hooks = []
+  val mutable mhooks = []
    
   method pos = pos
   method id = id
   method x = Coord.xx pos
   method y = Coord.yy pos
-  method private bler_agent = Misc.o2v bler_agent
 
   method db = db
   method set_db thedb = db <- thedb
 
   initializer (
-    objdescr <- (sprintf "/Node/%d" id);
-    bler_agent <-  Some (new Bler_agent.bler_agent (s :> Node.node_t));
+    objdescr <- (sprintf "/node/%d" id);
 
     let nmsg = (Naml_msg.mk_init_nodepos ~nid:s#id ~pos:pos_init) in
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
 
     (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:None
+
   )
 
   method move newpos = (
@@ -86,9 +87,78 @@ object(s)
 	
   method neighbors = neighbors
 
-  method recv_pkt ~pkt = (
-    s#bler_agent#recv pkt
-  )      
+  method mac_recv_pkt ~l2pkt = (
+    let nmsg = (Naml_msg.mk_node_recv ~nid:s#id) in
+    s#logmsg_info nmsg;
+    Trace.namltrace ~msg:nmsg;
+    
+    (* mhook called before shoving packet up the stack, because 
+       it should not rely on any ordering *)
+    List.iter (fun mhook -> mhook l2pkt (s :> Node.node_t)) mhooks;
+
+    List.iter 
+      (fun hook -> hook l2pkt.Packet.l3pkt)
+      recv_pkt_hooks
+  )
+    
+  method add_recv_pkt_hook  ~hook =
+    recv_pkt_hooks <- recv_pkt_hooks @ [hook]
+      
+  method add_app_send_pkt_hook ~hook = 
+    app_send_pkt_hooks <- app_send_pkt_hooks @ [hook]
+
+  method add_mhook  ~hook =
+    mhooks <- mhooks @ [hook]
+      
+
+  method private send_pkt_ ~l3pkt ~dst = (
+      (* this method only exists to factor code out of 
+	 mac_send_pkt and cheat_send_pkt *)
+    let nmsg = (Naml_msg.mk_node_send ~srcnid:s#id ~dstnid:dst#id) in
+    s#logmsg_info nmsg;
+    Trace.namltrace ~msg:nmsg;
+
+    let recvtime = Common.get_time() +. Mws_utils.propdelay pos dst#pos in
+    let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:(Packet.L2_DST dst#id)
+      ~l3pkt:l3pkt in
+
+    List.iter (fun mhook -> mhook l2pkt (s :> Node.node_t)) mhooks;
+
+    let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
+    (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
+  )
+
+  method mac_send_pkt ~l3pkt ~mac_dst = (
+
+      if not (s#is_neighbor mac_dst) then 
+	s#log_error (Printf.sprintf "mac_send_pkt: %d not a neighbor. Dropping packet"
+	  mac_dst#id)
+      else
+	s#send_pkt_ ~l3pkt:l3pkt ~dst:mac_dst
+  )
+
+  method cheat_send_pkt ~l3pkt ~dst = s#send_pkt_ ~l3pkt:l3pkt ~dst:dst
+
+  method mac_bcast_pkt ~l3pkt = (
+
+    let nmsg = (Naml_msg.mk_node_bcast ~nid:s#id) in
+    s#logmsg_info nmsg;
+    Trace.namltrace ~msg:nmsg;
+
+    let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:Packet.L2_BCAST
+      ~l3pkt:l3pkt in
+
+    List.iter (fun mhook -> mhook l2pkt (s :> Node.node_t)) mhooks;
+
+    Common.NodeSet.iter (fun nid -> 
+      let n = (Nodes.node(nid)) in
+      let recvtime = Common.get_time() +. Mws_utils.propdelay pos n#pos in
+      let recv_event() = n#mac_recv_pkt ~l2pkt:l2pkt in
+
+      (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.ASAP)
+    ) neighbors
+  )
+
 
   method dump_state ~node_cnt  = {
     Node.node_pos=s#pos;
