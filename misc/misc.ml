@@ -69,6 +69,8 @@ let list_unique_elements l =
     List.iter (fun x -> Hashtbl.remove hash x; Hashtbl.add hash x "") l;
     Hashtbl.fold (fun key value list -> key :: list ) hash []
 
+let list_count_element ~l ~el = List.length (List.filter (fun x -> x = el) l)
+
 let sprintlist ~fmt:fmt ~l:l = List.fold_left (fun a b -> a ^ (Printf.sprintf fmt b)) "" l
 let printlist ~fmt:fmt ~l:l = Printf.printf "%s" (sprintlist ~fmt:fmt ~l:l)
 
@@ -103,7 +105,7 @@ let array_count_filt f a = (
 (* val array_count : 'a -> 'a array -> int = <fun> *)
 let array_count elt a = array_count_filt (fun x -> x = elt) a
 
-
+let array_same a1 a2 = list_same (Array.to_list a1) (Array.to_list a2)
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 (*                                                                                     **)
 (*  Iterators                                                                          **)
@@ -133,9 +135,10 @@ let o2v = function
 (*                                                                                     **)
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
-exception Impossible_Case
+exception Impossible_Case of string
 exception Not_Implemented
 exception Break
+exception BreakInt of int (* afaik can't have polymorphic exceptions .. *)
 
 exception Fatal of string
 exception Transient of string
@@ -147,5 +150,17 @@ let equal_or_print a b ~equal ~print =
     false
   ) else true
 	
+(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+(*                                                                                     **)
+(* UI                                                                                  **)
+(*                                                                                     **)
+(* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+  let wait_for_line() = (
+    Printf.printf "Press enter to continue...\n" ; 
+    flush stdout;
+    ignore (read_line())
+  )
+
+
 
 
