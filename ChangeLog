@@ -1,0 +1,39 @@
+release 0.8
+-----------
+	- Use odoc_fhtml (by M. Guesdon) to generate javadoc-like html
+	documentation (ie, with frames).
+	
+	- Completed AODV implementation.
+	
+	- Added support in the protocol stack architecture for (optional)
+	MAC-layer callbacks to notify the upper layer when a packet could
+	not be transmitted.
+	
+	- Added support in routing agent base classes for maintaining and
+	exporting stats, similar to MAC layer base classes.
+	
+	- Changed type of destination field in l2 packet so that broadcast
+	is represented as a 'special' int (similarly to l3 packet)
+	
+	- Simplification in rt_agent methods:
+	  + #mac_recv_l3pkt now passes the l2src and l2dst parameters as
+	    well as the l3pkt, also renamed to #recv_pkt_mac
+	  + #mac_recv_l2pkt removed (not needed now)
+	  + Rt_agent#app_recv_l4pkt renamed to #recv_pkt_app, 
+	
+	- Removed #cheat_send_pkt from simplenode and rt_agent_base APIs.
+	One should simply install a cheat_mac if needed, and use the same
+	old mac_send_pkt as in the regular case.
+	
+	- Changed l2pkt type to allow MAC-layer specific extensions.
+
+	
+	Bugfixes:
+	- Fixed bug in billiard mobility model reported by h. vimadamal	
+	
+	
+	
+release 0.6
+-----------
+
+Initial Release	
