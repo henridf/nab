@@ -9,8 +9,7 @@ open Misc
 open Common
 open Printf
 
-(* This class duplicates code from  contTaurusTop.ml, keep in mind when 
-   changing things *)
+
 
 class crworld ~node_cnt : World.world_t = 
 object(s)
@@ -21,10 +20,11 @@ object(s)
   val mutable center_ =  [|0.5; 0.5|]
 
   initializer (
-    let g = round (sqrt (i2f node_cnt)) in
+    let g = round (0.55*.(sqrt (i2f node_cnt))) in
     gridsize_ <- g;
     center_ <- [|g /. 2.0; g /. 2.0|];
     grid_of_nodes_ <- (Array.make_matrix (f2i g) (f2i g) []);
+    Log.log#log_always (sprintf "Gridsize is %g" (g *. Gworld._LINK_RANGE));
   )
 
   method private pos_in_grid_ pos = coord_f2i (coord_floor pos)
@@ -53,7 +53,8 @@ object(s)
   method dist_coords a b = sqrt (Coord.dist_sq a b)
   method dist_nodes n1 n2 = s#dist_coords n1#pos n2#pos
   method dist_nodeids id1 id2 = s#dist_coords (Nodes.node(id1))#pos (Nodes.node(id2))#pos
-  method neighbors n1 n2 = (s#dist_coords n1#pos n2#pos) <= 1.0
+  method neighbors n1 n2 = n1 <> n2 && (s#dist_coords n1#pos n2#pos) <= 1.0
+
     
   method private slow_compute_neighbors_ node = (
     let neighbors = ref [] in
@@ -286,6 +287,7 @@ object(s)
       closest := !closest_id;
       incr i
     done;
+
 (*
     let slow_closest = (s#slow_find_closest ~pos:pos ~f:f) 
     in
@@ -301,8 +303,8 @@ object(s)
 *)
     !closest
   )
-
-
+    
+    
   method private slow_find_closest ~pos ~f = (
     let (closest_id, closest_dist) = (ref None, ref max_float) in
     Nodes.iter 
