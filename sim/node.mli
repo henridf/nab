@@ -24,7 +24,7 @@ object
   method pos : Coord.coordf_t
   method x : float
   method y : float
-    
+
   method db : NodeDB.nodeDB_t
   method set_db : NodeDB.nodeDB_t -> unit
     
@@ -33,17 +33,21 @@ object
   method is_neighbor : node_t -> bool
   method neighbors : Common.nodeid_t list
     
+  method setmob : (node:node_t -> Coord.coordf_t) -> unit
+  method set_speed_mps : float -> unit
+  method selfmove : unit
   method move : Coord.coordf_t -> unit
 
   method mac_recv_pkt : l2pkt:Packet.l2packet_t -> unit
   method mac_send_pkt : l3pkt:Packet.l3packet_t -> dstid:Common.nodeid_t -> unit
-    (* Sent packet to neighbor mac_dst. Should raise Mac_send_failure if mac_dst is not a neighbor *)
+    (* Sent packet to neighbor mac_dst. Should raise Mac_Send_Failure if mac_dst is not a neighbor *)
 
   method cheat_send_pkt : l3pkt:Packet.l3packet_t -> dstid:Common.nodeid_t -> unit
     (* Same as above except will accept sending pkt to any destination *)
 
   method mac_bcast_pkt : l3pkt:Packet.l3packet_t -> unit
-    (* Broadcast packet to all neighbors *)
+    (* Broadcast packet to all neighbors. Should raise Mac_Bcast_Failure if
+       node has no neighbors *)
 
   method add_recv_pkt_hook : hook:(Packet.l3packet_t -> unit) -> unit
     (* Any agent (routing, application, etc) on this node who might
