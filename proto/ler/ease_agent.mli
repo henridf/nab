@@ -23,21 +23,19 @@
 (* $Id$ *)
 
 
-
-
-
-
-
-(** EASE and GREASE Routing Agents.
+(** Simple EASE, GREASE, and FRESH Routing Agents.
  
-  This is a simple implementation of [GR]EASE which takes some global shortcuts,
-  ie it "cheats" compared to a purely distributed implementation.
+  This is a simple implementation of last encounter routing protocols which
+  takes a few global shortcuts, as opposed to a purely distributed
+  implementation. This allows in particular to avoid implementing real
+  packet-level floods for anchor searches, in order to have extreme
+  scalability to tens of thousands of nodes.
 
   These shortcuts are:
 
   - Geographical Routing: When we are at position X, and have a packet
   addressed to, position Y, the next hop is chosen as the next closest node to
-  y (after ourselves). This simple algorithm is guaranteed we will arrive at the
+  y (after ourselves). This simple algorithm is guaranteed to arrive at the
   closest node to point Y without getting into dead-ends, etc.
 
   - Anchor Search: This is found by using {!Worldt.lazy_world_t.find_closest}, ie by
@@ -52,9 +50,11 @@
  *)
 
 
+type ler_proto_t = EASE | GREASE | FRESH
+
 (** Pass [true] for [grease] argument to constructor to get a GREASE agent,
   [false] to get EASE. *)
-class ease_agent : ?stack:int -> grease:bool -> #Simplenode.simplenode -> 
+class ler_agent : ?stack:int -> proto:ler_proto_t -> #Simplenode.simplenode -> 
 object 
   inherit Log.inheritable_loggable
   inherit Rt_agent.t
@@ -66,4 +66,10 @@ end
 
 val proportion_met_nodes : ?stack:int -> unit -> float
 
-
+val ntargets : int Param.t
+  (** The number of nodes that can potentially be routed to as destinations.
+    In small simulations, this should be equal to the number of nodes. 
+    For large simulations, some parts of nab may be more efficient when this
+    is kept small. For example, in EASE routing, the size of the
+    Last-Encounter table depends on the number of targets value. *)
+  

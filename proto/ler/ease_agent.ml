@@ -22,13 +22,19 @@
 
 (* $Id$ *)
 
-
-
-
+type ler_proto_t = EASE | GREASE | FRESH
 
 
 
 open Printf
+
+
+let ntargets = 
+  Param.intcreate 
+    ~name:"Number of LER targets" 
+    ~default:1
+    ~doc:"Number of targets in Simulation"
+    ()
 
 
 let agents_array_ = 
@@ -40,7 +46,7 @@ let agent ?(stack=0) i =
 
 
 let proportion_met_nodes ?(stack=0) () = 
-  let targets = Param.get Params.ntargets in
+  let targets = Param.get ntargets in
   let total_encounters = 
     Hashtbl.fold (fun _nid agent encs -> (agent#le_tab#num_encounters) + encs) 
       (agents ~stack ()) 0
@@ -48,27 +54,30 @@ let proportion_met_nodes ?(stack=0) () =
   (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
 
 
-
-
-
-class ease_agent ?(stack=0) ~grease theowner = 
+class ler_agent ?(stack=0) ~proto theowner = 
 object(s)
   
   (* We inherit from the base routing agent class. This is documented in
      rt_agent_base.ml and rt_agent.mli. *)
   inherit Rt_agent_base.base ~stack theowner 
     
-  val mutable le_tab = new Le_tab.le_tab (Param.get Params.ntargets)
+  val mutable le_tab = new Le_tab.le_tab ~ntargets:(Param.get ntargets)
 
-  val grease = grease (* EASE or GREASE? *)
+  val fresh = if proto = FRESH then true else false 
+  val grease = if proto = GREASE then true else false (* EASE or GREASE? *)
     
   method le_tab = le_tab
   method set_le_tab tab = le_tab <- tab
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Ease_Agent";
+    let agent = match proto with 
+      | GREASE -> "/grease_agent" 
+      | EASE -> "/ease_agent" 
+      | FRESH -> "/fresh_agent" in
 
-    Hashtbl.replace agents_array_.(stack) theowner#id (s :> ease_agent);
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) agent;
+
+    Hashtbl.replace agents_array_.(stack) theowner#id (s :> ler_agent);
 
     (* Here we ask the global world object to inform us each time a node enters
        our neighborhood, by calling our method add_neighbor.
@@ -83,7 +92,7 @@ object(s)
   (* This is called each time a node enters our neighborhood. 
      We insert an entry in our encounter table.*)
   method private add_neighbor nid = (
-    if nid < (Param.get Params.ntargets) then (
+    if nid < (Param.get ntargets) then (
       let n = Nodes.gpsnode nid in
       le_tab#add_encounter ~nid ~pos:n#pos;
     )
@@ -101,7 +110,7 @@ object(s)
   (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
      packet to send. We build the L3 header and originate the packet into the
      EASE routing logic. *)
-  method app_recv_l4pkt _l4pkt dst = (
+  method app_recv_l4pkt l4pkt dst = (
 
     let ease_hdr = 
       Ease_pkt.make_ease_hdr
@@ -116,7 +125,7 @@ object(s)
 	() 
     in
     let l3pkt =
-      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
+      L3pkt.make_l3pkt ~l3hdr ~l4pkt
     in
     s#recv_ease_pkt_ l3pkt;
   )
@@ -169,10 +178,10 @@ object(s)
 
     if our_enc_age < cur_enc_age then (
       s#log_debug (lazy "Need new anchor, found one locally");
-      let anchor = Opt.get (le_tab#le_pos ~nid:dst) in
+      let anchor = Opt.get (le_tab#le_pos dst) in
 
       (* Return triplet as defined above *)
-      (0.0, anchor, our_enc_age) 
+      (0.0, anchor, our_enc_age, owner#id) 
 
     ) else (
       s#log_debug (lazy "Need new anchor, looking remotely");
@@ -188,25 +197,24 @@ object(s)
 	  ~f:(fun nid -> 
 	    (nid = dst)
 	    ||
-	    (agent ~stack nid)#le_tab#le_age ~nid:dst < cur_enc_age)
+	    (agent ~stack nid)#le_tab#le_age dst < cur_enc_age)
 	  ()
 	)
       in
       if (msngr = dst) then 
 	(((World.w())#dist_coords owner#pos (Nodes.gpsnode dst)#pos), 
 	(Nodes.gpsnode dst)#pos, 
-	0.0)
+	0.0, dst)
       else
-	let enc_age = (agent ~stack msngr)#le_tab#le_age ~nid:dst
-	and enc_pos = Opt.get ((agent ~stack msngr)#le_tab#le_pos ~nid:dst)
+	let enc_age = (agent ~stack msngr)#le_tab#le_age dst
+	and enc_pos = Opt.get ((agent ~stack msngr)#le_tab#le_pos dst)
 	in
 	let d_to_messenger = 
 	  (World.w())#dist_coords owner#pos (Nodes.gpsnode msngr)#pos 
 	in
 	
 	(* Return triplet as defined above *)
-	(d_to_messenger, enc_pos, enc_age) 
-
+	(d_to_messenger, enc_pos, enc_age, msngr) 
     )
   )
 
@@ -215,15 +223,27 @@ object(s)
     (s#closest_toward_anchor anchor_pos) = myid;
 
 
+
+  method private fw_pkt_ pkt = (
+    let dst = (L3pkt.l3dst pkt) in
+
+    (* If the destination is within range, bypass georouting and send directly
+       to it. *)
+    if (World.w())#are_neighbors owner#id dst then 
+      s#cheat_send_pkt pkt dst
+    else 
+      s#geo_fw_pkt_ pkt
+  )
+
   (* Geographically forward a packet to the next hop. The georouting algorithm
-     is described in ease_agent.mli *)
+     is described in ler_agent.mli *)
   method private geo_fw_pkt_ pkt = (
     let dst = (L3pkt.l3dst pkt) in
 
     (* this first case is necssary to avoid a possible infinite loop if we are at
        the same position as the destination, in which case the find_closest call
        in closest_toward_anchor might return us. *)
-    if owner#pos = (Nodes.gpsnode (L3pkt.l3dst pkt))#pos  then 
+    if owner#pos = (Nodes.gpsnode dst)#pos  then 
 
       (* [cheat_send_pkt] is documented in simplenode.mli. *)
       s#cheat_send_pkt pkt (Nodes.gpsnode dst)#id
@@ -235,7 +255,7 @@ object(s)
       
       if closest_id = myid then (
 	
-	s#log_debug (lazy (sprintf "We are closest to %d" closest_id));
+	s#log_debug (lazy (sprintf "We are closest to anchor"));
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
 	  (Coord.sprintf (Nodes.gpsnode dst)#pos)));
 	
@@ -292,17 +312,22 @@ object(s)
 	       or it will find the closest neighboring node with a better
 	       anchor (if case a above). *)
 
-	    let (d_to_msnger, next_anchor, next_enc_age) = 
+	    let (d_to_msnger, next_anchor, next_enc_age, msngr) = 
 	      s#find_next_anchor dst cur_enc_age
 	    in
 	    Ease_pkt.set_enc_age ease_hdr next_enc_age;
-	    Ease_pkt.set_anchor_pos ease_hdr next_anchor;
+
 	    Ease_pkt.set_search_dist ease_hdr d_to_msnger;
+
+	    if fresh then 
+	      Ease_pkt.set_anchor_pos ease_hdr ((World.w())#nodepos msngr)
+	    else
+	      Ease_pkt.set_anchor_pos ease_hdr next_anchor;
+
 	  );
 
-	  (* Send through our containing nodes' mac layer *)
-	  s#geo_fw_pkt_ pkt
-
+	  (* Forward packet toward anchor.*)
+	  s#fw_pkt_ pkt
   )
     
     
