@@ -1,11 +1,12 @@
+include /usr/lib/ocaml/camlimages/Makefile.config
 #*************************************************************#
 # Choose whether to use the optimizing, profiling, or regular
 # compiler.
 #
-ifdef NOPT
-	include  mk/ocaml.mk	
-else
+ifdef OPT
 	include mk/ocamlopt.mk
+else
+	include  mk/ocaml.mk	
 endif
 
 
@@ -17,8 +18,9 @@ MISC_SUBDIR = misc
 TEST_SUBDIR = test
 BIN_SUBDIR = bin
 LIB_SUBDIR = /usr/lib/ocaml
+CAMLIMAGES_SUBDIR = $(LIB_SUBDIR)/camlimages
 
-INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LLER_SUBDIR) -I $(LIB_SUBDIR) 
+INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LLER_SUBDIR) -I $(CAMLIMAGES_SUBDIR) 
 
 
 SUBDIRS = \
@@ -33,6 +35,8 @@ DEPEND = .depend
 DEPENDS = \
 	$(LER_SUBDIR)/*.ml \
 	$(LER_SUBDIR)/*.mli \
+	$(LLER_SUBDIR)/*.ml \
+	$(LLER_SUBDIR)/*.mli \
 	$(BLER_SUBDIR)/*.ml \
 	$(BLER_SUBDIR)/*.mli \
 	$(MISC_SUBDIR)/*.ml \
@@ -51,10 +55,27 @@ STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 
 
 
-LER_OBJ_FILES = $(MISC_OBJ_FILES) \
+LER_OBJ_FILES = $(GFX_LIB) \
+		$(MISC_OBJ_FILES) \
+		$(LER_SUBDIR)/ler_utils$(CMO) \
+		$(MISC_SUBDIR)/graph$(CMO) \
+		$(MISC_SUBDIR)/lattice$(CMO) \
+		$(LLER_SUBDIR)/larray$(CMO) \
+		$(LLER_SUBDIR)/circbuf$(CMO) \
+		$(LLER_SUBDIR)/itin$(CMO) \
 		$(LER_SUBDIR)/ler$(CMO) \
+		$(MISC_SUBDIR)/ler_graphics$(CMO) \
 		$(LER_SUBDIR)/ler_main$(CMO)
 
+LLER_OBJ_FILES = $(MISC_OBJ_FILES) \
+		 $(MISC_SUBDIR)/data$(CMO) \
+		 $(MISC_SUBDIR)/graph$(CMO) \
+	  	 $(MISC_SUBDIR)/lattice$(CMO) \
+		 $(LLER_SUBDIR)/larray$(CMO) \
+		 $(LLER_SUBDIR)/circbuf$(CMO) \
+		 $(LLER_SUBDIR)/itin$(CMO) \
+	  	 $(LLER_SUBDIR)/ller$(CMO) \
+		 $(LLER_SUBDIR)/ller_main$(CMO)
 
 
 BLER_OBJ_FILES = $(GFX_LIB) \
@@ -64,6 +85,8 @@ BLER_OBJ_FILES = $(GFX_LIB) \
 		$(BLER_SUBDIR)/bler_main$(CMO) 
 
 MODULE_OBJ_FILES = \
+	$(MISC_SUBDIR)/graph$(CMO) \
+	$(MISC_SUBDIR)/lattice$(CMO) \
 	$(LLER_SUBDIR)/larray$(CMO) \
 	$(LLER_SUBDIR)/circbuf$(CMO) \
 	$(LLER_SUBDIR)/itin$(CMO)
@@ -87,8 +110,11 @@ GRAPH_OBJ_FILES = \
 		$(MISC_SUBDIR)/graph_main$(CMO)
 
 TEST_OBJ_FILES = \
-	$(TEST_SUBDIR)/testUtils$(CMO)
-
+	$(TEST_SUBDIR)/testUtils$(CMO) \
+	$(TEST_SUBDIR)/graph-test$(CMO) \
+	$(TEST_SUBDIR)/lattice-test$(CMO) \
+	$(TEST_SUBDIR)/itin-test$(CMO) \
+	$(TEST_SUBDIR)/circbuf-test$(CMO)
 
 
 %.cmo: %.ml
@@ -100,8 +126,9 @@ TEST_OBJ_FILES = \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-exp:  $(LER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(LER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
+exp: bin/exp
+bin/exp:  $(LER_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(LER_OBJ_FILES) -o $@ 
 
 bler:  $(BLER_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
@@ -115,13 +142,20 @@ graph-test: $(GRAPH_OBJ_FILES)
 proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
 
-testmodules: $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
+testmodules:  $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES) $(TEST_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
+
+ller: bin/ller
+bin/ller: $(LLER_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(LLER_OBJ_FILES) -o $@
+
+ocamlgfx: 
+	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
 
 all: bler exp doplots graph-test
 
 CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out); done
-EMACSCLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *~); done
+EMACSCLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *~; rm -f .*~); done
 
 clean:
 	$(CLEANALL)
@@ -129,6 +163,7 @@ clean:
 eclean:
 	$(EMACSCLEANALL)
 	rm -f *~
+	rm -f .*~
 
 depend:
 	ocamldep $(INCLUDE) $(DEPENDS) > $(DEPEND)
