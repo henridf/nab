@@ -175,6 +175,9 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
 		$(SIM_BASE_DIR)/gpsnode$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
+		$(SIM_MOB_DIR)/mob_base$(CMO) \
+		$(SIM_MOB_DIR)/mobs$(CMO) \
+		$(SIM_BASE_DIR)/mob_ctl$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
 		$(PROTO_STR_DIR)/str_defaults$(CMO) \
 		$(PROTO_STR_DIR)/str_rtab$(CMO) \
@@ -187,9 +190,6 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
 		$(PROTO_MISC_DIR)/null_agent$(CMO) \
-		$(SIM_MOB_DIR)/mob_base$(CMO) \
-		$(SIM_MOB_DIR)/mobs$(CMO) \
-		$(SIM_BASE_DIR)/mob_ctl$(CMO) \
 		$(SIM_BASE_DIR)/crsearch$(CMO) \
 		$(SIM_BASE_DIR)/crworld$(CMO) \
 		$(SIM_SCRIPT_DIR)/script_utils$(CMO) \
@@ -250,6 +250,10 @@ bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
+
+strtest: bin/strtest
+bin/strtest: $(GUI_OBJS) scripts/grep_common$(CMO) $(PROTO_STR_DIR)/scripts/strtest$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) scripts/grep_common$(CMO) $(PROTO_STR_DIR)/scripts/strtest$(CMO) -o $@ 
 
 nab-top: bin/nab-top
 bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)
