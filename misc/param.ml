@@ -4,7 +4,6 @@ let namespace = Hashtbl.create 50
 let parambag = Hashtbl.create 50
 
 
-
 type 'a t = {
   mutable value: 'a option;
   name:string;
@@ -14,14 +13,17 @@ type 'a t = {
   checker:('a -> unit) option;
 }
 
-type paramtype = Intparam | Floatparam 
+(* used for keeping track of which params 
+   are argspeccable *)
+let intparams = ref []
+let floatparams = ref []
+let stringparams = ref []
+
 
 
 exception IllegalValue of string
 
-
-
-let create ~name  ?shortname ?default ~doc ~reader ?checker () =  (
+let create ~name  ?shortname ?(cmdline=false) ?default ~doc ~reader ?checker () =  (
 
   if Hashtbl.mem namespace name then 
     raise (Failure (Printf.sprintf "Param.create : %s already taken" name));
@@ -42,8 +44,27 @@ let create ~name  ?shortname ?default ~doc ~reader ?checker () =  (
   checker=checker}
 )
     
-let intcreate  =   create ~reader:int_of_string 
-let floatcreate =  create  ~reader:float_of_string
+let intcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = create ~name ?shortname ~cmdline ?default ~doc ~reader:int_of_string
+    ?checker () in
+  if cmdline then intparams := p::!intparams;
+  p
+
+let floatcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = create ~name ?shortname ~cmdline ?default ~doc ~reader:float_of_string
+    ?checker () in
+  if cmdline then floatparams := p::!floatparams;
+  p
+
+let boolcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
+  create ~name ?shortname ~cmdline ?default ~doc ~reader:bool_of_string
+    ?checker () 
+
+let stringcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () = 
+  let p = create ~name ?shortname ~cmdline ?default ~doc ~reader:(fun s -> s)
+    ?checker () in
+  if cmdline then stringparams := p::!stringparams;
+  p
 
 
 let set param value = (
@@ -85,3 +106,8 @@ let make_floatargspec param =
 	("-"^param.shortname, 
 	Arg.Float (fun i -> set param i),
 	param.doc)
+
+let make_argspeclist () = 
+  List.map (fun p -> make_intargspec p) !intparams
+  @
+  List.map (fun p -> make_floatargspec p) !floatparams

@@ -8,6 +8,7 @@
 let nodes = 
   Param.intcreate 
     ~name:"nodes" 
+    ~cmdline:true
     ~default: 100
     ~doc:"Number of nodes in Simulation"
     ()
@@ -49,13 +50,5 @@ let ntargets =
     ~doc:"Number of targets in Simulation"
     ()
 
+
 (* These two lists contain the params that should be cmdline specifyable *)
-let intparams = [nodes; ntargets]
-let floatparams = [x_size; y_size; rrange]
-
-
-
-let make_argspeclist () = 
-  List.map (fun p -> Param.make_intargspec p) intparams
-  @
-  List.map (fun p -> Param.make_floatargspec p) floatparams
