@@ -4,8 +4,8 @@ let runs = [1; 2; 3; 4; 5]
 let difftypes = ["voronoi"; "opp"; "ess"]
 let mactypes = ["nullmac"]
 let floodints = [30.; 60.; 90.; 120.; 180.; 240.]
-let tmpfile = "/tmp/out.txt"
-let resfile = "./out.txt"
+let tmpfile = "/tmp/out-flooding.txt"
+let resfile = "./out-flooding.txt"
   
 let do_one_run ~duration ~sinks ~difftype ~mactype ~nth_top ~floodint = 
   let cmd = Printf.sprintf
