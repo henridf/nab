@@ -180,18 +180,54 @@ object(s)
 	    assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
 	    grid_of_nodes_.(oldx).(oldy) <- list_without
 	      grid_of_nodes_.(oldx).(oldy) index;      
-	  )
+	  );
 	)
     end;
     s#update_node_neighbors_ node;
 (*
     if (Common.get_time() > 10.0) then
       ignore(s#neighbors_consistent);
-*)
+    *)
   )
     
 
+
   method private update_node_neighbors_ node = (
+
+    (* 
+       For all neighbors, do a lose_neighbor on the neighbor and on this node.
+       Then, compute new neighbors, and add them to this node and to the neighbors.
+    *)
+
+    (* not really sure if this is necessary (idea was to avoid polymorphic =) *)
+    let rec mem (x:int) = function
+	[] -> false
+      | a::l -> a = x || mem x l
+    in
+
+    let old_neighbors = node#neighbors in
+    let new_neighbors = s#compute_neighbors_ node in
+
+    let exits = List.filter (fun nid -> not (mem nid new_neighbors)) old_neighbors
+    and entries = List.filter (fun nid -> not (mem nid old_neighbors)) new_neighbors
+
+    in
+    List.iter 
+      (fun i -> 
+	node#lose_neighbor (Nodes.node i);
+	(Nodes.node i)#lose_neighbor node
+      ) exits;
+
+    List.iter 
+      (fun i -> 
+	  node#add_neighbor (Nodes.node i);
+	  if i <> node#id then
+	    (* don't add twice for node itself *)
+	    (Nodes.node i)#add_neighbor node
+      ) entries
+  )
+
+  method private update_node_neighbors_old node = (
 
     (* 
        For all neighbors, do a lose_neighbor on the neighbor and on this node.
@@ -206,7 +242,7 @@ object(s)
     (* nodes which have changed status (entered or exited neighborhood)
        are those which are in only one of old_neighbors and new_neighbors *)
       List.fold_left (fun l n -> 
-	if ((Misc.list_count_element ~l:old_and_new ~el:n) = 1) then
+	if ((Misc.list_count_int ~l:old_and_new n) = 1) then
 	  n::l 
 	else 
 	  l) [] old_and_new 
