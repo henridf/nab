@@ -89,7 +89,7 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
       let dst = if hotdest then ((Param.get Params.nodes)  - 1 ) else (n#id +
       sources) in
       let pkt_reception() = n#trafficsource  dst packet_rate in
-      (Gsched.sched())#sched_in ~f:pkt_reception ~t:((float n#id) *. 5.);
+      (Gsched.sched())#sched_in ~f:pkt_reception ~t:(((float n#id) *. 5.) + 0.001);
     )
   );
   
