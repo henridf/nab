@@ -29,6 +29,9 @@ type sched_time_t = | ASAP (** Schedule as soon as possible. *)
 		    | Time of Common.time_t  (** Schedule at given time. *)
 
 
+let last_time = ref (Unix.gettimeofday())
+let next_check_point = ref 10.
+let check_increment = !next_check_point
 
 (** The type of events. *)
 type event_t = {
@@ -89,8 +92,6 @@ object(s)
 
   method virtual private sched_event_at : ev:event_t -> unit
 
-  initializer 
-    s#set_objdescr "/sched/list"
       
     
     
@@ -102,12 +103,22 @@ object(s)
     match t with 
       | ASAP -> 
 	  s#sched_event_at {handler=handler; time=Common.get_time()};
-      | ALAP -> raise (Failure "schedList.sched_at: ALAP not implemented\n")
+      | ALAP -> raise (Failure "sched#sched_handler_at: ALAP not implemented\n")
       | Time t -> (
 	  if (t <= Common.get_time()) then 
-	    raise (Failure "schedList.sched_at: attempt to schedule an event in the past");
+	    raise (Failure "sched#sched_handler_at: attempt to schedule an event in the past");
 	  s#sched_event_at {handler=handler; time=t};
-(*	  s#log_debug (lazy (sprintf "scheduling event at %.8f" t));*)
+
+(*	  s#log_debug (lazy (sprintf "scheduling event at %.8f" t));
+	  if ((Common.get_time()) > !next_check_point) then (
+	    let r = ref (Unix.gettimeofday()) in
+	    s#log_notice (lazy (sprintf "%f runtime (Time: %2f)" 
+	      (!r -. !last_time) (Common.get_time())));
+	    next_check_point := (!next_check_point +. check_increment);
+	    last_time := !r
+	  )
+*)
+
 	);
   )
 
@@ -149,8 +160,11 @@ object(s)
 end
 
 class  schedList = 
-object
-  inherit sched
+object(s)
+  inherit sched 
+
+  initializer 
+    s#set_objdescr "/sched/list"
 
   val ll = Linkedlist.create()
 
@@ -174,10 +188,13 @@ end
 module EventHeap = Heap.Imperative (Compare)
 
 class  schedHeap = 
-object
+object(s)
   inherit sched
 
-  val heap = EventHeap.create 1024 
+  initializer 
+    s#set_objdescr "/sched/heap"
+
+  val heap = EventHeap.create 1024
 
   method private next_event =  
     if EventHeap.is_empty heap then 
