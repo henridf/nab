@@ -27,10 +27,10 @@
    It abstracts the wireless case as a graph with point-to-point links
    and transform the problem into a graph with nearest neighbor
    connectivity.
-   
-   This mac models the following behaviour:
+    More explicitly, this mac models the following behavior:
    - nodes can only transmit one packet at the time
    - nodes can receive at the same time from multiple neighbors
+   - nodes can transmit and receive simultaneously
 
 *)
 
