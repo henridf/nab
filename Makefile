@@ -126,6 +126,7 @@ DOC_FILES := $(filter-out $(ODOC_FHTML_SRC), $(DOC_FILES))
 
 
 SIM_OBJS = 	$(STR_LIB) \
+		$(SIM_BASE_DIR)/time$(CMO) \
 		$(SIM_LIB_OBJS) \
 		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
@@ -137,7 +138,6 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_INTF_DIR)/mac$(CMO) \
 		$(SIM_INTF_DIR)/trafficgen$(CMO) \
 		$(SIM_INTF_DIR)/persist$(CMO) \
-		$(SIM_BASE_DIR)/time$(CMO) \
 		$(SIM_BASE_DIR)/common$(CMO) \
 		$(SIM_PKT_DIR)/pkt_common$(CMO) \
 		$(SIM_PKT_DIR)/l4pkt$(CMO) \
@@ -151,9 +151,8 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/macaw_pkt$(CMO) \
 		$(SIM_MAC_DIR)/maca_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l2pkt$(CMO) \
-		$(SIM_LIB_DIR)/log$(CMO) \
-		$(SIM_BASE_DIR)/world$(CMO) \
 		$(SIM_BASE_DIR)/params$(CMO) \
+		$(SIM_BASE_DIR)/world$(CMO) \
 		$(SIM_LIB_CONTRIB_DIR)/heap$(CMO) \
 		$(SIM_BASE_DIR)/sched$(CMO) \
 		$(SIM_BASE_DIR)/nodes$(CMO) \
@@ -197,6 +196,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_SCRIPT_DIR)/traffic_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/script_utils$(CMO) \
 		$(SIM_BASE_DIR)/persistency$(CMO)\
+		$(SIM_SCRIPT_DIR)/warmup_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/grep_common$(CMO)
 # script_utils should be as near to end as possible
 # because only scripts should need to use it
@@ -231,7 +231,8 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 		 $(SIM_LIB_DIR)/randoms$(CMO) \
 		 $(SIM_LIB_DIR)/coord$(CMO) \
 		 $(SIM_LIB_DIR)/naryTree$(CMO) \
-		$(SIM_LIB_DIR)/graph$(CMO)
+		 $(SIM_LIB_DIR)/log$(CMO) \
+		 $(SIM_LIB_DIR)/graph$(CMO)	
 
 %.cmo: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<

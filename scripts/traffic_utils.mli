@@ -67,7 +67,6 @@ val all_sources : unit -> Common.nodeid_t list
   (** Returns a list of all nodes which are sources according to the current
     configuration values in {!Traffic_utils.TParams}.*)
 
-
 val all_destinations : unit -> Common.nodeid_t list
   (** Returns a list of all nodes which are destinations according to the
     current configuration values in {!Traffic_utils.TParams}.*)

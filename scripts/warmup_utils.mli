@@ -22,46 +22,18 @@
 
 (* $Id$ *)
 
+type warmup_type = TRAFFIC | MOB | NONE
+and agent_type = AODV | GREP | STR_MAX | STR_AGE | STR_AODV
 
-open GMain
-open Misc
-open Script_utils
+module Config :
+  sig
+    val warmup : warmup_type Param.t
+    val agent : agent_type Param.t
+    val run : int Param.t
+  end
 
-
-let sp = Printf.sprintf
-
-  
-let () = 
-
-  Warmup_utils.setup_or_restore();
-
-  Pervasives.at_exit (fun () ->
-    let stats = Warmup_utils.get_added_stats() in
-    print_string "\n\n";
-    print_string stats;
-  );
-
-
-  Warmup_utils.maybe_warmup();
-  
-  
-  (* (Sched.s())#run();
-     install_tsources();
-     (Sched.s())#run_for ~duration:3000.;
-     exit 0;
-
-     let dst = 0 in
-     for i = 0 to -1 do 
-     (Nodes.node dst)#originate_app_pkt ~l4pkt:`EMPTY ~dst:(i + 2);
-
-     done;
-  *)
-  
-
-  Param.set Params.x_pix_size 600;
-  Param.set Params.y_pix_size 600;
-
-  Gui_gtk.init();
-  Gui_grep.setup_grepviz_app();
-  Main.main();
-
+val get_added_stats : unit -> string
+val set_hellos : unit -> unit
+val setup_sim : unit -> unit
+val setup_or_restore : unit -> unit
+val maybe_warmup : unit -> unit
