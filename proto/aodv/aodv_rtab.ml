@@ -158,7 +158,6 @@ let add_entry_neighbor rt dst =
 	{e with 
 	  nexthop=dst; 
 	  hopcount=1;
-	  seqno=None; 
 	  lifetime=Time.time() +. aodv_ACTIVE_ROUTE_TIMEOUT; 
 	  valid=true}
   end;
@@ -234,12 +233,19 @@ let precursors rt dst =
     | Some e -> e.precursors
   
 let h = Hashtbl.create 20
+
+exception Break
+
 let have_many_precursors rt nodelist = 
-  Hashtbl.clear h;
-  let b = ref false in 
-  let f pre = if Hashtbl.mem h pre then b := true else Hashtbl.add h pre () in
-  List.iter (fun node -> List.iter f (precursors rt node)) nodelist;
-  !b
+  let pre1 = ref (-1) in
+  let f pre = 
+    if !pre1 = -1 
+    then pre1 := pre 
+    else if !pre1 <> pre then raise Break
+  in
+  try 
+    List.iter (fun node -> List.iter f (precursors rt node)) nodelist; false
+  with  Break -> true 
   
 
 

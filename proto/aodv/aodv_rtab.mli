@@ -121,8 +121,9 @@ val add_entry_rreq : t -> Aodv_pkt.rreq -> Common.nodeid_t -> unit
 
 val add_entry_neighbor : t -> Common.nodeid_t -> unit 
   (** [add_entry_neighbor t dst seqno ] adds or updates a one-hop routing entry for
-    destination [dst], setting nexthop to [dst], hopcount to 1, and sequence
-    number to [None] (ie invalid sequence number, see rfc 6.2).
+    destination [dst], setting nexthop to [dst] and hopcount to 1. The sequence
+    number is set to to [None] (ie invalid sequence number, see rfc 6.2) if
+    there was no entry, or is unchanged if there was a prior entry.
     Lifetime is updated to ACTIVE_ROUTE_TIMEOUT.
     Repairing status is set to [false].
  *)
@@ -141,7 +142,9 @@ val add_entry_rrep : t -> Aodv_pkt.rrep -> Common.nodeid_t -> bool
 
 val dests_thru_hop : t -> Common.nodeid_t -> Common.nodeid_t list
   (** [dests_thru_hop rtab nexthop] returns the list of all dests for which
-    whom [rtab] contains a valid entry, with next hop equal to [nexthop]. *)
+    whom [rtab] contains a valid entry, with next hop equal to [nexthop]. 
+    The list may include [nexthop] (if [rtab]  has a valid entry to [nexthop]).
+*)
 
 val precursors : t ->  Common.nodeid_t -> Common.nodeid_t list
   (** [precursors rtab dest] returns the precursors of [dest] (empty list if no
