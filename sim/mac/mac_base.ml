@@ -115,7 +115,7 @@ object(s)
 	    (L2pkt.l2src l2pkt) d));
 	  super#send_up l2pkt;
       | d -> ((* this pkt is not for us. Drop it ... *) );
-    
+    end
   method xmit = s#frontend_xmit
     
 end
