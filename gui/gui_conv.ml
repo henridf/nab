@@ -71,7 +71,7 @@ let route_nodeid_to_pix r =
       {h with hop=(pos_mtr_to_pix nodepos)}
     ) r
 
-let ease_route_mtr_to_pix r = 
+let ler_route_mtr_to_pix r = 
   List.map 
     (fun h -> 
       let info = 
@@ -84,7 +84,7 @@ let ease_route_mtr_to_pix r =
     )
     r
 
-let ease_route_nodeid_to_pix r = 
+let ler_route_nodeid_to_pix r = 
   List.map 
     (fun h -> 
       let nodepos = (World.w())#nodepos h.hop in
