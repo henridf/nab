@@ -18,7 +18,8 @@ type eventlist_entry_t =
   | Event of event_t
   | Stop of event_t          (* Inserted by stop_ methods *)
 
-class type scheduler_t = 
+
+class type virtual scheduler_t = 
 object 
 
   (* keep processing queued events until none left *)
@@ -38,14 +39,14 @@ object
 
   method sched_in : handler:handler_t -> t:Common.time_t -> unit
   method sched_at : handler:handler_t -> t:sched_time_t -> unit
-  method sched_event_at : ev:eventlist_entry_t -> unit
+  method virtual private sched_event_at : ev:eventlist_entry_t -> unit
 
   method stop_in :  t:Common.time_t -> unit
   method stop_at :  t:sched_time_t -> unit
 
 
 
-  method private next_event : eventlist_entry_t option 
+  method virtual private next_event : eventlist_entry_t option 
 end
 
 let event_time ev = 
@@ -56,26 +57,24 @@ let event_time ev =
 let compare ev1 ev2 = 
   (event_time ev1) < (event_time ev2) 
   
-class schedList : scheduler_t = 
+class virtual sched  = 
 
 object(s)
 
   inherit Log.loggable
 
-  val ll = Linkedlist.create()
+  method virtual private next_event : eventlist_entry_t option 
+
+  method virtual private sched_event_at : ev:eventlist_entry_t -> unit
 
   initializer (
     objdescr <- "/sched/list"
-  )
+  ) 
     
-  method private next_event =  Linkedlist.pophead ~ll:ll 
     
-  method sched_event_at ~ev = 
-    Linkedlist.insert ~ll:ll ~v:ev ~compare:compare
-
-  method stop_at ~t = (
+  method stop_at ~t = 
     let str = ref "" in (
-
+      
       match t with 
 	| ASAP -> 
 	    s#sched_event_at (Stop {handler=(fun () -> ()); time=Common.get_time()});
@@ -85,7 +84,7 @@ object(s)
 	    s#sched_event_at (Stop {handler=(fun () -> ()); time=t});
 	  );
     );
-  )
+    
   method stop_in ~t =  s#stop_at  (Time (t +. Common.get_time()))
 
   method sched_at ~handler ~t = (
@@ -94,9 +93,10 @@ object(s)
       match t with 
 	| ASAP -> 
 	    s#sched_event_at (Event {handler=handler; time=Common.get_time()});
-	| ALAP -> raise (Failure "schedList.sched: ALAP not implemented\n")
+	| ALAP -> raise (Failure "schedList.sched_at: ALAP not implemented\n")
 	| Time t -> (
-	    assert (t > Common.get_time());
+	    if (t <= Common.get_time()) then 
+	      raise (Failure "schedList.sched_at: attempt to schedule an event in the past");
 	    s#sched_event_at (Event {handler=handler; time=t});
 	  );
     );
@@ -132,5 +132,46 @@ object(s)
     s#run_until ~continue
 
   method run() = s#run_until ~continue:(fun () -> true)
+
+end
+
+class  schedList = 
+object
+  inherit sched
+
+  val ll = Linkedlist.create()
+
+  method private next_event =  Linkedlist.pophead ~ll:ll 
+    
+  method private sched_event_at ~ev = 
+    Linkedlist.insert ~ll:ll ~v:ev ~compare:compare
+
+end
+
+
+
+module Compare =
+struct
+  type t = eventlist_entry_t
+  let compare ev1 ev2 = 
+    if  (event_time ev1) > (event_time ev2)  then -1 else 1
+
+end
+module EventHeap = Heap.Imperative (Compare)
+
+class  schedHeap = 
+object
+  inherit sched
+
+  val heap = EventHeap.create 1024 
+
+  method private next_event =  
+    if EventHeap.is_empty heap then 
+      None 
+    else 
+      Some (EventHeap.pop_maximum  heap)
+    
+  method private sched_event_at ~ev = 
+    EventHeap.add  heap ev
 
 end

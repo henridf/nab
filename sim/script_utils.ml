@@ -2,7 +2,7 @@ open Printf
 open Misc
 open Coord
 
-let init_sched() = Gsched.set_sched (new Sched.schedList)
+let init_sched() = Gsched.set_sched (new Sched.schedHeap)
 let init_world() = 
   Gworld.set_world (new Crworld.crworld 
     ~x:(Param.get Params.x_size)
