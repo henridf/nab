@@ -40,9 +40,9 @@ val set_time : Common.time_t -> unit
 
 
 (** The virtual scheduler class. Contains all logic which is independent of
-  the underlying data structure (e.g., heap) used to keep events.
+  the underlying data structure used to keep events.
   All that is left for a concrete class is to implement two virtual methods,
-  allowing to insert and remove events into whatever data-structure the
+  allowing to insert and remove events into whatever data structure the
   concrete class uses. *)
 class virtual sched :
 object

@@ -41,6 +41,18 @@ class virtual crworld_common ~x ~y ~rrange  = (
 
     val initial_pos = (0.0, 0.0)
 
+
+      
+    (** See {!World.world_t.neighbors}.
+      Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
+    method virtual neighbors : Common.nodeid_t -> Common.nodeid_t list
+
+    (** This method is called each time a node has moved. 
+      Virtual since implementation of neighbor lookup is different for lazy vs  greedy. *)
+    method virtual private update_node_neighbors_ : ?oldpos:Coord.coordf_t -> Common.nodeid_t -> unit
+
+
+
     initializer (
       grid_of_nodes_ <- 
       (Array.make_matrix grid_size_x_ grid_size_y_ []);
@@ -51,9 +63,6 @@ class virtual crworld_common ~x ~y ~rrange  = (
 	  x y rrange (Param.get Params.nodes))
       );
     )
-
-    method virtual neighbors : Common.nodeid_t -> Common.nodeid_t list
-    method virtual private update_node_neighbors_ : ?oldpos:Coord.coordf_t -> Common.nodeid_t -> unit
 
     method add_new_ngbr_hook nid ~hook =
       new_ngbr_hooks.(nid) <- new_ngbr_hooks.(nid) @ [hook]

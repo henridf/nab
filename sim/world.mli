@@ -24,9 +24,6 @@ object
   method random_pos : Coord.coordf_t 
     (** Return a uniform random position over the surface of the simulated area *)
 
-  method get_nodes_within_radius :  nid:Common.nodeid_t -> radius:float -> Common.nodeid_t list
-    (** Return all nodes within a given distance of a node.*)
-
   method dist_coords :  Coord.coordf_t -> Coord.coordf_t -> float
     (** Compute distance between two euclidean coordinates. *)
 
@@ -75,11 +72,14 @@ object
       find the node closest to a point.
     *)
 
-    
   method is_connected : unit -> bool
     (** Returns true if the network is connected (under a boolean connectivity
       model, with connectivity up to Params.rrange), false otherwise.
       Warning: this is SLOW for networks in the 100s of nodes or above. *)
+
+  method get_nodes_within_radius :  nid:Common.nodeid_t -> radius:float -> Common.nodeid_t list
+    (** Return all nodes within a given distance of a node. 
+      Note: Current implementation is not efficient (iterates over all nodes).*)
 
   (**/**)
 
