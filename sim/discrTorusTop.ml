@@ -33,8 +33,8 @@ module Lat2D : Top.Topology_t =
       List.concat (List.map (fun x -> Graph.getinfo_ !g x) neigbor_points)
     )
       
-    let dist data ~src ~dest = 
-      i2f (Graph.lattice_dist_ !g ~src:(coord_f2i data.pos.(src)) ~dest:(coord_f2i data.pos.(dest)))
+    let dist a b = 
+      i2f (Graph.lattice_dist_ !g ~src:(coord_f2i a) ~dest:(coord_f2i b))
 	
     let zero_hop_neigbors coord1 coord2 = (coord1 = coord2)
       
