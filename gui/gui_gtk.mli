@@ -2,7 +2,10 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Low-level interface to some wrappers around GTK functionality *)
+(** Low-level interface to some wrappers around GTK functionality.
+
+  @author Henri Dubois-Ferriere.
+ *)
 
 
 val init : unit -> unit

@@ -21,7 +21,7 @@ object
   inherit Log.inheritable_loggable 
 
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
-    (** This is called when a packet arrives at a node.
+    (** [recv] is called when a packet arrives at a node.
 
       More precisely, [recv] is called when the {i first bit} of a packet
       arrives at the node. So in order to be physically "truthful", a MAC
