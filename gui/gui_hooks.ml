@@ -35,15 +35,6 @@ let closest_node_at pix_pos =
     (o2v ((Gworld.world())#find_closest ~pos ~f:(fun _ -> true)))
 
 
-let node_moved newpos node = (
-  let newpos_pix = pos_mtr_to_pix newpos in
-  Gui_pos.enter_node_pos (node#id, newpos_pix)
-)
-
-let attach_mob_hooks()  = 
-  Nodes.gpsiter
-    (fun n -> n#add_mob_mhook ~hook:node_moved)
-
 
 
 

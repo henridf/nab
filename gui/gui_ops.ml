@@ -16,7 +16,7 @@ let draw_node_time nid t =
   else 
     (cols.(Random.int 3), false)
   in 
-  let (_, pos) = Gui_pos.node_pos_inst nid (Common.get_time())
+  let pos = Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos nid)
   in
 
   Gui_gtk.draw_node ~col ~target pos

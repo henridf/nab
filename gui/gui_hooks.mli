@@ -20,17 +20,6 @@ val pos_pix_to_mtr : Coord.coordi_t -> Coord.coordf_t
 val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t
 
 
-(* mws => gui *)
-
-val node_moved : 
-  Coord.coordf_t -> 
-  Simplenode.simplenode -> 
-  unit
-
-val attach_mob_hooks :
-  unit -> 
-  unit
-
 (* Nodeid_t Route.t is not possible (as in bler) b/c anchors cannot be
    represented as nodes *)
 val ease_route_pktin_mhook : 
