@@ -3,11 +3,22 @@
 (*                                  *)
 
 val init : unit -> unit
-val set_mtr_size : x:float -> y:float -> unit
-  (* coordinates: gtk must convert between mws coordinates (meters) and screen coordinates.
-     All other parts of mws are screen-unaware and use mws coordinates *)
 
-val draw_node :  mwspos:Coord.coordf_t -> unit
-val undraw_node : mwspos:Coord.coordf_t -> unit
+val redraw : 
+  'a -> bool
 
+val clear : 
+  unit -> unit
+
+val draw_node :  
+  Coord.coordi_t -> 
+  unit
+
+val draw_nodes : 
+  Coord.coordi_t list 
+  -> unit
+
+val draw_segments : 
+  (Coord.coordi_t * Coord.coordi_t)  list 
+  -> unit
 
