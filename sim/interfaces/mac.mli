@@ -67,7 +67,9 @@ object
     (** [recv] is called when a packet arrives at a node.
 
       More precisely, [recv] is called when the {i first bit} of a packet
-      arrives at the node. So, a realistic MAC implementation should wait an
+      arrives at the node. But since NAB does not (currently) simulate
+      transmission at the bit-by-bit level, this method is provided with the
+      full packet. Therefore, a realistic MAC implementation should wait an
       appropriate duration (depending on packet size and transmission rate of
       this MAC). A MAC that detects collisions would also keep track of the
       fact that it is receiving for this duration, in order to know that there
