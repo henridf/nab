@@ -58,11 +58,13 @@ INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(SIM_SCRIPT_DIR) -I $(GUI_DATA_DIR)
 THFLAGS = -thread
 
 
+SCRIPT_DIRS = $(SIM_SCRIPT_DIR) $(PROTO_STR_DIR)/scripts
+
 DIRS = 	$(SIM_LIB_DIRS) \
 	$(GUI_DIR) \
 	$(SIM_DIRS) \
-	$(PROTO_DIRS) 
-
+	$(PROTO_DIRS) \
+	$(SCRIPT_DIRS)
 
 # For clean_* targets, we don't rm gui/data/ files (they are slow to compile and 
 # never change)
@@ -228,7 +230,6 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 		 $(SIM_LIB_DIR)/coord$(CMO) \
 		 $(SIM_LIB_DIR)/naryTree$(CMO) \
 		$(SIM_LIB_DIR)/graph$(CMO)
-
 
 %.cmo: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
