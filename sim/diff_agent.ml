@@ -6,10 +6,14 @@ open Printf
 open Misc
 
 let packet_buffer_size = 50
+let sinks = ref []
+
 
 class type diff_agent_t =
   object
-    method private app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
+    method app_send : ?ttl:int -> dst:Common.nodeid_t -> L4pkt.l4pkt_t -> unit
+    method seqno : unit -> int
+    method is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
     method private buffer_packet : l3pkt:L3pkt.l3packet_t -> unit
     method private hand_upper_layer : l3pkt:L3pkt.l3packet_t -> unit
     method private incr_seqno : unit -> unit
@@ -71,11 +75,12 @@ object(s)
   initializer (
     objdescr <- (owner#objdescr ^  "/DIFF_Agent ");
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
-    owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()
   )
 
   method get_rtab = rt
+
+  method seqno() = seqno
 
   method private incr_seqno() = (
     seqno <- seqno + 1;
@@ -182,6 +187,7 @@ object(s)
       in
       assert (update);
     );
+
     (* update route to source if packet came over fresher route than what we
        have *)
     let pkt_fresh = (s#packet_fresh ~l3pkt)
@@ -193,7 +199,6 @@ object(s)
 	~nh:sender
     in
     assert (update = pkt_fresh);
-    
     (* hand off to per-type method private *)
     begin match L3pkt.l3grepflags ~l3pkt with
       | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
@@ -206,15 +211,32 @@ object(s)
     end
   ) 
 
+  method is_closest_sink ?(op=(>)) sink = (
+    let d_to_sink s = 
+      match (Rtab.hopcount ~rt ~dst:s) with
+	| None -> max_int
+	| Some hc -> hc 
+    in
+    List.fold_left (fun bool othersink ->
+      bool &&
+      (((d_to_sink sink) = max_int && (d_to_sink othersink) = max_int)
+      ||
+      (op (d_to_sink othersink) ((d_to_sink sink) ))))
+      true
+      ((List.filter (fun s -> s <> sink)) !sinks)
+  )
+
+
   method private process_radv_pkt ~l3pkt ~fresh = (
     
     s#log_info 
       (lazy (sprintf "Received RADV pkt from src %d "
 	(L3pkt.l3src ~l3pkt) ));
-    match fresh with 
-      | true -> 
+    let sink_closest = (s#is_closest_sink (L3pkt.l3src ~l3pkt)) in
+    match fresh, sink_closest with 
+      | true,true -> 
 	    s#send_out ~l3pkt
-      | false -> 
+      | _ -> 
 	  s#log_info 
 	  (lazy (sprintf "Dropping RADV pkt from src %d (not fresh)"
 	    (L3pkt.l3src ~l3pkt) ));
@@ -536,13 +558,14 @@ object(s)
   *)
     
     
-  method private app_send l4pkt ~dst = (
+  method app_send ?(ttl=255)  ~dst (l4pkt:L4pkt.l4pkt_t) = (
     s#log_info (lazy (sprintf "Originating radv pkt with dst %d"
       dst));
     let l3hdr = 
       L3pkt.make_l3hdr
 	~srcid:owner#id
 	~dstid:L3pkt._L3_BCAST_ADDR
+	~ttl
 	~ext:(L3pkt.make_grep_l3hdr_ext
 	  ~flags:L3pkt.GREP_RADV
 	  ~ssn:seqno
