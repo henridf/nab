@@ -124,8 +124,8 @@ let set_src x y = (
   );
   
   Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
-  (*  ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
-    srcnode)#pos);*)
+    ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
+    srcnode)#pos);
   Gui_ops.draw_route 
     ~lines:!show_route_lines
     ~anchors:!show_route_anchors
@@ -217,13 +217,17 @@ let create_buttons() = (
     )) checkboxlist;
 
   let adj =
-    GData.adjustment ~lower:0. ~upper:100. ~step_incr:1. ~page_incr:10. () in
+    GData.adjustment ~lower:0. ~upper:1001. ~step_incr:1. ~page_incr:100. () in
   let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
     ~packing:(Gui_gtk.packer()) () in
     
   ignore (adj#connect#value_changed
     ~callback:(fun () -> 
-      route_portion := adj#value/.100.;
+      Printf.printf "value %f\n" adj#value; flush stdout;
+      
+      route_portion := 
+      if       adj#value > 990.0 then 1.0 else
+      adj#value/.1000.;
       if (!rt <> None) then ignore (refresh() ~clear:true);
     ));
 
