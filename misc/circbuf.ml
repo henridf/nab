@@ -1,24 +1,27 @@
 open Misc
 
-module type CircBuffer_t = 
+module type CircBuf_t = 
   sig 
-    type 'a circbuf
-    val create_ : int -> 'a -> 'a circbuf
-    val length_ : 'a circbuf -> int
-    val get_ : 'a circbuf -> int -> 'a (* offset counts backward from latest element inserted *)
-    val push_ : 'a circbuf -> 'a -> unit
+    type 'a circbuf_t
+    val create_ : int -> 'a -> 'a circbuf_t
+    val length_ : 'a circbuf_t -> int
+    val get_ : 'a circbuf_t -> int -> 'a      (* offset counts backward from latest element inserted *)
+    val push_ : 'a circbuf_t -> 'a -> unit
+    val iteri_ : (int -> 'a -> 'b) -> 'a circbuf_t -> unit
+    val fromarray_ : 'a array -> 'a circbuf_t (* head will be at array.(0) *)
+    val toarray_ : 'a circbuf_t -> 'a array   (* array.(0) will be most recently pushed item *)
+
     val test_ : unit -> unit
-    val fromarray_ : 'a array -> 'a circbuf (* head will be at array.(0) *)
-    val toarray_ : 'a circbuf -> 'a array (* array.(0) will be most recently pushed item *)
   end ;;
 
-module CircBuffer : CircBuffer_t = 
+
+module CircBuf : CircBuf_t = 
   struct 
-    type 'a circbuf = {buf : 'a array;
+    type 'a circbuf_t = {buf : 'a array;
 		       mutable head : int}
 			
     let create_ size item = (
-      if size <= 0   then failwith "CircBuffer.create_ : size must be > 0";
+      if size <= 0   then raise (Invalid_argument "CircBuf.create_ : size must be > 0");
       {buf = (Array.create size item); head=0}
     )
 			      
@@ -32,7 +35,7 @@ module CircBuffer : CircBuffer_t =
     (* rel is a relative offset backwards *)
     let rel2abs cbuf rel = (
       let l = length_ cbuf in
-	if rel >=  l then failwith (Printf.sprintf "Itinerary.rel2abs_ : rel. offset (%d) greater than length (%d)" rel l);
+	if rel >=  l then raise (Invalid_argument (Printf.sprintf "CircBuf.rel2abs_ : rel. offset (%d) greater than length (%d)" rel l));
 	(cbuf.head + rel) mod l 
     )
 			     
@@ -41,7 +44,7 @@ module CircBuffer : CircBuffer_t =
       cbuf.buf.(cbuf.head) <- item
     )
 			    
-    let get_ cbuf offset = cbuf.buf.(rel2abs cbuf offset)
+    let get_ cbuf offset = try cbuf.buf.(rel2abs cbuf offset) with Invalid_argument "Array.get" -> raise (Invalid_argument "CircBuf.get_")
 			     
     (* Iterate, going from the head backward.
        Index i passed to f is the relative offset into array
@@ -101,4 +104,4 @@ module CircBuffer : CircBuffer_t =
 		     
   end;;
 
-CircBuffer.test_ ();;
+CircBuf.test_ ();;
