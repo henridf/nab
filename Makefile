@@ -227,7 +227,7 @@ eclean:
 	rm -f *~
 	rm -f .*~
 
-depend:
+.depend:
 	ocamldep $(INCLUDE_SRC) $(DEPENDS) > $(DEPEND)
 
 include $(DEPEND)

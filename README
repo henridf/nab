@@ -6,11 +6,6 @@
 
 ** COMPILING
 
-First run the following two commands :
-
-	touch .depend
-	make depend
-
 To compile mws only:
 
 	make bin/mws
