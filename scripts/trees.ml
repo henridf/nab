@@ -31,6 +31,14 @@ struct
       ~doc:"Number of sinks" ()
       ~checker:(fun n -> Diff_agent.nsinks_ := Some n)
 
+  let floodint = 
+    Pm.floatcreate
+      ~name:"floodint"
+      ~default:30.
+      ~cmdline:true
+      ~doc:"Mean interval between floods" ()
+      ~checker:(fun n -> Diff_agent.mean_interest_interval := n)
+
   let duration = 
     Pm.floatcreate
       ~name:"duration"
