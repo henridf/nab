@@ -27,4 +27,29 @@ pair.<br>
 The network has 4000 nodes which have been moving with a billiard mobility model. </td>
 </tr>
 </table>
+<p>
+<table>
+<tr>
+<td><a href="nab_aodv-1.png"><img src="thumb_nab_aodv-1.png"/></a></td>
+<td><a href="nab_aodv-2.png"><img src="thumb_nab_aodv-2.png"/></a></td>
+</tr>
+<tr>
+<td>Grat. RREP</td>
+<td>Local Repair</td>
+</tr>
+<tr>
+<td colspan=3> AODV routes in a 2000 node network.<br>
+Destination is in upper left corner.<br>
+<p>
+The darker line represents the effective route taken by a packet. 
+<br>The red
+lines represent a route request (RREQ) flood necessary to route the
+packet. Expanding ring search is used.<br>
+In
+the first case, the route request is answered by an intermediate node quite close
+to the source, hence the flood is local around the source.<br>
+In the second case, the packet advances along a pre-existing route until it
+hits a broken link in the middle; a local repair is performed at that point.
+</tr>
+</table>
 </html>
