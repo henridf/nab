@@ -71,7 +71,7 @@ class type grep_agent_t =
     method private recv_l3pkt_ : l3pkt:L3pkt.t ->
       sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
-    method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
+    method private originate_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
     method private send_rreq :
       ttl:int -> dst:Common.nodeid_t -> rreq_uid:int -> unit
     method private send_waiting_packets : dst:Common.nodeid_t -> unit
@@ -290,7 +290,7 @@ object(s)
 	      | _ -> raise (Misc.Impossible_Case "Grep_agent.answer_rreq()") end
 	  in
 	  if (answer_rreq) then 
-	    s#send_rrep 
+	    s#originate_rrep 
 	      ~dst:(L3pkt.l3src l3pkt)
 	      ~obo:rdst
 	  else (* broadcast the rreq further along *)
@@ -301,7 +301,7 @@ object(s)
 	    (L3pkt.l3src l3pkt) rdst));
   )
     
-  method private send_rrep ~dst ~obo = (
+  method private originate_rrep ~dst ~obo = (
     s#log_info 
     (lazy (sprintf "Sending `RREP pkt to dst %d, obo %d"
       dst obo));
@@ -316,12 +316,8 @@ object(s)
 	()
     in
     let l3hdr = 
-      L3pkt.make_l3hdr
-	~srcid:myid
-	~dstid:dst
-	~ext:(`GREP_HDR grep_hdr)
-	()
-    in
+      L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`GREP_HDR grep_hdr) () in
+
     let l3pkt =
       L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY
     in
@@ -453,12 +449,8 @@ object(s)
 	()
     in
     let l3hdr = 
-      L3pkt.make_l3hdr
-	~srcid:myid
-	~dstid:L3pkt.l3_bcast_addr
-	~ext:(`GREP_HDR grep_hdr)
-	~ttl:1 
-	()
+      L3pkt.make_l3hdr ~src:myid ~dst:L3pkt.l3_bcast_addr 
+	~ext:(`GREP_HDR grep_hdr) ~ttl:1 ()
     in
     let l3pkt = 
       L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY
@@ -498,26 +490,17 @@ object(s)
 	  ()
       in
       let l3hdr = 
-	L3pkt.make_l3hdr
-	  ~srcid:myid
-	  ~dstid:L3pkt.l3_bcast_addr
-	  ~ext:(`GREP_HDR  grep_hdr)
-	  ~ttl:ttl 
-	  ()
+	L3pkt.make_l3hdr ~src:myid ~dst:L3pkt.l3_bcast_addr
+	  ~ext:(`GREP_HDR  grep_hdr) ~ttl:ttl ()
       in
       let l3pkt = 
 	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY
       in
       let next_ttl = next_rreq_ttl ttl in
       let next_rreq_timeout = 
-	((i2f (2 * next_ttl)) *. (hop_traversal_time s#bps)) in
-      let next_rreq_event() = 
-	(s#send_rreq 
-	  ~ttl:next_ttl
-	  ~dst
-	  ~rreq_uid
-	)
-      in	
+	((i2f (2 * ttl)) *. (hop_traversal_time s#bps)) in
+      let next_rreq_event() = (s#send_rreq ~ttl:next_ttl ~dst ~rreq_uid) in
+
       s#send_out ~l3pkt;
       
       
@@ -603,8 +586,7 @@ object(s)
 		| Some nh -> nh 
 	    in 
 	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
-	    try begin
-	      s#mac_send_pkt  ~dstid:nexthop l3pkt; end
+	    try  s#mac_send_pkt l3pkt nexthop
 	    with Simplenode.Mac_Send_Failure -> failed()
 
 	  end
@@ -636,12 +618,8 @@ object(s)
       )
     in
     let l3hdr = 
-      L3pkt.make_l3hdr
-	~srcid:myid
-	~dstid:dst
-	~ext:(`GREP_HDR grep_hdr)
-	()
-    in
+      L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`GREP_HDR grep_hdr) () in
+
     assert (dst <> myid);
     Grep_hooks.orig_data();
     let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
