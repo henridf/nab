@@ -4,13 +4,20 @@
 
 (** High-level GUI drawing operations *)
 
-val draw_route : 
+val draw_ease_route : 
   ?lines:bool ->
   ?anchors:bool ->
   ?disks:bool ->
-  portion:float ->
+  ?portion:float ->
   Coord.coordi_t Route.t
   -> unit
+  (** Draw ease route. 
+    Optional arguments [lines] [anchors] [disks] specify respectively which
+    information to represent. Default to [true].
+    Optional argument [portion] (default 1.0) can indicate that only a first
+    fraction of the route is to be drawn.
+  *)
+
 
 (* draw node at current time's position *)
 val draw_node :  
@@ -44,3 +51,9 @@ val draw_all_boxes :
 val draw_all_routes : 
   unit ->
   unit
+
+val user_pick_node : 
+  ?msg:string ->
+  node_picked_cb:(Common.nodeid_t -> unit)
+  -> unit
+  -> unit

@@ -4,6 +4,7 @@
 
 open Graph
 open Coord
+open Misc
 
 let draw_node ?(emphasize=false) nid = 
   let cols = [| 
@@ -11,7 +12,7 @@ let draw_node ?(emphasize=false) nid =
     `RGB ( 30, 40, 40);
     `RGB ( 50, 80, 80);|] in
 
-  let (col, target) = if emphasize || (nid < Param.get Params.ntargets) then 
+  let (col, target) = if emphasize  then 
     (`NAME "black", true)
   else 
     (cols.(Random.int 3), false)
@@ -35,7 +36,6 @@ let draw_all_nodes() = (
 	)
   in
   rec_ (Param.get Params.nodes);
-  rec_ ((Param.get Params.ntargets) + 1);
 
 )
 
@@ -97,11 +97,11 @@ let draw_all_routes() = (
     ) g
 )
 
-let draw_route 
+let draw_ease_route 
     ?(lines=true) 
     ?(anchors=true) 
     ?(disks=true) 
-    ~portion
+    ?(portion=1.0)
     r  = (
       let colors = [|
 	"blue";
@@ -111,11 +111,14 @@ let draw_route
 	"coral";
 	"tomato"|] in
 
+      let portion_ = 
+	if (portion < 0.0 || portion > 1.0) then 1.0 else portion in 
+	
       let hops_not_drawn = (List.length r) -
-	truncate ((float (List.length r)) *. portion)
+	truncate ((float (List.length r)) *. portion_)
       in
       Printf.printf "hops_not_drawn %d\n" hops_not_drawn; 
-      Printf.printf "portion: %f\n" portion;flush stdout;
+      Printf.printf "portion: %f\n" portion_;flush stdout;
 
       let rec draw_disks_ route = (
 	match route with 
@@ -204,3 +207,34 @@ let draw_route
       draw_anchors_ true r;
     )
 
+
+let get_node_cb_sig_id = ref None
+
+let remove_get_node_cb() = 
+  let id = o2v !get_node_cb_sig_id in
+  Gui_gtk.remove_button_press_cb id
+
+let user_pick_node ?(msg = "Pick a node!") ~node_picked_cb () = (
+  Gui_gtk.txt_msg msg;
+  get_node_cb_sig_id := Some (
+    Gui_gtk.install_button_press_cb 
+    (fun b -> 
+
+      let x, y = (f2i (GdkEvent.Button.x b), f2i (GdkEvent.Button.y b)) in
+      let node = Mwsconv.closest_node_at (x, y)
+      in
+      remove_get_node_cb();
+      node_picked_cb node;
+
+      (* returning true or false from this callback does not seem to make any
+	 difference. Read somewhere (API or tut) that this is because it will
+	 then call the default handler and use the return value of that one. 
+	 apparently we would have to use the *connect_after (or stg like that)
+	 call to be called after the default, and then our return value would
+	 be taken into account *)
+      true)
+  )
+)  
+
+
+  
