@@ -89,7 +89,7 @@ let read_state ~in_chan  =
     (Array.mapi
       (fun i nodestate -> 
 	(new Gpsnode.gpsnode
-	~pos_init:nodestate.Simplenode.node_pos 
+	~pos_init:nodestate
 	  i)
       ) node_states);
   Ease_agent.set_agents
