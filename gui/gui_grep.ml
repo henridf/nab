@@ -72,7 +72,7 @@ let refresh ?(clear=true) ()  = (
 
   if (!rt <> None) then
     Gui_ops.draw_grep_route 
-      (Mwsconv.route_nodeid_to_pix (o2v !rt));
+      (Gui_conv.route_nodeid_to_pix (o2v !rt));
 )
 
 

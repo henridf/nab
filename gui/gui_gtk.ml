@@ -112,7 +112,7 @@ let set_expose_event_cb f = (
   
 let init () = (
 
-Mwsconv.init();
+  Gui_conv.init();
 
   let width = (Param.get Params.x_pix_size) 
   and height = (Param.get Params.y_pix_size)  in

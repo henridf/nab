@@ -32,7 +32,7 @@ open Graph
 open Coord
 open Misc
 open Opt
-open Mwsconv
+open Gui_conv
 
 let draw_node ?(emphasize=false) nid = 
   let cols = [| 
@@ -236,7 +236,7 @@ let draw_ease_route
 	  | hop1::hop2::r when (List.length r <= hops_not_drawn)
 	      -> (
 		Gui_gtk.txt_msg 
-		(Printf.sprintf "Age de l'ancre courante: %d secondes" 
+		(Printf.sprintf "Anchor Age: %d seconds" 
 		  (truncate (o2v hop2.Route.info).Route.anchor_age))
 	      )
 	  | hop1::hop2::r -> (
