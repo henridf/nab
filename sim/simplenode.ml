@@ -21,7 +21,7 @@ object(s: #Node.node_t)
   val agents = Hashtbl.create 1
 
   val mutable recv_pkt_hooks = []
-  val mutable app_send_pkt_hooks = []
+  val mutable app_send_pkt_hook = fun p -> ()
   val mutable mhook = fun p a -> ()
    
   method pos = pos
@@ -103,7 +103,7 @@ object(s: #Node.node_t)
     recv_pkt_hooks <- recv_pkt_hooks @ [hook]
       
   method add_app_send_pkt_hook ~hook = 
-    app_send_pkt_hooks <- app_send_pkt_hooks @ [hook]
+    app_send_pkt_hook <- hook
 
   method add_mhook  ~hook =
     mhook <- hook
@@ -158,9 +158,14 @@ object(s: #Node.node_t)
   )
 
 
-  method dump_state ~node_cnt  = {
+  method originate_app_pkt ~dst = 
+    let l3h = Packet.make_l3hdr ~srcid:id ~dstid:dst#id () in
+    let app_pkt = Packet.make_app_pkt ~l3hdr:l3h  in
+    app_send_pkt_hook app_pkt
+
+  method dump_state   = {
     Node.node_pos=s#pos;
-    Node.db_state=db#dump_state ~node_cnt:node_cnt
+    Node.db_state=db#dump_state
   } 
 
 
