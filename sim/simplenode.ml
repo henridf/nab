@@ -58,19 +58,6 @@ object(s: #Node.node_t)
     (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:(Some oldpos);
   )
 
-  method setmob themob = mob_getnewpos <- themob
-  method set_speed_mps thespeed = speed <- thespeed
-
-  method selfmove  = (
-
-    let newpos = mob_getnewpos ~node:(s :> Node.node_t) in
-    s#move newpos;
-    
-    (* mob is assumed to move us by one meter, so we should schedule the next
-       one in 1 / speed_mps seconds *)
-    let move_event() = s#selfmove in
-    (Gsched.sched())#sched_in ~handler:move_event ~t:(1.0/.speed)
-  )
 
   method add_neighbor n = (
     assert (not (List.mem n#id neighbors));
@@ -127,6 +114,11 @@ object(s: #Node.node_t)
   method add_pktout_mhook  ~hook =
     pktout_mhooks <- hook::pktout_mhooks
       
+  method clear_pkt_mhooks = (
+    pktout_mhooks <- [];
+    pktin_mhooks <- []
+  )
+
   method private send_pkt_ ~l3pkt ~dstid = (
     let dst = (Nodes.node(dstid)) in
       (* this method only exists to factor code out of 
@@ -147,7 +139,7 @@ object(s: #Node.node_t)
       pktout_mhooks;
 
     let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
-    (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
+    (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime);
   )
 
   method mac_send_pkt ~l3pkt ~dstid = (
