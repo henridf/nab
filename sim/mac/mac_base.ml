@@ -31,13 +31,20 @@ object
 
   inherit Log.inheritable_loggable as log
 
-  val mutable bTX = 0
-  val mutable bRX = 0
+  val mutable bitsTX = 0
+  val mutable bitsRX = 0
+  val mutable pktsTX = 0
+  val mutable pktsRX = 0
   val myid = owner#id
   val owner:#Simplenode.simplenode = owner
 
-  method basic_stats = {Mac.bits_RX = bTX; Mac.bits_TX = bRX}
-  method private reset_stats = bTX <- 0; bRX <- 0
+  method basic_stats = {
+    Mac.bits_RX = bitsTX; 
+    Mac.bits_TX = bitsRX;
+    Mac.pkts_RX = pktsTX; 
+    Mac.pkts_TX = pktsRX
+  }
+  method private reset_stats = bitsTX <- 0; bitsRX <- 0
     
 
   method private set_objdescr ?owner string = 
@@ -57,3 +64,23 @@ object
   method virtual other_stats : 'stats
 
 end
+
+let string_of_bstats s = 
+  (Printf.sprintf "RX: %d pkts (%d bits). TX: %d pkts (%d bits)" 
+    s.Mac.pkts_RX
+    s.Mac.bits_RX 
+    s.Mac.pkts_TX
+    s.Mac.bits_TX
+  )
+let string_of_bstats_pkts s = 
+  (Printf.sprintf "RX: %d pkts. TX: %d pkts" 
+    s.Mac.pkts_RX
+    s.Mac.pkts_TX
+  )
+
+let string_of_bstats_bits s = 
+  (Printf.sprintf "RX: %d bits. TX: %d bits" 
+    s.Mac.bits_RX
+    s.Mac.bits_TX
+  )
+

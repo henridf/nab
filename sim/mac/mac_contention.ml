@@ -26,7 +26,7 @@
 
 
 (** 
-  Contention MAC: A simple MAC layer with high level collision modeling.
+  A MAC layer with modeling of collisions.
   This MAC can either be sending or receiving.
   If a packet is received while already receiving, both are lost
   (collision). Collisions are detected instantaneously; the node immediately
@@ -52,15 +52,24 @@ let rndseed = ref 0
 
 type stats = 
     {collsRXRX : int;
-    collsRXTX : int}
+    collsRXTX : int;
+    dropsTXTX : int;
+    dropsTXRX : int
+    }
     (** Statistics maintained by [mac_contention] MAC layer 
-      (in addition to statistics from {!Mac.basic_stats}.
+      (in addition to statistics from {!Mac.basic_stats}).
       - [collsRXRX] counts the number of "receive on receive" collisions,
       ie a packet arrives when we are already receiving another packet
       (causing both to be dropped).
       - [collsRXTX] counts the number of "receive on send" collisions, ie a
       packet arrives when we are already sending a packet (causing the
       incoming packet to be dropped).
+      - [dropsTXTX] counts the number of "send on send" packet drops, ie a
+      packet to send is handed down from upper layers when a packet
+      transmission is ongoing.
+      - [dropsTXRX] counts the number of "send on receive" packet drops, ie a
+      packet to send is handed down from upper layers when a packet reception
+      is ongoing.
     *)
 
 let macs_array_ = 
@@ -82,8 +91,11 @@ object(s)
 
   val mutable collsRXRX = 0
   val mutable collsRXTX = 0
+  val mutable dropsTXTX = 0
+  val mutable dropsTXRX = 0
 
   val mutable end_rx_handle = 0
+  val mutable jitter = 0.1
 
   initializer (
     s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/cmac";
@@ -95,6 +107,7 @@ object(s)
 
   method reset_stats = super#reset_stats
 
+  method set_jitter j = jitter <- j
 
   (*
     sending -> interfering
@@ -119,6 +132,10 @@ object(s)
     assert (end_rx_handle <> 0);
     end_rx_handle <- 0;
     
+    (* update stats *)
+    pktsRX <- pktsRX + 1;
+    bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
+
     assert (interfering_until = Time.get_time());
     let dst = l2dst l2pkt in
     if (dst = L2_BCAST || dst = L2_DST myid) then 
@@ -159,12 +176,11 @@ object(s)
 
 
   method xmit ~l2pkt = 
+    let delay = Random.State.float rnd jitter in
+    (Sched.s())#sched_in ~f:(fun () -> s#really_xmit ~l2pkt) ~t:delay;
+    s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
 
-    if (Random.State.int rnd 2) = 1 then (
-      let delay = Random.State.float rnd 0.1 in
-      (Sched.s())#sched_in ~f:(fun () -> s#xmit ~l2pkt) ~t:delay;
-      s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
-    ) else (
+  method private really_xmit ~l2pkt = (
       let receiving = end_rx_handle <> 0 in
       if not s#sending && not receiving then (
 	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
@@ -174,21 +190,39 @@ object(s)
 	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
 	
-	bTX <- bTX + (L2pkt.l2pkt_size ~l2pkt);
+	pktsTX <- pktsTX + 1;
+	bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
 	
 	SimpleEther.emit ~stack ~nid:myid l2pkt
       ) else (
-	let msg = 
-	  if s#sending then "sending" else  "receiving" 
-	in 
-	s#log_info (lazy (sprintf "Pkt to %s dropped because already %s" 
-	  (string_of_l2dst (l2dst l2pkt))
-	  msg))
+	let dst_str = (string_of_l2dst (l2dst l2pkt)) in
+	if s#sending then (
+	  s#log_info (lazy (sprintf "Pkt to %s dropped because already sending"
+	    dst_str));
+	  dropsTXTX <- dropsTXTX + 1;
+	) else (
+	  s#log_info (lazy (sprintf "Pkt to %s dropped because already receiving"
+	    dst_str));
+	  dropsTXRX <- dropsTXRX + 1;
+	)
       )
-    )
+  )
 
-  method other_stats = {collsRXRX = collsRXRX; collsRXTX = collsRXTX}
+	
+  method other_stats = 
+    {collsRXRX = collsRXRX; 
+    collsRXTX = collsRXTX;
+    dropsTXTX = dropsTXTX; 
+    dropsTXRX = dropsTXRX
+    }
 end
   
   
   
+let string_of_ostats s = 
+  Printf.sprintf 
+    "%d RX/RX colls, %d RX/TX colls, %d TX/TX drops, %d TX/RX drops"
+    s.collsRXRX
+    s.collsRXTX 
+    s.dropsTXTX 
+    s.dropsTXRX 

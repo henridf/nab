@@ -52,10 +52,12 @@ object
 
   val myid : Common.nodeid_t
 
-  (** bTX and bRX are counters representing the total # bits transmitted/received by this
+  (** bitsTX and bitsRX are counters representing the total # bits transmitted/received by this
     MAC; they should be incremented appropriatly by the inheriting class. *)
-  val mutable bTX : int 
-  val mutable bRX : int
+  val mutable bitsTX : int 
+  val mutable bitsRX : int
+  val mutable pktsRX : int 
+  val mutable pktsTX : int
 
   (** Compute the transmission delay for a packet, given packet size and xxx bps*)
   method private xmitdelay : L2pkt.t -> float
@@ -71,3 +73,7 @@ object
   method basic_stats : Mac.basic_stats
 
 end
+
+val string_of_bstats : Mac.basic_stats -> string
+val string_of_bstats_bits : Mac.basic_stats -> string
+val string_of_bstats_pkts : Mac.basic_stats -> string

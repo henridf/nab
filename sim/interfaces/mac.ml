@@ -22,9 +22,10 @@
 
 (* $Id$ *)
 
-
 type basic_stats = 
-    { bits_RX : int;
+    { pkts_RX : int;
+      bits_RX : int;
+      pkts_TX : int;
       bits_TX : int}
 
 open Misc 

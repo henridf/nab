@@ -25,9 +25,8 @@
 
 
 (** 
-  "Cheat" MAC Layer: A MAC layer which does not take into account connectivity
-  range or neighborhood. Using the "cheat" MAC, one can directly send a packet
-  to any node, anywhere in the network. 
+  A MAC layer allows nodes to "cheat" and send packets to nodes which are not
+  within radio range. 
   This behavior only applies to unicast packets; broadcast packets are
   received only by nodes within connectivity range.
 
@@ -40,6 +39,12 @@ open Ether
 open L2pkt
 open Printf 
 
+let macs_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+let macs ?(stack=0) () = macs_array_.(stack)
+let mac ?(stack=0) i = 
+  Hashtbl.find macs_array_.(stack) i
+
 class cheatmac ?(stack=0) bps theowner  = 
 object(s)
 
@@ -47,6 +52,8 @@ object(s)
   inherit Mac_null.nullmac ~stack bps theowner as super
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/cheatmac";
+    Hashtbl.replace macs_array_.(stack) theowner#id (s :> cheatmac);
+
   )
 
   method xmit ~l2pkt = (

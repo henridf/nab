@@ -22,24 +22,24 @@
 
 (* $Id$ *)
 
-
-
-
-
-
-
 (** 
-  Null MAC Layer: A simple example of a class implementing the {!Mac.t}
-  interface.
-  
-  "Null" meaning that there are no collisions, no losses, only transmission
-  delay is applied.
+  A null MAC layer, where there are no collisions, no losses. 
+  A null MAC accepts a packet for reception or transmission even when it is
+  already receiving or sending.
+  Only propagation and transmission delay are applied.
+  No queuing/buffering necessary.
 *)
 
 
 open Ether
 open L2pkt
 open Printf 
+
+let macs_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+let macs ?(stack=0) () = macs_array_.(stack)
+let mac ?(stack=0) i = 
+  Hashtbl.find macs_array_.(stack) i
 
 class nullmac ?(stack=0) bps theowner  = 
 object(s)
@@ -48,6 +48,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/nullmac";
+    Hashtbl.replace macs_array_.(stack) theowner#id (s :> nullmac);
   )
 
   method bps = bps
@@ -61,7 +62,8 @@ object(s)
     (* Count as incoming bits even when the packet wasn't for us - which is fair,
        this MAC is so basic it would be odd if it did fancy things like selective stop
        listening after reading hdr not for us *)
-    bRX <- bRX + (L2pkt.l2pkt_size ~l2pkt);
+    pktsRX <- pktsRX + 1;
+    bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
 
     (* Throw away unicast packet if not for us, keep it otherwise *)
     begin match dst with
@@ -76,11 +78,10 @@ object(s)
       | L2_DST d ->  s#log_debug  (lazy
 	  (sprintf "Start RX, l2src %d, l2dst %d (not for us)" (l2src l2pkt) d));
     end
-
   )
 
-  (* Called when we receive a packet which we keep (either unicast to us, or
-     broadcast). *)
+  (* Called when we receive a packet which we keep 
+     (either unicast to us, or broadcast). *)
   method private accept_ l2pkt = (
     
     (* Compute delay to receive whole packet. Remember that recv() below is
@@ -100,7 +101,8 @@ object(s)
   method xmit ~l2pkt = (
     s#log_debug (lazy "TX packet ");
     SimpleEther.emit ~stack ~nid:myid l2pkt;
-    bTX <- bTX + (L2pkt.l2pkt_size ~l2pkt)
+    pktsTX <- pktsTX + 1;
+    bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
   )
 
   method other_stats = ()

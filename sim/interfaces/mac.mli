@@ -23,11 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 (** 
   MAC layer interface and helper functions.
 
@@ -35,13 +30,16 @@
 *)
 
 type basic_stats = 
-    { bits_RX : int;
+    { 
+      pkts_RX : int;
+      bits_RX : int;
+      pkts_TX : int;
       bits_TX : int}
-    (** The stats every MAC layer *must* maintain. As basic as it gets.
-      Of course, most MACs will want to maintain other stats as well - this is
-      not specified in the common MAC interface, since the specific stats will
-      vary depending on the characteristics of the MAC. For an example, see
-      [method other_stats] in mac_base.mli. *)
+    (** The stats every MAC layer implementation is required to maintain. As
+      basic as it gets.  Of course, most MACs will want to maintain other
+      stats as well - this is not specified in the common MAC interface, since
+      the specific stats will vary depending on the characteristics of the
+      MAC. *)
 
 
 
