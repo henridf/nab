@@ -109,6 +109,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(PKT_DIR)/l3pkt$(CMO) \
 		$(PKT_DIR)/l2pkt$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
+		$(MISC_DIR)/experiment$(CMO) \
 		$(MWS_DIR)/trace$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
 		$(MISC_DIR)/heap$(CMO) \
@@ -151,6 +152,7 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
+		 $(MISC_DIR)/rnd_manager$(CMO) \
 		 $(MISC_DIR)/myarg$(CMO) \
 		 $(MISC_DIR)/coord$(CMO)
 
@@ -180,9 +182,9 @@ bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
 	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES)  $(MWS_SCRIPT) -o $@
 
 gui: bin/gui
-bin/gui: $(GUI_OBJ_FILES) scripts/demo.ml
+bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
-	$(GUI_OBJ_FILES)   scripts/demo.ml -o $@ 
+	$(GUI_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
 
 guitop: bin/guitop
 bin/guitop: $(GUI_OBJ_FILES) 
