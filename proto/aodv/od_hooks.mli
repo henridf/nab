@@ -23,7 +23,7 @@
 (* $Id$ *)
 
 (** Hooks for reconstructing routes from on-demand protocols (suitable for
-  GREP, AODV). *)
+  GREP, AODV, STR). *)
 
 val od_route_pktin_mhook : 
   Common.nodeid_t Od_route.t ref ->

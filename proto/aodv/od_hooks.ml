@@ -47,7 +47,13 @@ let pkt_type l3pkt =
 	  | Aodv_pkt.RERR _ -> `RERR
 	  | Aodv_pkt.RREP_ACK -> `NONE end
     | `GREP_HDR h -> ((Grep_pkt.flags h) :> u)
-    | _ -> `NONE
+    | `STR_HDR h -> 
+	begin match h.Str_pkt.ph with 
+	  | Str_pkt.DATA _ -> `DATA
+	  | Str_pkt.RREQ _ -> `RREQ
+	  | Str_pkt.RREP _ -> `RREP
+	  | Str_pkt.HELLO -> `RADV end
+    | _ -> failwith "Od_hooks.pkt_type : unknown packet type"
 
 let rreq_orig l3pkt = 
   match L3pkt.l3hdr_ext l3pkt with 
@@ -58,7 +64,13 @@ let rreq_orig l3pkt =
 	  | Aodv_pkt.DATA  -> failwith "Od_hooks.rreq_orig : not a rreq"
       end
     | `GREP_HDR h -> L3pkt.l3src l3pkt
-    | _ -> failwith "Od_hooks.rreq_orig : neither GREP nor AODV"
+    | `STR_HDR h -> begin 
+	match h.Str_pkt.ph with
+	  | Str_pkt.RREQ rreq -> rreq.Str_pkt.rreq_orig
+	  | Str_pkt.RREP _ | Str_pkt.HELLO 
+	  | Str_pkt.DATA _ -> failwith "Od_hooks.rreq_orig : not a rreq"
+      end
+    | _ -> failwith "Od_hooks.rreq_orig : unknown packet type"
 
 let od_route_pktin_mhook routeref l2pkt node = (
   
