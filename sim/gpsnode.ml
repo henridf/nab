@@ -17,23 +17,14 @@ object(s)
     if pos_init <> None then (Misc.o2v pos_init) else
     (Gworld.world())#random_pos
 
-  val mutable mob_mhooks = []
-
   method pos = pos
 
-  method add_mob_mhook  ~hook =
-    mob_mhooks <- hook::mob_mhooks
 
   method move ~newpos = (
     let oldpos = pos in
     pos <- newpos;
     
-    List.iter 
-      (fun mhook -> mhook newpos (s :> gpsnode) )
-      mob_mhooks;
-
     (Gworld.world())#movenode ~nid:id ~newpos;
-
 
   )
 

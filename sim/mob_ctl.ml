@@ -21,7 +21,7 @@ let make_discrete_randomwalk_mobs() = mob_array :=
   (Nodes.gpsmap (fun n -> new Mob.discreteRandomWalk n n#move))
 
 let make_epfl_waypoint_mobs() = (
-  mob_array := (Nodes.gpsmap (fun n -> new Mob.epfl_waypoint n n#move));
+  mob_array := (Nodes.gpsmap (fun n -> new Mob.epfl_waypoint n ((Gworld.world())#movenode ~nid:n#id)));
   Array.iter 
     (fun m -> m#set_speed_mps 1.0
     ) !mob_array

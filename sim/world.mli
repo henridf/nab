@@ -43,6 +43,11 @@ object
       register through this hook. 
     *)
 
+  method add_mob_mhook : hook:(Coord.coordf_t -> Common.nodeid_t -> unit) -> unit
+    (** Any monitoring application can register here to receive update each
+       time the node moves.
+       If multiple apps, order in which called is unspecified.*)
+    
   method init_pos : nid:Common.nodeid_t -> pos:(Coord.coordf_t) -> unit
     (** Set initial position of a node. This should only be used once, after a
       node object has been created. *)

@@ -35,6 +35,8 @@ object(s)
   val rrange_sq_ = rrange ** 2.0
     
   val mutable new_ngbr_hooks = (Array.make (Param.get Params.nodes) [])
+  val mutable mob_mhooks = []
+
 
   initializer (
     grid_of_nodes_ <- 
@@ -207,7 +209,13 @@ object(s)
     );
     s#update_node_neighbors_ nid;
 
+    List.iter 
+      (fun mhook -> mhook newpos nid )
+      mob_mhooks;
   )
+
+  method add_mob_mhook  ~hook =
+    mob_mhooks <- hook::mob_mhooks
     
   method init_pos ~nid ~pos = (
     (* update local data structures (grid_of_nodes) with new pos, 
@@ -216,19 +224,21 @@ object(s)
     let (newx, newy) = s#pos_in_grid_ pos in
 
     node_positions_.(nid) <- pos;
-
-
-(*	  Printf.printf "newpos : %f %f, posingrid: %d %d\n" (xx newpos) (yy
-	    newpos) newx newy; flush stdout;*)
-    assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
-	    
-	  grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
-	  (* node is new, had no previous position *)
-	  
     
+(*    Printf.printf "newpos : %f %f, posingrid: %d %d, gridsize %d %d\n" (xx pos) (yy
+      pos) newx newy (Array.length grid_of_nodes_) (Array.length grid_of_nodes_.(0)); flush stdout;*)
+    
+    assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
+    
+    grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
+    (* node is new, had no previous position *)
+    
+    s#update_node_neighbors_ nid;
 
-	  s#update_node_neighbors_ nid;
-	  
+       List.iter 
+      (fun mhook -> mhook pos nid )
+      mob_mhooks;
+ 
   )
 
   method private update_node_neighbors_ nid = (
