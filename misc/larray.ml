@@ -3,112 +3,149 @@ open Misc
 module type LinkedArray_t = 
   sig
     type 'a linkedArray_t
-    type link_t = None | Link of int
+    type ngbr_t = None_head | None_tail | Ngbr of int
     val create_ : 'a array -> 'a linkedArray_t
     val toarray_ : 'a linkedArray_t -> 'a array
     val get_ : 'a linkedArray_t -> int -> 'a
-    val next_ : 'a linkedArray_t -> int -> link_t (* None means no successor   *)
-    val prev_ : 'a linkedArray_t -> int -> link_t (* None means no predecessor *)
+    val next_ : 'a linkedArray_t -> int -> ngbr_t (* None_tail means no successor   *)
+    val prev_ : 'a linkedArray_t -> int -> ngbr_t (* None_head means no predecessor *)
     val length_ : 'a linkedArray_t -> int
-    val connect_ : 'a linkedArray_t -> int -> int -> unit
+    val copy_ : 'a linkedArray_t -> 'a linkedArray_t
+    val connect_ : 'a linkedArray_t -> ngbr_t -> ngbr_t -> unit 
     val test_ : unit -> unit
   end;;
 
 module LinkedArray : LinkedArray_t = 
   struct
     
-    type link_t = None | Link of int
+    type ngbr_t = None_head | None_tail | Ngbr of int
     type 'a cell = {
       content : 'a;
-      mutable prev : link_t;
-      mutable next : link_t;
+      mutable prev : ngbr_t;
+      mutable next : ngbr_t;
     }
 
-    type 'a linkedArray_t = 'a cell array
+    type 'a linkedArray_t = { 
+      arr : 'a cell array; 
+      mutable head : int;
+      mutable tail : int;
+    }
 
-    let l2i = function 
-	None -> failwith "Cannot convert None to int"
-      | Link i -> i
-
+    let n2i = function 
+	None_head -> raise (Invalid_argument "LinkedArray.n2i: cannot convert None_head to int")
+      | None_tail -> raise (Invalid_argument "LinkedArray.n2i: cannot convert None_tail to int")
+      | Ngbr i -> i
       
+    let get_ larr i = try larr.arr.(i).content with Invalid_argument "Array.get" -> raise (Invalid_argument "LinkedArray.get_")
+    let next_ larr i = try larr.arr.(i).next with Invalid_argument "Array.get" -> raise (Invalid_argument "LinkedArray.next_")
+    let prev_ larr i = try larr.arr.(i).prev with Invalid_argument "Array.get" -> raise (Invalid_argument "LinkedArray.prev_")
+
     let create_ arr = (
       let len = (Array.length arr) - 1 in
-      Array.mapi (fun i content ->
-		    match i with 
-			0 when (len == 0) -> {content=content; prev=None; next=None}
-		      | 0 -> {content=content; prev=None; next=Link 1}
-		      | n when (n == len) -> {content=content; prev=Link (len-1); next=None}
-		      | n -> {content=content; prev = Link (n-1); next=Link (n+1)}
-		 ) arr
+      let a = Array.mapi (fun i content ->
+			    match i with 
+				0 when (len == 0) -> {content=content; prev=None_head; next=None_tail}
+			      | 0 -> {content=content; prev=None_head; next=Ngbr 1}
+			      | n when (n == len) -> {content=content; prev=Ngbr (len-1); next=None_tail}
+			      | n -> {content=content; prev = Ngbr (n-1); next=Ngbr (n+1)}
+			 ) arr in
+	{arr=a; head=0; tail=Array.length arr - 1}
     )
+
+    let copy_ larr = {arr=Array.copy larr.arr; head = larr.head; tail = larr.tail}
 
     let length_ larr = (
-      if larr = [||] then 0 else 
+      if larr.arr = [||] then 0 else 
 	let rec _length ind len =  
-	  if ind == None then (len) else  _length larr.(l2i ind).next (len + 1)
+	  if ind == None_tail then (len) else  _length (next_ larr (n2i ind)) (len + 1)
 	in
-	  _length (Link 0) 0;
+	  _length (Ngbr larr.head) 0;
     )
 
 
-    let get_ larr i = larr.(i).content
-    let next_ larr i = larr.(i).next
-    let prev_ larr i = larr.(i).prev
 
 
     let toarray_ larr = (
-      if Array.length larr = 0 then [||] else 
-	let arr = Array.create (length_ larr) larr.(0).content in
+      if length_ larr = 0 then [||] else 
+	let arr = Array.create (length_ larr) (get_ larr 0) in
 	let rec _toarray  arrindex = function
-	    None -> ()
+	    None_tail -> ()
 	  | n -> 
-	      arr.(arrindex) <- larr.(l2i n).content;
-	      _toarray (arrindex + 1) (next_ larr (l2i n)) 
+	      arr.(arrindex) <- (get_ larr (n2i n));
+	      _toarray (arrindex + 1) (next_ larr (n2i n)) 
 	in
-	  _toarray 0 (Link 0);
+	  _toarray 0 (Ngbr larr.head);
 	  arr;
     )
 
+    let connect_ larr ngbr1 ngbr2 = (
 
-    let connect_ larr i1 i2 = (
-      let min = 0 and max = (Array.length larr) - 1 in (
-	  if not ((ininterval i1 min max) &&  (ininterval i2 min max)) then (
-	    failwith (Printf.sprintf 
-			"LinkedArray.connect_: Cannot connect %d and %d in linkedArray of length %d"
-			i1 i2 (Array.length larr)
-		     )
-	  );
-	  if (i1 = i2) then failwith "LinkedArray.connect_: Cannot connect an entry to itself";
-	);
-	
-	let left = smallest i1 i2 and right = largest i1 i2 in
-	  larr.(left) <- {larr.(left) with next = Link right};
-	larr.(right) <- {larr.(right) with prev = Link left};
+      match (ngbr1, ngbr2) with
+	  (Ngbr n1, Ngbr n2) when ((n1 < 0) || (n2 < 0)) -> 
+	    raise (Invalid_argument "LinkedArray.connect : invalid neigbor (is negative)")
+
+	| (Ngbr n1, Ngbr n2) when ((n1 >= length_ larr) || (n2 >= length_ larr)) -> 
+	    raise (Invalid_argument "LinkedArray.connect : invalid neigbor (is too big)")
+
+	| (Ngbr n1, Ngbr n2) when (n1 = n2) -> 
+	    raise (Invalid_argument "LinkedArray.connect : cannot connect an entry to itself")
+
+	| (Ngbr left, Ngbr right) when (left < right) ->
+	    larr.arr.(left) <- {larr.arr.(left) with next = Ngbr right};
+	    larr.arr.(right) <- {larr.arr.(right) with prev = Ngbr left};
+	    
+	| (Ngbr right, Ngbr left) when (left < right) ->
+	    larr.arr.(left) <- {larr.arr.(left) with next = Ngbr right};
+	    larr.arr.(right) <- {larr.arr.(right) with prev = Ngbr left};
+
+	| (None_head, Ngbr newhead) | (Ngbr newhead, None_head) ->
+	    larr.arr.(newhead) <- {larr.arr.(newhead) with prev = None_head};
+	    larr.head <- newhead
+
+	| (Ngbr newtail, None_tail) | (None_tail, Ngbr newtail) ->
+	    larr.arr.(newtail) <- {larr.arr.(newtail) with next = None_tail};
+	    larr.tail <- newtail
+
+	| (None_head, None_tail) | (None_tail, None_head) ->
+	    larr.arr.(larr.head) <- {larr.arr.(larr.head) with next = None_tail};
+	    larr.tail <- larr.head
+	      
+	| _ -> raise Impossible_Case 
+
     )
 
 
     let consistency_check_ larr = (
+
+      assert (larr.head <= larr.tail);
+      assert (prev_ larr (larr.head) = None_head);
+      assert (next_ larr (larr.tail) = None_tail);
+      assert (if (larr.head = larr.tail) then (next_ larr (larr.head) = None_tail)
+	      else true);
+		
       let rec _fw_check = function
-	  None -> ()
-	| n when (next_ larr (l2i n)) = None -> ()
+	  None_tail -> ()
+	| n when (next_ larr (n2i n)) = None_tail -> ()
 	| n -> 
-	    let next = (next_ larr (l2i n)) in
-	      assert (prev_ larr (l2i next) = n);
+	    let next = (next_ larr (n2i n)) in
+	      assert (prev_ larr (n2i next) = n);
 	      _fw_check next
       in
       let rec  _bw_check = function
-	  None -> ()
-	| n when (prev_ larr (l2i n)) = None -> ()
+	  None_head -> ()
+	| n when (prev_ larr (n2i n)) = None_head -> ()
 	| n -> 
-	    let prev = (prev_ larr (l2i n)) in
-	      assert (next_ larr (l2i prev) = n);
+	    let prev = (prev_ larr (n2i n)) in
+	      assert (next_ larr (n2i prev) = n);
 	      _fw_check prev
       in
-	_fw_check (Link 0);
-	_bw_check (Link (Array.length larr - 1));
+	_fw_check (Ngbr larr.head);
+	_bw_check (Ngbr larr.tail);
     )
 
+
     let test_ () = (
+      (* connect head to tail, check length = 0 and toarray = [||] *)
 
       let la = create_ [||] in 
 	  assert (length_ la = 0);
@@ -124,25 +161,30 @@ module LinkedArray : LinkedArray_t =
 	  assert (toarray_ la = [| 0.; 1.; 2.; 3.; 4.; 5. |]);
 	  for i = 0 to 5 do 
 	    assert ((get_ la i) = i2f i);
-	    assert ((prev_ la i) =  if i = 0 then None else Link (i - 1));
-	    assert ((next_ la i) = if i = 5 then None else  Link (i + 1));
+	    assert ((prev_ la i) =  if i = 0 then None_head else Ngbr (i - 1));
+	    assert ((next_ la i) = if i = 5 then None_tail else  Ngbr (i + 1));
 	  done;
 	  consistency_check_ la;
 
-	  let lacp = Array.copy la in 
-	    connect_ la 0 1;
+	  let lacp = copy_ la in 
+	    connect_ lacp (Ngbr 0) (Ngbr 1);
 	    consistency_check_ lacp;
-	    connect_ la 1 2;
+	    connect_ lacp (Ngbr 1) (Ngbr 2);
 	    consistency_check_ lacp;
-	    connect_ la 4 3;
+	    connect_ lacp (Ngbr 4) (Ngbr 3);
 	    consistency_check_ lacp;
-	    connect_ la 5 4;
+	    connect_ lacp (Ngbr 5) (Ngbr 4);
 	    consistency_check_ lacp;
 	    assert (lacp = la);
-	    connect_ la 5 1;
+	    connect_ lacp (Ngbr 5) (Ngbr 1);
 	    consistency_check_ lacp;
-	    assert (length_ la = 3);
-	    assert (toarray_ la = [|0.0; 1.0; 5.0|])
+	    assert (length_ lacp = 3);
+	    assert (toarray_ lacp = [|0.0; 1.0; 5.0|]);
+	    
+           (* connect head to tail, check length = 0 and toarray = [||] *)
+	    connect_ lacp None_head None_tail;
+	    assert (length_ lacp = 1);
+	    assert (toarray_ lacp = [|0.0|]);
     )
 	  
   end;;
