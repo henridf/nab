@@ -143,8 +143,11 @@ val place_nodes_on_line : unit -> unit
 val avg_neighbors_per_node : unit -> float 
 
 
-val detach_daemon :  outfilename:string -> unit
-  (** Detach from terminal. All further logs will be spewed to outfilename *)
+val detach_daemon :  ?outfilename:string -> unit -> unit
+  (** Detach from terminal. All further logs will be spewed to outfilename
+    (if not provided, logs go to a file in the current directory named like
+    nab-2004-07-02-14h50m29.log).
+ *)
 
 
 val interactive_print_banner : string -> unit

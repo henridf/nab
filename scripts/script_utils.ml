@@ -235,15 +235,28 @@ let finish () = (
 )
 
 
-let detach_daemon ~outfilename = (
-    let pid =  Unix.fork () in
-    if pid < 0 then failwith "Error in fork";
-    if pid > 0 then exit 0;
-    let _ = Unix.setsid () in
-    Unix.close Unix.stdin;
-    Unix.close Unix.stdout;
-    Unix.close Unix.stderr;
-    Log.ochan := (open_out outfilename)
+let detach_daemon ?outfilename () = (
+  
+
+  let pid =  Unix.fork () in
+  if pid < 0 then failwith "Error in fork";
+  if pid > 0 then exit 0;
+  let _ = Unix.setsid () in
+  Unix.close Unix.stdin;
+  Unix.close Unix.stdout;
+  Unix.close Unix.stderr;
+  let oc =
+    begin match outfilename with 
+      | Some f -> open_out f
+      | None -> 
+	  let status, name = 
+	    command_output "date +%F-%Hh%Mm%S" in
+	  if status <> 0 then 
+	    failwith "Script_utils.detach: date command failed"
+	  else open_out ("nab-"^(List.hd name)^".log")
+    end in
+    
+    Log.ochan := oc
     
 )
 
