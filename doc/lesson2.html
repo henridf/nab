@@ -60,11 +60,11 @@ val nodes : int = 900
 # let rrange = 12.0;;
 val rrange : float = 12.
 # let avg_degree = 10;;
-
 val avg_degree : int = 10
-# Param.set Params.nodes 800;;
+
+# Param.set Params.nodes nodes;;
 - : unit = ()
-# Param.set Params.radiorange 12.;;
+# Param.set Params.radiorange rrange;;
   - : unit = ()
 # let size = Script_utils.size ~rrange ~nodes ~avg_degree ();;
 val size : float = 201.728530456155369
