@@ -45,7 +45,24 @@ class borderwaypoint :
   unit ->
   Mob.t
 
-(** Waypoint over EPFL mobility class. *)
+(** Waypoint over EPFL mobility class. 
+
+  The campus is modeled as a set of 'points of interest' (ie buildings,
+  outdoor areas, points along a road). Each point of interest is connected
+  to other nearby points, in such a way that the direct path between each   
+  point respects the campus toplogy. There are currently ~ 120 points in the
+  epfl topology, see gui/epflcoords.ml.
+  
+  The mobility model can be seen as a 'random waypoint on a graph':
+  A node is initially dropped down at random on one of these points of
+  interest. It picks at random any other point of interest. Then, the 
+  shortest path route is computed to reach the point of interest *via the
+  graph of available points*. The node then moves along this path until the
+  desired point of interest is reached. This is intended to model the fact  
+  that in a real (campus or urban) environment, nodes do not move in a
+  straight line toward their target, but of course move along paths and
+  around obstacles.      
+*)
 class epfl_waypoint :
   #Simplenode.simplenode ->
   unit ->
