@@ -44,7 +44,7 @@ class type aodv_agent_t =
     method private buffer_packet : l3pkt:L3pkt.t -> unit
     method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
-    method newadv : 
+    method private newadv : 
       dst:Common.nodeid_t -> 
       sn:int -> hc:int -> nh:int ->
       bool
@@ -179,7 +179,7 @@ object(s)
   (* wrapper around Rtab.newadv which additionally checks for 
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
-  method newadv ~dst ~sn ~hc ~nh  = (
+  method private newadv ~dst ~sn ~hc ~nh  = (
       let update = 
 	Rtab.newadv ~rt ~dst ~sn ~hc ~nh
       in

@@ -1,3 +1,5 @@
+(* send out only checks ttl on RADV/RREQ packets ???? *)
+
 (* we should have a 'valid neighbors' table. 
    once we implement that, then we do all the things like
 
@@ -48,7 +50,7 @@ class type grep_agent_t =
     inherit Rt_agent.t
       
     method get_rtab : Rtab.rtab_t
-    method newadv : 
+    method private newadv : 
       dst:Common.nodeid_t -> 
       sn:int -> hc:int -> nh:int ->
       bool
@@ -168,7 +170,7 @@ object(s)
   (* wrapper around Rtab.newadv which additionally checks for 
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
-  method newadv ~dst ~sn ~hc ~nh  = (
+  method private newadv ~dst ~sn ~hc ~nh  = (
       let update = 
 	Rtab.newadv ~rt ~dst ~sn ~hc ~nh
       in
