@@ -42,7 +42,7 @@ let _ =
 
   
 
-  Log.set_log_level ~level:Log.LOG_NOTICE;
+  Log.set_log_level Log.LOG_NOTICE;
   Param.set Params.nodes n_nodes;
   init_sched();
   init_greedy_world();

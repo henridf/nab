@@ -156,5 +156,5 @@ let test_3_nodes() =
 
 
 let _ = 
-  Log.set_log_level ~level:Log.LOG_DEBUG;
+  Log.set_log_level Log.LOG_DEBUG;
   test_3_nodes()

@@ -159,7 +159,7 @@ let () =
   Param.set Params.y_size (size ~avg_degree:14 ());
     
   dumpconfig stdout;
-  Log.set_log_level ~level:Log.LOG_NOTICE;
+  Log.set_log_level Log.LOG_NOTICE;
 
   init_sched();
   init_lazy_world();
