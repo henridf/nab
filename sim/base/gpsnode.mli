@@ -24,7 +24,7 @@
 
 
 
-(** Gpsnode: A node with all functionality of a [Simplenode], and which also
+(** Gpsnode: A node with all functionality of a {!Simplenode.simplenode}, and which also
   has knowledge of its position. This can be used by geographic routing
   agents for example.
 

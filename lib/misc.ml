@@ -182,6 +182,7 @@ let foreach l f = List.iter f l
 let o2v = function 
     None -> raise (Failure "Misc.o2v : None")
   | Some v -> v
+      (** Deprecated. Use functions from the Opt module in lib/contrib.*)
 
 (** Hashes *)
 

@@ -200,7 +200,7 @@ let draw_grep_route r =
   draw_trees_ r; 
   draw_hops_ r
     
-let draw_ease_route 
+let draw_ler_route 
     ?(lines=true) 
     ?(anchors=true) 
     ?(disks=true) 

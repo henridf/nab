@@ -24,9 +24,13 @@
 
 
 
+(** Simple implementation of a linked list. *)
+
+
 type 'a node 
 type 'a llist = 'a node option ref
 
+(**/**)
 val create : unit -> 'a llist
 
 val insert : ll:('a llist) -> v:'a -> compare:('a -> 'a -> bool) -> unit

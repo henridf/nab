@@ -23,14 +23,14 @@
 (* $Id$ *)
 
 
-
-(** Note that there can only be one world object *)
+(** Implementations of the {!Worldt.lazy_world_t} and 
+  {!Worldt.greedy_world_t} type. *)
 
 val set_lazy_world : Worldt.lazy_world_t -> unit
   (** Sets the global lazy world object. *)
 
 val set_greedy_world : Worldt.greedy_world_t -> unit
-  (** Sets the global lazy world object. *)
+  (** Sets the global greedy world object. *)
 
 val w : unit -> Worldt.lazy_world_t
   (** Returns the global lazy_world object, if one has been set. 
@@ -40,7 +40,7 @@ val w : unit -> Worldt.lazy_world_t
 val gw : unit -> Worldt.greedy_world_t
   (** Returns the global greedy_world object, if one has been set. *)
 
-(**
+(*
 val strset_world : string -> unit
   (** Set the desired world type via a string (for example provided as cmdline argument). *)
 *)

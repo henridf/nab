@@ -24,8 +24,8 @@
 
 
 
-(** Simplenode: Encapsulates most of the state and constituent objects
-  (routing agent, mac layer, traffic source) that model a node.
+(** Node class, encapsulates most of the state and constituent objects
+  (routing agent, mac layer, traffic source) that are in a node.
 
   @author Henri Dubois-Ferriere. 
 *)

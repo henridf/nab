@@ -22,14 +22,10 @@
 
 (* $Id$ *)
 
-
-
-
-
-
+(** Routing tables for AODV and GREP. *)
 
 type t
-
+  (** The type of routing table exported by this module. *)
 
 type aodv_flags = {
   mutable valid:bool;

@@ -58,10 +58,14 @@ val clear : ?stats:bool -> 'a t -> unit
     Default value of [stats] is true.
   *)
 
+
+val push : 'a -> 'a t -> bool 
+  (** Same as [Queue.push] in stdlib, except that a bool is returned,
+    true if the packet was succesfully enqueued, false if the queue is full. *)
+
 (** 
   Functions which are identical to those in the stdlib's [queue.mli].
 *)
-val push : 'a -> 'a t -> bool 
 val pop : 'a t  -> 'a 
 val peek : 'a t -> 'a 
 val is_empty : 'a t -> bool 
