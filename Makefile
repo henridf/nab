@@ -40,7 +40,7 @@ DEPENDS = \
 
 LER_OBJ_FILES = \
 	$(LER_SUBDIR)/ler$(CMO) \
-	$(LER_SUBDIR)/ler_experiments$(CMO) \
+	$(LER_SUBDIR)/ler_main$(CMO) \
 	$(LER_SUBDIR)/ler_graphics$(CMO)
 
 BLER_OBJ_FILES = \
@@ -82,7 +82,7 @@ exp: $(LER_OBJ_FILES)
 bler: $(BLER_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GFX_LIB) $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
 
-doplots: $(LER_OBJ_FILES) $(LER_SUBDIR)/ler_experiments$(CMO) $(MISC_SUBDIR)/doplots$(CMO)
+doplots:  $(MISC_SUBDIR)/doplots$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(UNIX_LIB) $(STR_LIB) $(GFX_LIB) $(MISC_SUBDIR)/doplots$(CMO) -o $(BIN_SUBDIR)/$@ 
 
 proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
