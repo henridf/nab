@@ -7,12 +7,15 @@
 **             
 
 To compile and run NAB, you must have ocaml installed. The latest version of
-ocaml (3.07+2) is recommended. The official site to get ocaml is 
+ocaml (3.07+2) is required. The official site to get ocaml is 
 http://caml.inria.fr. 
-
-
+ 
 In order to build and use the gui functionality, you must also install
-lablgtk. Lablgtk is available from XXXX.
+lablgtk 1.2. 
+Lablgtk is available from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html.
+
+Another, probably simpler option to install ocaml and lablgtk, is to use GODI - 
+see http://www.ocaml-programming.de/godi/.
 
 
 **             
