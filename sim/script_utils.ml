@@ -11,19 +11,27 @@ let init_world() =
 )
 
 
-let make_simplenodes () = 
-  (Array.init (Param.get Params.nodes)
-    (fun i -> 
-      (new Simplenode.simplenode 
-
-	~id:i
-      )))
-
-let set_simplenodes() = (
+let make_simplenodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
-  Nodes.set_nodes (make_simplenodes())
+  Nodes.set_nodes 
+    (Array.init (Param.get Params.nodes)
+      (fun i -> 
+	(new Simplenode.simplenode i
+	)))
 )
+    
+let make_gpsnodes () = (
+  Nodes.set_gpsnodes [||]; (* in case this is being called a second time in the same script *)  
+  Nodes.set_gpsnodes 
+    (Array.init (Param.get Params.nodes)
+      (fun i -> 
+	(new Gpsnode.gpsnode i 
+	)));
 
+  (* set up initial node position in internal structures of world object *)
+  Nodes.gpsiter (fun n -> (Gworld.world())#init_pos ~nid:n#id ~pos:n#pos);
+  assert ((Gworld.world())#neighbors_consistent);
+)
 
 let make_grease_nodes () = (
   let get_init_pos() = 
@@ -35,7 +43,7 @@ let make_grease_nodes () = (
       (fun i -> 
 	(new Gpsnode.gpsnode
 	  ~pos_init:(get_init_pos())
-	  ~id:i
+	  i
 	)));
   
   (* create grease agents, who will hook to their owners *)
@@ -50,7 +58,7 @@ let make_grease_nodes () = (
   
 
 let make_grep_nodes () = (
-  set_simplenodes();
+  make_simplenodes();
 
   (* create grep agents, who will hook to their owners *)
   Grep_agent.set_agents
@@ -62,7 +70,7 @@ let make_grep_nodes () = (
 )
 
 let make_aodv_nodes () = (
-  set_simplenodes();
+  make_simplenodes();
 
   (* create aodv agents, who will hook to their owners *)
   Aodv_agent.set_agents

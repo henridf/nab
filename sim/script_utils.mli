@@ -15,8 +15,9 @@ val init_world : unit -> unit
   (** Instantiate the global world object. 
     Number of nodes (Params.nodes) should be set before calling this *)
 
-
-
+val make_gpsnodes : unit -> unit
+  (** Create gpsnodes, with no agents attached.
+    Number of nodes (Params.nodes) should be set before calling this *)
 
 val make_grep_nodes : unit -> unit 
   (** Create simplenodes each with a grep agent.
@@ -29,6 +30,8 @@ val make_aodv_nodes : unit -> unit
 val make_grease_nodes : unit -> unit 
   (** Create gpsnodes each with a grep agent.
     Number of nodes (Params.nodes) should be set before calling this *)
+
+
 
 
 (** Actions *)
