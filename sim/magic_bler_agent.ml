@@ -84,16 +84,16 @@ object(s)
     owner#add_app_send_pkt_hook ~hook:s#app_send
   )
 
-  method mac_recv_hook pkt = 
-    match pkt with
-      | BLER_PKT p ->  s#recv_bler_pkt_ p
+  method mac_recv_hook l3pkt = 
+    match l3pkt.l4pkt with
+      | BLER_PLD p ->  s#recv_bler_pkt_ l3pkt
       | _ -> ()
 
-  method app_send pkt = 
-    s#recv_bler_pkt_ (Packet.make_bler_pkt ~srcid:pkt.l3hdr.src ~dstid:pkt.l3hdr.dst)
+  method app_send (l4pld:Packet.l4pld_t) ~dst = 
+    s#recv_bler_pkt_ (Packet.make_bler_l3pkt ~srcid:owner#id ~dstid:dst)
 
 
-  method private recv_bler_pkt_ (pkt:Packet.bler_packet_t) = (
+  method private recv_bler_pkt_ (pkt:Packet.l3packet_t) = (
     s#log_info (sprintf "%d received pkt with src %d, dst %d"
       owner#id (pkt.l3hdr.src) (pkt.l3hdr.dst));
 
@@ -133,7 +133,7 @@ object(s)
 
 	  in
 	  (* Send through our containing nodes' mac layer *)
-	  owner#cheat_send_pkt ~l3pkt:(BLER_PKT pkt) ~dstid:(Misc.o2v next_hop)
+	  owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Misc.o2v next_hop)
   )
 
 

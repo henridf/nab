@@ -90,12 +90,7 @@ let redraw_and_label_nodes() = (
   label_nodes()
 )
 
-let proportion_met_nodes ~targets  = 
-  let total_encounters = 
-    Nodes.fold (fun n encs -> (n#db#num_encounters) + encs) 0
-  in
-  (i2f total_encounters) /. (i2f ((Param.get Params.nodes) * targets))
-
+let proportion_met_nodes ~targets  = 0.0
   
 let avg_neighbors_per_node() = 
   let total_neighbors = 

@@ -1,4 +1,6 @@
 (* should send_out distinguish exceptions between no nexthop and xmit failure ?*)
+(* when we get a rrep, do we also update route to replying node (if different
+   from destination node)?? we should. *)
 
 (*                                  *)
 (* mws  multihop wireless simulator *)
@@ -88,7 +90,6 @@ object(s)
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()
-    (*    owner#add_control_hook ~hook:s#ctrl_hook*)
   )
 
   method private incr_seqno() = (
