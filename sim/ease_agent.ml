@@ -145,7 +145,7 @@ object(s)
       if (msngr = dst) then 
 	(((Gworld.world())#dist_coords owner#pos (Nodes.gpsnode dst)#pos), 
 	(Nodes.gpsnode dst)#pos, 
-	0.0) 
+	0.0)
       else
 	let enc = 
 	  Misc.o2v (
@@ -158,7 +158,6 @@ object(s)
 	(d_to_messenger, enc.Common.p, Common.enc_age enc)
     )
   )
-
 
 
   method private we_are_closest_to_anchor anchor_pos = 
@@ -177,25 +176,22 @@ object(s)
       let closest_id = s#closest_toward_anchor pkt.l3hdr.anchor_pos in
       
       if closest_id = owner#id then (
-(*
-	s#log_debug (sprintf "We are closest to %d" closest_id);
-	s#log_debug (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos));
-*)
+	
+	s#log_debug (lazy (sprintf "We are closest to %d" closest_id));
+	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
+	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos)));
+	
 	s#recv_ease_pkt_ pkt
       ) else (   
 	(* geographically forward toward anchor  *)
-(*      	s#log_debug (sprintf "Forwarding geographically to %d" closest_id);
-	s#log_debug (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos));
-	
-*)      );
-      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id;
-      
+	s#log_debug (lazy (sprintf "Forwarding geographically to %d" closest_id));
+	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
+	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos)))
+      );
+      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id
     )
   )
-
-
+    
   method private recv_ease_pkt_ pkt = (
     s#log_info 
     (lazy (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
