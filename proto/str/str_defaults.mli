@@ -50,6 +50,7 @@ val str_RREQ_RATELIMIT : int
 val str_TIMEOUT_BUFFER : int
 val str_TTL_START : int
 val str_TTL_INCREMENT : int
+val str_TTL_MULT : int
 val str_TTL_THRESHOLD : int
 val str_RING_TRAVERSAL_TIME : int -> float
 
