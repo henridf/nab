@@ -28,7 +28,7 @@ let rec clock_tick() = (
 
 
 let load_nodes() = (
-  let in_chan = open_in ((Sys.getcwd())^"out.mld") in
+  let in_chan = open_in ((Sys.getcwd())^"/out.mld") in
   Persistency.read_state ~in_chan;
 
   Printf.printf "LOAD|| : Prop met: %f\n" (proportion_met_nodes 1);
@@ -55,10 +55,9 @@ let do_one_run() = (
 
 
 
-  make_grease_nodes();
+(*  make_grease_nodes();*)
+  load_nodes();
 
-
-(*  load_nodes();*)
   Gui_hooks.attach_mob_hooks();
 
 
@@ -68,10 +67,8 @@ let do_one_run() = (
 
   
 
-  move_nodes ~prop:0.5 ~targets:1;
-  
-
- save_nodes();
+(*  move_nodes ~prop:0.5 ~targets:1;
+ save_nodes();*)
 
 
 
@@ -112,7 +109,7 @@ let _ =
   Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();
   do_one_run();
-(*  (Gworld.world())#find_closest ~pos:(10.0, 10.0) ~f:(fun _ -> true);;    *)
-  
+(*  Read_coords.check_conn();*)
+
   Main.main();
 
