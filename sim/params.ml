@@ -52,6 +52,10 @@ let ntargets =
     ~doc:"Number of targets in Simulation"
     ()
 
+let mac = 
+  Param.stringcreate ~name:"mac" ~default:"cont" ~cmdline:true
+    ~doc:"Mac layer" ~checker:(fun s -> (Mac.strset_mac s)) ()
+
 let log_level = 
   Param.stringcreate ~name:"loglevel" ~default:"warn" ~cmdline:true
     ~doc:"Log level"  ~checker:(fun s -> Log.strset_log_level s) ()

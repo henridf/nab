@@ -37,3 +37,6 @@ val ntargets : int Param.t
 
 val log_level : string Param.t
   (** Logging level. *)
+
+val mac : string Param.t
+  (** Mac layer used. *)
