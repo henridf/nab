@@ -146,7 +146,7 @@ object(s)
       done;
       
     with
-      | Misc.Break -> () 
+      | Misc.Break -> ()
       | o -> raise o
     )
 
@@ -155,7 +155,8 @@ object(s)
     let continue  = (fun () -> (Common.get_time()) < duration +. t) in
     s#run_until ~continue
 
-  method run() = s#run_until ~continue:(fun () -> true)
+  method run() = 
+    s#run_until ~continue:(fun () -> true)
 
 end
 
