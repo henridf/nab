@@ -291,7 +291,7 @@ object(s)
 	    
   (* originate route reply message *)
   method private send_rrep ~dst ~orig ~hc ~dst_sn lifetime = 
-    match Aodv_rtab.nexthop_maybe rt orig with
+    match Aodv_rtab.nexthop_opt rt orig with
 	Some nh -> 
 	  let rrep = Aodv_pkt.make_rrep_hdr ~hc ~dst ~dst_sn ~orig ~lifetime () in
 	  stats.S.rrep_orig <- stats.S.rrep_orig + 1;
@@ -354,7 +354,7 @@ object(s)
 	rreq.rreq_dst rreq.rreq_orig));
       let grat_lifetime = Aodv_rtab.lifetime rt rreq.rreq_orig in
       let orig_hc = 
-	match Aodv_rtab.hopcount_maybe rt rreq.rreq_orig with
+	match Aodv_rtab.hopcount_opt rt rreq.rreq_orig with
 	  | Some hc -> hc
 	  | None -> raise (Misc.Impossible_Case "Aodv_agent.reply_rreq") in 
       (* 'None' should be impossible because we have just received a rreq from
@@ -391,7 +391,7 @@ object(s)
       (* 3. Otherwise, continue RREQ processing. 
 	 First, create/update reverse path route to originator.*)
       Aodv_rtab.add_entry_rreq rt rreq src;
-      (match Aodv_rtab.nexthop_maybe rt rreq.rreq_orig with
+      (match Aodv_rtab.nexthop_opt rt rreq.rreq_orig with
 	  None -> failwith "adding entry for rreq_orig did nothing"
 	| Some a -> ());
       
@@ -477,7 +477,7 @@ object(s)
 
     Aodv_rtab.repair_start rt dst;
     s#log_info (lazy (sprintf "Originating RREQ for dst %d" dst));
-    let start_ttl = match Aodv_rtab.hopcount_maybe rt dst with 
+    let start_ttl = match Aodv_rtab.hopcount_opt rt dst with 
       | Some hc -> aodv_TTL_INCREMENT + hc
       | None -> aodv_TTL_START in
     s#send_rreq ~local:false ~radius:start_ttl ~dst ~ers_uid ()
@@ -494,15 +494,15 @@ object(s)
     Aodv_rtab.repair_start rt dst;
     s#log_info (lazy (sprintf "Originating RREQ for dst %d (local repair)" dst));
 
-    let aodv_MIN_REPAIR_TTL = Opt.default 0 (Aodv_rtab.hopcount_maybe rt dst)
-    and bw_hops = Opt.default 0 (Aodv_rtab.hopcount_maybe rt src) in
+    let aodv_MIN_REPAIR_TTL = Opt.default 0 (Aodv_rtab.hopcount_opt rt dst)
+    and bw_hops = Opt.default 0 (Aodv_rtab.hopcount_opt rt src) in
     let start_ttl =  (max aodv_MIN_REPAIR_TTL bw_hops/2) + aodv_LOCAL_ADD_TTL in
     
     s#send_rreq ~local:true ~radius:start_ttl ~dst ~ers_uid ()
   )
 
   method private do_local_repair dst = 
-    match Aodv_rtab.hopcount_maybe rt dst with 
+    match Aodv_rtab.hopcount_opt rt dst with 
       | Some hc -> hc < aodv_MAX_REPAIR_TTL
       | None -> false
 
@@ -608,7 +608,7 @@ object(s)
       ~orig:myid
       ~orig_sn:myseqno () in
 
-    s#make_l3aodv ~dst:L3pkt.l3_bcast_addr  ~ttl:radius rreq
+    s#make_l3aodv ~dst:L3pkt.l3_bcast_addr  ~ttl:(radius-1) rreq
   )
 
 
@@ -718,7 +718,7 @@ object(s)
     (* 3. We can forward rrep if we're not the originator, have updated the route
        above, and have a next hop. *)
     if updated && myid <> rrep.rrep_orig then (
-      match Aodv_rtab.nexthop_maybe rt rrep.rrep_orig with
+      match Aodv_rtab.nexthop_opt rt rrep.rrep_orig with
 	| None -> s#log_error 
 	    (lazy "Cannot forward RREP because no next hop to originator")
 	| Some nh -> 
@@ -756,7 +756,7 @@ object(s)
        (destinations in the RERR for which there exists a corresponding entry
        in the local routing table that has the transmitter of the received
        RERR as the next hop.) *)
-    let check_unreach (dst, _) =  Aodv_rtab.nexthop_maybe rt dst = Some src in
+    let check_unreach (dst, _) =  Aodv_rtab.nexthop_opt rt dst = Some src in
     let u = List.filter check_unreach rerr.unreach in
 
 
@@ -856,11 +856,13 @@ object(s)
 
   
   method private recv_pkt_app (l4pkt : L4pkt.t) dst = (
-    assert (dst <> myid);
     stats.S.data_orig <- stats.S.data_orig - 1;
-
     s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
-    s#process_data_pkt (s#make_l3aodv ~dst DATA) myid;
+    let l3pkt = (s#make_l3aodv ~dst DATA) in
+    if dst = myid then
+      s#hand_upper_layer ~l3pkt
+    else 
+      s#process_data_pkt l3pkt myid;
   )
 
   method stats = stats
