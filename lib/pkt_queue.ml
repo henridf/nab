@@ -19,6 +19,9 @@
  *  details (enclosed in the file GPL). 
  *
  *)
+
+
+type stats =
     {mutable dropped : int; mutable inpkts : int; mutable outpkts : int}
 
 type 'a t = 'a Queue.t * int * stats
