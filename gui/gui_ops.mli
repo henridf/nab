@@ -4,19 +4,6 @@
 
 (** High-level GUI drawing operations *)
 
-(* draw node at position of some time in the past *)
-val draw_node_time : 
-  Common.nodeid_t -> 
-  Common.time_t ->
-  unit
-
-(* draw nodes at position of some time in the past *)
-val draw_nodes_time : 
-  Common.nodeid_t list -> 
-  Common.time_t ->
-  unit
-
-
 val draw_route : 
   ?lines:bool ->
   ?anchors:bool ->
@@ -35,10 +22,18 @@ val draw_nodes :
   Common.nodeid_t list 
   -> unit
 
+(* connect pairs of nodes *)
+val connect_nodes : 
+  (Common.nodeid_t * Common.nodeid_t)  list 
+  -> unit
+
+(* draw connectivity mesh *)
+val draw_connectivity : 
+  unit -> unit
+
 val draw_all_nodes : 
   unit ->
   unit
-
 
 val draw_all_boxes : 
   unit ->
