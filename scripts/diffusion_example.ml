@@ -25,7 +25,7 @@ let setup () = (
 
 
 
-  (* Set global objects (scheduler and World.. This must be done *after* the
+  (* Set global objects (scheduler and World). This must be done *after* the
      params above have been set. *)
   Script_utils.init_sched();
   Script_utils.init_lazy_world();
