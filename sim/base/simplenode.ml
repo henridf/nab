@@ -94,7 +94,9 @@ object(s)
 
   method mac_recv_pkt ?(stack=0) l2pkt = (
     
-    let l3pkt  = (L2pkt.l3pkt l2pkt) in
+    let l2dst = (L2pkt.l2dst l2pkt) 
+    and l2src = (L2pkt.l2src l2pkt) 
+    and l3pkt  = (L2pkt.l3pkt l2pkt) in
 
     s#log_debug (lazy (sprintf "Pkt received from source %d on stack %d" 
       (L3pkt.l3src l3pkt) stack));
@@ -105,13 +107,22 @@ object(s)
       (fun mhook -> mhook l2pkt s)
       pktin_mhooks.(stack);
     
-      (Opt.may (fun agent -> agent#mac_recv_l3pkt l3pkt))
+    (Opt.may (fun agent -> agent#recv_pkt_mac ~l2src ~l2dst l3pkt))
       rt_agents.(stack);
-    
-      (Opt.may (fun agent -> agent#mac_recv_l2pkt l2pkt))
-      rt_agents.(stack)
+ 
   )
     
+  method mac_send_failure ?(stack=0) (l2pkt : L2pkt.t) = (
+    let l2dst = (L2pkt.l2dst l2pkt) 
+    and l3pkt  = (L2pkt.l3pkt l2pkt) in
+
+    s#log_debug (lazy (sprintf "Pkt xmit to %d failed" l2dst));
+
+    (Opt.may (fun agent -> agent#mac_callback l3pkt l2dst))
+      rt_agents.(stack);
+  )    
+
+
   method add_pktin_mhook ?(stack=0) f =
     pktin_mhooks.(stack) <- f::pktin_mhooks.(stack)
       
@@ -123,16 +134,11 @@ object(s)
     pktin_mhooks.(stack) <- []
   )
 
-  method private send_pkt_ ?(stack=0) ~l3pkt dstid = (
-    (* this method only exists to factor code out of 
-       mac_send_pkt and cheat_send_pkt *)
-
-    let dst = (Nodes.node(dstid)) in
+  method mac_send_pkt ?(stack=0) dst l3pkt = (
 
     assert (L3pkt.l3ttl l3pkt >= 0);
 
-    let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:(L2pkt.L2_DST dst#id)
-      ~l3pkt:l3pkt in
+    let l2pkt = L2pkt.make_l2pkt ~src:id ~dst l3pkt in
 
     List.iter 
       (fun mhook -> mhook l2pkt s)
@@ -141,22 +147,11 @@ object(s)
     (s#mac ~stack ())#xmit ~l2pkt
   )
 
-  method mac_send_pkt ?(stack=0) dst l3pkt  = (
-    if not ((World.w())#are_neighbors s#id dst) then (
-	s#log_notice (lazy (Printf.sprintf "mac_send_pkt: %d not a neighbor." dst));
-	raise Mac_Send_Failure
-      ) else
-	s#send_pkt_ ~stack ~l3pkt:l3pkt dst
-  )
-    
-  method cheat_send_pkt ?(stack=0) ~dst l3pkt = s#send_pkt_ ~stack ~l3pkt:l3pkt dst
-
   method mac_bcast_pkt ?(stack=0) l3pkt = (
 
     assert (L3pkt.l3ttl l3pkt >= 0);
 
-    let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:L2pkt.L2_BCAST
-      ~l3pkt:l3pkt in
+    let l2pkt = L2pkt.make_l2pkt ~src:id ~dst:L2pkt.l2_bcast_addr  l3pkt in
 
     List.iter 
     (fun mhook -> mhook l2pkt s )
@@ -182,11 +177,10 @@ object(s)
       
   method originate_app_pkt ~l4pkt ~dst = 
     Array.iter 
-      (Opt.may (fun agent -> agent#app_recv_l4pkt l4pkt dst))
+      (Opt.may (fun agent -> agent#recv_pkt_app l4pkt dst))
       rt_agents 
 
   method dump_state = (World.w())#nodepos id
-
 
 end
 

@@ -23,6 +23,16 @@
 (* $Id$ *)
 
 
+(* XXX Currently broken: 
+
+   Grep_agent has not been converted to use new mac-layer notification for send
+   failures (see changelog), and therefore in the current state it alwyas
+   thinks that unicast packets are succesfully xmitted ( because now
+   simplenode does not raise Mac_Send_Failure anymore on failed xmits).
+*)
+
+
+
 open Aodv_grep_common
 open Printf
 open Misc
@@ -36,46 +46,28 @@ type grep_state_t =
     rt : Rtab.t
   }
 
-class type grep_agent_t =
-  object
-    inherit Log.inheritable_loggable
-    inherit Rt_agent.t
-      
-    method get_rtab : Rtab.t
-    method private newadv : 
-      dst:Common.nodeid_t -> 
-      sn:int -> hc:int -> nh:int ->
-      bool
 
-    method start_hello :  unit -> unit
-    method stop_hello : unit -> unit
+module Grep_stats = struct
+  type stats = {
+    mutable total_xmit : int; 
+    mutable data_xmit : int; 
+    mutable data_orig : int; 
+    mutable data_recv : int; 
+    mutable rreq_xmit : int; 
+    mutable rrep_xmit : int; 
+    mutable data_drop : int; 
+  }
+  let create_stats() = {
+    total_xmit = 0; 
+    data_xmit = 0; 
+    data_orig = 0; 
+    data_recv = 0; 
+    rreq_xmit = 0; 
+    rrep_xmit = 0; 
+    data_drop = 0; 
+  }
 
-    method set_state : grep_state_t -> unit
-    method get_state : unit -> grep_state_t
-
-    method private packet_fresh : l3pkt:L3pkt.t -> bool
-    method private queue_size : unit -> int
-    method private packets_waiting : dst:Common.nodeid_t -> bool
-    method private process_data_pkt : l3pkt:L3pkt.t -> unit
-    method private process_raod_pkt :
-      l3pkt:L3pkt.t -> 
-      sender:Common.nodeid_t -> unit
-    method private process_rrep_pkt :
-      l3pkt:L3pkt.t -> 
-      sender:Common.nodeid_t -> 
-      fresh:bool ->
-      unit
-    method private process_rreq_pkt :
-      l3pkt:L3pkt.t -> 
-      fresh:bool -> unit
-    method private recv_l3pkt_ : l3pkt:L3pkt.t ->
-      sender:Common.nodeid_t -> unit
-    method private send_out : l3pkt:L3pkt.t -> unit
-    method private originate_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
-    method private send_rreq :
-      ttl:int -> dst:Common.nodeid_t -> rreq_uid:int -> unit
-    method private send_waiting_packets : dst:Common.nodeid_t -> unit
-  end
+end
 
 
 exception Send_Out_Failure
@@ -87,11 +79,12 @@ let agents ?(stack=0) () = agents_array_.(stack)
 let agent ?(stack=0) i = 
   Hashtbl.find agents_array_.(stack) i
 
+module S = Grep_stats
 
-class grep_agent ?(stack=0) theowner : grep_agent_t = 
+class grep_agent ?(stack=0) theowner = 
 object(s)
 
-  inherit Rt_agent_base.base ~stack theowner 
+  inherit [S.stats] Rt_agent_base.base ~stack theowner 
 
   val mutable rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
@@ -101,6 +94,8 @@ object(s)
 
   val rreq_uids = Array.create (Param.get Params.nodes) 0
     (* see #init_rreq for explanation on this *)
+
+  val stats = S.create_stats()
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_agent";
@@ -166,7 +161,7 @@ object(s)
 	  Queue.push l3pkt pktqs.(dst);
 	  true;
       | false -> 
-	  Grep_hooks.drop_data();
+	  stats.S.data_drop <- stats.S.data_drop + 1;
 	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
 	    (L3pkt.l3dst l3pkt)));
 	  false
@@ -231,35 +226,32 @@ object(s)
     end
   )
 
-  method mac_recv_l3pkt _  = ()
-
-  method mac_recv_l2pkt l2pkt = (
+  method recv_pkt_mac ~l2src ~l2dst l3pkt = (
     
-    let l3pkt = L2pkt.l3pkt l2pkt in
     assert (L3pkt.l3ttl l3pkt >= 0);
 
     (* create or update 1-hop route to previous hop, unless the packet was
        originated by the previous hop, in which case this will happen in l3
        processing.
     *)
-    let sender = L2pkt.l2src l2pkt in
-    if (sender <> (L3pkt.l3src l3pkt)) then (
+
+    if (l2src <> (L3pkt.l3src l3pkt)) then (
       let sender_seqno = 
-	match Rtab.seqno ~rt ~dst:sender with
+	match Rtab.seqno ~rt ~dst:l2src with
 	  | None -> 1
 	  | Some n -> n + 1
       in
       let update =  
 	s#newadv 
-	  ~dst:sender
+	  ~dst:l2src
 	  ~sn:sender_seqno
 	  ~hc:1
-	  ~nh:sender
+	  ~nh:l2src
       in
       assert (update);
     );
     
-    s#recv_l3pkt_ ~l3pkt ~sender
+    s#recv_l3pkt_ ~l3pkt ~sender:l2src
   )
 
 
@@ -560,6 +552,7 @@ object(s)
     s#incr_seqno();
     Grep_pkt.incr_shc_pkt grep_hdr;
     assert (Grep_pkt.shc grep_hdr > 0);
+    stats.S.total_xmit <- stats.S.total_xmit + 1;
     begin match (Grep_pkt.flags grep_hdr) with
       | `RADV 
       | `RREQ -> 
@@ -567,7 +560,7 @@ object(s)
 	  L3pkt.decr_l3ttl l3pkt;
 	  begin match ((L3pkt.l3ttl l3pkt) >= 0)  with
 	    | true -> 
-		Grep_hooks.sent_rreq() ;
+		stats.S.rreq_xmit <- stats.S.rreq_xmit + 1;
 		s#mac_bcast_pkt l3pkt;
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
@@ -575,9 +568,9 @@ object(s)
       | `DATA
       | `RREP ->
 	  begin if ((Grep_pkt.flags grep_hdr) = `DATA) then (
-	    Grep_hooks.sent_data();
+	    stats.S.data_xmit <- stats.S.data_xmit + 1;
 	  ) else (
-	    Grep_hooks.sent_rrep_rerr();
+	    stats.S.rrep_xmit <- stats.S.rrep_xmit + 1;
 	  );
 	    
 	    let nexthop = 
@@ -586,8 +579,8 @@ object(s)
 		| Some nh -> nh 
 	    in 
 	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
-	    try  s#mac_send_pkt l3pkt nexthop
-	    with Simplenode.Mac_Send_Failure -> failed()
+	    (*try*)  s#mac_send_pkt l3pkt nexthop
+	    (*with Simplenode.Mac_Send_Failure -> failed()*)
 
 	  end
 
@@ -600,13 +593,13 @@ object(s)
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
   method private hand_upper_layer ~l3pkt = (
-    Grep_hooks.recv_data();
+    stats.S.data_recv <- stats.S.data_recv + 1;
     s#log_info (lazy (sprintf "Received app pkt from src %d"
       (L3pkt.l3src l3pkt)));
   )
 
 
-  method private app_recv_l4pkt l4pkt dst = (
+  method recv_pkt_app l4pkt dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
       dst));
     let grep_hdr = 
@@ -621,10 +614,12 @@ object(s)
       L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`GREP_HDR grep_hdr) () in
 
     assert (dst <> myid);
-    Grep_hooks.orig_data();
+    stats.S.data_orig <- stats.S.data_orig + 1;
     let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
 
     s#process_data_pkt ~l3pkt
   )
+
+  method stats = stats
 
 end

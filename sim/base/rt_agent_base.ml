@@ -25,7 +25,7 @@
 
 
 
-class virtual base ?(stack=0) owner =
+class virtual ['a] base ?(stack=0) owner =
 object(s : #Rt_agent.t)
   inherit Log.inheritable_loggable as log
 
@@ -42,12 +42,13 @@ object(s : #Rt_agent.t)
   method private mac_send_pkt l3pkt dst = 
     owner#mac_send_pkt ~stack dst l3pkt
 
-  method private cheat_send_pkt l3pkt dst = 
-    owner#cheat_send_pkt ~stack ~dst l3pkt 
+  method mac_callback l3pkt nexthop = ()
 
-  method virtual mac_recv_l3pkt : L3pkt.t -> unit
-  method virtual mac_recv_l2pkt : L2pkt.t -> unit
-  method virtual app_recv_l4pkt : L4pkt.t -> Common.nodeid_t -> unit
+  method virtual recv_pkt_mac : 
+    l2src:Common.nodeid_t -> l2dst:Common.nodeid_t -> L3pkt.t -> unit
+
+  method virtual recv_pkt_app : L4pkt.t -> Common.nodeid_t -> unit
+  method virtual stats : 'a
 
   method private bps = (owner#mac ~stack ())#bps
 

@@ -59,15 +59,15 @@ object(s)
 
     (* Throw away unicast packet if not for us, keep it otherwise *)
     begin match dst with
-      | L2_BCAST ->  s#log_debug (lazy
+      | d when (d = l2_bcast_addr) ->  s#log_debug (lazy
 	  (sprintf "Start RX, l2src %d, l2dst broadcast" (l2src l2pkt)));
 	  s#accept_ l2pkt;
 
-      | L2_DST d when (d = myid) ->  s#log_debug  (lazy
+      | d when (d = myid) ->  s#log_debug  (lazy
 	  (sprintf "Start RX, l2src %d, l2dst %d" (l2src l2pkt) d));
 	  s#accept_ l2pkt;
 
-      | L2_DST d ->  s#log_debug  (lazy
+      | d -> s#log_debug  (lazy
 	  (sprintf "Start RX, l2src %d, l2dst %d (not for us)" (l2src l2pkt) d));
     end
   )
@@ -91,10 +91,17 @@ object(s)
   )
 
   method xmit ~l2pkt = (
-    s#log_debug (lazy "TX packet ");
-    SimpleEther.emit ~stack ~nid:myid l2pkt;
-    pktsTX <- pktsTX + 1;
-    bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
+
+    let l2dst = (L2pkt.l2dst l2pkt) in
+    if l2dst = L2pkt.l2_bcast_addr ||
+      ((World.w())#are_neighbors myid l2dst)
+    then (
+      s#log_debug (lazy "TX packet ");
+      SimpleEther.emit ~stack ~nid:myid l2pkt;
+      pktsTX <- pktsTX + 1;
+      bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
+    ) else s#unicast_failure l2pkt
+
   )
 
   method other_stats = ()

@@ -76,6 +76,12 @@ object
   method private send_up : l2pkt:L2pkt.t -> unit
   method virtual other_stats : 'a
 
+  method private unicast_failure : L2pkt.t -> unit
+
+  (* method packet_fw_failure : l2pkt.t -> unit 
+     optionally call this when fails (link layer feedback)
+  *)
+
   (** Methods documented in {!Mac.t}. *)
   method virtual recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method virtual xmit : l2pkt:L2pkt.t -> unit

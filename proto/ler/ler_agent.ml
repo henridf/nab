@@ -30,8 +30,6 @@
 
 type ler_proto_t = EASE | GREASE | FRESH
 
-
-
 open Printf
 
 
@@ -65,7 +63,7 @@ object(s)
   
   (* We inherit from the base routing agent class. This is documented in
      rt_agent_base.ml and rt_agent.mli. *)
-  inherit Rt_agent_base.base ~stack theowner 
+  inherit [unit] Rt_agent_base.base ~stack theowner 
     
   val mutable le_tab = new Le_tab.le_tab ~ntargets:(Param.get ntargets)
 
@@ -105,18 +103,14 @@ object(s)
   )
 
   (* This method is called each time a packet is received at the node. *)
-  method mac_recv_l3pkt l3pkt = 
+  method recv_pkt_mac ~l2src ~l2dst l3pkt = 
     s#recv_ler_pkt_ l3pkt 
 
-  (* This method is called each time a packet is received at the node. It
-     provides us with the full L2 header, which we don't care for, so this is
-     a null method. *)
-  method mac_recv_l2pkt _ = ()
 
   (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
      packet to send. We build the L3 header and originate the packet into the
      EASE routing logic. *)
-  method app_recv_l4pkt l4pkt dst = (
+  method recv_pkt_app l4pkt dst = (
 
     let ler_hdr = Ler_pkt.make_ler_hdr 
       ~anchor_pos:owner#pos ~enc_age:(le_tab#le_age dst)  in
@@ -227,7 +221,7 @@ object(s)
     (* If the destination is within range, bypass georouting and send directly
        to it. *)
     if (World.w())#are_neighbors owner#id dst then 
-      s#cheat_send_pkt pkt dst
+      s#mac_send_pkt pkt dst
     else 
       s#geo_fw_pkt_ pkt
   )
@@ -242,8 +236,8 @@ object(s)
        in closest_toward_anchor might return us. *)
     if owner#pos = (Nodes.gpsnode dst)#pos  then 
 
-      (* [cheat_send_pkt] is documented in simplenode.mli. *)
-      s#cheat_send_pkt pkt (Nodes.gpsnode dst)#id
+      (* [mac_send_pkt] is documented in simplenode.mli. *)
+      s#mac_send_pkt pkt (Nodes.gpsnode dst)#id
 
     else (
       (* find next closest node toward anchor *)
@@ -264,8 +258,8 @@ object(s)
 	  (Coord.sprintf (Nodes.gpsnode dst)#pos)))
       );
 
-      (* [cheat_send_pkt] is documented in simplenode.mli. *)
-      s#cheat_send_pkt pkt closest_id
+      (* [mac_send_pkt] is documented in simplenode.mli. *)
+      s#mac_send_pkt pkt closest_id
     )
   )
     
@@ -328,7 +322,7 @@ object(s)
   )
     
     
-    
+  method stats = ()
 
 
 end

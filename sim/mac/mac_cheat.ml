@@ -60,14 +60,14 @@ object(s)
     s#log_debug (lazy "TX packet ");
     
     match L2pkt.l2dst l2pkt with 
-      | L2pkt.L2_BCAST ->
+      | dst when (dst = l2_bcast_addr) ->
 	  SimpleEther.emit ~stack ~nid:theowner#id l2pkt
-      | L2pkt.L2_DST dstid ->
-	  let dstnode = (Nodes.node(dstid)) in
+      | dst ->
+	  let dstnode = (Nodes.node(dst)) in
 	  let recvtime = 
 	    Time.get_time()
 	    +. propdelay 
-	      ((World.w())#nodepos dstid)
+	      ((World.w())#nodepos dst)
 	      ((World.w())#nodepos theowner#id) in
 	  let recv_event() = 
 	    (dstnode#mac ~stack ())#recv ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in

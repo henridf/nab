@@ -33,10 +33,6 @@
 
 
 
-exception Mac_Send_Failure
-  (** Exception raised when trying to unicast a packet to a non-neighboring
-    node. *)
-
 type node_state_t = Coord.coordf_t
     (** this type is used for storing node state to file *)
 
@@ -128,22 +124,16 @@ object ('a)
     ?stack:int -> 
     Common.nodeid_t -> 
     L3pkt.t ->  unit
-    (** Send packet to neighbor mac_dst. 
-      Raises {!Simplenode.Mac_Send_Failure} if mac_dst is not a neighbor *)
+    (** Send packet to neighboring node. *)
 
-  method cheat_send_pkt : ?stack:int -> dst:Common.nodeid_t -> L3pkt.t -> unit
-    (** Same as above except will accept sending pkt to any destination, even
-      if that destination is not a neighbor within range (hence the "cheating"). 
-      This only works if the MAC layer is a {!Mac_cheat.cheatmac} - otherwise
-      a packet to a node which is not in range is silently dropped.
-    *)
-    
   method mac_bcast_pkt : ?stack:int -> L3pkt.t -> unit
     (** Broadcast packet to all neighbors. *)
     
   method originate_app_pkt : l4pkt:L4pkt.t -> dst:Common.nodeid_t -> unit
     (** originates a packet from an application on this node to dst:
       create the packet and shove it down the app_send_pkt_hooks *)
+
+  method mac_send_failure : ?stack:int -> L2pkt.t -> unit
     
   (** Inserting hooks. *)
     

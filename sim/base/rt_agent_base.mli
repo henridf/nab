@@ -39,7 +39,7 @@
   @author Henri Dubois-Ferriere.
 *)
 
-class virtual base : ?stack:int -> #Simplenode.simplenode ->
+class virtual ['a] base : ?stack:int -> #Simplenode.simplenode ->
   (** [stack] serves to distinguish when multiple stacks are being used. 
     The notion of multiple stacks is explained in {!Simplenode.simplenode}.*)
 object
@@ -51,12 +51,16 @@ object
 
   method myid : Common.nodeid_t
 
-  method virtual mac_recv_l3pkt : L3pkt.t -> unit
+  method virtual recv_pkt_mac : 
+    l2src:Common.nodeid_t -> l2dst:Common.nodeid_t -> L3pkt.t -> unit
     (** See {!Rt_agent.t} *)
-  method virtual mac_recv_l2pkt : L2pkt.t -> unit
+
+  method virtual recv_pkt_app : L4pkt.t -> Common.nodeid_t -> unit
     (** See {!Rt_agent.t} *)
-  method virtual app_recv_l4pkt : L4pkt.t -> Common.nodeid_t -> unit
+  method mac_callback : L3pkt.t -> Common.nodeid_t -> unit
     (** See {!Rt_agent.t} *)
+
+  method virtual stats : 'a
 
   method private mac_bcast_pkt : L3pkt.t -> unit
     (** Call this method from the derived routing agent to send a packet as a
@@ -67,15 +71,6 @@ object
     (** Call this method from the derived routing agent to send a packet as a
       Mac-layer unicast. This is a wrapper around [method mac_send_pkt] in
       {!Simplenode.simplenode}. *)
-
-  method private cheat_send_pkt : L3pkt.t -> Common.nodeid_t -> unit
-    (** Call this method from the derived routing agent to send a packet
-      directly to any node. This is a wrapper around [method cheat_send_pkt] in
-      {!Simplenode.simplenode}. 
-
-      This only works if the MAC layer is a {!Mac_cheat.cheatmac} - otherwise
-      a packet to a node which is not in range is silently dropped.
-    *)
 
   method private bps : float
     (** Returns the speed of the underlying MAC layer for the node this agent

@@ -37,7 +37,7 @@ open Printf
 class flood_agent ?(stack=0) theowner = 
 object(s)
 
-  inherit Rt_agent_base.base ~stack theowner 
+  inherit [unit] Rt_agent_base.base ~stack theowner 
 
   val pkt_hash = Hashtbl.create 50;
 
@@ -51,16 +51,10 @@ object(s)
   method private incr_seqno() = seqno <- seqno + 1;
 
 
-  (* This is called from the underlying MAC each time we receive a packet, with
-     the full l2packet provided. We don't care about the l2 portion, so this
-     is a null method. *)
-  method mac_recv_l2pkt _l2pkt = ()
 
 
-  (* This is called from the underlying MAC each time we receive a packet, with
-     the full l2packet provided. We don't care about the l2 portion, so this
-     is a null method. *)
-  method mac_recv_l3pkt l3pkt = (
+  (* This is called from the underlying MAC each time we receive a packet. *)
+  method recv_pkt_mac ~l2src ~l2dst l3pkt = (
 
     let src = (L3pkt.l3src l3pkt) in
     s#log_debug (lazy (sprintf "Received flood packet from src %d" src));
@@ -95,7 +89,7 @@ object(s)
     (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
        packet to send. We build the L3 header and originate the packet into the
        EASE logic. *)
-  method private app_recv_l4pkt l4pkt dst = (
+  method private recv_pkt_app l4pkt dst = (
 
     s#log_info (lazy (sprintf "Received packet from upper-layer packet for dst %d" dst));
     if  (dst <> myid) then (
@@ -106,4 +100,7 @@ object(s)
       s#incr_seqno()
     )
   )
+
+  method stats = ()
+
 end

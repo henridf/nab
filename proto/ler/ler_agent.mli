@@ -52,16 +52,21 @@
 
 type ler_proto_t = EASE | GREASE | FRESH
 
+
 (** Pass [true] for [grease] argument to constructor to get a GREASE agent,
   [false] to get EASE. *)
 class ler_agent : ?stack:int -> proto:ler_proto_t -> #Simplenode.simplenode -> 
 object 
-  inherit Log.inheritable_loggable
-  inherit Rt_agent.t
 
+  inherit Rt_agent.t
+    
   method le_tab : Le_tab.le_tab
   method set_le_tab : Le_tab.le_tab -> unit
+  method stats : unit
 end
+
+
+
 
 val ntargets : int Param.t
   (** The number of nodes that can potentially be routed to as destinations.

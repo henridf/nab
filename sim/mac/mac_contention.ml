@@ -111,7 +111,7 @@ object(s)
 
     assert (interfering_until = Time.get_time());
     let dst = l2dst l2pkt in
-    if (dst = L2_BCAST || dst = L2_DST myid) then 
+    if (dst = l2_bcast_addr || dst = myid) then 
       super#send_up ~l2pkt
   )
 

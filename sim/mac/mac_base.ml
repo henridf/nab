@@ -73,6 +73,9 @@ object(s)
   method private send_up ~l2pkt = 
     owner#mac_recv_pkt ~stack l2pkt
 
+  method private unicast_failure l2pkt = 
+    owner#mac_send_failure ~stack l2pkt
+
   method virtual recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method virtual xmit : l2pkt:L2pkt.t -> unit
   method virtual bps : float
