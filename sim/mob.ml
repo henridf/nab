@@ -2,10 +2,7 @@ open Coord
 open Graph
 open Misc
 
-(* changelog: 
-   + coords are now expressed in meters, so no need to 
-     use one_meter
-*)
+
 
 (* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using
    Gui_hooks.* from here *)
@@ -62,7 +59,7 @@ class virtual mobility (abbrevname:string) (owner:Node.node_t) =
 object(s)
   val abbrev = abbrevname
   val owner:Node.node_t = owner
-  val mutable speed_mps = 1.0
+  val mutable speed_mps =  1.0
   val mutable moving =  false
   val granularity = 1.0 (* be careful if high speed and low granularity, then
 			   we will load the scheduler with zillions of small
@@ -190,13 +187,9 @@ object(s)
       ((Graph.routei_dij_ (Read_coords.g()) current_graph_pos_ graphtarget_) @
       [graphtarget_]);
 
-
-
-
-    List.iter (fun i -> Printf.printf "%s " (Graph.node_ (Read_coords.g()) i))
+(*    List.iter (fun i -> Printf.printf "%s " (Graph.node_ (Read_coords.g()) i))
      ((Graph.routei_dij_ (Read_coords.g()) current_graph_pos_ graphtarget_) @
-      [graphtarget_]);
-    Printf.printf "\n"; flush stdout;
+      [graphtarget_]);*)
   )
     
   method getnewpos ~gran = (
@@ -221,7 +214,18 @@ end
 
 let mob_array = ref ([||]: mobility_t array)
 let make_waypoint_mobs() = mob_array := (Nodes.map (fun n -> new waypoint n))
-let make_epfl_mobs() = mob_array := (Nodes.map (fun n -> new epfl  n))
+let make_epfl_mobs() = (
+  mob_array := (Nodes.map (fun n -> new epfl  n));
+  Array.iter 
+    (fun m ->
+      if (Random.int 2) = 0 then (
+	m#set_speed_mps 1.0
+      ) else (
+	m#set_speed_mps 1.0
+      )
+    ) !mob_array
+)
+
 let start_node i = !mob_array.(i)#start
 let stop_node i = !mob_array.(i)#stop
 let start_all() = Array.iteri (fun i n -> start_node i) !mob_array
