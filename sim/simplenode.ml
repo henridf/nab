@@ -4,40 +4,7 @@
 
 open Printf
 
-type node_state_t = {node_pos : int}
-
-class type node_t =
-
-object
-  val id : int
-
-  val mutable neighbors : Common.NodeSet.t
-  val mutable pos : Coord.coordf_t
-
-  method objdescr : string
-
-  method id : Common.nodeid_t
-  method pos : Coord.coordf_t
-  method x : float
-  method y : float
-
-  method db : NodeDB.nodeDB_t
-  method set_db : NodeDB.nodeDB_t -> unit
-
-  method add_neighbor : node_t -> unit
-  method lose_neighbor : node_t -> unit
-  method is_neighbor : node_t -> bool
-  method neighbors : Common.NodeSet.t
-
-  method move : Coord.coordf_t -> unit
-  method recv_pkt : pkt:Packet.packet_t -> unit
-
-  method dump_state : node_cnt:int -> node_state:node_state_t -> int
-
-end
-
-
-class node  ~pos_init ~id  : node_t = 
+class simplenode  ~pos_init ~id  : Node.node_t = 
 
 object(s)
   
@@ -51,11 +18,12 @@ object(s)
   val mutable db = new NodeDB.nodeDB
   val agents = Hashtbl.create 1
 
+  val mutable pkt_recv_hooks = []
    
   method pos = pos
   method id = id
-  method x = Coord.x pos
-  method y = Coord.y pos
+  method x = Coord.xx pos
+  method y = Coord.yy pos
   method private bler_agent = Misc.o2v bler_agent
 
   method db = db
@@ -64,14 +32,23 @@ object(s)
   initializer (
     objdescr <- (sprintf "/Node/%d" id);
     bler_agent <-  Some (new Bler_agent.bler_agent (s :> Node.node_t));
+
+    let nmsg = (Naml_msg.mk_init_nodepos ~nid:s#id ~pos:pos_init) in
+    s#logmsg_info nmsg;
+    Trace.namltrace ~msg:nmsg;
+
     (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:None
   )
 
   method move newpos = (
     let oldpos = pos in
     pos <- newpos;
+
+    let nmsg = (Naml_msg.mk_node_move ~nid:s#id ~pos:newpos) in
+    s#logmsg_info nmsg;
+    Trace.namltrace ~msg:nmsg;
+
     (* important to call update_pos *after* our own position has been updated *)
-    s#log_info (sprintf "Moved from %s to %s" (Coord.sprintf oldpos) (Coord.sprintf newpos));
     (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:(Some oldpos);
   )
 
@@ -113,12 +90,10 @@ object(s)
     s#bler_agent#recv pkt
   )      
 
-
-  method dump_state ~node_cnt ~node_state = 1 + node_state.Node.node_pos;
-(*    let b = {
-    node_pos=s#pos;
-    db_state=db#dump_state ~node_cnt:node_cnt
-  } in b*)
+  method dump_state ~node_cnt  = {
+    Node.node_pos=s#pos;
+    Node.db_state=db#dump_state ~node_cnt:node_cnt
+  } 
 
 
 end
