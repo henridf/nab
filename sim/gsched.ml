@@ -4,12 +4,11 @@ let (sched_:Sched.scheduler_t option ref) = ref None
 let sched () = o2v !sched_
 let set_sched s = sched_ := Some s
 
-
 (*
 let a = ref 0 
 let f n () = begin assert (!a = n); incr a end
 let test = 
-  set_sched (new Sched.schedHeap);
+  set_sched (new Sched.schedList);
   Printf.printf "Beginning simple scheduler test\n";
   flush stdout;
   Common.set_time 0.0;
@@ -40,14 +39,37 @@ let test =
   assert (!a = 5);
   assert (Common.get_time() = 3.0);
 
+
+
+
+
+
+(* replace block below with
   (sched())#sched_at ~f:(f 6) ~t:(Sched.Time 5.0);
+
   (sched())#sched_at ~f:(f 5) ~t:(Sched.ASAP);
 
+
+   for heap scheduler, which doesn't respect the 'FIFO' property for events
+   scheduled at the same time *)
+
+  (sched())#sched_at ~f:(f 8) ~t:(Sched.Time 5.0);
+  (sched())#sched_at ~f:(f 9) ~t:(Sched.Time 5.0);
+  (sched())#sched_at ~f:(f 10) ~t:(Sched.Time 5.0);
+
+  (sched())#sched_at ~f:(f 5) ~t:(Sched.ASAP);
+  (sched())#sched_at ~f:(f 6) ~t:(Sched.ASAP);
+  (sched())#sched_at ~f:(f 7) ~t:(Sched.ASAP);
+
+
   Printf.printf "time is %f\n" (Common.get_time());
+  (sched())#run();
+
 
 
   Printf.printf "End simple scheduler test\n";
   flush stdout;
 
 
-*)
+
+  *)

@@ -2,6 +2,17 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(* There are currently two schedulers. One is list-based , and has 
+   O(n) insert time and O(1) pop time, other is heap-based and has O(logn)
+   insert and pop time.
+
+   For the list-based scheduler, multiple events scheduled at the same time
+   (or at ASAP) are executed in FIFO order.
+
+   For the heap based scheduler, multiple events scheduled at the same time
+   (or at ASAP) are executed in undefined order.
+*)
+
 open Printf
 
 type handler_t = Stop | Handler of (unit -> unit)
@@ -139,7 +150,8 @@ module Compare =
 struct
   type t = event_t
   let compare ev1 ev2 = 
-    if  ev1.time > ev2.time  then -1 else 1
+    if ev1.time = ev2.time then 0 
+    else if ev1.time > ev2.time  then -1 else 1
       
 end
 module EventHeap = Heap.Imperative (Compare)
