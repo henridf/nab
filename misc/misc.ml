@@ -28,11 +28,6 @@ let f2s f = string_of_float f
 
 (** Arithmetic and related *)
 
-let largest f1 f2 = 
-  if (f1 > f2) then f1 else f2
-
-let smallest f1 f2 = 
-  if (f1 < f2) then f1 else f2
 
 let isint x = (floor x) = x
 let round x = if (x -. floor x) < 0.5 then (floor x) else (ceil x)
