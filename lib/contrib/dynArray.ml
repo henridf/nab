@@ -87,7 +87,7 @@ let changelen (d : 'a t) newlen =
 	 *)
 	let newsize = if r < newlen then newlen else r in
 	if newsize <> oldsize then begin
-		let newarr = imake 0 newsize in
+		let newarr = imake ~tag:0 ~size:newsize in
 		let cpylen = (if newlen < d.len then newlen else d.len) in
 		for i = 0 to cpylen - 1 do
 			iset newarr i (iget d.arr i);
@@ -98,7 +98,7 @@ let changelen (d : 'a t) newlen =
 
 let compact d =
 	if d.len <> ilen d.arr then begin
-		let newarr = imake 0 d.len in
+		let newarr = imake ~tag:0 ~size:d.len in
 		for i = 0 to d.len - 1 do
 			iset newarr i (iget d.arr i)
 		done;
@@ -109,7 +109,7 @@ let create() =
 	{
 		resize = default_resizer;
 		len = 0;
-		arr = imake 0 0;
+		arr = imake ~tag:0 ~size:0;
 	}
 
 let make initsize = 
@@ -117,12 +117,12 @@ let make initsize =
 	{
 		resize = default_resizer;
 		len = 0;
-		arr = imake 0 initsize;
+		arr = imake ~tag:0 ~size:initsize;
 	}
 
 let init initlen f =
 	if initlen < 0 then invalid_arg initlen "init" "len";
-	let arr = imake 0 initlen in
+	let arr = imake ~tag:0 ~size:initlen in
 	for i = 0 to initlen-1 do
 		iset arr i (f i)
 	done;
@@ -179,7 +179,7 @@ let delete d idx =
 	d.len <- d.len - 1;
 	let newsize = (if r < d.len then d.len else r) in
 	if oldsize <> newsize then begin
-		let newarr = imake 0 newsize in
+		let newarr = imake ~tag:0 ~size:newsize in
 		for i = 0 to idx - 1 do
 			iset newarr i (iget d.arr i);
 		done;
@@ -249,7 +249,7 @@ let to_array d =
 
 let of_list lst =
 	let size = List.length lst in
-	let arr = imake 0 size in
+	let arr = imake ~tag:0 ~size in
 	let rec loop idx =  function
 		| h :: t -> iset arr idx h; loop (idx + 1) t
 		| [] -> ()
@@ -265,7 +265,7 @@ let of_array src =
 	let size = Array.length src in
 	let is_float = Obj.tag (Obj.repr src) = Obj.double_array_tag in
 	let arr = (if is_float then begin
-			let arr = imake 0 size in
+			let arr = imake ~tag:0 ~size in
 			for i = 0 to size - 1 do
 				iset arr i (Array.unsafe_get src i);
 			done;
@@ -290,7 +290,7 @@ let copy src =
 let sub src start len =
 	if len < 0 then invalid_arg len "sub" "len";
 	if start < 0 || start + len > src.len then invalid_arg start "sub" "start";
-	let arr = imake 0 len in
+	let arr = imake ~tag:0 ~size:len in
 	for i = 0 to len - 1 do
 		iset arr i (iget src.arr (i+start));
 	done;
@@ -323,7 +323,7 @@ let index_of f d =
 	loop 0
 
 let map f src =
-	let arr = imake 0 src.len in
+	let arr = imake ~tag:0 ~size:src.len in
 	for i = 0 to src.len - 1 do
 		iset arr i (f (iget src.arr i))
 	done;
@@ -334,7 +334,7 @@ let map f src =
 	}
 
 let mapi f src =
-	let arr = imake 0 src.len in
+	let arr = imake ~tag:0 ~size:src.len in
 	for i = 0 to src.len - 1 do
 		iset arr i (f i (iget src.arr i))
 	done;
@@ -380,7 +380,7 @@ let enum d =
 let of_enum e =
 	if Enum.fast_count e then begin
 		let c = Enum.count e in
-		let arr = imake 0 c in
+		let arr = imake ~tag:0 ~size:c in
 		Enum.iteri (fun i x -> iset arr i x) e;
 		{
 			resize = default_resizer;
