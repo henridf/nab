@@ -47,6 +47,7 @@ type grep_rreq_payload_t = {
   mutable dseqno: int;    
   mutable dhopcount: int; 
 }
+
 let grep_rreq_payload_size = 
   _ADDR_SIZE + 
   _SEQNO_SIZE +      (* dseqno *)
@@ -66,9 +67,7 @@ type l4pkt_t =
     | `HELLO_PKT of hello_payload_t
     | `BLER_PKT of bler_payload_t
     | `DSDV_PKT of dsdv_payload_t
-    | `GREP_RREP_PKT of grep_adv_payload_t
-    | `GREP_RERR_PKT of grep_adv_payload_t
-    | `GREP_RREQ_PKT of grep_rreq_payload_t
+    | `GREP_RADV_PKT (* not implemented yet *)
     ]
       
 let clone_l4pkt ~l4pkt = l4pkt
@@ -80,10 +79,6 @@ let l4pkt_size ~l4pkt =
     | `HELLO_PKT p -> hello_payload_size
     | `BLER_PKT p  -> raise Misc.Not_Implemented
     | `DSDV_PKT p -> raise Misc.Not_Implemented
-    | `GREP_RREP_PKT p
+    | `GREP_RADV_PKT 
       -> grep_adv_payload_size
-    | `GREP_RERR_PKT p
-      -> grep_adv_payload_size
-    | `GREP_RREQ_PKT p
-      -> grep_rreq_payload_size
 	

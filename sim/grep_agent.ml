@@ -1,10 +1,29 @@
 (* should send_out distinguish exceptions between no nexthop and xmit failure ?*)
-(* when we get a rrep, do we also update route to replying node (if different
-   from destination node)?? we should. *)
-(* 19may / removed code in simplenode that decrs shopcount when bcast has no
+
+(* 19may / removed code in simplenode that decrs shc when bcast has no
    neighbors. should check throughout grep_agent that there are no places
    where we reuse a packet, and where it would be necessary to correct a
    needlessly changed (ttl or hopcount) field *)
+(* check that when pkt.src = pkt.l2src, we don't get confused with both
+   incrementing the seqno and updating it (though even if we do so, in this
+   order it shouldn't pose a problem *)
+
+(* can't there be races or other unexpected interactions when newadv
+   immediately sends buffered packets? maybe safer to do this after haveing
+   processed teh incoming packets (and also it would be more 'correct' since 
+   the currently processed packet shouldn't get preempted by this one *)
+
+(*
+  are we incrementing p.ohc at each hop?? not right now, because we set the
+  hopcount to be p.ohc + p.shc (unlike RTR 3 which sets it as p.ohc).
+  Both are equivalent, need to see which is 'cleaner' and more consistent.
+  
+  we basically need to go over whole protocol spec from paper and verify
+  code...
+
+  go through ttl handling at all levels and check ok (ttl only used on flood packets)
+*)
+
 
 (*                                  *)
 (* mws  multihop wireless simulator *)
@@ -28,7 +47,6 @@ class type grep_agent_t =
     method newadv : 
       dst:Common.nodeid_t -> 
       rtent:Rtab.rtab_entry_t ->
-      ?ignorehops:bool -> 
       unit -> bool
     method objdescr : string
     method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
@@ -47,7 +65,7 @@ class type grep_agent_t =
     method private newadv_rrep :
       adv:L4pkt.grep_adv_payload_t ->
       sender:Common.nodeid_t -> 
-      shopcount:int -> bool
+      shc:int -> bool
     method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
@@ -111,9 +129,9 @@ object(s)
     while s#packets_waiting ~dst do
       let pkt = (Queue.pop pktqs.(dst)) in
 	try 
-(*	  s#log_info 
-	    (sprintf "Sending buffered DATA pkt from src %d to dst %d."
-	      (L3pkt.l3src ~l3pkt:pkt) dst);*)
+	  s#log_info 
+	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+	      (L3pkt.l3src ~l3pkt:pkt) dst));
 	  s#send_out ~l3pkt:pkt
 	with 
 	  | Send_Out_Failure -> 
@@ -132,8 +150,8 @@ object(s)
 	  Queue.push l3pkt pktqs.(dst);
       | false -> (
 	  Grep_hooks.drop_data();
-(*	  s#log_notice (sprintf "Dropped packet for dst %d" 
-	    (L3pkt.l3dst ~l3pkt))*)
+	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
+	    (L3pkt.l3dst ~l3pkt)))
 	)
   )
 
@@ -143,21 +161,17 @@ object(s)
   method newadv  
     ~(dst:Common.nodeid_t)
     ~(rtent:Rtab.rtab_entry_t) 
-    ?(ignorehops=false)
     () = (
       let update = 
-	if ignorehops then 
-	  Rtab.newadv_ignorehops ~rt:rtab ~dst ~rtent:rtent
-	else 
 	  Rtab.newadv ~rt:rtab ~dst ~rtent:rtent
       in
       if update then (
-(*	s#log_info 
-	(sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
+	s#log_info 
+	(lazy (sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
 	  dst 
 	  (o2v rtent.Rtab.nexthop) 
 	  (o2v rtent.Rtab.hopcount)
-	  (o2v rtent.Rtab.seqno));*)
+	  (o2v rtent.Rtab.seqno)));
 	(* if route to dst was accepted, send any packets that were waiting
 	   for a route to this dst *)
 	if (s#packets_waiting ~dst) then (
@@ -167,49 +181,37 @@ object(s)
       update
     )
 
-
   (* wrapper around Grep_agent.newadv for those that come in 
      radv/rrep packets *)
-  (* route replies, we accept a route with same seqno even if it has more
-     hops. This is to allow rreps from intermediate nodes which would have the
-     same route as us but which were between us and the break. This does not
-     introduce loops because an intermediate node only answers if 
-     (its hopcount < packet.shopcount + packet.dhopcount).
-     Therefore, a node which is 'behind' us on the route would not satisfy this.
-  *)
   method private newadv_rrep
     ~(adv:L4pkt.grep_adv_payload_t)
     ~(sender:Common.nodeid_t) 
-    ~(shopcount:int)  = (
+    ~(shc:int)  = (
       s#newadv 
-      ~ignorehops:false
       ~dst:(adv.L4pkt.adv_dst)
       ~rtent:{
 	Rtab.seqno = Some (adv.L4pkt.adv_seqno);
-	Rtab.hopcount = Some ((adv.L4pkt.adv_hopcount) + shopcount);
+	Rtab.hopcount = Some ((adv.L4pkt.adv_hopcount) + shc);
 	Rtab.nexthop = Some sender 
       }
       ()
     )
 
-  (* as in paper *)
   method private packet_fresh ~l3pkt = (
-    let pkt_sseqno = L3pkt.l3sseqno ~l3pkt in
+    let pkt_ssn = L3pkt.ssn ~l3pkt in
     match (Rtab.seqno ~rt:rtab ~dst:(L3pkt.l3src l3pkt)) with
       | None -> true 
-      | Some s when (pkt_sseqno > s) -> true
-      | Some s when (pkt_sseqno = s) -> 
-	  L3pkt.l3shopcount l3pkt 
+      | Some s when (pkt_ssn > s) -> true
+      | Some s when (pkt_ssn = s) -> 
+	  L3pkt.shc l3pkt 
 	  <
 	  o2v (Rtab.hopcount ~rt:rtab ~dst:(L3pkt.l3src l3pkt))
-      | Some s when (pkt_sseqno < s) -> false
+      | Some s when (pkt_ssn < s) -> false
       | _ -> raise (Misc.Impossible_Case "Grep_agent.packet_fresh()")
   )
     
-   
-  (* as recv_packet in paper *)
   method private recv_l2pkt_hook l2pkt = (
-
+    
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     (* create or update 1-hop route to previous hop *)
@@ -239,10 +241,10 @@ object(s)
       s#newadv 
 	~dst:(L3pkt.l3src ~l3pkt)
 	~rtent:{
-	  Rtab.seqno = Some (L3pkt.l3sseqno ~l3pkt);
-	  Rtab.hopcount = Some (L3pkt.l3shopcount ~l3pkt);
+	  Rtab.seqno = Some (L3pkt.ssn ~l3pkt);
+	  Rtab.hopcount = Some (L3pkt.shc ~l3pkt);
 	  Rtab.nexthop = Some sender
-	} 
+	}
 	()
     in
     assert (update = pkt_fresh);
@@ -264,67 +266,63 @@ object(s)
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
 
-    let rreq = (L3pkt.grep_rreq_pkt ~l3pkt) in
-
-(*    s#log_info 
-    (sprintf "Received RREQ pkt from src %d for dst %d"
-      (L3pkt.l3src ~l3pkt) 
-      rreq.L3pkt.rreq_dst);*)
+    let rdst = (L3pkt.rdst ~l3pkt) 
+    and dsn =  (L3pkt.dsn ~l3pkt) 
+in
+    s#log_info 
+    (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
+      (L3pkt.l3src ~l3pkt) rdst));
     match fresh with 
       | true -> 
 	  let answer_rreq = 
-	    (rreq.L4pkt.rreq_dst = owner#id)
+	    (rdst = owner#id)
 	    ||
-	    begin match (Rtab.seqno ~rt:rtab ~dst:rreq.L4pkt.rreq_dst) with 
+	    begin match (Rtab.seqno ~rt:rtab ~dst:(L3pkt.rdst ~l3pkt)) with 
 	      | None -> false
-	      | Some s when (s > rreq.L4pkt.dseqno) -> true
-	      | Some s when (s = rreq.L4pkt.dseqno) ->
-		  (o2v (Rtab.hopcount ~rt:rtab ~dst:rreq.L4pkt.rreq_dst) 
+	      | Some s when (s > dsn) -> true
+	      | Some s when (s = dsn) ->
+		  (o2v (Rtab.hopcount ~rt:rtab ~dst:(L3pkt.rdst ~l3pkt)) 
 		  <
-		  rreq.L4pkt.dhopcount + L3pkt.l3shopcount ~l3pkt)
-	      | Some s when (s < rreq.L4pkt.dseqno) -> false
+		  (L3pkt.dhc ~l3pkt) + L3pkt.shc ~l3pkt)
+	      | Some s when (s < dsn) -> false
 	      | _ -> raise (Misc.Impossible_Case "Grep_agent.answer_rreq()") end
 	  in
 	  if (answer_rreq) then 
 	    s#send_rrep 
 	      ~dst:(L3pkt.l3src ~l3pkt)
-	      ~obo:rreq.L4pkt.rreq_dst
+	      ~obo:rdst
 	  else (* broadcast the rreq further along *)
 	    s#send_out ~l3pkt
-      | false -> ()
-(*	  s#log_info 
-	  (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
-	    (L3pkt.l3src ~l3pkt) 
-	    rreq.L3pkt.rreq_dst);*)
+      | false -> 
+	  s#log_info 
+	  (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
+	    (L3pkt.l3src ~l3pkt) rdst));
   )
       
   method private send_rrep ~dst ~obo = (
-(*    s#log_info 
-    (sprintf "Sending RREP pkt to dst %d, obo %d"
-      dst obo);*)
-    let adv = L4pkt.make_grep_adv_payload 
-      ~adv_dst:obo
-      ~adv_seqno:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
-      ~adv_hopcount:(o2v (Rtab.hopcount ~rt:rtab ~dst:obo))
+    s#log_info 
+    (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
+      dst obo));
+    let grep_l3hdr_ext = 
+      L3pkt.make_grep_l3hdr_ext 
+	~flags:L3pkt.GREP_RREP
+	~ssn:seqno
+	~shc:0
+	~osrc:obo
+	~osn:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
+	~ohc:(o2v (Rtab.hopcount ~rt:rtab ~dst:obo))
+	()
+    in
+    let l3hdr = 
+      L3pkt.make_l3hdr
+	~srcid:owner#id
+	~dstid:dst
+	~ext:grep_l3hdr_ext
+	()
     in
     let l3pkt =
-      L3pkt.make_grep_rrep_l3pkt 
-	~rrep_payload:adv
-	~l3hdr:(
-	  L3pkt.make_l3hdr
-	  ~srcid:owner#id
-	  ~dstid:dst
-	  ~ext:(L3pkt.make_grep_l3hdr_ext
-	    ~flags:L3pkt.GREP_RREP
-	    ~sseqno:seqno
-	    ~shopcount:0
-	  )
-	  ~ttl:0 (* will be set by send_out *)
-	  ()
-	)
+      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
     in
-    
-    
     try 
       s#send_out  ~l3pkt
     with 
@@ -377,7 +375,7 @@ object(s)
 		  (* taken out of simplenode#mac_send_pkt, should not be
 		     there. 
 		     let l3hdr = L3pkt.l3hdr l3pkt in
-		     l3hdr.L3pkt.grep_shopcount <- l3hdr.L3pkt.grep_shopcount - 1;
+		     l3hdr.L3pkt.grep_shc <- l3hdr.L3pkt.grep_shc - 1;
 		     probably also need to check if other fields need to be
 		     set back to their proper values (esp ttl)
 		  *)
@@ -385,9 +383,9 @@ object(s)
 
 
 		  let dst = (L3pkt.l3dst ~l3pkt) in
-(*		  s#log_notice 
-		    (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-		      dst);*)
+		  s#log_notice 
+		    (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+		      dst));
 		  (* important to buffer packet first because send_rreq checks for
 		     this *)
 		  s#buffer_packet ~l3pkt;
@@ -418,28 +416,27 @@ object(s)
       s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
 	dst ttl));
       
+      let grep_l3hdr_ext = 
+	L3pkt.make_grep_l3hdr_ext
+	  ~flags:L3pkt.GREP_RREQ
+	  ~ssn:seqno
+	  ~shc:0
+	  ~rdst:dst
+	  ~dsn:dseqno
+	  ~dhc:dhopcount
+	  ()
+	  
+      in
       let l3hdr = 
 	L3pkt.make_l3hdr
 	  ~srcid:owner#id
 	  ~dstid:L3pkt._L3_BCAST_ADDR
-	  ~ext:(L3pkt.make_grep_l3hdr_ext
-	    ~flags:L3pkt.GREP_RREQ
-	    ~sseqno:seqno
-	    ~shopcount:0
-	  )
+	  ~ext:grep_l3hdr_ext
 	  ~ttl:ttl 
 	  ()
       in
-      let rreq_payload = 
-	L4pkt.make_grep_rreq_payload
-	  ~rreq_dst:dst
-	  ~dseqno:dseqno 
-	  ~dhopcount:dhopcount
-      in
       let l3pkt = 
-	L3pkt.make_grep_rreq_l3pkt 
-	  ~l3hdr:l3hdr
-	  ~rreq_payload:rreq_payload
+	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
       in
       let next_rreq_ttl = 
 	(ttl*_ERS_MULT_FACT) in
@@ -466,28 +463,27 @@ object(s)
     )
   )
     
-
   method private process_rrep_pkt 
     ~(l3pkt:L3pkt.l3packet_t) 
     ~(sender:Common.nodeid_t) = (
       
-      let adv = (L3pkt.grep_rrep_pkt ~l3pkt)
-      in 
-      let update = (s#newadv_rrep
-	~adv:adv 
-	~sender 
-	~shopcount:(L3pkt.l3shopcount ~l3pkt))
+      let update = s#newadv 
+	~dst:(L3pkt.osrc ~l3pkt)
+	~rtent:{
+	  Rtab.seqno = Some (L3pkt.osn ~l3pkt);
+	  Rtab.hopcount = Some ((L3pkt.ohc ~l3pkt) + (L3pkt.shc ~l3pkt));
+	  Rtab.nexthop = Some sender 
+	}
       in 
       if ((L3pkt.l3dst ~l3pkt) != owner#id) then
 	try 
 	  s#send_out ~l3pkt
 	with 
-	  | Send_Out_Failure -> ()
-(*	      s#log_notice 
-	      (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
-		(L3pkt.l3dst ~l3pkt) 
-		(adv.L3pkt.adv_dst));*)
-      else ()
+	  | Send_Out_Failure -> 
+	      s#log_notice 
+	      (lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
+		(L3pkt.l3dst ~l3pkt)
+		(L3pkt.osrc ~l3pkt)));
     )
     
   method private send_out ~l3pkt = (
@@ -495,7 +491,7 @@ object(s)
     let dst = L3pkt.l3dst ~l3pkt in
     assert (dst != owner#id);
     assert (L3pkt.l3ttl ~l3pkt >= 0);
-    assert (L3pkt.l3sseqno ~l3pkt >= 1);
+    assert (L3pkt.ssn ~l3pkt >= 1);
 
     let decr_and_check_ttl() = (
       L3pkt.decr_l3ttl ~l3pkt;
@@ -519,7 +515,7 @@ object(s)
     )
     in
     s#incr_seqno();
-    L3pkt.incr_shopcount_pkt ~l3pkt;
+    L3pkt.incr_shc_pkt ~l3pkt;
     begin match (L3pkt.l3grepflags ~l3pkt) with
 
       | L3pkt.NOT_GREP | L3pkt.EASE ->
@@ -569,9 +565,9 @@ object(s)
      the node *)
   method private hand_upper_layer ~l3pkt = (
     Grep_hooks.recv_data();
-    (*    s#log_notice (sprintf "Received app pkt from src %d"
-	  (L3pkt.l3src ~l3pkt));
-    *)
+     s#log_notice (lazy (sprintf "Received app pkt from src %d"
+	  (L3pkt.l3src ~l3pkt)));
+    
   )
 
   (*
@@ -595,16 +591,17 @@ object(s)
     
     
   method private app_send l4pkt ~dst = (
-(*    s#log_info (sprintf "Received app pkt with dst %d"
-      dst);*)
+    s#log_info (lazy (sprintf "Received app pkt with dst %d"
+      dst));
       let l3hdr = 
 	L3pkt.make_l3hdr
 	  ~srcid:owner#id
 	  ~dstid:dst
 	  ~ext:(L3pkt.make_grep_l3hdr_ext
 	    ~flags:L3pkt.GREP_DATA
-	    ~sseqno:seqno
-	    ~shopcount:0
+	    ~ssn:seqno
+	    ~shc:0
+	    ()
 	  )
 	  ~ttl:0 (* will be set by send_out *)
 	  ()
@@ -618,11 +615,11 @@ object(s)
 	with 
 	  | Send_Out_Failure -> 
 	      begin
-(*		s#log_notice 
-		  (sprintf 
+		s#log_notice 
+		  (lazy (sprintf 
 		    "Originating DATA pkt to dst %d failed, buffering."
-		    dst);
-*)
+		    dst));
+
 		let dst = (L3pkt.l3dst ~l3pkt) in
 		(* important to buffer packet first because send_rreq checks for
 		   this *)

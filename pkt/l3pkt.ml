@@ -37,8 +37,14 @@ type ease_l3hdr_ext_t = {
 
 type grep_l3hdr_ext_t = {
   mutable grep_flags : grep_flags_t;
-  grep_sseqno : int; (* seqno of the source at the time the source sent it *)
-  mutable grep_shopcount : int; (* hops traversed since leaving the source *)
+  ssn : int;         (* Source Seqno: All *)
+  dsn : int;         (* Destination Seqno: RREQ *)
+  mutable shc : int; (* Source hopcount: All *)
+  mutable dhc : int; (* Destination hopcount: RREQ *)
+  osrc : Common.nodeid_t; (* OBO Source: RREP *)
+  osn : int;              (* OBO Seqno: RREP *)
+  mutable ohc : int;      (* OBO Hopcount: RREP *)
+  rdst : Common.nodeid_t; (* Route request destination : RREQ *)
 }
 
 type l3hdr_ext_t = 
@@ -68,11 +74,12 @@ let clone_l3hdr ~l3hdr = {l3hdr with src = l3hdr.src}
 let l3hdr_ext_size = function
   | `NONE -> 0
   | `EASE_L3HDR_EXT _ -> 3 * _FLOAT_SIZE (* enc. age, pos *)
-  | `GREP_L3HDR_EXT _ -> 
+  | `GREP_L3HDR_EXT _ ->  (* too lazy to differentiat btw types right now, so
+			     just putting the 'average' size *)
       1  (* grep_flags *)
-      + _SEQNO_SIZE  (* sseqno *)
-      + _TTL_SIZE (* grep_hopcount *)
-      
+      + (2 * _SEQNO_SIZE)  (* ssn, dsn *)
+      + (2 * _TTL_SIZE) (* shc, dhc *)
+
 
  
 let l3hdr_size ~l3hdr = 
@@ -116,15 +123,24 @@ let get_grep_l3ext (l3pkt:l3packet_t) =
 let l3grepflags ~(l3pkt:l3packet_t) = 
   (get_grep_l3ext l3pkt).grep_flags
 
-let l3sseqno ~(l3pkt:l3packet_t) = 
-  (get_grep_l3ext l3pkt).grep_sseqno
+let ssn ~(l3pkt:l3packet_t) = (get_grep_l3ext l3pkt).ssn
+let shc ~(l3pkt:l3packet_t) = (get_grep_l3ext l3pkt).shc
+let dsn ~(l3pkt:l3packet_t) = 
+  let v = (get_grep_l3ext l3pkt).dsn in assert (v <> -1); v
+let dhc ~(l3pkt:l3packet_t) =  
+  let v = (get_grep_l3ext l3pkt).dhc in assert (v <> -1); v
+let osrc ~(l3pkt:l3packet_t) =  
+  let v = (get_grep_l3ext l3pkt).osrc in assert (v <> -1); v
+let ohc ~(l3pkt:l3packet_t) =  
+  let v = (get_grep_l3ext l3pkt).ohc in assert (v <> -1); v
+let osn ~(l3pkt:l3packet_t) =  
+  let v = (get_grep_l3ext l3pkt).osn in assert (v <> -1); v
+let rdst ~(l3pkt:l3packet_t) =  
+  let v = (get_grep_l3ext l3pkt).rdst in assert (v <> -1); v
 
-let l3shopcount ~(l3pkt:l3packet_t) = 
-  (get_grep_l3ext l3pkt).grep_shopcount
-
-let incr_shopcount_pkt ~l3pkt  = 
+let incr_shc_pkt ~l3pkt  = 
   let ext = (get_grep_l3ext l3pkt) in
-  ext.grep_shopcount <- ext.grep_shopcount - 1
+  ext.shc <- ext.shc - 1
 
 let get_ease_l3ext (l3hdr:l3hdr_t) = 
   match l3hdr.ext with
@@ -162,14 +178,43 @@ let make_l3hdr
   }
   
 let make_grep_l3hdr_ext 
+  ?(dhc = -1)
+  ?(dsn= -1)
+  ?(osrc= -1)
+  ?(ohc= -1)
+  ?(osn= -1)
+  ?(rdst= -1) 
   ~flags 
-  ~sseqno 
-  ~shopcount
-  = `GREP_L3HDR_EXT {
-    grep_flags=flags;
-    grep_sseqno=sseqno;
-    grep_shopcount=shopcount;
-  }
+  ~ssn 
+  ~shc
+  ()
+  = (
+    begin 
+      match flags with 
+	| NOT_GREP | EASE -> ()
+	| GREP_DATA -> 
+	    assert (dhc = -1 && dsn = -1  && osrc = -1 && 
+    ohc = -1 && osn = -1 && rdst = -1)
+	| GREP_RREQ | GREP_RERR ->
+	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
+    rdst <> -1 && dhc <> -1 && dsn <> -1)
+	| GREP_RREP ->
+	    assert (ohc <> -1 && osn <> -1 && osrc <> -1 && 
+	    rdst = -1 && dhc = -1 && dsn = -1)
+	| GREP_RADV  -> ()
+    end;
+    `GREP_L3HDR_EXT {
+      grep_flags=flags;
+      ssn=ssn;
+      shc=shc;
+      dhc=dhc;
+      dsn=dsn;
+      ohc=ohc;
+      osn=osn;
+      osrc=osrc;
+      rdst=rdst
+    }
+  )
 
 let make_ease_l3hdr_ext 
   ~enc_age
@@ -208,40 +253,11 @@ let make_dsdv_l3pkt ~srcid ~ttl ~originator ~seqno ~nhops = {
   l4pkt=(`DSDV_PKT {originator=originator; seqno=seqno; nhops=nhops})
 }
 
-let make_grep_rreq_l3pkt ~l3hdr ~rreq_payload = {
-  l3hdr = l3hdr;
-  l4pkt = `GREP_RREQ_PKT rreq_payload
-}
-
-let make_grep_rrep_l3pkt ~l3hdr ~rrep_payload = {
-  l3hdr = l3hdr;
-  l4pkt = `GREP_RREP_PKT rrep_payload
-}
-
-let make_grep_rerr_l3pkt ~l3hdr ~rerr_payload = {
-  l3hdr = l3hdr;
-  l4pkt = `GREP_RERR_PKT rerr_payload
-}
 
 let dsdv_pkt ~pkt = 
   match pkt.l4pkt with
     | `DSDV_PKT p -> p
     | _ -> raise (Failure "Packet.dsdv_pkt")
-
-let grep_rrep_pkt ~l3pkt = 
-  match l3pkt.l4pkt with
-    | `GREP_RREP_PKT p -> p
-    | _ -> raise (Failure "Packet.grep_rrep_pkt")
-
-let grep_rerr_pkt ~l3pkt = 
-  match l3pkt.l4pkt with
-    | `GREP_RERR_PKT p -> p
-    | _ -> raise (Failure "Packet.grep_rerr_pkt")
-
-let grep_rreq_pkt ~l3pkt = 
-  match l3pkt.l4pkt with
-    | `GREP_RREQ_PKT p -> p
-    | _ -> raise (Failure "Packet.grep_rreq_pkt")
 
 let succ_dsdv_pkt ~pkt ~src = (
   let pld = (dsdv_pkt pkt) in 

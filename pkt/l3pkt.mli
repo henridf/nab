@@ -37,10 +37,15 @@ type grep_flags_t =
 
 type grep_l3hdr_ext_t = {
   mutable grep_flags : grep_flags_t;
-  grep_sseqno : int;
-  mutable grep_shopcount : int;
+  ssn : int;         (* Source Seqno: All *)
+  dsn : int;         (* Destination Seqno: RREQ *)
+  mutable shc : int; (* Source hopcount: All *)
+  mutable dhc : int; (* Destination hopcount: RREQ *)
+  osrc : Common.nodeid_t; (* OBO Source: RREP *)
+  osn : int;              (* OBO Seqno: RREP *)
+  mutable ohc : int;      (* OBO Hopcount: RREP *)
+  rdst : Common.nodeid_t; (* Route request destination : RREQ *)
 }
-
 
 type l3hdr_ext_t = 
     [ `NONE
@@ -72,9 +77,16 @@ val make_l3hdr :
 
 
 val make_grep_l3hdr_ext :
+  ?dhc:int ->
+  ?dsn:int ->
+  ?osrc:Common.nodeid_t ->
+  ?ohc:int ->
+  ?osn:int ->
+  ?rdst:Common.nodeid_t ->
   flags:grep_flags_t ->
-  sseqno:int -> 
-  shopcount:int -> 
+  ssn:int -> 
+  shc:int -> 
+  unit ->
   l3hdr_ext_t
 
 val make_ease_l3hdr_ext : 
@@ -94,12 +106,6 @@ val make_dsdv_l3pkt :
   srcid:Common.nodeid_t ->
   ttl:int ->
   originator:Common.nodeid_t -> seqno:int -> nhops:int -> l3packet_t
-val make_grep_rreq_l3pkt :
-  l3hdr:l3hdr_t -> rreq_payload:grep_rreq_payload_t -> l3packet_t
-val make_grep_rrep_l3pkt :
-  l3hdr:l3hdr_t -> rrep_payload:grep_adv_payload_t -> l3packet_t
-val make_grep_rerr_l3pkt :
-  l3hdr:l3hdr_t -> rerr_payload:grep_adv_payload_t -> l3packet_t
 
 (** {2 Network Layer (L3) Packet Deconstructors} *)
 
@@ -110,23 +116,27 @@ val l3dst : l3pkt:l3packet_t -> Common.nodeid_t
 val l3ttl : l3pkt:l3packet_t -> int
 
 val l3grepflags : l3pkt:l3packet_t -> grep_flags_t
-val l3sseqno : l3pkt:l3packet_t -> int
-val l3shopcount : l3pkt:l3packet_t -> int
+val ssn : l3pkt:l3packet_t -> int
+val shc : l3pkt:l3packet_t -> int
+val dsn : l3pkt:l3packet_t -> int
+val dhc : l3pkt:l3packet_t -> int
+val osrc : l3pkt:l3packet_t -> Common.nodeid_t
+val ohc : l3pkt:l3packet_t -> int
+val osn : l3pkt:l3packet_t -> int
+val rdst : l3pkt:l3packet_t -> Common.nodeid_t
+
 
 val l3anchor : l3pkt:l3packet_t ->  Coord.coordf_t
 val l3enc_age : l3pkt:l3packet_t ->  Common.time_t
 val l3search_dist : l3pkt:l3packet_t ->  float
 
 val dsdv_pkt : pkt:l3packet_t -> dsdv_payload_t
-val grep_rrep_pkt : l3pkt:l3packet_t -> grep_adv_payload_t
-val grep_rerr_pkt : l3pkt:l3packet_t -> grep_adv_payload_t
-val grep_rreq_pkt : l3pkt:l3packet_t -> grep_rreq_payload_t
 
 
 
 
 (** {2 L3 Header Manipulators} *)
-val incr_shopcount_pkt : l3pkt:l3packet_t -> unit
+val incr_shc_pkt : l3pkt:l3packet_t -> unit
 
 
 val l3pkt_size : l3pkt:l3packet_t -> int
