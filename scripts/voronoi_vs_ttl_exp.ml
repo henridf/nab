@@ -1,14 +1,40 @@
-let nodes = [500]
+(* 
+  1. build executable as 
+cd ~/work/caml/
+make OPT=y  SCRIPT=voronoi_vs_ttl.ml bin/mwsvor
+
+   2. run test as 
+ocaml scripts/voronoi_vs_ttl_exp.ml 
+
+   3.  cp ~/tmp/out.txt /tmp/out.txt
+   cat /tmp/out.txt | dbstripextraheaders > out.txt
+   [henri@ffnet: ~/work/tex/voronoi] cat out.txt | dbrow '_difftype =~ /vor/'
+   | dbrow '_nodes =~ /500/' | dbmultistats nsinks interest | sort -n >
+   vor-ttl-500.txt
+   [henri@ffnet: ~/work/tex/voronoi] cat out.txt | dbrow '_difftype =~ /opp/'
+   | dbrow '_nodes =~ /500/' | dbmultistats nsinks interest | sort -n >
+   opp-ttl-500.txt
+   [henri@ffnet: ~/work/tex/voronoi] cat out.txt | dbrow '_difftype =~ /opp/'
+   | dbrow '_nodes =~ /250/' | dbmultistats nsinks interest | sort -n >
+   opp-ttl-250.txt
+   [henri@ffnet: ~/work/tex/voronoi] cat out.txt | dbrow '_difftype =~ /vor/'
+   | dbrow '_nodes =~ /250/' | dbmultistats nsinks interest | sort -n >
+   vor-ttl-250.txt
+
+   4. use  ~/censwork/exp/results/makeplots-vor-ttl.gp to plot
+*)
+
+let nodes = [250; 500]
 let max_sinks = 25
 let nodespersink = 20 
 let max_nodes = 40
-let nruns = 10
-let tmpfile = "/tmp/out.txt"
-let resfile = "./out.txt"
+let nruns = 60
+let tmpfile = "/home/henridf/tmp/out.txt"
+let resfile = "/home/henridf/out.txt"
   
 let do_one_run ~nodes ~sinks = 
   let cmd = Printf.sprintf
-    "\n\t/home/henri/work/caml/bin/mwsvor -nodes %d -nsinks %d -nruns %d >> %s" 
+    "\n\t/home/henridf/work/caml/bin/mwsvor -nodes %d -nsinks %d -nruns %d >> %s" 
     nodes sinks  nruns tmpfile in
   print_endline cmd; flush stdout;
   ignore (Sys.command cmd)
@@ -37,6 +63,8 @@ done
 
 (*
   ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
+
+
 
 
 
