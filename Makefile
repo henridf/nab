@@ -79,8 +79,6 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_SUBDIR)/params$(CMO) \
 		$(MWS_SUBDIR)/topology$(CMO) \
 		$(MWS_SUBDIR)/ler$(CMO) \
-		$(MWS_SUBDIR)/discrTorusTop$(CMO) \
-		$(MWS_SUBDIR)/contTorusTop$(CMO) \
 		$(MWS_SUBDIR)/contRefTop$(CMO) \
 		$(MWS_SUBDIR)/simulator$(CMO) \
 		$(MWS_SUBDIR)/routealgo$(CMO) \
