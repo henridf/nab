@@ -19,9 +19,9 @@ open Mods
   2. hdr is the structured way of representing the params that are
      described in descr. This is used by mws, for example to know how many
      nodes there are, and hence what the size of the array is.
-  3. state : The raw data. For now this is only nodedbs and node
+  3. state : The raw data. For now this is only le_tab's and node
      positions. Complete node state (what agents it has instanciated, their
-     state, etc) might be non trivial, so for now we only store nodeDBs, since
+     state, etc) might be non trivial, so for now we only store le_tab, since
      that is what takes longest to generate and is reusable.
 *)
 
