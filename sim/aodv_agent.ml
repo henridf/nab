@@ -201,12 +201,13 @@ object(s)
 
   (* as in paper *)
   method private packet_fresh ~l3pkt = (
-    let pkt_ssn = L3pkt.ssn ~l3pkt in
+    let aodv_hdr = L3pkt.aodv_hdr l3pkt in
+    let pkt_ssn = Aodv_pkt.ssn aodv_hdr in
     match (Rtab.seqno ~rt ~dst:(L3pkt.l3src l3pkt)) with
       | None -> true 
       | Some s when (pkt_ssn > s) -> true
       | Some s when (pkt_ssn = s) -> 
-	  L3pkt.shc l3pkt 
+	  Aodv_pkt.shc aodv_hdr
 	  <
 	  o2v (Rtab.hopcount ~rt ~dst:(L3pkt.l3src l3pkt))
       | Some s when (pkt_ssn < s) -> false
@@ -217,27 +218,27 @@ object(s)
 
   method private recv_l3pkt_ ~l3pkt ~sender = (
     
+    let aodv_hdr = L3pkt.aodv_hdr l3pkt in
+
     (* update route to source if packet came over fresher route than what we
        have *)
     let pkt_fresh = (s#packet_fresh ~l3pkt)
     and update =  
       s#newadv 
 	~dst:(L3pkt.l3src ~l3pkt)
-	~sn:(L3pkt.ssn ~l3pkt)
-	~hc:(L3pkt.shc ~l3pkt)
+	~sn:(Aodv_pkt.ssn aodv_hdr)
+	~hc:(Aodv_pkt.shc aodv_hdr)
 	~nh:sender
     in
     assert (update = pkt_fresh);
     
     (* hand off to per-type method private *)
-    begin match L3pkt.l3grepflags ~l3pkt with
-      | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
-      | L3pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
-      | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
-      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
-      | L3pkt.GREP_RERR -> s#process_rerr_pkt ~l3pkt ~sender;
-      | L3pkt.NOT_GREP | L3pkt.EASE 
-	  -> raise (Failure "Aodv_agent.mac_recv_l2pkt");
+    begin match Aodv_pkt.flags aodv_hdr with
+      | Aodv_pkt.AODV_DATA -> s#process_data_pkt ~l3pkt;
+      | Aodv_pkt.AODV_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
+      | Aodv_pkt.AODV_RADV -> s#process_radv_pkt ~l3pkt ~sender;
+      | Aodv_pkt.AODV_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
+      | Aodv_pkt.AODV_RERR -> s#process_rerr_pkt ~l3pkt ~sender;
     end
   ) 
 
@@ -276,8 +277,10 @@ object(s)
     raise Misc.Not_Implemented
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
-    let rdst = (L3pkt.rdst ~l3pkt) 
-    and dsn =  (L3pkt.dsn ~l3pkt) 
+    let aodv_hdr = L3pkt.aodv_hdr l3pkt in
+
+    let rdst = (Aodv_pkt.rdst aodv_hdr) 
+    and dsn =  (Aodv_pkt.dsn aodv_hdr) 
     in
     s#log_info 
     (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
@@ -292,7 +295,7 @@ object(s)
 	      | Some s when (Rtab.invalid ~rt ~dst:rdst)
 		  -> false
 	      | Some s when  (s > dsn) (* Assume Destination-Only Flag always
-					   set *)
+					  set *)
 		  -> true
 	      | Some s when (s <= dsn) -> false
 	      | _ -> raise (Misc.Impossible_Case "Aodv_agent.answer_rreq()") end
@@ -312,21 +315,22 @@ object(s)
     s#log_info 
     (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
       dst obo));
-    let grep_l3hdr_ext = 
-      L3pkt.make_grep_l3hdr_ext 
-	~flags:L3pkt.GREP_RREP
-	~ssn:seqno
-	~shc:0
-	~osrc:obo
-	~osn:(o2v (Rtab.seqno ~rt ~dst:obo))
-	~ohc:(o2v (Rtab.hopcount ~rt ~dst:obo))
-	()
+    let aodv_hdr = 
+      `AODV_HDR  
+	(Aodv_pkt.make_aodv_hdr
+	  ~flags:Aodv_pkt.AODV_RREP
+	  ~ssn:seqno
+	  ~shc:0
+	  ~osrc:obo
+	  ~osn:(o2v (Rtab.seqno ~rt ~dst:obo))
+	  ~ohc:(o2v (Rtab.hopcount ~rt ~dst:obo))
+	  ())
     in
     let l3hdr = 
       L3pkt.make_l3hdr
 	~srcid:myid
 	~dstid:dst
-	~ext:grep_l3hdr_ext
+	~ext:aodv_hdr
 	()
     in
     let l3pkt =
@@ -345,21 +349,22 @@ object(s)
     s#log_info 
       (lazy (sprintf "Sending RERR pkt to dst %d, obo %d"
       dst obo));
-    let grep_l3hdr_ext = 
-      L3pkt.make_grep_l3hdr_ext 
-	~flags:L3pkt.GREP_RERR
+    let aodv_hdr = 
+    `AODV_HDR 
+      (Aodv_pkt.make_aodv_hdr
+	~flags:Aodv_pkt.AODV_RERR
 	~ssn:seqno
 	~shc:0
 	~rdst:obo
 	~dsn:(o2v (Rtab.seqno ~rt ~dst:obo))
 	~dhc:(o2v (Rtab.hopcount ~rt ~dst:obo))
-	()
+	())
     in
     let l3hdr = 
       L3pkt.make_l3hdr
 	~srcid:myid
 	~dstid:dst
-	~ext:grep_l3hdr_ext
+	~ext:aodv_hdr
 	()
     in
 
@@ -473,21 +478,22 @@ object(s)
 	  | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
       in
 
-      let grep_l3hdr_ext = 
-	L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_RREQ
+      let aodv_hdr = 
+	    `AODV_HDR 
+	      (Aodv_pkt.make_aodv_hdr
+	  ~flags:Aodv_pkt.AODV_RREQ
 	  ~ssn:seqno
 	  ~shc:0
 	  ~rdst:dst
 	  ~dsn:dseqno
 	  ~dhc:dhopcount
-	  ()
+	  ())
       in
       let l3hdr = 
 	L3pkt.make_l3hdr
 	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
-	  ~ext:grep_l3hdr_ext
+	  ~ext:aodv_hdr
 	  ~ttl:ttl 
 	  ()
       in
@@ -523,19 +529,20 @@ object(s)
     ~(sender:Common.nodeid_t) 
     ~(fresh:bool)
     = (
+    let aodv_hdr = L3pkt.aodv_hdr l3pkt in
       let update = s#newadv 
-	~dst:(L3pkt.osrc ~l3pkt)
-	~sn:(L3pkt.osn ~l3pkt)
-	~hc:((L3pkt.ohc ~l3pkt) + (L3pkt.shc ~l3pkt))
+	~dst:(Aodv_pkt.osrc aodv_hdr)
+	~sn:(Aodv_pkt.osn aodv_hdr)
+	~hc:((Aodv_pkt.ohc aodv_hdr) + (Aodv_pkt.shc aodv_hdr))
 	~nh:sender
       in 
       if (update || 
       (fresh && (
-	(L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt)))) then (
+	(Aodv_pkt.osrc aodv_hdr) = (L3pkt.l3src ~l3pkt)))) then (
 	(* the second line is for the case where the rrep was originated by the
 	   source, in which case update=false (bc the info from it has already
 	   been looked at in mac_recv_l2pkt) *)
-	Rtab.repair_done ~rt ~dst:(L3pkt.osrc ~l3pkt);
+	Rtab.repair_done ~rt ~dst:(Aodv_pkt.osrc aodv_hdr);
 	if ((L3pkt.l3dst ~l3pkt) <> myid) then (
 	try 
 	  s#send_out ~l3pkt
@@ -544,7 +551,7 @@ object(s)
 	      s#log_notice 
 	      (lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
 		(L3pkt.l3dst ~l3pkt) 
-		(L3pkt.osrc ~l3pkt)));
+		(Aodv_pkt.osrc aodv_hdr)));
 	)
       )
     )
@@ -552,8 +559,8 @@ object(s)
   method private process_rerr_pkt 
     ~(l3pkt:L3pkt.t) 
     ~(sender:Common.nodeid_t) = (
-      
-      let invalid_dst = (L3pkt.rdst ~l3pkt) in
+      let aodv_hdr = L3pkt.aodv_hdr l3pkt in
+      let invalid_dst = (Aodv_pkt.rdst aodv_hdr) in
       Rtab.invalidate ~rt ~dst:invalid_dst;
       
       if ((L3pkt.l3dst ~l3pkt) <> myid) then (
@@ -581,23 +588,24 @@ object(s)
 
   method private send_out  ~l3pkt = (
     
+    let aodv_hdr = L3pkt.aodv_hdr l3pkt in
     let dst = L3pkt.l3dst ~l3pkt in
     assert (dst <> myid);
     assert (L3pkt.l3ttl ~l3pkt >= 0);
-    assert (L3pkt.ssn ~l3pkt >= 1);
+    assert (Aodv_pkt.ssn aodv_hdr >= 1);
 
     let failed() = (
-      L3pkt.decr_shc_pkt ~l3pkt;
+      Aodv_pkt.decr_shc_pkt aodv_hdr;
       raise Send_Out_Failure
     ) in
 
     s#incr_seqno();
-    L3pkt.incr_shc_pkt ~l3pkt;
-    assert (L3pkt.shc ~l3pkt > 0);
-    begin match (L3pkt.l3grepflags ~l3pkt) with
+    Aodv_pkt.incr_shc_pkt aodv_hdr;
+    assert (Aodv_pkt.shc aodv_hdr > 0);
+    begin match (Aodv_pkt.flags aodv_hdr) with
 
-      | L3pkt.GREP_RADV 
-      | L3pkt.GREP_RREQ -> 
+      | Aodv_pkt.AODV_RADV 
+      | Aodv_pkt.AODV_RREQ -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
 	  L3pkt.decr_l3ttl ~l3pkt;
 	  begin
@@ -608,10 +616,10 @@ object(s)
 	      | false ->
 		  s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-      | L3pkt.GREP_DATA 
-      | L3pkt.GREP_RERR 
-      | L3pkt.GREP_RREP ->
-	  begin if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
+      | Aodv_pkt.AODV_DATA 
+      | Aodv_pkt.AODV_RERR 
+      | Aodv_pkt.AODV_RREP ->
+	  begin if ((Aodv_pkt.flags aodv_hdr) = Aodv_pkt.AODV_DATA) then (
 	    Grep_hooks.sent_data();
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
@@ -626,9 +634,6 @@ object(s)
 		s#mac_send_pkt ~dstid:nexthop l3pkt; end
 	      with Simplenode.Mac_Send_Failure -> failed()
 	  end
-
-      | _ ->
-	  raise (Failure "AODV_agent.send_out: unexpected packet type")
     end
   )
 		
@@ -670,12 +675,12 @@ object(s)
       L3pkt.make_l3hdr
 	~srcid:myid
 	~dstid:dst
-	~ext:(L3pkt.make_grep_l3hdr_ext 
-	  ~flags:L3pkt.GREP_DATA
-	  ~ssn:seqno
-	  ~shc:0
-	  ()
-	)
+	~ext:(`AODV_HDR 
+	  (Aodv_pkt.make_aodv_hdr
+	    ~flags:Aodv_pkt.AODV_DATA
+	    ~ssn:seqno
+	    ~shc:0
+	  ()))
 	()
     in 
     assert (dst <> myid);

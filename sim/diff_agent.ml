@@ -37,7 +37,7 @@ class type diff_agent_t =
     method is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
     method subscribe : ?delay:float ->  ?one_shot:bool -> ?ttl:int -> unit -> unit
     method unsubscribe : unit
-    method get_rtab : Rtab.rtab_t
+    method get_rtab : Rtab.t
 
     method closest_sinks : unit -> Common.nodeid_t list 
       (** Returns closest sink (or sinks, if more than one at closest
@@ -118,12 +118,13 @@ object(s)
     )
 
   method private packet_fresh ~l3pkt = (
-    let pkt_ssn = L3pkt.ssn ~l3pkt in
+    let diff_hdr = L3pkt.diff_hdr l3pkt in
+    let pkt_ssn = Diff_pkt.ssn diff_hdr in
     match (Rtab.seqno ~rt ~dst:(L3pkt.l3src l3pkt)) with
       | None -> true 
       | Some s when (pkt_ssn > s) -> true
       | Some s when (pkt_ssn = s) -> 
-	  L3pkt.shc l3pkt 
+	  Diff_pkt.shc diff_hdr 
 	  <
 	  o2v (Rtab.hopcount ~rt ~dst:(L3pkt.l3src l3pkt))
       | Some s when (pkt_ssn < s) -> false
@@ -134,17 +135,15 @@ object(s)
   method mac_recv_l2pkt l2pkt = (
     
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
+    let diff_hdr = L3pkt.diff_hdr l3pkt in
+
     assert (L3pkt.l3ttl ~l3pkt >= 0);
 
     let l2sender = L2pkt.l2src l2pkt in
 
-    begin match L3pkt.l3grepflags ~l3pkt with
-      | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
-      | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~l2sender 
-      | L3pkt.GREP_RREP | L3pkt.GREP_RREQ 
-      | L3pkt.NOT_GREP  | L3pkt.EASE 
-	-> raise (Failure "Grep_agent.mac_recv_l2pkt");
-      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.mac_recv_l2pkt");
+    begin match Diff_pkt.flags diff_hdr with
+      | Diff_pkt.DIFF_DATA -> s#process_data_pkt ~l3pkt;
+      | Diff_pkt.DIFF_RADV -> s#process_radv_pkt ~l3pkt ~l2sender 
     end
   )
 
@@ -206,12 +205,14 @@ object(s)
     (* update route to source if packet came over fresher route than what we
        have *)
 
+    let diff_hdr = L3pkt.diff_hdr l3pkt in
+
     let pkt_fresh = (s#packet_fresh ~l3pkt)
     and update =  
       s#newadv 
 	~dst:(L3pkt.l3src ~l3pkt)
-	~sn:(L3pkt.ssn ~l3pkt)
-	~hc:(L3pkt.shc ~l3pkt)
+	~sn:(Diff_pkt.ssn diff_hdr)
+	~hc:(Diff_pkt.shc diff_hdr)
 	~nh:l2sender
     in
     assert (update = pkt_fresh);
@@ -257,7 +258,7 @@ object(s)
 		s#log_notice 
 		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, dropping."
 		    dst));
-		s#init_rreq  ~dst;
+		raise (Failure "diffusion not implemented fully");
 	      end
 	end
       with 
@@ -268,91 +269,25 @@ object(s)
     )
 
 
-  method private init_rreq ~dst = (
-    (* for the initial route request, we don't do it if there's already one
-       going on for this destination (which isn't really expected to happen,
-       but you never know *)
-    if (not (Rtab.repairing ~rt ~dst)) then (
-      Rtab.repair_start ~rt ~dst;
-      s#log_info 
-      (lazy (sprintf "Initializing RREQ for dst %d" dst ));
-      s#send_rreq ~ttl:_ERS_START_TTL ~dst
-    )
-  )
-
-  method private send_rreq  ~ttl ~dst = (
-    
-    if (Rtab.repairing ~rt ~dst) then (
-      s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
-	dst ttl));
-      
-      let (dseqno,dhopcount) = 
-	begin match (Rtab.seqno ~rt ~dst) with
-	  | None -> (0, max_int)
-	  | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
-      in
-      let grep_l3hdr_ext = 
-	L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_RREQ
-	  ~ssn:seqno
-	  ~shc:0
-	  ~rdst:dst
-	  ~dsn:dseqno
-	  ~dhc:dhopcount
-	  ()
-      in
-      let l3hdr = 
-	L3pkt.make_l3hdr
-	  ~srcid:myid
-	  ~dstid:L3pkt._L3_BCAST_ADDR
-	  ~ext:grep_l3hdr_ext
-	  ~ttl:ttl 
-	  ()
-      in
-      let l3pkt = 
-	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
-      in
-      let next_rreq_ttl = 
-	(ttl*_ERS_MULT_FACT) in
-      let next_rreq_timeout = 
-	((i2f next_rreq_ttl) *. 0.02) in
-      let next_rreq_event() = 
-	  (s#send_rreq 
-	    ~ttl:next_rreq_ttl
-	    ~dst)
-      in	
-
-	s#send_out ~l3pkt;
-	(* we say that maximum 1-hop traversal is 20ms, 
-	   ie half of value used by AODV. Another difference relative to AODV
-	   is that we use ttl, not (ttl + 2).
-	   This is ok while we use a simple MAC, and ok since our AODV impl 
-	   will use the same values*)
-	
-	
-(*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
-	  (Sched.s())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
-    )
-  )
-    
-    
   method private send_out ~l3pkt = (
     let newpkt = L3pkt.clone_l3pkt ~l3pkt in
+    let diff_hdr = L3pkt.diff_hdr l3pkt in
+
     let l3pkt = 1 in
     let dst = L3pkt.l3dst ~l3pkt:newpkt in
     assert (dst <> myid);
     assert (L3pkt.l3ttl ~l3pkt:newpkt >= 0);
-    assert (L3pkt.ssn ~l3pkt:newpkt >= 1);
+    assert (Diff_pkt.ssn diff_hdr >= 1);
 
     let failed() = (
-      L3pkt.decr_shc_pkt ~l3pkt:newpkt;
+      Diff_pkt.decr_shc_pkt diff_hdr;
       raise Send_Out_Failure
     ) in
     s#incr_seqno();
-    L3pkt.incr_shc_pkt ~l3pkt:newpkt;
-    assert (L3pkt.shc ~l3pkt:newpkt > 0);
-    begin match (L3pkt.l3grepflags ~l3pkt:newpkt) with
-      | L3pkt.GREP_RADV -> 
+    Diff_pkt.incr_shc_pkt diff_hdr;
+    assert (Diff_pkt.shc diff_hdr > 0);
+    begin match (Diff_pkt.flags diff_hdr) with
+      | Diff_pkt.DIFF_RADV -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
 	  L3pkt.decr_l3ttl ~l3pkt:newpkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt:newpkt) >= 0)  with
@@ -361,7 +296,7 @@ object(s)
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-      | L3pkt.GREP_DATA ->
+      | Diff_pkt.DIFF_DATA ->
 	  begin 
 	    let nexthop = 
 	      match Rtab.nexthop ~rt ~dst  with
@@ -373,8 +308,6 @@ object(s)
 	    with Simplenode.Mac_Send_Failure -> failed()
 	      
 	  end
-      | _ ->
-	  raise (Failure "Grep_agent.send_out: unexpected packet type")
     end
   )
 
@@ -389,13 +322,13 @@ object(s)
 
   method private send_interest ?(one_shot=false) ?(ttl=255) () = (
     s#log_notice (lazy "Sending interest");
-
+    let diff_hdr = (Diff_pkt.make_diff_hdr
+      ~flags:Diff_pkt.DIFF_RADV ~ssn:seqno ~shc:0) in
     if subscribed then 
       begin
 	let l3hdr = L3pkt.make_l3hdr
 	  ~srcid:myid	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
-	  ~ext:(L3pkt.make_grep_l3hdr_ext
-	    ~flags:L3pkt.GREP_RADV ~ssn:seqno ~shc:0 ()) () in
+	  ~ext:(`DIFF_HDR diff_hdr) () in
 
 	let l3pkt = (L3pkt.make_l3pkt ~l3hdr ~l4pkt:`APP_PKT) in
 
@@ -434,9 +367,10 @@ object(s)
   method private send_data_to_sink sink = 
       s#log_info (lazy (sprintf "Originating data pkt to sink %d"
 	sink));
+    let diff_hdr = (Diff_pkt.make_diff_hdr   ~flags:Diff_pkt.DIFF_DATA
+      ~ssn:seqno   ~shc:0) in
       let l3hdr = L3pkt.make_l3hdr  ~srcid:myid ~dstid:sink  ~ttl:255
-	~ext:(L3pkt.make_grep_l3hdr_ext   ~flags:L3pkt.GREP_DATA
-	  ~ssn:seqno   ~shc:0  ())  ()
+	~ext:(`DIFF_HDR diff_hdr)  ()
       in
       let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:`APP_PKT) in
       s#send_out ~l3pkt;
