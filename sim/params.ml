@@ -2,9 +2,6 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(* changelog: 
-*)
-
 
 (* Globally accessible parameters.                                       *)
 (* These parameters have not (yet?) been examined to figure out if they  *)
