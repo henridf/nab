@@ -28,10 +28,6 @@
 
 
 
-
-
-
-
 (** Discrete event schedulers.
   @author Henri Dubois-Ferriere.
 *)

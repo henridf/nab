@@ -21,9 +21,7 @@
   
   You should have received a copy of the GNU General Public License
   along with mws; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-
+  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 *)
 
 
@@ -42,7 +40,17 @@ type  sched_time_t =
   | ASAP (** Schedule as soon as possible. *)
   | ALAP (** Schedule as late as possible. *)
   | Time of Time.time_t  (** Schedule at given time. *)
-      
+
+type handle = int
+    (** A handle is an id for events registered with the scheduler which can
+      be used to cancel them before they happen. 
+      A handle is always different than 0. *)
+
+
+exception AlreadyCancelled
+exception AlreadyExecuted
+exception InvalidHandle
+
 
 (** The virtual scheduler class. Contains all logic which is independent of
   the underlying data structure used to keep events.
@@ -60,9 +68,25 @@ object
   method sched_in : f:(unit -> unit) -> t:float -> unit
     (** Schedule the event [f] to run [t] simulated seconds from now. *)
 
+  method sched_at_handle : f:(unit -> unit) -> t:sched_time_t -> handle
+    (** Same as [sched_at], except that a handle to the event is returned,
+      which may be used subsequently to cancel it. *)
+
+  method sched_in_handle : f:(unit -> unit) -> t:float -> handle
+    (** Same as [sched_in], except that a handle to the event is returned,
+      which may be used subsequently to cancel it. *)
+
+  method cancel : handle -> unit
+    (** Cancel an event. 
+      @raise AlreadyCancelled if this event has already been cancelled.
+      @raise AlreadyExecuted if this event has already taken place.
+      @raise InvalidHandle if this handle was never issued.
+    *)
+
   method stop_at : t:sched_time_t -> unit
     (** Schedule a "stop" event at time [t]. A stop event interrupts the
-      scheduler, and control returns to the point where [run*] was called.
+      scheduler, and control returns to the point where [run] (or [run_for],
+      or [run_until], see below) was called.
       Future scheduled events remain in the scheduler. *)
 
   method stop_in : t:float -> unit
