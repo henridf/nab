@@ -23,13 +23,9 @@
 (* $Id$ *)
 
 
-
-
-
-
-
-
 type time_t = float
+type t = time_t
+type abs_or_rel_t = ABS of time_t | REL of time_t
 
 (* Time *)
 let time_ = ref 0.0

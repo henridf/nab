@@ -33,6 +33,10 @@
 *)
 
 type time_t = float
+type t = time_t
+
+type abs_or_rel_t = ABS of time_t | REL of time_t
+  (** This can be used by methods that take either an absolute or relative. *)
 
 val set_time : time_t -> unit
   (** Set the current time. This should only be used for good reason, for
@@ -44,4 +48,5 @@ val get_time : unit -> time_t
 
 val time: unit -> time_t
   (** Identical to [get_time]. *)
+
 
