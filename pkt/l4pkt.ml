@@ -13,51 +13,6 @@ let _FLOAT_SIZE = 8
 type hello_payload_t =  Coord.coordf_t
 let hello_payload_size = 2 * _FLOAT_SIZE
 
-type bler_payload_t = 
-  | ANCH_REQ of (Common.nodeid_t * Common.time_t)  (* dst, current encounter age *)
-  | ANCH_RPLY of (Common.nodeid_t * Common.time_t) (* anchorid, encounter age *)
-
-type dsdv_payload_t = {
-  originator: Common.nodeid_t;
-  seqno: int;
-  nhops: int
-}
-
-type grep_adv_payload_t = {
-  (* adjust l4pkt_size if this changes *)
-  adv_dst: Common.nodeid_t;
-  adv_seqno: int;
-  adv_hopcount: int;
-}
-
-let grep_adv_payload_size = 
-  _ADDR_SIZE +      (* dst *)
-  _SEQNO_SIZE +     (* seqno *)
-  _TTL_SIZE         (* hopcount *)
-
-let make_grep_adv_payload  ~adv_dst ~adv_seqno ~adv_hopcount = {
-  adv_dst=adv_dst;
-  adv_seqno=adv_seqno;
-  adv_hopcount=adv_hopcount
-}
-  
-type grep_rreq_payload_t = {
-  (* adjust l4pkt_size if this changes *)
-  mutable rreq_dst: Common.nodeid_t;
-  mutable dseqno: int;    
-  mutable dhopcount: int; 
-}
-
-let grep_rreq_payload_size = 
-  _ADDR_SIZE + 
-  _SEQNO_SIZE +      (* dseqno *)
-  _TTL_SIZE          (* dhopcount *)
-
-let make_grep_rreq_payload ~rreq_dst ~dseqno ~dhopcount = {
-  rreq_dst=rreq_dst;
-  dseqno=dseqno;
-  dhopcount=dhopcount
-}
 
 type t = 
     (* if any l4 payload becomes mutable, need to 
@@ -65,9 +20,6 @@ type t =
     [ `NONE
     | `APP_PKT
     | `HELLO_PKT of hello_payload_t
-    | `BLER_PKT of bler_payload_t
-    | `DSDV_PKT of dsdv_payload_t
-    | `GREP_RADV_PKT (* not implemented yet *)
     ]
       
 let clone_l4pkt ~l4pkt = l4pkt
@@ -77,8 +29,4 @@ let l4pkt_size ~l4pkt =
     | `APP_PKT -> 1500
     | `NONE -> 0
     | `HELLO_PKT _ -> hello_payload_size
-    | `BLER_PKT _  -> raise Misc.Not_Implemented
-    | `DSDV_PKT _ -> raise Misc.Not_Implemented
-    | `GREP_RADV_PKT 
-      -> grep_adv_payload_size
 	
