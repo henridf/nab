@@ -467,7 +467,7 @@ object(s)
 	   ie half of value used by AODV. Another difference relative to AODV
 	   is that we use ttl, not (ttl + 2).
 	   This is ok while we use a simple MAC, and ok since our AODV impl 
-	   will use the same values*)
+	   will use the same values *)
 
 
 (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)

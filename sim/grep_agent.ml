@@ -253,11 +253,11 @@ object(s)
 	  let answer_rreq = 
 	    (rdst = owner#id)
 	    ||
-	    begin match (Rtab.seqno ~rt:rtab ~dst:(L3pkt.rdst ~l3pkt)) with 
+	    begin match (Rtab.seqno ~rt:rtab ~dst:rdst) with 
 	      | None -> false
 	      | Some s when (s > dsn) -> true
 	      | Some s when (s = dsn) ->
-		  (o2v (Rtab.hopcount ~rt:rtab ~dst:(L3pkt.rdst ~l3pkt)) 
+		  (o2v (Rtab.hopcount ~rt:rtab ~dst:rdst)
 		  <
 		  (L3pkt.dhc ~l3pkt) + L3pkt.shc ~l3pkt)
 	      | Some s when (s < dsn) -> false
@@ -425,8 +425,8 @@ object(s)
   )
     
   method private process_rrep_pkt 
-    ~(l3pkt:L3pkt.l3packet_t) 
-    ~(sender:Common.nodeid_t) 
+    ~(l3pkt:L3pkt.l3packet_t)
+    ~(sender:Common.nodeid_t)
     ~(fresh:bool)
     = (
       let update = s#newadv 
@@ -440,7 +440,6 @@ object(s)
 
       if (((L3pkt.l3dst ~l3pkt) != owner#id) &&
       (update || (fresh && ((L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt))))) then
-
 	try 
 	  s#send_out ~l3pkt
 	with 
@@ -466,7 +465,6 @@ object(s)
     L3pkt.incr_shc_pkt ~l3pkt;
     assert (L3pkt.shc ~l3pkt > 0);
     begin match (L3pkt.l3grepflags ~l3pkt) with
-
       | L3pkt.GREP_RADV 
       | L3pkt.GREP_RREQ -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
