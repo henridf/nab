@@ -73,6 +73,10 @@ class contentionmac :
     inherit Mac.t
     method other_stats : stats
     method set_jitter : float -> unit
+      (** Set the jitter value (in seconds) of this mac object.
+	When a [contentionmac] is handed a packet to be transmitted, it waits 
+	a random time, uniformly chosen between 0 and [jitter] seconds before
+	transmitting. The default jitter value is 0.1 seconds. *)
   end
 
 val macs : ?stack:int -> unit -> (Common.nodeid_t, contentionmac) Hashtbl.t 
