@@ -32,11 +32,11 @@
 
 
 type info_t = Flood.t
-    (** The optional info type attached to a GREP route is a {!Flood.t}
+    (** The optional info type attached to a on-demand distance-vector route is a {!Flood.t}
       object, which represents the (flooded) search which some nodes
       perform. At hops where no flood was necessary, the [hop_t.info] field is
       set to [None]. *)
 
 type 'a t = ('a, info_t) Route.t
-    (** The type of GREP routes. *)
+    (** The type of on-demand distance-vector routes. *)
 
