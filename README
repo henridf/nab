@@ -85,3 +85,11 @@ To compile as native code (runs faster), pass OPT=y flag to make, as in
 
 Note: interactive toplevels cannot be compiled to native code.
 
+
+**
+** CONTRIBUTING
+**
+
+If you have developed code (protocols, mac layers, mobility models, ..) 
+that you would like to see integrated into the nab distribution, 
+please contact henri.dubois-ferriere@epfl.ch.
