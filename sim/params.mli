@@ -8,12 +8,10 @@
 
 val warmup : bool Param.t
 val warmup_percent : float Param.t
-val minrange : float Param.t
-val maxrange : float Param.t
 val nodes : int Param.t
+val x_size : float Param.t
+val y_size : float Param.t
+val rrange : float Param.t
 val ntargets : int Param.t
-val algo : Common.route_algorithm Param.t
-val mob : Common.mobility_pattern Param.t
 val nodes_file : string Param.t
-val action : Common.action Param.t
 val trace_enabled : bool Param.t
