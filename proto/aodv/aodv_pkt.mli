@@ -113,7 +113,6 @@ val make_rerr_hdr :
   (Common.nodeid_t * seqno_t option) list -> 
   t
 
-val incr_rrep_hopcount : rrep -> rrep
 
 
 

@@ -124,7 +124,7 @@ let make_rerr_hdr  ?(flags=default_rerr_flags) unreachables =
     unreach = unreachables
   }
     
-let default_rreq_flags = {g=false; d=false; u=false}
+let default_rreq_flags = {g=true; d=false; u=false}
 
 let make_rreq_hdr 
   ?(flags=default_rreq_flags) 
@@ -147,4 +147,3 @@ let make_rreq_hdr
   }
     
 
-let incr_rrep_hopcount rrep = {rrep with rrep_hopcount = rrep.rrep_hopcount + 1}
