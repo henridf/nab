@@ -67,8 +67,7 @@ object
   method set_le_tab : Le_tab.le_tab -> unit
 end
 
-val set_agents : ease_agent array -> unit
-val agent : int -> ease_agent
-val proportion_met_nodes : unit -> float
-val agents_array : ease_agent array ref
+
+val proportion_met_nodes : ?stack:int -> unit -> float
+
 

@@ -115,9 +115,3 @@ object(s)
     )
   )
 end
-
-let agents = ref ([||]:flood_agent array)
-
-let set_agents arr = agents := arr
-let agent i = !agents.(i)
-

@@ -35,16 +35,18 @@
 open Printf
 
 
-let agents_array = ref [||]
 
-let set_agents arr = agents_array := arr
-let agent i = !agents_array.(i)
+let agents_array_ = [||]
+let set_agents ?(stack=0) arr = agents_array_.(stack) <- arr
+let agents ?(stack=0) () = agents_array_.(stack)
+let agent ?(stack=0) i = agents_array_.(stack).(i)
 
 
-let proportion_met_nodes()   = 
+let proportion_met_nodes ?(stack=0) () = 
   let targets = Param.get Params.ntargets in
   let total_encounters = 
-    Array.fold_left (fun encs agent -> (agent#le_tab#num_encounters) + encs) 0 !agents_array
+    Array.fold_left (fun encs agent -> (agent#le_tab#num_encounters) + encs) 0
+      (agents ~stack ())
   in
   (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
 
@@ -72,6 +74,8 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Ease_Agent";
+
+    agents_array_.(stack).(theowner#id) <- (s :> ease_agent);
 
     (* Here we ask the global world object to inform us each time a node enters
        our neighborhood, by calling our method add_neighbor.
@@ -187,7 +191,7 @@ object(s)
 	  ~f:(fun nid -> 
 	    (nid = dst)
 	    ||
-	    !agents_array.(nid)#le_tab#le_age ~nid:dst < cur_enc_age)
+	    (agent ~stack nid)#le_tab#le_age ~nid:dst < cur_enc_age)
 	  ()
 	)
       in
@@ -196,8 +200,8 @@ object(s)
 	(Nodes.gpsnode dst)#pos, 
 	0.0)
       else
-	let enc_age = !agents_array.(msngr)#le_tab#le_age ~nid:dst
-	and enc_pos = Opt.get (!agents_array.(msngr)#le_tab#le_pos ~nid:dst)
+	let enc_age = (agent ~stack msngr)#le_tab#le_age ~nid:dst
+	and enc_pos = Opt.get ((agent ~stack msngr)#le_tab#le_pos ~nid:dst)
 	in
 	let d_to_messenger = 
 	  (World.w())#dist_coords owner#pos (Nodes.gpsnode msngr)#pos 

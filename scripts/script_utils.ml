@@ -117,7 +117,7 @@ let install_macs ?(stack=0) () =
 
 
 let make_nodes ?(with_positions=true) () = (
-  Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
+  Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
       (fun i -> 
@@ -148,12 +148,10 @@ let make_grease_nodes () = (
 	(new Gpsnode.gpsnode ~pos_init nid);
       )
     );
-  (* create grease agents, and 'insert' them into their owner nodes. *)
-  Ease_agent.set_agents
-    (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent ~grease:true n));
-  
-  Nodes.iteri (fun nid n -> 
-    n#install_rt_agent (!Ease_agent.agents_array.(nid) :> Rt_agent.t));
+
+  Nodes.gpsiteri (fun nid n -> 
+    let agent = new Ease_agent.ease_agent ~stack:0 ~grease:true n in
+    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 
   install_macs();
 
@@ -165,41 +163,33 @@ let make_grease_nodes () = (
 let make_grep_nodes () = (
   make_nodes();
 
-  (* create grep agents, and 'insert' them into their owner nodes. *)
-  Grep_agent.set_agents
-    (Nodes.map (fun n -> new Grep_agent.grep_agent n));
-
   Nodes.iteri (fun nid n -> 
-    n#install_rt_agent (!Grep_agent.agents_array.(nid) :> Rt_agent.t));
+    let agent = new Grep_agent.grep_agent ~stack:0 n in
+    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 
-let make_diff_agents () = (
-  (* create grep agents, and 'insert' them into their owner nodes. *)
-  Diff_agent.set_agents
-    (Nodes.map (fun n -> new Diff_agent.diff_agent n));
+let make_diff_agents ?(stack=0) () = (
+  (* create diffusion agents, and 'insert' them into their owner nodes. *)
+
 
   Nodes.iteri (fun nid n -> 
-    n#install_rt_agent (!Diff_agent.agents_array.(nid) :> Rt_agent.t));
+    let agent = (new Diff_agent.diff_agent n) in
+    n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
-let make_flood_agents () = (
-  (* create grep agents, and 'insert' them into their owner nodes. *)
-  Flood_agent.set_agents
-  (Nodes.map (fun n -> new Flood_agent.flood_agent n));
+let make_flood_agents ?(stack=0) () = (
   
   Nodes.iteri (fun nid n -> 
-    n#install_rt_agent (!Flood_agent.agents.(nid) :> Rt_agent.t));
+    let agent = (new Flood_agent.flood_agent n) in
+    n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
 let make_aodv_nodes () = (
   make_nodes();
 
-  (* create aodv agents, and 'insert' them into their owner nodes. *)
-  Aodv_agent.set_agents
-    (Nodes.map (fun n -> new Aodv_agent.aodv_agent n));
-
   Nodes.iteri (fun nid n -> 
-    n#install_rt_agent (!Diff_agent.agents_array.(nid) :> Rt_agent.t));
+    let agent = new Aodv_agent.aodv_agent ~stack:0 n in
+    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 
 

@@ -103,11 +103,11 @@ val make_grep_nodes : unit -> unit
     of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
-val make_diff_agents : unit -> unit 
+val make_diff_agents : ?stack:int -> unit -> unit 
   (** Creates and adds a diffusion agent to each node. See {!Diff_agent.diff_agent_t}.
     Nodes should be created before calling this.*)
   
-val make_flood_agents : unit -> unit 
+val make_flood_agents : ?stack:int -> unit -> unit 
   (** Creates and adds a simple flooding agent to each node. See {!Flood_agent.flood_agent}.
     Nodes should be created before calling this.*)
   

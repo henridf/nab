@@ -52,7 +52,7 @@ val read_node_state : ?gpsnodes:bool ->
      nodes before calling this (which is somewhat counterproductive, agreed..)
   *)
 
-val save_grep_agents : out_channel -> unit
+val save_grep_agents : ?stack:int -> out_channel -> unit
   (** Save state of all {!Grep_agent.grep_agent} objects. *)
 
 val read_grep_agents : ?stack:int -> in_channel -> unit

@@ -54,11 +54,6 @@
 
 
 
-
-
-
-
-
 open Aodv_grep_common
 open Printf
 open Misc
@@ -113,11 +108,7 @@ class type aodv_agent_t =
 exception Send_Out_Failure
 
 
-let agents_array = ref ([||]:aodv_agent_t array)
-
-let set_agents arr = agents_array := arr
-let agent i = !agents_array.(i)
-
+let agents_array_ = ([||]:aodv_agent_t array array )
 
 
 class aodv_agent ?(stack=0) theowner : aodv_agent_t = 
@@ -136,6 +127,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
+    agents_array_.(stack).(theowner#id) <- (s :> aodv_agent);
     s#incr_seqno()
   )
 

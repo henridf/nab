@@ -145,7 +145,7 @@ let packet_buffer_size = 50
 type grep_state_t = 
   {
     seqno : int;
-    hello_period : float option; 
+    hello_period : float option;
     rt : Rtab.t
   }
 
@@ -193,10 +193,12 @@ class type grep_agent_t =
 
 exception Send_Out_Failure
 
-let agents_array = ref ([||]:grep_agent_t array)
 
-let set_agents arr = agents_array := arr
-let agent i = !agents_array.(i)
+let agents_array_ =  ([||]:grep_agent_t array array )
+let set_agents ?(stack=0) arr = agents_array_.(stack) <- arr
+let agents ?(stack=0) () = agents_array_.(stack)
+let agent ?(stack=0) i = agents_array_.(stack).(i)
+
 
 class grep_agent ?(stack=0) theowner : grep_agent_t = 
 object(s)
@@ -215,6 +217,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_Agent";
+    agents_array_.(stack).(theowner#id) <- (s :> grep_agent);
     s#incr_seqno()
   )
 
@@ -281,7 +284,7 @@ object(s)
 	)
   )
 
-  (* wrapper around Rtab.newadv which additionally checks for 
+  (* Wrapper around Rtab.newadv which additionally checks for 
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
   method private newadv ~dst ~sn ~hc ~nh  = (

@@ -53,6 +53,11 @@ let nsinks() = o2v !nsinks_
 
 let rndseed = ref 0 
 
+let agents_array_ = [||]
+let set_agents ?(stack=0) arr = agents_array_.(stack) <- arr
+let agents ?(stack=0) () = agents_array_.(stack)
+let agent ?(stack=0) i = agents_array_.(stack).(i)
+
 class type diff_agent_t =
   object
     inherit Log.inheritable_loggable
@@ -82,10 +87,6 @@ class type diff_agent_t =
 
 exception Send_Out_Failure
 
-let agents_array = ref ([||]:diff_agent_t array)
-
-let set_agents arr = agents_array := arr
-let agent i = !agents_array.(i)
 
 
 let _ERS_START_TTL = 2
@@ -106,6 +107,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/diffagent";
+    agents_array_.(stack).(theowner#id) <- (s :> diff_agent);
     s#incr_seqno();
     incr rndseed;
   )

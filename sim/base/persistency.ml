@@ -141,9 +141,9 @@ let read_node_state ?(gpsnodes=false) ic  =
   assert ((World.w())#neighbors_consistent);
 )
 
-let save_grep_agents oc = 
+let save_grep_agents ?(stack=0) oc = 
   let states = 
-    Array.map !Grep_agent.agents_array 
+    Array.map (Grep_agent.agents ~stack ())
     (fun agent -> agent#get_state ())
   in Marshal.to_channel oc states [];
   Log.log#log_notice (lazy "Saving grep_agents state..")
@@ -162,14 +162,14 @@ let read_grep_agents ?(stack=0) ic =
   );
   
   Grep_agent.set_agents
-    (Nodes.map (fun n -> new Grep_agent.grep_agent n));
-  Array.iteri !Grep_agent.agents_array
+    (Nodes.map (fun n -> new Grep_agent.grep_agent ~stack n));
+  Array.iteri (Grep_agent.agents ~stack ())
     (fun i n -> n#set_state state_arr.(i));
   
   Nodes.iter (fun n -> n#remove_rt_agent ~stack ());
 
   Nodes.iteri (fun i n -> 
-    n#install_rt_agent ~stack (!Grep_agent.agents_array.(i) :> Rt_agent.t));
+    n#install_rt_agent ~stack ((Grep_agent.agent ~stack i) :> Rt_agent.t));
 
 
 
