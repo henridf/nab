@@ -29,8 +29,6 @@ open Graph
 open Misc
 
 module Random = Random.State 
-let rndseed = ref 0
-
 
 class virtual waypoint
   (owner:#Simplenode.simplenode) 
@@ -237,7 +235,7 @@ object(s)
       begin
 	match graph_hops_ with
 	  | hd::[] -> s#get_new_target
-	  | hd::rest ->  graph_hops_ <- rest
+	  | hd::rest -> graph_hops_ <- rest
 	  | [] -> raise (Misc.Impossible_Case "Mob.epfl.getnewpos")
       end;
       next_hop_target

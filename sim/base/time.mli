@@ -49,4 +49,7 @@ val get_time : unit -> time_t
 val time: unit -> time_t
   (** Identical to [get_time]. *)
 
-
+(**/**)
+type dtime_t = int
+val maintain_discrete_time : unit -> unit
+val dtime : unit -> dtime_t

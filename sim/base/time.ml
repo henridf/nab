@@ -25,10 +25,27 @@
 
 type time_t = float
 type t = time_t
+type dtime_t = int
 type abs_or_rel_t = ABS of time_t | REL of time_t
+
+let maintain_discrete_time_ = ref false
 
 (* Time *)
 let time_ = ref 0.0
-let set_time t = time_ := t
+let dtime_ = ref 0
+let maintain_discrete_time() = 
+  maintain_discrete_time_ := true;
+  dtime_ := truncate !time_
+
+let set_time t = 
+  time_ := t;
+  if !maintain_discrete_time_ then 
+    dtime_ := truncate !time_
+
 let get_time () = !time_
+  
+let dtime() = !dtime_
+
+
+
 let time = get_time
