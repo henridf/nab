@@ -6,7 +6,7 @@
 
 open Printf
 
-type handler_t = Stop | Handler of (unit -> unit)
+type handler_t = Handler of (unit -> unit) | Stop 
 
 and sched_time_t = ASAP | ALAP | Time of Common.time_t
 
