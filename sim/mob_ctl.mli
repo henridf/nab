@@ -11,6 +11,11 @@ val make_waypoint_mobs : ?gran:float -> unit -> unit
     model. Optional gran indicates the mobility granularity. (see {Mob.mobility})
   *)
 
+val make_borderwaypoint_mobs : ?gran:float -> unit -> unit
+  (** Create {!Mob.mobility} objects that implement a border waypoint mobility
+    model. Optional gran indicates the mobility granularity. (see {Mob.mobility})
+  *)
+
 val make_epfl_waypoint_mobs : unit -> unit
   (** Create {!Mob.mobility} objects that implement a waypoint mobility model
     over epfl campus (uses {!Epflcoords.l}). *)
@@ -25,6 +30,9 @@ val set_speed_mps : ?nidopt:Common.nodeid_t -> float -> unit
 
 val start_node : Common.nodeid_t -> unit
   (** Starts mobility of given node. Idempotent. *)
+
+(** Warning: multiple start/stops might  have faulty behavior, see
+  general_todo.txt *)
 
 val stop_node : Common.nodeid_t -> unit
   (** Stops mobility of given node. Idempotent.*)

@@ -10,20 +10,16 @@
 
 (** The base class for all classes implementing a mobility process *)
 class virtual mobility :
-  string ->
   #Simplenode.simplenode ->
   ?gran:float ->
   (newpos:Coord.coordf_t -> unit) ->
   object
-    val abbrev : string
-    val mutable moving : bool
-    val owner : #Simplenode.simplenode
-    val mutable speed_mps : float
-    method abbrevname : string
 
+    method objdescr : string
+      
     method set_speed_mps : float -> unit
       (** Set the speed in meters/sec. *)
-
+      
     method  start : unit
       (** Stop movement. Idempotent. *)
 
@@ -39,12 +35,9 @@ class virtual mobility :
 	movement steps. This parameter can be ignored by processes such as a
 	discrete random walk *)
 	
-    (**/**)
-    method private move : unit
-      
   end
 
-(** Waypoint mobility class *)
+(** Waypoint mobility class. *)
 class waypoint :
   #Simplenode.simplenode ->
   ?gran:float ->
@@ -54,7 +47,17 @@ class waypoint :
     method getnewpos : gran:float -> Coord.coordf_t
   end
 
-(** Waypoint over EPFL mobility class *)
+(** Border waypoint mobility class: waypoints are chosen only on the borders. *)
+class borderwaypoint :
+  #Simplenode.simplenode ->
+  ?gran:float ->
+  (newpos:Coord.coordf_t -> unit) ->
+  object
+    inherit mobility
+    method getnewpos : gran:float -> Coord.coordf_t
+  end
+
+(** Waypoint over EPFL mobility class. *)
 class epfl_waypoint :
   #Simplenode.simplenode ->
   (newpos:Coord.coordf_t -> unit) ->

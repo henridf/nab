@@ -28,20 +28,27 @@ let pos_pix_to_mtr pos =
 
 
 class virtual mobility 
-  (abbrevname:string) 
   (owner:#Simplenode.simplenode) 
   ?gran
   (movefun:(newpos:Coord.coordf_t -> unit)) =
 object(s)
-  val abbrev = abbrevname
+  inherit Log.inheritable_loggable 
+
   val owner = owner
   val mutable speed_mps =  1.0
   val mutable moving =  false
   val mutable granularity = 1.0 (* be careful if high speed and low granularity, then
 			   we will load the scheduler with zillions of small
 			   movement events *)
-
   val movefun = movefun
+
+  val seqno = ref 1
+    (* Monontonically increasing seqno used to disqualify a #move event that remains in the scheduler
+       after #stop is called.  
+       (We have to resort to this trick cos no way to cancel events in
+       scheduler)
+    *)
+
 
   initializer (
     match gran with 
@@ -50,15 +57,19 @@ object(s)
   ) 
 
   method start = (
+    s#log_info (lazy "Starting.");
     if (not moving) then (
       moving <- true;
-      s#move
-    ) 
+      s#move !seqno
+    )
   )
 
   method stop = (
-    if (moving) then 
+    if (moving) then ( 
+      incr seqno;
+      s#log_info (lazy "Stopping.");
       moving <- false
+    )
   )
 
   method set_speed_mps speed = speed_mps <- speed
@@ -69,25 +80,27 @@ object(s)
   *)
   method virtual getnewpos : gran:float -> Coord.coordf_t
     
-  method private move  = (
+  method private move sn  = (
 
-    (* if we are stopped then we ignore previously scheduled mobility events. 
-       this is for example so that in the gui case, when we call sched#run() to compute
-       a route, we can be sure that no node will move during the route computation *)
-    if (moving) then (
+    if (sn > !seqno) then (failwith "Mob.move: got sn bigger than expected");
+    if (sn = !seqno) then (
+      (* After #stop() is called, we have one outstanding movement event
+	 still to fire, which we ignore here by the above check. *)
+	
       let newpos = s#getnewpos granularity in 
       movefun ~newpos:newpos;
-(*      (Gworld.world())#movenode ~nid:owner#id ~newpos:newpos;*)
+      if (owner#id = 3) then 
+	s#log_warning (lazy (Printf.sprintf "moving to %s" (Coord.sprintf newpos)));
+      (*   (Gworld.world())#movenode ~nid:owner#id ~newpos:newpos;*)
 
+      let sncpy = !seqno in (* to avoid ref problem *)
+      let move_event() = s#move sncpy in
       (* mob is assumed to move us by granularity [meters], so we should schedule the next
-	 one in granularity / speed_mps seconds.
-      *)
-      let move_event() = s#move in
+	 one in granularity / speed_mps seconds.   *)
       (Gsched.sched())#sched_in ~f:move_event ~t:(granularity /. speed_mps)
     )
   )
 
-  method abbrevname = abbrev (* for making filenames etc *)
 end
 
 
@@ -95,11 +108,12 @@ class waypoint
   (owner:#Simplenode.simplenode) 
   ?gran
   (movefun:(newpos:Coord.coordf_t -> unit)) = 
-object 
-  inherit mobility "wp" owner ?gran movefun 
+object(s)
+  inherit mobility owner ?gran movefun 
   val mutable target_ = (0.0, 0.0)
 
   initializer (
+    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/waypoint";
     target_ <- (Gworld.world())#random_pos
   )
 
@@ -119,6 +133,49 @@ object
      )
    )
 
+
+end
+
+
+class borderwaypoint 
+  (owner:#Simplenode.simplenode)
+  ?gran
+  (movefun:(newpos:Coord.coordf_t -> unit)) =
+object(s)
+  inherit mobility owner ?gran movefun 
+  val mutable target_ = (0.0, 0.0)
+    
+  initializer (
+    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/waypoint";
+    target_ <- (Gworld.world())#random_pos
+  )
+
+  method getnewpos ~gran = (
+
+    let pos = (Gworld.world())#nodepos owner#id in
+    assert (((Gworld.world())#boundarize pos) = pos);
+    if ((Gworld.world())#dist_coords target_ pos) <= gran then (
+      (* arrived within gran[m] of target *)
+      let oldtarget = target_ 
+      in
+      begin
+	let x = Random.float (Param.get Params.x_size)
+	and y = Random.float (Param.get Params.y_size) 
+in
+	target_ <-
+	match (Random.bool(), Random.bool()) with
+	  | true, true -> x, (Param.get Params.y_size)
+	  | true, false -> x, 0.0
+	  | false, true -> 0.0, y
+	  | false, false -> (Param.get Params.y_size), y
+      end; 
+      oldtarget
+    ) else (
+      let direction =  (Coord.normalize (target_ ---. pos))   in
+      (pos +++. (direction ***. gran))
+    )
+  )
+    
 
 end
 
@@ -143,18 +200,18 @@ let get_containing_node pos = (
   
   
 class epfl_waypoint 
-  (owner:#Simplenode.simplenode) 
+  (owner:#Simplenode.simplenode)
   (movefun:(newpos:Coord.coordf_t -> unit)) = 
 object(s)
-  inherit mobility "epfl" owner movefun
+  inherit mobility owner movefun
 
   val mutable graphtarget_ = 0      (* as a graph node index *)
   val mutable graph_hops_ = []       (* remaining hops through the graph to
-				       graphtarget_ *)
+					graphtarget_ *)
   val mutable current_graph_pos_ = 0
 
-
   initializer (
+    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable) "/epfl_waypoint";
     current_graph_pos_ <- get_containing_node ((Gworld.world())#nodepos owner#id);
     s#get_new_target;
   )
@@ -202,7 +259,7 @@ class discreteRandomWalk
   (movefun:(newpos:Coord.coordf_t -> unit)) = 
 object 
 
-  inherit mobility "discrRW" owner movefun
+  inherit mobility owner movefun
 
   (* ignores gran, meaningless for a discrete mob *)
   method getnewpos ~gran = 
