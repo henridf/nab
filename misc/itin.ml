@@ -85,17 +85,12 @@ struct
     let larr = LinkedArray.create_ (CircBuf.toarray_ itin) in (* larr.(0) will be most recently visited place *)
       
     let rec revwalk t = (  
-
       (* recursion over t:int offset going backward in time *)
 
-	Printf.printf "revwalk with t = %d" t;
       let place = LinkedArray.get_ larr t in
-	Printf.printf "place = %d\n" (p2i place);
       let most_recent_visit = !_last_visit_of_place.(p2i place) in
       let shortcut_right = if (t = LinkedArray.length_ larr - 1) then LinkedArray.None_tail else LinkedArray.Ngbr (t + 1) 
       and shortcut_left = (LinkedArray.Ngbr most_recent_visit) in
-
-
 
 	assert (most_recent_visit <= t);
 
