@@ -1,33 +1,3 @@
-- crworld optimizations:
-  crworld could be more "lazy" : why update neighbors each time movenode
-  happens? should only be updated when required.
-  there are two "tasks" each time movenode is called:
-	- update grid_of_nodes (requires creating two new lists)
-	- update_node_neighbors_
-	  - compute_neighbors_
-	    - build candidate list 
-	    - filter all candidates through "are_neighbors"
-
-
-  grid_of_nodes is used:
-	- by #find_closest (used by get_node_at)
-	- by update_node_neighbors
-
-
-  also lose_neighbor and add_neighbor probably put a lot of load on the GC,
-  because they create/destroy a list each time. maybe doing the above
-  "lazification" is enough, since there will be less of
-  lose_neighbor/add_neighbor calls.
-	
-  decision: will do a greedy update of grid_of_nodes (ie, unchanged), 
-  and only lazify update_node_neighbors since this one is by far the heaviest.
-  still need to figure out how.
-
-
-  strategy:
-  keep a bool Array of size n, which marks if a node's neighborlist is dirty.
-  
-
 - (idea) in mods.ml, add stg like Module List = ListLabels, etc, for other
   labelled modules. Then need to modify code, for all list iterations we would
   then be able to put list before function for example.
@@ -47,12 +17,6 @@
     for (b), the root of the problem seems to be that epflcoords is
     represented in pixels. one approach would be to convert it to meters.
 
-- turn world into a module rather than a class?
-  might speed things up by avoiding all the method dispatch costs
-
-- install ocaml-unused-var-warning.patch  (when moved to 3.07)
-- maybe have ways to customize logging (precision of time in left column), do
-   we write log_level or not, etc)
 - mhooks : when you replace an array of agents with new ones, the old ones
   don't go away because they are still hooked in to their owners...
   one possibility would be to have add_*_hook methods return a handle (for
@@ -79,11 +43,6 @@
   diffusion algo, which routing agent) are settable by Params. Then there is
   only one "make_macs" which makes them based on what the Param value is.
   
-- get rid of gpsnodes  
-- the hooking scheme for movenode and gps nodes is a bit weird. maybe should
-  forget about gpsnode subclass, and simply do an aggregation relationship,
-  having simplenode aggregate a 'gpsreceiver' object. 
-
 - a big question is coming back all the time about how/where to access
   objects. For example, i make many hello_agents. Are these kept in an array
   in the same file as the hello_Agent class? in the script file? this impacts
@@ -130,16 +89,3 @@
 
 - make redoes everythgin when OPT
 
-- generic radio ranges. right now this is hard-coded. 
-  what if nodes could vary their xmit power? what if we have diffent mac
-  layers coexisting (say bluetooth and 802.11)?
-  this will probably need quite some rethinking, because the whole notion of
-  neighbors (as implemented in crworld for example) might need to change.
-
-- ability to cancel events in scheduler. for example this would be useful in
-  the case of mob objects: they should keep the handle around, so they can
-  cancel it when stop() is called.
-  status: not done, because solution for heap would be ugly (keep a separate
-  list around of all events to be canceled, then check when running each
-  handler if it is in canceled list).
-  There might be some data structure which is better than a heap for this.  
