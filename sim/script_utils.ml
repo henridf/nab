@@ -2,6 +2,24 @@ open Printf
 open Misc
 open Coord
 
+let set_debug_level s = 
+  let level = 
+    match s with 
+      | "debug" -> Log.LOG_DEBUG
+      | "notice" -> Log.LOG_NOTICE
+      | "warning" -> Log.LOG_WARNING
+      | "error" -> Log.LOG_ERROR
+      | _ -> raise (Failure "Bad debug level argument")
+  in
+  Log.set_log_level ~level
+
+let speclist = 
+  ["-debug", Arg.String set_debug_level, "<level> Set debug level"]
+
+let parse_args() = (
+  Arg.parse speclist (fun s -> ()) "";
+)
+
 let init_sched() = Gsched.set_sched (new Sched.schedHeap)
 let init_world() = 
   Gworld.set_world (new Crworld.crworld 
@@ -63,7 +81,7 @@ let make_grep_nodes () = (
   (* create grep agents, who will hook to their owners *)
   Grep_agent.set_agents
     (Nodes.map (fun n -> new Grep_agent.grep_agent n));
-
+  
   (* set up initial node position in internal structures of world object *)
   Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
   assert ((Gworld.world())#neighbors_consistent);
@@ -81,8 +99,8 @@ let make_aodv_nodes () = (
   assert ((Gworld.world())#neighbors_consistent);
 )
 
-let proportion_met_nodes ~targets  = 
-  Ease_agent.proportion_met_nodes ~targets
+let proportion_met_nodes()  = 
+  Ease_agent.proportion_met_nodes()
 
 (*
 let draw_nodes () = 
@@ -185,14 +203,14 @@ let gui_grep_one_route() = (
 *)
 
 
-let move_nodes ~prop ~targets = (
+let move_nodes ~prop  = (
   let iterations = ( (Param.get Params.nodes) * (Param.get Params.nodes) / 10) in 
   let ctr = ref 0 in 
   let continue() = (
     incr ctr; 
     if !ctr = iterations then (
       ctr := 0;
-      let p = (proportion_met_nodes ~targets) in
+      let p = (proportion_met_nodes()) in
       Log.log#log_notice 
 	(lazy (Printf.sprintf "prop_met_nodes %f\n" p));
       p < prop 

@@ -5,6 +5,10 @@
 (** General utils and helpers for writing MWS scripts *)
 
 
+(** Arguments *)
+
+val parse_args : unit -> unit
+
 (** Setup/Initialization/Cleanup *) 
 
 val init_sched : unit -> unit
@@ -38,12 +42,10 @@ val make_grease_nodes : unit -> unit
 
 val move_nodes : 
   prop:float -> (* btw 0 and 1 *)
-  targets:int -> 
   unit
 
 (** Stats *)
 
-val proportion_met_nodes : targets:int -> float 
 val avg_neighbors_per_node : unit -> float 
 
 val grep_one_route : src:Common.nodeid_t -> dst:Common.nodeid_t -> unit
