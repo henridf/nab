@@ -83,7 +83,7 @@ object(s)
     add_mob owner#id (s :> Mob.t);
     begin match gran with 
       | Some g -> granularity <- g
-      | None -> granularity <- (Param.get Params.radiorange) /. 10.
+      | None -> granularity <- (Param.get Params.radiorange) /. 3.
     end;
     incr rndseed
   ) 

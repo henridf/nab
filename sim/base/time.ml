@@ -52,7 +52,7 @@ let dtime() = !dtime_
 let time = get_time
 
 module Persist = struct
-  let restore ?(verbose=false) ic = 
+  let restore ic = 
     let t = (Marshal.from_channel ic : time_t) in
     set_time t
 

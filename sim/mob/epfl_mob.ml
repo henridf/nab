@@ -131,7 +131,7 @@ struct
     Hashtbl.iter 
       (fun nid mob -> Marshal.to_channel oc (nid, mob#dump_state()) []) mobs
 
-  let restore ?(verbose=false) ic = 
+  let restore ic = 
     let nmobs = (Marshal.from_channel ic : int) in
     if nmobs > 0 then
       Log.log#log_notice (lazy (sp "Restoring epfl mob. processes..."));

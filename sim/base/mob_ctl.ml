@@ -100,7 +100,7 @@ type mob_t =
     | `Billiard]
 
 
-let restore_mob ~verbose ic = 
+let restore_mob ic = 
   let mobtype = 
     (Marshal.from_channel ic : mob_t) in
   begin match mobtype with
@@ -119,20 +119,19 @@ let save_mob oc mob =
     | `Billiard -> Billiard.Persist.save oc
 end
 
-let mobs_to_save = 
-  ([ `Waypoint; `Epfl_waypoint;
-  `Randomwalk; `Billiard] : [> mob_t] list)
-  (* this cast is to 'open' the type, since when it is read back the type may
-     have grown. not sure if not doing this would be dangerous, but playing it
-     safe anyway...*)
-
-
 let save oc = 
+  let mobs_to_save = 
+    ([ `Waypoint; `Epfl_waypoint;
+    `Randomwalk; `Billiard] : [> mob_t] list) in
+    (* this cast is to 'open' the type, since when it is read back the type may
+       have grown. not sure if not doing this would be dangerous, but playing it
+       safe anyway...*)
+    
   Marshal.to_channel oc (List.length mobs_to_save) [];
   List.iter (fun item -> save_mob oc item) mobs_to_save
 
 
-let restore ?(verbose=false) ic = 
+let restore ic = 
   Log.log#log_notice (lazy (sp "Deleting any existing mobility processes..."));
 
   Mob_base.delete_all_mobs();
@@ -140,7 +139,7 @@ let restore ?(verbose=false) ic =
   if n_mobs > 0 then 
     Log.log#log_notice (lazy (sp "Restoring mobility processes..."));
   for i = 0 to n_mobs - 1 do 
-    restore_mob ~verbose ic
+    restore_mob ic
   done;
   if n_mobs > 0 then 
     Log.log#log_notice (lazy (sp "Done. (restoring mobility processes)"))

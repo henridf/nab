@@ -26,6 +26,6 @@
 module type t = 
 sig
 
-  val restore : ?verbose:bool -> in_channel -> unit
+  val restore : in_channel -> unit
   val save : out_channel -> unit
 end
