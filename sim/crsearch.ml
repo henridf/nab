@@ -57,21 +57,38 @@ let nextpoint outface point = (
   val xsect_grid_and_circle : Coord.coordf_t -> float -> Coord.coordi_t list 
 *)
 let xsect_grid_and_circle ~center ~radius = (
-  
-  let north = (((coord_floor center) +++. (0.5, 0.5)) +++. (0.0, radius)) in
+  let rounded_center = ((coord_floor center) +++. (0.5, 0.5)) in
+  let north = (rounded_center +++. (0.0, radius)) in
+
+  (*  let north = (((coord_floor center) +++. (0.5, 0.5)) +++. (0.0, radius)) in*)
+
   let (facein, start_current) = (
     (* we exit through E or S to go clockwise *)
     let southface = [|north +++. (0.5, -0.5); north +++. (-0.5, -0.5)|]
-    and eastface = [|north +++. (0.5, -0.5); north +++. (0.5, 0.5)|] in 
-    let gosouth = (xsect_circle ~center:center ~radius:radius
-      ~segment:southface)
-    and goeast = (xsect_circle ~center:center ~radius:radius
+    and northface = [|north +++. (0.5, 0.5); north +++. (-0.5, 0.5)|]
+    and eastface = [|north +++. (0.5, -0.5); north +++. (0.5, 0.5)|] 
+    and westface = [|north +++. (-0.5, -0.5); north +++. (-0.5, 0.5)|] in 
+    let gosouth = (xsect_circle ~center:rounded_center ~radius:radius
+      ~segment:southface) 
+    and gonorth = (xsect_circle ~center:rounded_center ~radius:radius
+      ~segment:northface)
+    and goeast = (xsect_circle ~center:rounded_center ~radius:radius
       ~segment:eastface)
+    and gowest = (xsect_circle ~center:rounded_center ~radius:radius
+      ~segment:westface)
     in 
-    match gosouth, goeast with
-      |	true, false -> (southface, nextpoint southface north)
-      | false, true -> (eastface, nextpoint eastface north)
-      | _ -> raise (Impossible_Case "crworld.xsect_grid_and_circle")
+    match gonorth, gosouth, goeast, gowest with
+
+      |	true, true, false, false  -> raise (Failure " North and South!")
+      | true, false, true, false -> (eastface, nextpoint eastface north)
+      | true, false, false, true -> (northface, nextpoint northface north)
+      | false, true, true, false -> (eastface, nextpoint eastface north)
+      | false, true, false, true -> (southface, nextpoint southface north)
+      | false, false, true, true -> (eastface, nextpoint eastface north)
+      | _ -> raise (Impossible_Case 
+	  (Printf.sprintf "Crsearch.xsect_grid_and_circle: rounded_center is %s, radius is %f, values are %b %b %b %b" 
+	    (Coord.sprintf rounded_center) radius gonorth gosouth goeast gowest)
+	)
   ) in
   
   let se_corner p = coord_f2i (((coord_floor p))) in
@@ -81,13 +98,13 @@ let xsect_grid_and_circle ~center ~radius = (
       List.filter 
 	(fun face -> 
 	  not (Misc.array_same facein face ) &&
-	  xsect_circle ~center:center ~radius:radius ~segment:face
+	  xsect_circle ~center:rounded_center ~radius:radius ~segment:face
 	)
 	(faces_around_point current)
     in 
 
     if (List.length outface <> 1) then (
-      Printf.printf "Crworld.xsect_grid_and_circle : outface has length %d\n"
+      Printf.printf "Crsearch.xsect_grid_and_circle : outface has length %d\n"
       (List.length outface);
       assert (false);
     );
