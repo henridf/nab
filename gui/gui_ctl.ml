@@ -45,11 +45,13 @@ let show_tree = ref true
 let route_portion = ref 1.0
 
 let run() = (
+
   Gui_gtk.set_expose_event_cb (fun _ -> true);
   
   t := (Common.get_time());
   let continue() = ((Common.get_time()) < !t +. 1.0) in
   (Gsched.sched())#run_until~continue;
+
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
   Gui_gtk.draw ~clear:true ();
   true
@@ -72,7 +74,7 @@ let refresh ?(clear=false) ()  = (
       ~anchors:!show_route_anchors
       ~disks:!show_route_disks
       ~portion:!route_portion
-      (Gui_hooks.mtr_2_pix_route (o2v !rt));
+      (Mwsconv.mtr_2_pix_route (o2v !rt));
   false
 )
 
@@ -126,7 +128,7 @@ let set_src x y = (
   remove_get_node_cb();
 
   Printf.printf "src is at %d %d\n" x y; flush stdout;
-  let srcnode = Gui_hooks.closest_node_at (x, y)
+  let srcnode = Mwsconv.closest_node_at (x, y)
   in
 
   let routeref = (ref (Route.create())) in
@@ -152,7 +154,7 @@ let set_src x y = (
     ~anchors:!show_route_anchors
     ~disks:!show_route_disks
     ~portion:!route_portion
-    (Gui_hooks.mtr_2_pix_route !routeref);
+    (Mwsconv.mtr_2_pix_route !routeref);
   
   rt := Some !routeref;
 )
@@ -196,8 +198,7 @@ let get_tree_sink sink = (
 )
 
 let make_tree_sink sink = 
-  let diffagent = !Diff_agent.agents_array.(sink) in
-  diffagent#app_send  ~dst:123 `APP_PKT 
+(Nodes.node(sink))#originate_app_pkt  ~dst:123
 
 
 
@@ -205,17 +206,18 @@ let set_tree_src x y = (
   remove_get_node_cb();
 
   Printf.printf "src is at %d %d\n" x y; flush stdout;
-  let sink2 = Gui_hooks.closest_node_at (x, y) in
+  let sink2 = Mwsconv.closest_node_at (x, y) in
 (*  let sink2 = Random.int (Param.get Params.nodes) in
   let sink3 = Random.int (Param.get Params.nodes) in
   let sink4 = Random.int (Param.get Params.nodes) in
   let sink5 = Random.int (Param.get Params.nodes) in*)
 
-(*  Diff_agent.sinks := [0;sink2;sink3;sink4;sink5 ];*)
+(*  Diff_agent.sinks := [0;sink2;sink3;sink4;sink5 ];
+
   Diff_agent.sinks := [0;sink2 ];
   make_tree_sink 0;
   make_tree_sink sink2;
-(*  make_tree_sink sink3;
+  make_tree_sink sink3;
   make_tree_sink sink4;
   make_tree_sink sink5;*)
   (Gsched.sched())#run(); 

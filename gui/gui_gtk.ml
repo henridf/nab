@@ -45,6 +45,13 @@ let draw_array = ref [||]
 
 
 let copy_pixmap x y = (
+
+(*
+  (drawing())#set_foreground `WHITE;
+  (drawing())#rectangle ~x:0 ~y:0 ~width:200 ~height:200 ~filled:true ();
+  (drawing())#set_foreground `BLACK;
+*)
+
   try 
     (drawing())#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width:res
     ~height:res   (pixmap()) 
@@ -80,10 +87,10 @@ let set_expose_event_cb f = (
   
   expose_cb_id := (Some ((fix())#event#connect#expose f))
 )
-
+  
 let init () = (
 
-  Gui_hooks.init();
+Mwsconv.init();
 
   let width = (Param.get Params.x_pix_size) 
   and height = (Param.get Params.y_pix_size)  in
@@ -102,18 +109,20 @@ let init () = (
 
   drw := Some (new GDraw.drawable (gdk_window()));
 
-(*
+
+
   let (pixmap_, bitmap) = Gdk.Pixmap.create_from_xpm_d
-    ~data:Epfl.epfl_xpm
+    ~data:Blank.blank_xpm
+(*    ~data:Epfl.epfl_xpm*)
     ~window:(gdk_window())
     ()
   in
   pxm := Some pixmap_;
 
   Gdk.Window.set_back_pixmap (gdk_window()) (`PIXMAP pixmap_);
-*)
 
- txt_label := Some (GMisc.label ~text:"" ~packing:(packer()) ());
+
+  txt_label := Some (GMisc.label ~text:"" ~packing:(packer()) ());
 
 )
 

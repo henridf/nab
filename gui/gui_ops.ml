@@ -16,7 +16,7 @@ let draw_node ?(emphasize=false) nid =
   else 
     (cols.(Random.int 3), false)
   in 
-  let pos = Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos nid)
+  let pos = Mwsconv.pos_mtr_to_pix ((Gworld.world())#nodepos nid)
   in
   Gui_gtk.draw_node ~col ~target pos
 
@@ -43,8 +43,8 @@ let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   let poslist =
   (List.map
     (fun (n1, n2) -> 
-      (Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos n1)), 
-      (Gui_hooks.pos_mtr_to_pix ((Gworld.world())#nodepos n2)))
+      (Mwsconv.pos_mtr_to_pix ((Gworld.world())#nodepos n1)), 
+      (Mwsconv.pos_mtr_to_pix ((Gworld.world())#nodepos n2)))
   ) nidlist
   in
   Gui_gtk.draw_segments ~col poslist
@@ -128,7 +128,7 @@ let draw_route
 
 	      (* we assume that the rectangle ratio of the window and the world
 		 are the same, otherwise this would not be a circle *)
-	      Gui_gtk.draw_circle ~centr:hop1.Route.hop ~radius:(Gui_hooks.x_mtr_to_pix hop1.Route.searchcost);
+	      Gui_gtk.draw_circle ~centr:hop1.Route.hop ~radius:(Mwsconv.x_mtr_to_pix hop1.Route.searchcost);
 	      draw_disks_ (hop2::r);
 	    )
 	  | hop1::r -> ()
