@@ -9,6 +9,8 @@
 
 *)
 
+val init : unit -> unit
+
 (* coordinates: gtk must convert between mws coordinates (meters) and screen coordinates.
    All other parts of mws are screen-unaware and use mws coordinates *)
 
@@ -33,13 +35,13 @@ val attach_mob_hooks :
    represented as nodes *)
 val ease_route_pktin_mhook : 
   Coord.coordf_t Route.t ref ->
-  Packet.l2packet_t ->
+  L2pkt.l2packet_t ->
   Gpsnode.gpsnode -> 
   unit
 
 val ease_route_pktout_mhook : 
   Coord.coordf_t Route.t ref ->
-  Packet.l2packet_t ->
+  L2pkt.l2packet_t ->
   Gpsnode.gpsnode -> 
   unit
 

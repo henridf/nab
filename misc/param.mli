@@ -4,10 +4,8 @@
    - keep 'registry' of names to detect when 2 params with same name are created
    - add ways to save to file a la unison, etc
    - ways to hook better with commandline parsing. ideally, command line
-   parsing should fall straight out of the Params created (like parse args
-   should compare each token (--nodes/--gui...) with the list of available
-   names, if no such token then error, else use Param corresponding to name to
-   do the rest)
+   parsing should fall straight out of the Params created. Maybe params can
+   automatically generate a Arg.spec list, and then use that to parse cmdline opts??
 *)
 
 type 'a t

@@ -39,6 +39,32 @@ let y_size =
       )
     )
 
+let x_pix_size = 
+  Param.create 
+    ~name:"x_pix_size" 
+    ~default: None
+    ~doc:"X [pix] size  of simulation area"
+    ~reader:int_of_string 
+    ~checker:(Some 
+      (fun s ->
+	if s <= 0 then 
+	  raise (Param.IllegalValue "x_pix_size must be positive");
+      )
+    )
+
+let y_pix_size = 
+  Param.create 
+    ~name:"y_pix_size" 
+    ~default: None
+    ~doc:"Y [pix] size of simulation area"
+    ~reader:int_of_string 
+    ~checker:(Some 
+      (fun s ->
+	if s <= 0 then 
+	  raise (Param.IllegalValue "y_pix_size must be positive");
+      )
+    )
+
 let rrange = 
   Param.create 
     ~name:"rrange" 

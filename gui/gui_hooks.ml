@@ -3,9 +3,15 @@
 (*                                  *)
 
 open Misc
+open Packet
 
-let x_pix_size = ref 1200
-let y_pix_size = ref 900
+let x_pix_size = ref (Param.get Params.x_pix_size)
+let y_pix_size = ref (Param.get Params.y_pix_size)
+
+let init() = (
+ x_pix_size :=  (Param.get Params.x_pix_size);
+ y_pix_size :=  (Param.get Params.y_pix_size)
+)
 
 let x_mtr() = Param.get Params.x_size
 and y_mtr() = Param.get Params.y_size
@@ -39,51 +45,54 @@ let attach_mob_hooks()  =
     (fun n -> n#add_mob_mhook ~hook:node_moved)
 
 
-open Packet
+
 
 let route_done = ref false
 
 let ease_route_pktin_mhook routeref l2pkt node = (
 
-  let l3dst = (Packet.get_l3hdr l2pkt.l3pkt).dst 
-  and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in
+  let l3pkt = (L2pkt.l3pkt l2pkt) in
+  let l3hdr = (Packet.l3hdr l3pkt) in
+  let l3dst = Packet.l3dst l3pkt
+  and l3src = Packet.l3src l3pkt in
 
-  match l2pkt.l2hdr.l2src <> node#id with
+  match (L2pkt.l2src l2pkt) <> node#id with
     | _ -> 	(* Packet arriving at a node *)
-(*	(Log.log)#log_info (Printf.sprintf "Arriving t node %d\n" node#id);	  *)
-
+	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving t node %d\n" node#id));	  
+	
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  route_done := true;
 	  routeref := Route.add_hop !routeref {
 	    Route.hop=node#pos;
-	    Route.anchor=(Packet.get_l3hdr l2pkt.l3pkt).anchor_pos;
-	    Route.anchor_age=(Packet.get_l3hdr l2pkt.l3pkt).ease_enc_age;
+	    Route.anchor=(Packet.l3anchor l3pkt);
+	    Route.anchor_age=(Packet.l3enc_age l3pkt);
 	    Route.searchcost=0.0; (* hack see general_todo.txt *)
 	  }
 	)
-(* this should not be a failure. ie, a node can send a packet to itself, if 
-   it was closest to the previous anchor, searches for a new anchor, and is
-   closest to this anchor too *)
-(*    | false ->  assert(false)*)
+	  (* this should not be a failure. ie, a node can send a packet to itself, if 
+	     it was closest to the previous anchor, searches for a new anchor, and is
+	     closest to this anchor too *)
+	  (*    | false ->  assert(false)*)
 )
 
 let ease_route_pktout_mhook routeref l2pkt node = (
-
-  let l3dst = (Packet.get_l3hdr l2pkt.l3pkt).dst 
-  and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in
-
-  match l2pkt.l2hdr.l2src <> node#id with
+  
+  let l3pkt = (L2pkt.l3pkt l2pkt) in
+  let l3hdr = (Packet.l3hdr l3pkt) in
+  let l3dst = Packet.l3dst l3pkt 
+  and l3src = Packet.l3src l3pkt in
+  
+  match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
     | false ->  (* Packet leaving some node *)
-
-	  (*	  (Log.log)#log_info (Printf.sprintf "Leaving src %d\n" node#id);	  *)
-	  routeref := Route.add_hop !routeref {
-	    Route.hop=node#pos;
-	    Route.anchor=(Packet.get_l3hdr l2pkt.l3pkt).anchor_pos;
-	    Route.anchor_age=(Packet.get_l3hdr l2pkt.l3pkt).ease_enc_age;
-	    Route.searchcost=(Packet.get_l3hdr l2pkt.l3pkt).search_dist;
-	  }
-
+	
+	(Log.log)#log_info (lazy (Printf.sprintf "Leaving src %d\n" node#id));	
+	routeref := Route.add_hop !routeref {
+	  Route.hop=node#pos;
+	    Route.anchor=(Packet.l3anchor l3pkt);
+	    Route.anchor_age=(Packet.l3enc_age l3pkt);
+	    Route.searchcost=(Packet.l3search_dist l3pkt)
+	}
 )
 
 let mtr_2_pix_route r = 

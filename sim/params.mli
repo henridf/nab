@@ -16,6 +16,12 @@ val x_size : float Param.t
 val y_size : float Param.t
   (** The Y (meters) size  of the simulation area. *)
 
+val x_pix_size : int Param.t
+  (** The X (pixels) size  of the simulation area, when using a GUI. *)
+
+val y_pix_size : int Param.t
+  (** The Y (pixels) size  of the simulation area, when using a GUI. *)
+
 val rrange : float Param.t
   (** Radio range (meters) of nodes *)
 
