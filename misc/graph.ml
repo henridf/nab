@@ -13,7 +13,7 @@ sig
   type t
   type graphtype_t = Directed | Undirected
 
-  val create_ : elt -> int -> graphtype_t -> t
+  val make_ : elt -> int -> graphtype_t -> t
 
   val neigbors_  : t -> elt -> elt list
   val neigborsi_ : t -> int -> int list
@@ -24,10 +24,11 @@ sig
   val contains_  : t -> elt -> bool
   val containsi_ : t -> int -> bool
 
-  val setinfo_   : t -> elt -> int list -> unit
-  val setinfoi_  : t -> int -> int list -> unit
-  val getinfo_   : t -> elt -> int list
+  val setinfo_   : t -> elt -> int list -> unit (* convenience functions to allow client to associate 'info' with each node *)
+  val setinfoi_  : t -> int -> int list -> unit (* Graph module blindly manipulates 'info' *)
+  val getinfo_   : t -> elt -> int list         
   val getinfoi_  : t -> int -> int list
+  val getinfosi_ : t -> int list -> int list    
 
   val add_node_  : t -> elt -> unit
   val add_edge_  : t -> elt -> elt  -> float ->  unit
@@ -62,12 +63,12 @@ struct
 
   let index__ g n = Hash.find g.hash n (* throws Not_found *)
   
-  let create_ node size gtype = {ind = 0; 
+  let make_ node size gtype = {ind = 0; 
 				 size = size;
-				 nodes =  Array.create size node;
-				 info = Array.create size [];
-				 hash =  Hash.create size;
-				 m =  Array.create_matrix size size Nan;
+				 nodes =  Array.make size node;
+				 info = Array.make size [];
+				 hash =  Hash.creat size;
+				 m =  Array.make_matrix size size Nan;
 				 t = gtype}
 				  
 				  
@@ -83,6 +84,15 @@ struct
   let getinfoi_ g i = (
     if i >= g.ind then raise (Invalid_argument "Graph.getinfoi_ : index does not exist");
     g.info.(i);
+  )
+
+  let getinfosi_ g l = (
+    List.flatten (
+      List.map (fun i -> 
+		  if i >= g.ind then raise (Invalid_argument "Graph.getinfosi_ : index does not exist");
+		  g.info.(i);
+	       ) l
+    )
   )
 
   let getinfo_ g n  = (
@@ -160,7 +170,7 @@ struct
   let nhop_neigborsi_ g ~index ~radius = (
     if not (containsi_ g index) then raise (Invalid_argument "Graph.nhop_neigborsi_: index does not exist");
 
-    let seen_yet = Array.create (size_ g) false in
+    let seen_yet = Array.make (size_ g) false in
     let curngbrs = ref [index] in
       seen_yet.(index) <- true;
     let step n = (
@@ -219,7 +229,7 @@ module IntGraph = Make(IntGraphType);;
 
 let test_ () = (
   let module FG = FloatGraph in 
-  let g = FG.create_ 0.0 10 FG.Undirected in 
+  let g = FG.make_ 0.0 10 FG.Undirected in 
     assert (FG.contains_ g 0.0 = false);
     assert (FG.containsi_ g 0 = false);
     FG.add_node_ g 0.0;
@@ -262,7 +272,7 @@ let test_ () = (
       assert (ngbrs_2hop = []);
       assert (ngbrs_0hop = [1]);
 
-      let g = FG.create_ 0.0 10 FG.Directed in 
+      let g = FG.make_ 0.0 10 FG.Directed in 
 	FG.add_node_ g 0.0;
 	FG.add_node_ g 1.0;
 	FG.add_node_ g 2.0;
@@ -280,6 +290,7 @@ let test_ () = (
 	assert ((FG.getinfoi_ g 0) = [0;0]);
 	assert ((FG.getinfo_ g 1.0) = [1;1]);
 	assert ((FG.getinfoi_ g 1) = [1;1]);
+	assert ((FG.getinfosi_ g [0;1]) = [0;0;1;1]);
 
 	Printf.printf "Graph.test_ : passed \n";
 )   
