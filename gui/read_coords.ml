@@ -22,7 +22,7 @@ let make_graph() = (
 
   let re = Str.regexp "[ \t]+" in
 
-  gr := Some (Graph.make_ "" 114 Graph.Undirected);
+  gr := Some (Graph.make_ "" (List.length Epflcoords.l) Graph.Directed);
 
 
   List.iter (fun line ->
@@ -43,6 +43,7 @@ let make_graph() = (
     Array.iteri 
       (fun i ngbr -> 
 	if i > 8 then (
+(*	  Printf.printf "%s\n" ngbr;*)
 	  let d = 
 	    sqrt (float (Coord.disti_sq (box_center node) 
 	      (box_center ngbr)))
@@ -57,12 +58,26 @@ let make_graph() = (
 
 
 
-(*
-Check connectedness
+
+
+
+let check_conn() = 
   Graph.itern_ (fun src -> 
-  Graph.itern_ (fun dst -> 
-    Printf.printf "doing %s-%s\n" src dst;
-    ignore (Graph.route_dij_ g src dst);
-  ) g
-) g
-*)
+    Graph.itern_ (fun dst -> 
+      Printf.printf "doing %s-%s\n" src dst;
+      ignore (Graph.route_dij_ (g()) src dst);
+    ) (g())
+  ) (g())
+
+
+let check_ngbrs() = 
+  Graph.itern_ (fun n -> 
+    let ngbrs = Graph.neigbors_ (g()) n in
+    List.iter (fun ngbr ->
+      if (not (List.mem n (Graph.neigbors_ (g()) ngbr) )) then (
+	Printf.printf "Problem with %s and %s\n" n ngbr; 
+	flush stdout
+      )
+    ) ngbrs
+  ) (g())
+
