@@ -19,6 +19,13 @@ Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:30
   in process_data_packet, when sent_out fails, is it possible that we don't
   have a routing entry for the destination? shouldn't normally...
 
+  do we invalidate the entry when a rrep forwarding fails??
+
+  can't we still answer a rreq even when we have a broken link (ie we have
+  noticed that our entry was invalid)
+
+  aodv should not incr seqno when originating all packets
+
 *)
 
 (*                                  *)
