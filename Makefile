@@ -12,14 +12,17 @@ endif
 
 MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
-MAN_DIR = man
+NAML_DIR = naml
 MISC_DIR = misc
 TEST_DIR = test
 BIN_DIR = bin
 CAML_DIR = /usr/lib/ocaml
+GTK_DIR = $(CAML_DIR)/lablgtk
 CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
 
-INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(MAN_DIR)
+INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GTK_DIR) -I $(NAML_DIR)
+
+
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR) 
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
@@ -31,7 +34,7 @@ DIRS = \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
 	$(MWS_SCRIPT_DIR) \
-	$(MAN_DIR)
+	$(NAML_DIR)
 
 
 DEPEND = .depend
@@ -39,6 +42,8 @@ DEPEND = .depend
 DEPENDS = \
 	$(MWS_DIR)/*.ml \
 	$(MWS_DIR)/*.mli \
+	$(NAML_DIR)/*.ml \
+	$(NAML_DIR)/*.mli \
 	$(MWS_SCRIPT_DIR)/*.ml \
 	$(MWS_SCRIPT_DIR)/*.mli \
 	$(TEST_DIR)/*.mli \
@@ -54,11 +59,11 @@ UNIX_LIB = $(CAML_DIR)/unix$(CMA)
 STR_LIB = $(CAML_DIR)/str$(CMA)
 THREADS_LIB = $(CAML_DIR)/threads/threads$(CMA)
 
-GTK_DIR = $(CAML_DIR)/lablgtk
-GTK_LIBS = $(GTK_DIR)/lablgtk.cma $(UNIX_LIB) $(STR_LIB)
-GTK_TH_LIBS = $(UNIX_LIB) $(THREADS_LIB) $(STR_LIB)  $(GTK_DIR)/lablgtk.cma
-GTK_TH_OBJS =  $(GTK_DIR)/gtkThread.cmo  $(GTK_DIR)/gtkInit.cmo $(GTK_DIR)/gtkThInit.cmo
-GTK_INIT_OBJS = $(GTK_DIR)/gtkInit.cmo
+
+GTK_LIBS = $(GTK_DIR)/lablgtk$(CMA) $(UNIX_LIB) $(STR_LIB)
+GTK_TH_LIBS = $(UNIX_LIB) $(THREADS_LIB) $(STR_LIB)  $(GTK_DIR)/lablgtk$(CMA)
+GTK_TH_OBJS =  $(GTK_DIR)/gtkThread$(CMO)  $(GTK_DIR)/gtkInit$(CMO) $(GTK_DIR)/gtkThInit$(CMO)
+GTK_INIT_OBJS = $(GTK_DIR)/gtkInit$(CMO)
 
 GTK_TH_STUFF = $(GTK_TH_LIBS)  $(GTK_TH_OBJS)
 GTK_STUFF =  $(GTK_LIBS) $(GTK_INIT_OBJS)
@@ -74,11 +79,14 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 
 MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_OBJ_FILES) \
+		$(MWS_DIR)/mws_utils$(CMO) \
 		$(MISC_DIR)/param$(CMO) \
 		$(MISC_DIR)/linkedlist$(CMO) \
 		$(MISC_DIR)/data$(CMO) \
 		$(MWS_DIR)/common$(CMO) \
+		$(MWS_DIR)/ports$(CMO) \
 		$(MWS_DIR)/packet$(CMO) \
+		$(NAML_DIR)/naml_msg$(CMO) \
 		$(MWS_DIR)/trace$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
@@ -89,13 +97,22 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/ler_graphics$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MWS_DIR)/nodeDB$(CMO) \
-		$(MWS_DIR)/bler_agent$(CMO) \
+		$(MWS_DIR)/magic_bler_agent$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
+		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
 		$(MWS_DIR)/crworld$(CMO) \
 		$(MWS_DIR)/script_utils$(CMO) 
 
 MWS_SCRIPT = $(MWS_SCRIPT_DIR)/current$(CMO)
+
+NAML_OBJ_FILES = $(MISC_OBJ_FILES) \
+		$(MWS_DIR)/common$(CMO) \
+		$(NAML_DIR)/naml_msg$(CMO) \
+		$(NAML_DIR)/naml_gtk$(CMO) \
+		$(NAML_DIR)/naml_action$(CMO) \
+		$(NAML_DIR)/naml_io$(CMO) \
+		$(NAML_DIR)/naml_main$(CMO) \
 
 
 MODULE_OBJ_FILES = \
@@ -137,12 +154,20 @@ bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)
-	$(MLTOP) $(THFLAGS) $(INCLUDE) $(GTK_TH_STUFF) $(MWS_OBJ_FILES) -o $@
+	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES) -o $@
 
+naml: bin/naml
+bin/naml: $(NAML_OBJ_FILES) 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_TH_STUFF) $(NAML_OBJ_FILES) -o $@ 
+
+
+camlgtk-th: bin/camlgtk-th
+bin/camlgtk-th: 
+	$(MLTOP) $(THFLAGS) $(INCLUDE) -o $@  $(GTK_TH_STUFF)
 
 camlgtk: bin/camlgtk
 bin/camlgtk: 
-	$(MLTOP) $(THFLAGS) $(INCLUDE) -o $@  $(GTK_TH_STUFF)
+	$(MLTOP) $(INCLUDE) -o $@  $(GTK_STUFF)
 
 testmodules:  $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES) $(TEST_OBJ_FILES)  -o $(BIN_DIR)/$@ 
