@@ -1,3 +1,6 @@
+- consider the use of named function parameters. maybe going overboard with
+ the ~s right now. maybe not, but at least need to be consistent.
+- add copyright.
 - (idea) in mods.ml, add stg like Module List = ListLabels, etc, for other
   labelled modules. Then need to modify code, for all list iterations we would
   then be able to put list before function for example.
