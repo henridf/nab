@@ -55,8 +55,7 @@ let setup () = (
      params above have been set. *)
   Script_utils.init_lazy_world();
 
-  (* Create nodes. Gps nodes are geographically-aware, ie they know their
-     position (unlike nodes which do not). *)
+  (* Create nodes. *)
   Script_utils.make_nodes();
 
 )

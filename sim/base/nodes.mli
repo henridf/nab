@@ -23,12 +23,11 @@
 (* $Id$ *)
 
 
-(** Various iterators to perform actions on all node objects. 
+(** Various iterators to access and perform actions on all node objects. 
   The iterator functions (iter, iteri, map, mapi, fold) behave like the
   Array or List iterators with similar names from the OCaml standard
   libraries.
 
-  Also offers a function to access node objects. 
   @author Henri Dubois-Ferriere.
 *)
 
