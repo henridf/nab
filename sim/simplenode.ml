@@ -10,7 +10,7 @@ object(s: #Node.node_t)
   
   inherit Log.loggable
 
-  val mutable neighbors  = Common.NodeSet.empty
+  val mutable neighbors  = []
   val mutable pos = pos_init
   val mutable bler_agent = None
 
@@ -53,21 +53,20 @@ object(s: #Node.node_t)
   )
 
   method add_neighbor n = (
-    assert (not (Common.NodeSet.mem n#id neighbors));
+    assert (not (List.mem n#id neighbors));
     if n#id < ntargets then (
       db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
     );
-    neighbors <- Common.NodeSet.add n#id neighbors
+    neighbors <- n#id::neighbors
   )
 
   method lose_neighbor n = (
-    assert (Common.NodeSet.mem n#id neighbors);
-    neighbors <- Common.NodeSet.remove n#id neighbors
+    assert (List.mem n#id neighbors);
+    neighbors <- Misc.list_without neighbors n#id
   )
 
-  method is_neighbor n = (
-    Common.NodeSet.mem n#id neighbors
-  )
+  method is_neighbor n = List.mem n#id neighbors
+
 
   method private bind_agent ~agent ~port = 
     match (Hashtbl.mem agents port) with
@@ -149,7 +148,7 @@ object(s: #Node.node_t)
 
     mhook l2pkt (s :> Node.node_t);
 
-    Common.NodeSet.iter (fun nid -> 
+    List.iter (fun nid -> 
       let n = (Nodes.node(nid)) in
       let recvtime = Common.get_time() +. Mws_utils.propdelay pos n#pos in
       let recv_event() = n#mac_recv_pkt ~l2pkt:l2pkt in
