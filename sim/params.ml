@@ -27,7 +27,7 @@ let y_size =
 
 let x_pix_size = 
   Param.intcreate 
-    ~default:600
+    ~default:900
     ~name:"x_pix_size" 
     ~doc:"X [pix] size  of simulation area"
     ()
@@ -35,7 +35,7 @@ let x_pix_size =
 let y_pix_size = 
   Param.intcreate 
     ~name:"y_pix_size" 
-    ~default:600
+    ~default:900
     ~doc:"Y [pix] size of simulation area"
     ()
 
@@ -57,6 +57,6 @@ let mac =
     ~doc:"Mac layer" ~checker:(fun s -> (Mac.strset_mac s)) ()
 
 let log_level = 
-  Param.stringcreate ~name:"loglevel" ~default:"warn" ~cmdline:true
+  Param.stringcreate ~name:"loglevel" ~default:"notice" ~cmdline:true
     ~doc:"Log level"  ~checker:(fun s -> Log.strset_log_level s) ()
 
