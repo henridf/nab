@@ -39,7 +39,7 @@ val repair_start : t -> nodeid_t -> unit
 val repair_end  : t -> nodeid_t -> unit
   (** [repair_end rtab dst] marks in [rtab] that the repair for [dst] is not
     ongoing anymore. This should be called when a route request is abandoned.
-    It is not necessary when a route request is is succesfully completed. *)
+    It is not necessary when a route request is succesfully completed. *)
 
 val repairing : t -> nodeid_t -> bool
   (** [repairing rtab dst] returns [true] if we have a started route repair
@@ -48,60 +48,62 @@ val repairing : t -> nodeid_t -> bool
     to [dst] through some other mechanism (ie, because [dst] flooded some rreq
     itself), even when our original route request is ongoing. *)
   
-val seqno : t -> nodeid_t -> Str_pkt.seqno_t option
-  (** [seqno rt dst] Returns the sequence number for dst in rt. Returns None
-    if no entry. *)
+val age_dist : t -> nodeid_t -> (Str_pkt.age_t * int) 
+  (** [age_dist rt dst] Returns the age and hopcount of the best entry (valid or
+    not) for [dst] in [rt]. 
+    @raise Not_found if [rtab] contains no routing entry for [dest]. *)
 
-val set_seqno : t -> nodeid_t -> Str_pkt.seqno_t -> unit
-  (** Does nothing if [rtab] contains no entry for this destination. *)  
+val valid_age_dist : t -> nodeid_t -> (Str_pkt.age_t * int) 
+  (** [valid_age_dist rt dst] Returns the age and hopcount of the best valid entry for
+    [dst] in [rt]. 
+    
+    @raise Not_found if [rtab] contains no routing entry for [dest]. *)
+
+val cost : (Str_pkt.age_t * int) -> float
+  (** Returns the binding metric cost of the age, distance pair. *)
 
 val nexthop : t -> nodeid_t -> nodeid_t 
-  (** [nexthop rtab dest] returns the nexthop entry for [dest] if contains a
-     valid entry.
-     @raise Not_found if [rtab] contains no entry for [dst] or if entry is
-     invalid. *)
+  (** [nexthop rtab dest] returns the nexthop of the best valid entry for [dest].
+    @raise Not_found if [rtab] contains no valid entry for [dst]. *)
 
-val nexthop_invalid : t -> nodeid_t -> nodeid_t
-  (** [nexthop rtab dest] returns the nexthop entry for [dest] if contains an
-    entry (valid or not).
-     @raise Not_found if [rtab] contains no entry for [dst].*)
+val nexthop_opt : t -> nodeid_t -> nodeid_t option
+  (** Same as [nexthop] except that nexthop is returned as an option, and None
+    is returned when no valid entry. *)
 
-val nexthop_maybe : t -> nodeid_t -> nodeid_t option
-  (** [nexthop_maybe rtab dest] returns None if [rtab] contains no routing
-     entry for [dest], or if our routing entry is invalid. If [rtab] contains
-     a valid entry [nid], the function call returns [Some nid]. *)
-  
 val hopcount : t -> nodeid_t -> int 
-  (** [hopcount rtab dest] returns the hop count in the routing entry for
+  (** [hopcount rtab dest] returns the hop count of the best entry (valid or not) for
     [dst].
     @raise Not_found if [rtab] contains no routing entry for [dest] *)
   
-val hopcount_maybe : t -> nodeid_t -> int option
-  (** [hopcount rtab dest] returns 
-    - [Some hc] where [hc] is the hop count in the routing entry for [dst], if
-    there is an entry
-    - [None] if there is no routing entry for [dst].
-  *)
+val hopcount_opt : t -> nodeid_t -> int option
+  (** Same as [hopcount] except that hopcount is returned as an option, and None
+    is returned when no there is no entry for the destination. *)
   
-val invalidate : t -> nodeid_t -> unit
-  (** [invalidate rt dst] invalidates the entry for [dst] in [rt], ie unsets
-    the 'valid' flag and clears the precursor list. *) 
+val invalidate_nexthop : t -> nodeid_t -> unit
+  (** [invalidate rt nexthop] invalidates all valid entries [rt] which have
+    [nexthop] as next hop. *) 
 
-val valid : t -> nodeid_t -> bool
-  (** [valid rtab dest] returns true if [rtab] contains a valid route to
-    [dest]. *)
+val have_better_valid_route : t -> float -> nodeid_t -> bool
+  (** [have_better_valid_route rtab cost dest] returns true if [rtab] contains a
+    valid route to [dest] with cost lower than [cost]. *)
 
-val add_entry : t -> dst:nodeid_t -> seqno:Str_pkt.seqno_t -> nh:nodeid_t
-  -> hc:int -> bool
+val have_better_route : t -> ?offset:int -> float -> nodeid_t -> bool
+  (** [have_better_route rtab cost dest] returns true if [rtab] contains a
+    route (valid or not) to [dest] with cost lower than [cost]. 
+    offset represents the distance travelled by the RREQ containing the (age,
+    dist) pair of the originator's route.
+*)
+
+val using_entry : t -> nodeid_t -> unit
+  (** [using_entry rtab dest] updates the last_used timestamp for the best
+    valid entry to destination [dest] in [rtab] (ie, the entry that would be
+    returned by [nexthop rtab dest]).
+    This should be called each time we use a routing entry to forward a
+    unicast packet. *)
+
+val add_entry : t -> dst:nodeid_t -> age:Str_pkt.age_t -> nh:nodeid_t -> hc:int ->
+  bool
   
-val ( >>> ) : Str_pkt.seqno_t * int -> Str_pkt.seqno_t * int -> bool
-  (* Space-time ordering function *)
-
-
-val dests_thru_hop : t -> nodeid_t -> nodeid_t list
-  (** [dests_thru_hop rtab nexthop] returns the list of all dests for which
-    whom [rtab] contains a valid entry, with next hop equal to [nexthop]. *)
-
 val clear_entry : t -> nodeid_t -> unit
   (** Set entry for dst back to 'empty' state (ie, state when a routing table
     is initially created) *)
@@ -110,8 +112,15 @@ val clear_all_entries : t -> unit
   (** Set all entries back to 'empty' state (ie, state when a routing table
     is initially created). *)
 
-val have_active_route : t -> bool
-  (** Returns [true] if there is any valid route in the routing table, ie if
-    we are part of an active route. *)
+val sprint_entries : t -> nodeid_t -> string
+  (** [sprint_entries rt dst] returns a text representation of the routing
+    entries in [rt] for destination [dst]. *)
 
-val have_entry : t -> nodeid_t -> bool
+val sprint_best_entry : t -> nodeid_t -> string
+  (** [sprint_entries rt dst] returns a text representation of the best
+    routing entry (the one with lowest cost) in [rt] for destination [dst]. *)
+
+val sprint_best_valid_entry : t -> nodeid_t -> string
+  (** [sprint_entries rt dst] returns a text representation of the best valid
+    routing entry (the one with lowest cost) in [rt] for destination [dst]. *)
+

@@ -16,30 +16,22 @@
  *  NAB is distributed in the hope that it will be useful, but WITHOUT ANY
  *  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- *  details (enclosed in the file GPL). 
+ *  details (enclosed in the file GPL).
  *
  *)
 
 (* $Id$ *)
 
 
-(* xxx question : in add_entry, should we alwasy add an entry with equal
-   seqnos, or only when current entry is invalid? *)
-
 open Str_defaults
 open Str_pkt
-
-let (>>>) (sn1, d1) (sn2, d2) = 
-  if sn1 > sn2 then true 
-  else if sn1 = sn2 && d1 < d2 then true 
-  else false
-let (===) (sn1, d1) (sn2, d2) = (sn1, d1) = (sn2, d2)
-   
-
+module H = ExtHashtbl.Hashtbl
 
 type rtab_entry_t = {
-  seqno: Str_pkt.seqno_t; 
-  timestamp:Time.t;
+  timestamp:Time.t; (* time at which this entry is added into our rtab *)
+  last_used:Time.t; (* last time this route was used (or value of timestamp
+		       above if never used). *)
+  age:Str_pkt.age_t; (* age of the entry at the time it was added *)
   nexthop: Common.nodeid_t;
   hopcount: int ;
   valid:bool; (* invalidate when receive RERR, link break while
@@ -50,138 +42,285 @@ type rtab_entry_t = {
 	      *)
 }
 
-type t = (Common.nodeid_t, (bool * rtab_entry_t list)) Hashtbl.t
-  (* STR routing tables are represented as a hashtbl, indexed by node id,
-     with values being the couple (repairing, entry_opt) where entry_opt is
-     None if we have no routing entry for the node *)
+
+type entryset = (int, rtab_entry_t) H.t
+type t = (Common.nodeid_t, (bool * entryset)) H.t
+    (* STR routing tables are represented as a hashtbl, indexed by node id,
+       with values being the couple (repairing, entrylist) where entrylist is
+       a hash of rtab_entry_t entries, with key=hopcount, value=entry. *)
+
+    
+let max_diameter = 50.
+let max_age = 10000.
+
+let binding_metric_ age hops = 
+  let speed = Mob_ctl.get_speed_mps 0
+  and range = (Param.get Params.radiorange) in
+  (* AODV  *)
+  age *. max_diameter +. (float hops)
+
+  (* FRESH
+  if age <= 1.0 then (float hops)
+  else 
+  (float hops) *. max_age +. age
+*)
+
+  
+(*
+  let range = (Param.get Params.radiorange) in
+  let hops_cost hops =  (sqrt (float hops)) *. range in
+  if hops = 0 then 0.0 
+  else 
+  let speed = Mob_ctl.get_speed_mps 0
+  in (hops_cost hops) +. speed *. age
+*)
+
+let cost (a, d) = binding_metric_ a d
+
+let age_ entry = Time.time() -. entry.timestamp +. entry.age
+
+let (><) entry1 entry2 = 
+  (age_ entry1) <= (age_ entry2) && entry1.hopcount <= entry2.hopcount
+  (* [true] if entry1 excludes entry2 *)
+
+let cost_ ?(offset=0) entry = 
+  let offset_cost = 
+    if offset >= 0 then
+      binding_metric_ 0.0 offset
+    else 0.0 in
+  offset_cost  +.
+    binding_metric_ (age_ entry) (entry.hopcount + offset)
+    
+let new_entryset_ () = H.create 8
 
 let repairing rt dst = 
-  try fst (Hashtbl.find rt dst) with Not_found -> false
+  try fst (H.find rt dst) with Not_found -> false
 
+let create size = H.create size
 
-let create size = Hashtbl.create size
+let get_entries_ rt dst = 
+  try snd (H.find rt dst) with Not_found -> new_entryset_()
 
-let have_entry rt dst = 
-  try snd (Hashtbl.find rt dst) <> [] with Not_found -> false
+let get_best_entry_opt_ rt ?(offset=0) ?(cost=max_float) dst =
+  let best_so_far = ref (-1, cost) in
+  let f i entry = 
+    if cost_ ~offset entry < snd !best_so_far then 
+      best_so_far := i, cost_ entry in
+  try 
+    let entries = snd (H.find rt dst) in
+      H.iter f entries;
+    if fst !best_so_far <> -1 then
+      Some (H.find entries (fst !best_so_far))
+    else None
+  with Not_found -> None
 
-let get_entry_opt rt dst = 
-  try snd (Hashtbl.find rt dst) with Not_found -> []
+let valid_ entry = 
+  entry.valid && entry.last_used +. str_ACTIVE_ROUTE_TIMEOUT > Time.time()
 
+let get_best_valid_entry_index_opt_ rt ?(cost=max_float) dst = 
+  let best_so_far = ref (-1, cost) in
+  let f i entry = 
+    if valid_ entry && cost_ entry < snd !best_so_far then 
+      best_so_far := i, cost_ entry in
+  try 
+    let entries = snd (H.find rt dst) in
+    H.iter f entries;
+    if fst !best_so_far <> -1 then
+      Some (fst !best_so_far, H.find entries (fst !best_so_far))
+    else None
+  with Not_found -> None
 
-let replace_entry rt dst e = 
-    Hashtbl.replace rt dst ((repairing rt dst), [e])
+let get_best_valid_entry_opt_ rt ?(cost=max_float) dst = 
+  match get_best_valid_entry_index_opt_ rt ~cost dst with
+    | None -> None
+    | Some (index, entries) -> Some entries
+	
 
-let remove_entry (rt : t) dst :  unit = 
-  if repairing rt dst then 
-    Hashtbl.replace rt dst (true, [])
-  else Hashtbl.remove rt dst
+let replace_entry_ rt dst e = 
+    H.replace rt dst ((repairing rt dst), [e])
 
 let repair_start rt dst = 
-  Hashtbl.replace rt dst (true, get_entry_opt rt dst)
+  H.replace rt dst (true, get_entries_ rt dst)
  
 let repair_end rt dst = 
-  Hashtbl.replace rt dst (false, get_entry_opt rt dst)
-
+  H.replace rt dst (false, get_entries_ rt dst)
       
-let seqno rt dst  = 
-  match get_entry_opt rt dst with
-    | [] -> None
-    | [e] -> Some e.seqno
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+let sprint_entry_ i e = 
+  (Printf.sprintf 
+    "Entry %d: Age=%.2f[s], hopcount=%d, cost:%f, valid=%b.\n"
+    i (age_ e) e.hopcount (cost_ e) (valid_ e))
 
-let set_seqno rt dst seqno =   
-  match get_entry_opt rt dst with
-    | [] -> ()
-    | [e] -> replace_entry rt dst {e with seqno=seqno}
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+let sprint_entries_ entries = 
+  let str = Buffer.create 64 in
+  let f i entry = Buffer.add_string str 
+    (sprint_entry_ i entry) in
+  H.iter f entries;
+  Buffer.contents str
 
+let sprint_best_entry rt dst = 
+  match get_best_entry_opt_ rt dst with 
+    | None -> "No entry for dst"
+    | Some e -> sprint_entry_ (-1) e
 
-let add_entry rt ~dst ~seqno ~nh ~hc = 
-  assert (hc > 0);
-  (* If this assert fails, then i need to look at how/when rreq hopcounts are
-     being incremented *)
-    begin match get_entry_opt rt dst with
-      | [] -> replace_entry rt dst
-	  {seqno=seqno;
-	  timestamp=Time.time();
-	  nexthop=nh;
-	  hopcount=hc;
-	  valid=true};
-	  repair_end rt dst;
-	  true
-      | [e] -> if (seqno, hc) >>> (e.seqno, e.hopcount) ||
-	  ((not e.valid) && (seqno, hc) === (e.seqno, e.hopcount)) 
-	then (
-	  replace_entry rt dst
-	  {seqno=seqno;
-	  timestamp=Time.time();
-	  nexthop=nh;
-	  hopcount=hc;
-	  valid=true};
-	  repair_end rt dst;
-	  true
-	) else false
-      | _ -> failwith "xxx not dealing with multiple entries yet"
-    end    
+let sprint_best_valid_entry rt dst = 
+  match get_best_valid_entry_opt_ rt dst with 
+    | None -> "No valid entry for dst"
+    | Some e -> sprint_entry_ (-1) e
 
+let sprint_entries rt dst = 
+  let str = Buffer.create 64 in
+  Buffer.add_string str (Printf.sprintf "Entries for destination %d: \n" dst);
+  begin try 
+    let entries = snd (H.find rt dst) in
+    Buffer.add_string str (sprint_entries_ entries);
+  with Not_found -> () end;
+  Buffer.contents str
 
-let dests_thru_hop rt nexthop = 
-  (** [dests_thru_hop rtab nexthop] returns the list (dest, seqno) pairs for
-    all dests for which whom [rtab] contains a valid entry, with next hop
-    equal to [nexthop]. *)
-  let f dst (_, e) l = 
-    match e with
-      | [] -> l
-      | [e] -> if e.valid && e.nexthop = nexthop then dst::l else l 
-      | _ -> failwith "xxx not dealing with multiple entries yet" in
-  Hashtbl.fold f rt []
+(* return true if 
+   a) no entries lie in the exclusion area of another entry
+   b) max one entry per hopcount
+   c) Hopcount in entry is same as hash key
+ *)
+let check_ok_ entries = 
+  let check_a, check_b, check_c = ref true, ref true, ref true in
+
+  H.iter (fun h_i e_i ->
+    H.iter (fun h_j e_j ->
+	if h_i <> h_j then 
+	  if e_i >< e_j || e_j >< e_i 
+	  then check_a := false
+    ) entries
+  ) entries;
+  if not !check_a then Log.log#log_error (lazy 
+    (Printf.sprintf "check_a failed. Entries:\n%s" (sprint_entries_ entries)));
+  
+  H.iter (fun h e -> 
+    if H.find_all entries h <> [H.find entries h] then (
+      Log.log#log_error (lazy 
+	(Printf.sprintf "check_b failed. Duplicates for hc %d" h));
+      
+      check_b := false
+    )
+  ) entries;
+
+  H.iter (fun h e -> 
+    if e.hopcount <> h then (
+      Log.log#log_error (lazy 
+	(Printf.sprintf "check_c failed. key: %d, hc %d" h e.hopcount));
+      
+      check_c := false)
+    ) entries;
+
+!check_a && !check_b && !check_c
     
+    
+    
+let add_entry rt ~dst ~age ~nh ~hc = 
+  (* entries are kept in order of increasing distance *)
+  let new_entry = 
+    {timestamp=Time.time();
+    last_used=Time.time();
+    age=age;
+    nexthop=nh;
+    hopcount=hc;
+    valid=true} in
+  let entries = get_entries_ rt dst in
+  match H.length entries with 
+    | 0 -> 
+	let new_entries = new_entryset_() in
+	H.add new_entries hc new_entry;
+	H.add rt dst (false, new_entries);
+	assert (check_ok_ entries);
+	true
+    | n -> 
+	(* Step_1. Iterate through existing entries:
+	   - If any existing entry is excluded by new entry, remove them
+	   - If new entry is excluded by any existing entry, then stop and
+	   return false.
+	   2. add new entry. *)
+	H.iter (fun hc entry -> 
+	  if new_entry >< entry then 
+	    H.remove entries hc
+	) entries;
+
+	let new_entry_excluded = 
+	  H.fold (fun hc entry excluded -> excluded || entry >< new_entry)
+	    entries false in
+
+	if not new_entry_excluded then (
+	  assert (
+	    if H.fold (fun hc entry same_distance -> 
+	      same_distance || hc = new_entry.hopcount)
+	      entries false then (
+		Log.log#log_error (lazy (sprint_entries rt dst));
+		false) else true
+	  );
+	  assert (not (H.mem entries hc));
+	  (* insert new_entry *)
+	  H.add entries hc new_entry;
+	  assert (check_ok_ entries);
+	  true
+	) else (
+	  assert (check_ok_ entries);
+	  false;
+	)
+
 let nexthop rt dst = 
-  match get_entry_opt rt dst with
-    | [] -> raise Not_found
-    | [e] -> if e.valid then e.nexthop else raise Not_found
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+  match get_best_valid_entry_opt_ rt dst with
+    | None -> raise Not_found
+    | Some e -> e.nexthop 
 
-let nexthop_invalid rt dst = 
-  match get_entry_opt rt dst with
-    | [] -> raise Not_found
-    | [e] -> e.nexthop
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+let nexthop_opt rt dst = 
+  match get_best_valid_entry_opt_ rt dst with
+    | None -> None
+    | Some e -> Some e.nexthop 
 
-let nexthop_maybe rt dst = 
-  match get_entry_opt rt dst with
-    | [] -> None
-    | [e] -> if e.valid then Some e.nexthop else None
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+let invalidate_nexthop rt nexthop =
+  let entries_iter entries i entry = 
+    if valid_ entry && entry.nexthop = nexthop then 
+      H.replace entries i {entry with valid=false}
+  in
+  let hash_iter dst (_, e) =  H.iter (entries_iter e) e in
+  H.iter hash_iter rt
+
+let using_entry rt dst = 
+  match get_best_valid_entry_index_opt_ rt dst with
+    | None -> failwith "Str_rtab.using_entry"
+    | Some (index, entry) -> 
+	let entries = snd (H.find rt dst) in
+	H.replace entries index {entry with last_used = Time.time()}
+
+let age_dist rt dst = 
+  match get_best_entry_opt_ rt dst with
+    | None -> raise Not_found
+    | Some e -> (age_ e), e.hopcount
+
+let valid_age_dist rt dst = 
+  match get_best_valid_entry_opt_ rt dst with
+    | None -> raise Not_found
+    | Some e -> (age_ e), e.hopcount
 
 let hopcount rt dst = 
-  match get_entry_opt rt dst with
-    | [] -> raise Not_found
-    | [e] -> e.hopcount
-    | _ -> failwith "xxx not dealing with multiple entries yet"
-  
-let hopcount_maybe rt dst = 
-  match get_entry_opt rt dst with
-    | [] -> None
-    | [e] -> Some e.hopcount
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+  match get_best_entry_opt_ rt dst with
+    | None -> raise Not_found
+    | Some e -> e.hopcount
+	
+let hopcount_opt rt dst = 
+  Opt.map (fun e -> e.hopcount) (get_best_entry_opt_ rt dst)
  
-let invalidate rt dst =
-  match get_entry_opt rt dst with
-    | [] -> ()
-    | [e] -> replace_entry rt dst {e with valid=false}
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+let have_better_valid_route rt cost dst = 
+  match get_best_valid_entry_opt_ rt ~cost dst with
+    | None -> false
+    | Some e -> true
 
-let valid rt dst = 
-  match get_entry_opt rt dst with
-    | [] -> false
-    | [e] -> e.valid
-    | _ -> failwith "xxx not dealing with multiple entries yet"
+let have_better_route rt ?(offset=0) cost dst = 
+  match get_best_entry_opt_ rt ~offset ~cost dst with
+    | None -> false
+    | Some e -> true
 
-let clear_entry rt dst = Hashtbl.remove rt dst
+
+let clear_entry rt dst = H.remove rt dst
   
-let clear_all_entries rt  = Hashtbl.clear rt
+let clear_all_entries rt  = H.clear rt
 
 
-let have_active_route rt = 
-  Hashtbl.fold (fun dst _ b -> b || valid rt dst) rt false
