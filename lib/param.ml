@@ -257,12 +257,11 @@ module Persist = struct
 
   let save oc = Marshal.to_channel oc (configlist()) []
     
-  let restore ?(verbose=true) ic = 
+  let restore ic = 
     Log.log#log_notice (lazy "Restoring Param state...");
     let configlist = (Marshal.from_channel ic  : (string * string) list)
     in
     List.iter (fun (name, value) -> strset_by_name name value) configlist;
-    if verbose then 
-      Log.log#log_notice (lazy (sprintconfig()));
+    Log.log#log_notice (lazy (sprintconfig()));
     Log.log#log_notice (lazy "Done (restoring param state).");
 end
