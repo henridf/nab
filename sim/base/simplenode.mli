@@ -52,11 +52,11 @@ type node_state_t = Coord.coordf_t
   {b On multiple stacks:}
 
   Some methods and functions have an optional [?stack] argument, allowing to
-  indicate which stack is being used. Note that this optional argument
+  indicate which stack is being used. This optional argument
   defaults to 0; therefore one need never specify it if running only one
   stack (and can hence can safely ignore this passage).
 
-  We explain the notion of multiple stacks here.
+  We explain the notion of multiple stacks below:
 
   It is possible in mws to simultaneously run multiple protocol stacks on each
   node. These are completely oblivious to, and independent of, each
@@ -88,17 +88,44 @@ object ('a)
     
   method id : Common.nodeid_t
 
+  (** Installing/removing components of a protocol stack. *)
+
   method install_mac : ?stack:int -> Mac.t -> unit
     (** Install a {!Mac.t} object in the given [stack] (stack 0 if not specified). *)
-
-  method install_rt_agent : ?stack:int -> Rt_agent.t -> unit
-    (** Install a {!Rt_agent.t} object in the given [stack] (stack 0 if not specified). *)
-
-  method remove_rt_agent : ?stack:int -> unit -> unit
 
   method mac : ?stack:int -> unit -> Mac.t
     (** Returns the node's {!Mac.t} object from the given [stack] (stack 0 if not specified). *)
 
+  method remove_mac : ?stack:int -> unit -> unit
+    (** Remove {!Mac.t} from given [stack] (stack 0 if not specified). *)
+
+  method install_rt_agent : ?stack:int -> Rt_agent.t -> unit
+    (** Install a {!Rt_agent.t} object in the given [stack] (stack 0 if not specified). *)
+
+  method agent : ?stack:int -> unit -> Rt_agent.t
+    (** Returns the node's routing agent from the given [stack] (stack
+      0 if not specified). Note that the routing agent is coerced to a
+      {!Rt_agent.t}, so any additional methods than those in the {!Rt_agent.t}
+      type are hidden. 
+    *)
+    
+  method remove_rt_agent : ?stack:int -> unit -> unit
+    (** Remove {!Rt_agent.t} from given [stack] (stack 0 if not specified). *)
+
+  method remove_stack : ?stack:int -> unit -> unit
+    (** Remove entire protocol stack [stack] (stack 0 if not specified). *)
+
+
+  (** Sending/receiving packets. *)
+
+  method set_trafficsource :  gen:Trafficgen.t ->  dst:Common.nodeid_t -> unit
+    (** Installs a traffic source and uses it to generate application packets
+      to node dst. 
+
+      Multiple trafficsources to multiple destinations can be installed (XXX not
+      tested though)
+    *)
+   
   method mac_recv_pkt : ?stack:int -> L2pkt.t -> unit
 
   method mac_send_pkt : 
@@ -112,11 +139,17 @@ object ('a)
       if that destination is not a neighbor within range (hence the "cheating"). 
       This only works if the MAC layer is a {!Mac_cheat.cheatmac} - otherwise
       a packet to a node which is not in range is silently dropped.
-*)
-
+    *)
+    
   method mac_bcast_pkt : ?stack:int -> L3pkt.t -> unit
     (** Broadcast packet to all neighbors. *)
-
+    
+  method originate_app_pkt : dst:Common.nodeid_t -> unit
+    (** originates a packet from an application on this node to dst:
+      create the packet and shove it down the app_send_pkt_hooks *)
+    
+  (** Inserting hooks. *)
+    
   method add_pktin_mhook : hook:(L2pkt.t -> 'a -> unit) -> unit
     (** Any monitoring application can register here to see all packets entering
       the node.
@@ -130,27 +163,10 @@ object ('a)
   method clear_pkt_mhooks :  unit 
     (** clears pktin and pktout mhooks *)
 
-  method originate_app_pkt : dst:Common.nodeid_t -> unit
-    (** originates a packet from an application on this node to dst:
-      create the packet and shove it down the app_send_pkt_hooks *)
 
-  method set_trafficsource :  gen:Trafficgen.t ->  dst:Common.nodeid_t -> unit
-    (** Installs a traffic source and uses it to generate application packets
-      to node dst. 
-
-      Multiple trafficsources to multiple destinations can be installed (XXX not
-      tested though)
-    *)
-   
 end
   
 (**/**)  
     
-(*
-  class node : 
-  pos_init:Coord.coordf_t -> 
-  id:Common.nodeid_t ->
-  node_t
-*)
     
     
