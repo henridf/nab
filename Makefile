@@ -17,7 +17,7 @@ MK_DIR = mk
 GUI_DIR = gui
 TEST_DIR = test
 BIN_DIR = bin
-CAML_DIR = /usr/lib/ocaml
+CAML_DIR = /usr/local/lib/ocaml
 GTK_DIR = $(CAML_DIR)/lablgtk
 CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
 
