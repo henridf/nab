@@ -105,7 +105,7 @@ let make_stringargspec param =
 
 let make_boolargspec param = 
   ("-"^param.name, 
-  Arg.Bool (fun i -> set param i),
+  Arg.Unit (fun () -> set param true),
   param.doc)
 
 let make_otherargspec param = 
@@ -188,10 +188,10 @@ let floatcreate ~name  ~doc ?(cmdline=false) ?default ?checker
     params_speclist := (make_floatargspec p)::!params_speclist;
   p
 
-let boolcreate ~name  ~doc ?(cmdline=false) ?default ?checker
+let boolcreate ~name  ~doc ?(cmdline=false) ?default 
   ?(notpersist=false) () = 
   let p = register ~cmdline ~name ?default ~doc ~reader:bool_of_string
-    ~printer:string_of_bool ?checker ~notpersist () in
+    ~printer:string_of_bool ~notpersist () in
   if cmdline then 
     params_speclist := (make_boolargspec p)::!params_speclist;
   p

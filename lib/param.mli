@@ -60,6 +60,8 @@ val create :
   @param default Default value. Optional.
   @param cmdline Allow the parameter to be set via a command-line
   argument. Optional; default is [false].
+  @param checker A function to check validity of value when setting, for
+  example to check that the number of nodes is positive. Optional.
   @param persist If true, ignore this parameter when saving and restoring configuration
   state. Default is [false].
 
@@ -74,10 +76,8 @@ val intcreate :
   ?notpersist:bool ->
   unit 
   -> int t                             
-  (** Create an parameter of type int.
-    @param checker A function to check validity of value when setting, for
-    example to check that the number of nodes is positive. Optional.
-    Other arguments are same as for {!Param.create}. *)
+  (** Create a parameter of type int.
+    Arguments are same as for {!Param.create}. *)
 
 val floatcreate :  
   name:string  -> 
@@ -88,10 +88,8 @@ val floatcreate :
   ?notpersist:bool ->
   unit 
   -> float t                             
-  (** Create an parameter of type float.
-    @param checker A function to check validity of value when setting, for
-    example to check that the number of nodes is positive. Optional.
-    Other arguments are same as for {!Param.create}. *)
+  (** Create a parameter of type float.
+    Arguments are same as for {!Param.create}. *)
 
 
 val boolcreate :  
@@ -99,14 +97,11 @@ val boolcreate :
   doc:string  ->
   ?cmdline:bool  ->  
   ?default:bool  -> 
-  ?checker:(bool -> unit) ->
   ?notpersist:bool ->
   unit 
   -> bool t                             
-  (** Create an parameter of type bool.
-    @param checker A function to check validity of value when setting, for
-    example to check that the number of nodes is positive. Optional.
-    Other arguments are same as for {!Param.create}. *)
+  (** Create a parameter of type bool.
+    Arguments are same as for {!Param.create}. *)
 
 
 val stringcreate :  
@@ -118,10 +113,8 @@ val stringcreate :
   ?notpersist:bool ->
   unit 
   -> string t                             
-  (** Create an parameter of type string.
-    @param checker A function to check validity of value when setting, for
-    example to check that the number of nodes is positive. Optional.
-    Other arguments are same as for {!Param.create}. *)
+  (** Create a parameter of type string.
+    Arguments are same as for {!Param.create}. *)
 
 
 (** {1 Getting and Setting parameter values} *)
