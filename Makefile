@@ -127,10 +127,11 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/nodeDB$(CMO) \
 		$(MWS_DIR)/rtab$(CMO) \
 		$(MWS_DIR)/ether$(CMO) \
-		$(MWS_DIR)/mac_null$(CMO) \
-		$(MWS_DIR)/mac_contention$(CMO) \
 		$(MWS_DIR)/tsource$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
+		$(MWS_DIR)/mac_base$(CMO) \
+		$(MWS_DIR)/mac_null$(CMO) \
+		$(MWS_DIR)/mac_contention$(CMO) \
 		$(MWS_DIR)/gpsnode$(CMO) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
 		$(MWS_DIR)/aodv_grep_common$(CMO) \
@@ -166,6 +167,7 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
+		 $(MISC_DIR)/opt$(CMO) \
 		 $(MISC_DIR)/randoms$(CMO) \
 		 $(MISC_DIR)/coord$(CMO) \
 		 $(MISC_DIR)/naryTree$(CMO)
