@@ -44,7 +44,7 @@ let packet_buffer_size = 50
 
 class type grep_agent_t =
   object
-    method private app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
+    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t -> unit
     method private buffer_packet : l3pkt:L3pkt.t -> unit
     method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
@@ -74,7 +74,8 @@ class type grep_agent_t =
     method private process_rreq_pkt :
       l3pkt:L3pkt.t -> 
       fresh:bool -> unit
-    method private recv_l2pkt_hook : L2pkt.t -> unit
+    method mac_recv_l2pkt : L2pkt.t -> unit
+    method mac_recv_l3pkt : L3pkt.t -> unit
     method private recv_l3pkt_ : l3pkt:L3pkt.t ->
       sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
@@ -113,9 +114,8 @@ object(s)
     (* see #init_rreq for explanation on this *)
 
   initializer (
-    s#set_objdescr ~owner "/GREP_Agent";
-    owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
-    owner#add_app_send_pkt_hook ~hook:s#app_send;
+    s#set_objdescr ~owner:theowner "/GREP_Agent";
+
     s#incr_seqno()
   )
 
@@ -126,10 +126,10 @@ object(s)
     let update = 
       Rtab.newadv 
 	~rt 
-	~dst:owner#id
+	~dst:myid
 	~sn:seqno
 	~hc:0
-	~nh:owner#id
+	~nh:myid
     in 
     assert(update);
   )
@@ -225,13 +225,14 @@ object(s)
       | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
       | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
       | L3pkt.NOT_GREP | L3pkt.EASE 
-	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
-      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
+	-> raise (Failure "Grep_agent.mac_recv_l2pkt");
+      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.mac_recv_l2pkt");
     end
   )
 
+  method mac_recv_l3pkt _  = ()
 
-  method private recv_l2pkt_hook l2pkt = (
+  method  mac_recv_l2pkt l2pkt = (
     
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
@@ -275,7 +276,7 @@ object(s)
     match fresh with 
       | true -> 
 	  let answer_rreq = 
-	    (rdst = owner#id)
+	    (rdst = myid)
 	    ||
 	    begin match (Rtab.seqno ~rt ~dst:rdst) with 
 	      | None -> false
@@ -315,7 +316,7 @@ object(s)
     in
     let l3hdr = 
       L3pkt.make_l3hdr
-	~srcid:owner#id
+	~srcid:myid
 	~dstid:dst
 	~ext:grep_l3hdr_ext
 	()
@@ -352,7 +353,7 @@ object(s)
       ((this_sn = next_sn) && (this_hc >= next_hc))
     ) then 
       let str = (Printf.sprintf "%s packet, this:%d, nexthoph:%d, dst:%d, this_sn: %d, this_hc: %d, next_sn: %d, next_hc:
-    %d" ptype owner#id nexthop dst this_sn this_hc next_sn next_hc)
+    %d" ptype myid nexthop dst this_sn this_hc next_sn next_hc)
       in
       s#log_warning (lazy str);
       raise (Failure (Printf.sprintf "Inv_packet_upwards %s" str))
@@ -365,7 +366,7 @@ object(s)
       let dst = (L3pkt.l3dst ~l3pkt) in
       begin try
 	
-	if (dst = owner#id) then ( (* pkt for us *)
+	if (dst = myid) then ( (* pkt for us *)
 	  s#hand_upper_layer ~l3pkt;
 	  raise Break 
 	);
@@ -426,7 +427,7 @@ object(s)
 
   method start_hello () = 
 
-    if none hello_period_ then begin
+    if Opt.is_none hello_period_ then begin
       hello_period_ <- Some _DEFAULT_HELLO_PERIOD;
       let jittered_start_time = 
 	Random.float (o2v hello_period_)  in
@@ -447,7 +448,7 @@ object(s)
       in
       let l3hdr = 
 	L3pkt.make_l3hdr
-	  ~srcid:owner#id
+	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
 	  ~ext:grep_l3hdr_ext
 	  ~ttl:1 
@@ -459,7 +460,7 @@ object(s)
       in	
       s#send_out ~l3pkt;
       
-      if (some hello_period_) then 
+      if (Opt.is_some hello_period_) then 
 	let next_hello_t = 
 	  _DEFAULT_HELLO_PERIOD 
 	  +. Random.float (_HELLO_JITTER_INTERVAL())
@@ -493,7 +494,7 @@ object(s)
       in
       let l3hdr = 
 	L3pkt.make_l3hdr
-	  ~srcid:owner#id
+	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
 	  ~ext:grep_l3hdr_ext
 	  ~ttl:ttl 
@@ -538,9 +539,9 @@ object(s)
       then (
 	(* the second line is for the case where the rrep was originated by the
 	   source, in which case update=false (bc the info from it has already
-	   been looked at in recv_l2pkt_hook) *)
+	   been looked at in mac_recv_l2pkt) *)
 	Rtab.repair_done ~rt ~dst:(L3pkt.osrc ~l3pkt);
-	if ((L3pkt.l3dst ~l3pkt) <> owner#id) then (
+	if ((L3pkt.l3dst ~l3pkt) <> myid) then (
 	  try 
 	    s#send_out ~l3pkt
 	  with 
@@ -556,7 +557,7 @@ object(s)
   method private send_out ~l3pkt = (
     
     let dst = L3pkt.l3dst ~l3pkt in
-    assert (dst <> owner#id);
+    assert (dst <> myid);
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     assert (L3pkt.ssn ~l3pkt >= 1);
 
@@ -575,7 +576,7 @@ object(s)
 	  begin match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
 	    | true -> 
 		Grep_hooks.sent_rreq() ;
-		owner#mac_bcast_pkt ~l3pkt;
+		owner#mac_bcast_pkt l3pkt;
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
@@ -594,7 +595,7 @@ object(s)
 	    in 
 	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
 	    try begin
-	      owner#mac_send_pkt ~l3pkt ~dstid:nexthop; end
+	      owner#mac_send_pkt ~l3pkt ~dstid:nexthop (); end
 	    with Simplenode.Mac_Send_Failure -> failed()
 	      
 	  end
@@ -622,8 +623,8 @@ object(s)
 
     let pkt = 
       L3pkt.DSDV_PKT (L3pkt.make_dsdv_pkt 
-	~srcid:owner#id 
-	~originator:owner#id 
+	~srcid:myid 
+	~originator:myid 
 	~nhops:0
     ~seqno:seqno
     ~ttl:6) in
@@ -635,12 +636,12 @@ object(s)
   *)
     
     
-  method private app_send l4pkt ~dst = (
+  method private app_recv_l4pkt l4pkt ~dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
       dst));
     let l3hdr = 
       L3pkt.make_l3hdr
-	~srcid:owner#id
+	~srcid:myid
 	~dstid:dst
 	~ext:(L3pkt.make_grep_l3hdr_ext
 	  ~flags:L3pkt.GREP_DATA
@@ -650,7 +651,7 @@ object(s)
 	)
 	()
     in
-    assert (dst <> owner#id);
+    assert (dst <> myid);
     Grep_hooks.orig_data();
     let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
 

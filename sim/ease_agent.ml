@@ -15,9 +15,9 @@ class type ease_agent_t =
     val mutable db : NodeDB.nodeDB
     val owner : Gpsnode.gpsnode
     method add_neighbor : Common.nodeid_t -> unit
-    method app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
+    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t -> unit
     method db : NodeDB.nodeDB
-    method mac_recv_hook : L3pkt.t -> unit
+    method mac_recv_l3pkt : L3pkt.t -> unit
     method objdescr : string
     method set_db : NodeDB.nodeDB -> unit
     method private recv_ease_pkt_ : L3pkt.t -> unit
@@ -54,8 +54,6 @@ object(s)
 
   initializer (
     s#set_objdescr  "/Ease_Agent";
-    owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
-    owner#add_app_send_pkt_hook ~hook:s#app_send;
     (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor
   )
 
@@ -66,7 +64,7 @@ object(s)
      )
    )
 
-  method mac_recv_hook l3pkt = 
+  method mac_recv_l3pkt l3pkt = 
     s#recv_ease_pkt_ l3pkt 
 
   method private our_enc_age dst = 
@@ -74,7 +72,7 @@ object(s)
 	| None -> max_float
 	| Some enc ->  Common.enc_age enc
 
-  method app_send (l4pkt:L4pkt.l4pkt_t) ~dst = (
+  method app_recv_l4pkt (l4pkt:L4pkt.t) ~dst = (
     s#recv_ease_pkt_ 
     (L3pkt.make_ease_l3pkt 
       ~srcid:owner#id 
@@ -168,7 +166,7 @@ object(s)
        the same position as the destination, in which case the find_closest call
        in closest_toward_anchor might return us *)
     if owner#pos = (Nodes.gpsnode (L3pkt.l3dst pkt))#pos  then 
-      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Nodes.gpsnode dst)#id
+      owner#cheat_send_pkt ~l3pkt:pkt (Nodes.gpsnode dst)#id
     else (
       (* find next closest node toward anchor *)
       let closest_id = s#closest_toward_anchor (L3pkt.l3anchor pkt) in
@@ -186,7 +184,7 @@ object(s)
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
 	  (Coord.sprintf (Nodes.gpsnode dst)#pos)))
       );
-      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id
+      owner#cheat_send_pkt ~l3pkt:pkt closest_id
     )
   )
     

@@ -38,7 +38,7 @@ let packet_buffer_size = 50
 
 class type aodv_agent_t =
   object
-    method private app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
+    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t -> unit
     method private buffer_packet : l3pkt:L3pkt.t -> unit
     method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
@@ -69,7 +69,8 @@ class type aodv_agent_t =
     method private process_rreq_pkt :
       l3pkt:L3pkt.t -> 
       fresh:bool -> unit
-    method private recv_l2pkt_hook : L2pkt.t -> unit
+    method mac_recv_l2pkt : L2pkt.t -> unit
+    method mac_recv_l3pkt : L3pkt.t -> unit
     method private recv_l3pkt_ : l3pkt:L3pkt.t ->
       sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
@@ -91,24 +92,23 @@ let agent i = !agents_array.(i)
 
 
 
-class aodv_agent owner : aodv_agent_t = 
+class aodv_agent theowner : aodv_agent_t = 
 object(s)
 
   inherit Log.inheritable_loggable
 
-  val owner:#Simplenode.simplenode = owner
+  val owner:#Simplenode.simplenode = theowner
   val rt = Rtab.create_aodv ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
+  val myid = theowner#id
 
   val rreq_uids = Array.create (Param.get Params.nodes) 0
     (* see #init_rreq for explanation on this *)
 
 
   initializer (
-    s#set_objdescr ~owner  "/AODV_Agent";
-    owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
-    owner#add_app_send_pkt_hook ~hook:s#app_send;
+    s#set_objdescr ~owner:theowner  "/AODV_Agent";
     s#incr_seqno()
   )
 
@@ -117,10 +117,10 @@ object(s)
     let update = 
       Rtab.newadv 
 	~rt 
-	~dst:owner#id
+	~dst:myid
 	~sn:seqno
 	~hc:0
-	~nh:owner#id
+	~nh:myid
     in 
     assert(update);
   )
@@ -237,13 +237,13 @@ object(s)
       | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
       | L3pkt.GREP_RERR -> s#process_rerr_pkt ~l3pkt ~sender;
       | L3pkt.NOT_GREP | L3pkt.EASE 
-	  -> raise (Failure "Aodv_agent.recv_l2pkt_hook");
+	  -> raise (Failure "Aodv_agent.mac_recv_l2pkt");
     end
   ) 
 
+  method mac_recv_l3pkt _  = ()
 
-  (* as recv_packet in paper *)
-  method private recv_l2pkt_hook l2pkt = (
+  method mac_recv_l2pkt l2pkt = (
 
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
@@ -285,7 +285,7 @@ object(s)
     match fresh with 
       | true -> 
 	  let answer_rreq = 
-	    (rdst = owner#id)
+	    (rdst = myid)
 	    ||
 	    begin match (Rtab.seqno ~rt ~dst:rdst) with 
 	      | None -> false
@@ -324,7 +324,7 @@ object(s)
     in
     let l3hdr = 
       L3pkt.make_l3hdr
-	~srcid:owner#id
+	~srcid:myid
 	~dstid:dst
 	~ext:grep_l3hdr_ext
 	()
@@ -357,7 +357,7 @@ object(s)
     in
     let l3hdr = 
       L3pkt.make_l3hdr
-	~srcid:owner#id
+	~srcid:myid
 	~dstid:dst
 	~ext:grep_l3hdr_ext
 	()
@@ -382,7 +382,7 @@ object(s)
 	src = (L3pkt.l3src ~l3pkt) in
       begin try
 
-	if (dst = owner#id) then ( (* pkt for us *)
+	if (dst = myid) then ( (* pkt for us *)
 	  s#hand_upper_layer ~l3pkt;
 	  raise Break 
 	);
@@ -392,7 +392,7 @@ object(s)
 	  raise Break
 	);		
 
-	if (owner#id <> src) && (Rtab.invalid ~rt ~dst) then (
+	if (myid <> src) && (Rtab.invalid ~rt ~dst) then (
 	  Grep_hooks.drop_data_rerr();
 	  raise Break;
 	);
@@ -403,7 +403,7 @@ object(s)
 	  | Send_Out_Failure -> 
 	      begin
 		Rtab.invalidate ~rt ~dst;
-		if (owner#id = src) || (s#local_repair ~dst ~src) then (
+		if (myid = src) || (s#local_repair ~dst ~src) then (
 		  (* will need to check this when we do enable local_repairs *)
 		  s#log_notice 
 		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
@@ -485,7 +485,7 @@ object(s)
       in
       let l3hdr = 
 	L3pkt.make_l3hdr
-	  ~srcid:owner#id
+	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
 	  ~ext:grep_l3hdr_ext
 	  ~ttl:ttl 
@@ -534,9 +534,9 @@ object(s)
 	(L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt)))) then (
 	(* the second line is for the case where the rrep was originated by the
 	   source, in which case update=false (bc the info from it has already
-	   been looked at in recv_l2pkt_hook) *)
+	   been looked at in mac_recv_l2pkt) *)
 	Rtab.repair_done ~rt ~dst:(L3pkt.osrc ~l3pkt);
-	if ((L3pkt.l3dst ~l3pkt) <> owner#id) then (
+	if ((L3pkt.l3dst ~l3pkt) <> myid) then (
 	try 
 	  s#send_out ~l3pkt
 	with 
@@ -556,7 +556,7 @@ object(s)
       let invalid_dst = (L3pkt.rdst ~l3pkt) in
       Rtab.invalidate ~rt ~dst:invalid_dst;
       
-      if ((L3pkt.l3dst ~l3pkt) <> owner#id) then (
+      if ((L3pkt.l3dst ~l3pkt) <> myid) then (
 	s#kill_buffered_packets ~dst:invalid_dst;
 	try 
 	  s#send_out ~l3pkt
@@ -582,7 +582,7 @@ object(s)
   method private send_out  ~l3pkt = (
     
     let dst = L3pkt.l3dst ~l3pkt in
-    assert (dst <> owner#id);
+    assert (dst <> myid);
     assert (L3pkt.l3ttl ~l3pkt >= 0);
     assert (L3pkt.ssn ~l3pkt >= 1);
 
@@ -604,7 +604,7 @@ object(s)
 	    match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
 	      | true -> 
 		  Grep_hooks.sent_rreq() ;
-		  owner#mac_bcast_pkt ~l3pkt;
+		  owner#mac_bcast_pkt l3pkt;
 	      | false ->
 		  s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
@@ -623,7 +623,7 @@ object(s)
 		| Some nh -> nh
 	    in 
 	      try begin
-		owner#mac_send_pkt ~l3pkt ~dstid:nexthop; end
+		owner#mac_send_pkt ~l3pkt ~dstid:nexthop (); end
 	      with Simplenode.Mac_Send_Failure -> failed()
 	  end
 
@@ -650,8 +650,8 @@ object(s)
 
     let pkt = 
       L3pkt.DSDV_PKT (L3pkt.make_dsdv_pkt 
-	~srcid:owner#id 
-	~originator:owner#id 
+	~srcid:myid 
+	~originator:myid 
 	~nhops:0
     ~seqno:seqno
     ~ttl:6) in
@@ -663,12 +663,12 @@ object(s)
   *)
     
 
-  method private app_send l4pkt ~dst = (
+  method private app_recv_l4pkt l4pkt ~dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
      dst));
     let l3hdr =  
       L3pkt.make_l3hdr
-	~srcid:owner#id
+	~srcid:myid
 	~dstid:dst
 	~ext:(L3pkt.make_grep_l3hdr_ext 
 	  ~flags:L3pkt.GREP_DATA
@@ -678,7 +678,7 @@ object(s)
 	)
 	()
     in 
-    assert (dst <> owner#id);
+    assert (dst <> myid);
     Grep_hooks.orig_data();
     let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
 

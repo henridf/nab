@@ -24,10 +24,13 @@ let rndseed = ref 0
 
 class type diff_agent_t =
   object
-    method publish :  L4pkt.l4pkt_t -> dst:Common.nodeid_t ->  unit
-      (* Publish must take a ~dst because it is passed to
-	 Simplenode.add_app_send_pkt_hook - in fact, since we are
+    method private publish : unit
+
+    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t ->  unit
+      (* Publish must take a ~dst because of the rt_agent_base.t interface.
+	 But in fact, since we are
 	 data-centric, we don't do anything with it *)
+
     method seqno : unit -> int
     method  is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
     method subscribe : ?delay:float -> ?ttl:int -> unit -> unit
@@ -44,7 +47,7 @@ class type diff_agent_t =
     method private process_radv_pkt :
       l3pkt:L3pkt.t -> 
       l2sender:Common.nodeid_t -> unit
-    method private recv_l2pkt_hook : L2pkt.t -> unit
+    method  mac_recv_l2pkt : L2pkt.t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
 
     method closest_sinks : unit -> Common.nodeid_t list 
@@ -84,8 +87,6 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner "/diffagent";
-    owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
-    owner#add_app_send_pkt_hook ~hook:s#publish;
     s#incr_seqno();
     incr rndseed;
   )
@@ -138,7 +139,7 @@ object(s)
       | _ -> raise (Misc.Impossible_Case "Grep_agent.packet_fresh()")
   )
     
-  method private recv_l2pkt_hook l2pkt = (
+  method mac_recv_l2pkt l2pkt = (
     
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
@@ -150,8 +151,8 @@ object(s)
       | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~l2sender 
       | L3pkt.GREP_RREP | L3pkt.GREP_RREQ 
       | L3pkt.NOT_GREP  | L3pkt.EASE 
-	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
-      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
+	-> raise (Failure "Grep_agent.mac_recv_l2pkt");
+      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.mac_recv_l2pkt");
     end
   )
 
@@ -364,7 +365,7 @@ object(s)
 	  L3pkt.decr_l3ttl ~l3pkt:newpkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt:newpkt) >= 0)  with
 	    | true -> 
-		owner#mac_bcast_pkt ~l3pkt:newpkt;
+		owner#mac_bcast_pkt newpkt;
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
@@ -376,7 +377,7 @@ object(s)
 		| Some nh -> nh 
 	    in 
 	    try begin
-	      owner#mac_send_pkt ~l3pkt:newpkt ~dstid:nexthop; end
+	      owner#mac_send_pkt ~l3pkt:newpkt ~dstid:nexthop () ; end
 	    with Simplenode.Mac_Send_Failure -> failed()
 	      
 	  end
@@ -436,7 +437,10 @@ object(s)
       s#send_out ~l3pkt;
 
 
-  method publish  _ ~dst:_  = (
+  method app_recv_l4pkt _ ~dst:_ = 
+    s#publish
+
+  method private publish  = (
     let sinks_to_send_to = 
       match !diffusion_type with 
 	| `Voronoi | `ESS -> 

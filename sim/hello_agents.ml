@@ -23,13 +23,12 @@ object(s)
 
   initializer (
     objdescr <- (owner#objdescr ^  "/Hello_Agent ");
-    owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
 (*    (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor*)
   )
 
 
 (* This is called by the containing node each time we receive any packet. *)
-  method mac_recv_hook l3pkt = (
+  method mac_recv_l3pkt l3pkt = (
 
     (* Check what type of packet this is, (we are only interested in hello
        packets). *)
@@ -92,7 +91,7 @@ object (s)
     in
 
     (* Broadcast out this packet. It will be received by all nodes within range.*)
-    owner#mac_bcast_pkt ~l3pkt;
+    owner#mac_bcast_pkt l3pkt;
     
     (* Schedule the next hello broadcast in one second *)
     (Gsched.sched())#sched_in ~f:(s#send_hello) ~t:1.0

@@ -109,7 +109,7 @@ object(s)
       | `BLER_PKT p -> s#recv_bler_pkt_ l3pkt
       | _ -> ()
 
-  method app_send (l4pkt:L4pkt.l4pkt_t) ~dst = 
+  method app_send (l4pkt:L4pkt.t) ~dst = 
     s#recv_bler_pkt_ (Packet.make_bler_l3pkt ~srcid:owner#id ~dstid:dst)
 
 
