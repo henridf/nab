@@ -88,8 +88,8 @@ let do_one_run() = (
   Gui_hooks.attach_mob_hooks();
 
 
-  Mob.make_epfl_mobs();
-  Mob.start_all();
+  Mob_ctl.make_epfl_waypoint_mobs();
+  Mob_ctl.start_all();
     
 
   

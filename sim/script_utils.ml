@@ -191,9 +191,9 @@ let move_nodes ~prop ~targets = (
     ) else true
   )
   in
-  Mob.start_all();
+  Mob_ctl.start_all();
   (Gsched.sched())#run_until ~continue;
-  Mob.stop_all();
+  Mob_ctl.stop_all();
 )
   
 

@@ -63,7 +63,7 @@ let stop() = (
 
   (* calling function is responsible for ensuring that !run_id <> None , ie
      that we are indeed running *)
-  Mob.stop_all();
+  Mob_ctl.stop_all();
   
   (* this call is to "purge" all mobility events that might be still in the
      scheduler. normally this should be done by the mob itself when we stop it,
@@ -81,7 +81,7 @@ let start() = (
 
   rt := None;
   Gui_gtk.txt_msg "Nodes are moving ";
-  Mob.start_all();
+  Mob_ctl.start_all();
   ignore(run());
   run_id := Some (Timeout.add ~ms:300 ~callback:run);
 )
