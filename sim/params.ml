@@ -53,7 +53,7 @@ let ntargets =
     ()
 
 let mac = 
-  Param.stringcreate ~name:"mac" ~default:"cont" ~cmdline:true
+  Param.stringcreate ~name:"mac" ~default:"null" ~cmdline:true
     ~doc:"Mac layer" ~checker:(fun s -> (Mac.strset_mac s)) ()
 
 let log_level = 
