@@ -50,7 +50,8 @@ val print_header : unit -> unit
 val init_world : unit -> unit
   (** Instantiates the world object of type indicated by the world param
     {!World.world}. 
-    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
+    Number of nodes ({!Params.nodes}), world size ({!Params.x_size} and
+    {!Params.y_size}), and radio range ({!Params.radiorange}) should be
     set before calling this. *)
 
 val init_all : unit -> unit
