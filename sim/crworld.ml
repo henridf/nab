@@ -23,15 +23,18 @@ object(s)
 
   val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 [])
     
-  val mutable size_x_ =  x 
-  val mutable size_y_ =  y
-  val mutable rrange_ = rrange
+  val world_size_x_ =  x 
+  val world_size_y_ =  y
+  val rrange_ = rrange
+  val grid_size_x_ = (f2i (x /. rrange)) + 1
+  val grid_size_y_ = (f2i (y /. rrange)) + 1
+
+  val rrange_sq_ = rrange ** 2.0
+    
 
   initializer (
-    grid_of_nodes_ <- (Array.make_matrix 
-      (f2i (size_x_ /. rrange_)) 
-      (f2i (size_y_ /. rrange_)) 
-      []);
+    grid_of_nodes_ <- 
+    (Array.make_matrix grid_size_x_ grid_size_y_ []);
     Log.log#log_always (sprintf "New CRWorld " );
   )
 
@@ -40,21 +43,21 @@ object(s)
   method private pos_in_grid_ pos = coord_f2i (coord_floor (pos ///. rrange_))
 
   method random_pos  = (
-    let pos = (Random.float size_x_, Random.float size_y_) in
+    let pos = (Random.float world_size_x_, Random.float world_size_y_) in
     pos
   )
 
   method private reflect pos = (
     let newx = ref (xx pos) and newy = ref (yy pos) in 
-    if !newx >  size_x_ then 
-      newx := (2.0 *. size_x_) -. !newx
+    if !newx >  world_size_x_ then 
+      newx := (2.0 *. world_size_x_) -. !newx
     else if !newx < 0.0 then
-      newx := (-1.0) *. size_x_;
-    if !newy > size_y_  then  
-      newy := (2.0 *. size_y_) -. !newy
+      newx := (-1.0) *. world_size_x_;
+    if !newy > world_size_y_  then  
+      newy := (2.0 *. world_size_y_) -. !newy
     else if !newy < 0.0 then
       newy := (-1.0) *. !newy;
-    assert (!newx >= 0.0 && !newx <  size_x_ && !newy >= 0.0 && !newy <  size_y_);
+    assert (!newx >= 0.0 && !newx <  world_size_x_ && !newy >= 0.0 && !newy <  world_size_y_);
     (!newx, !newy)
   )
 
@@ -63,9 +66,9 @@ object(s)
   method dist_coords a b = sqrt (Coord.dist_sq a b)
   method dist_nodes n1 n2 = s#dist_coords n1#pos n2#pos
   method dist_nodeids id1 id2 = s#dist_coords (Nodes.node(id1))#pos (Nodes.node(id2))#pos
-  method neighbors n1 n2 = n1 <> n2 && (s#dist_coords n1#pos n2#pos) <= 1.0
+  method neighbors n1 n2 = 
+    n1 <> n2 && ((Coord.dist_sq n1#pos n2#pos) <= rrange_sq_)
 
-    
   method private slow_compute_neighbors_ node = (
     let neighbors = ref [] in
     Nodes.iter 
@@ -77,9 +80,9 @@ object(s)
   method private compute_neighbors_ node = (
     let gridpos = s#pos_in_grid_ node#pos in
     let grid_at_pos p = 
-      if (xx p) >= 0 && (yy p) >= 0 && 
-	(xx p) < (f2i (size_x_ /. rrange_)) && (yy p) < (f2i (size_y_ /. rrange_))
-      then grid_of_nodes_.(xx p).(yy p) else [] 
+      if (s#is_in_grid p)  
+      then grid_of_nodes_.(xx p).(yy p) 
+      else [] 
     in
     let north = 0,1
     and south = 0,-1 
@@ -130,9 +133,22 @@ object(s)
       !consistent
     ) || raise (Failure "Neighbors not correct")
     in
+
+    (* Check that all nodes have the correct neigbhors using slow method *)
+    let slow_correct_neighbors() = (
+    Nodes.iter
+      (fun n -> consistent := !consistent && 
+	(Misc.list_same 
+	  n#neighbors
+	  (s#slow_compute_neighbors_ n)));
+      !consistent
+    ) || raise (Failure "Neighbors not correct (slow_compute_neighbors)")
+    in
     commutative()
     &&
     correct_neighbors()
+    &&
+    slow_correct_neighbors()
   )
     
   method update_pos ~node ~oldpos_opt = (
@@ -147,7 +163,10 @@ object(s)
     begin match oldpos_opt with
 	
       | None ->  (
+(*	  Printf.printf "newpos : %f %f, posingrid: %d %d\n" (xx newpos) (yy
+	    newpos) newx newy; flush stdout;*)
 	  assert (not (List.mem index grid_of_nodes_.(newx).(newy)));
+	    
 	  grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
 	  (* node is new, had no previous position *)
 	)
@@ -165,6 +184,10 @@ object(s)
 	)
     end;
     s#update_node_neighbors_ node;
+(*
+    if (Common.get_time() > 10.0) then
+      ignore(s#neighbors_consistent);
+*)
   )
     
 
@@ -206,23 +229,22 @@ object(s)
   )
 
 
-    (* Returns nodes in squares that are touched by a ring of unit width. 
+  method private is_in_grid p = 
+    (xx p) >= 0 && (yy p) >= 0 && 
+    ((xx p) < grid_size_x_) && ((yy p) < grid_size_y_)
 
-       List may have repeated elements.
-       radius: outer radius of ring *)
 
-  method private get_nodes_in_ring ~center ~radius = (
 
-    let is_in_grid p = 
-      (xx p) >= 0 && (yy p) >= 0 && 
-      (xx p) < (f2i (size_x_ /. rrange_)) && (yy p) < (f2i (size_y_ /. rrange_))
-      in
+  (* Returns nodes in squares that are touched by a ring of unit width. 
+     List may have repeated elements.
+     radius: outer radius of ring *)
+  method private get_nodes_in_ring ~center_m ~radius_m = (
+
     let grid_squares_at_radius r = (
 	let coords = (
 	  match r with
-	    | 0 -> []
-	    | 1 -> 
-		let gridpos = s#pos_in_grid_ center in
+	    | rad when (rad <= rrange_) -> 
+		let gridpos = s#pos_in_grid_ center_m in
 		
 		let north = 0,1
 		and south = 0,-1 
@@ -243,22 +265,28 @@ object(s)
 		(gridpos +++ northwest);
 		(gridpos +++ southwest)
 		]
-	    | r  -> 
-		Crsearch.xsect_grid_and_circle ~center:center ~radius:(i2f r) ~gridsize:size_x_
+	    | rad  -> 
+		(* xxx/ gridsize can be rectangular *)
+		Crsearch.xsect_grid_and_circle 
+		~center_m:center_m 
+		~radius_m:rad
+		~worldsize_x_m:world_size_x_
+		~worldsize_y_m:world_size_y_
+		~boxsize_m:rrange_
 	) in
-	List.filter (fun p -> is_in_grid p) coords
-      ) in
+	List.filter (fun p -> s#is_in_grid p) coords
+    ) in
     
-      let inner_squares = grid_squares_at_radius (radius - 1)
-      and outer_squares = grid_squares_at_radius radius
+    let inner_squares = grid_squares_at_radius (radius_m -. rrange_)
+    and outer_squares = grid_squares_at_radius radius_m
       in 
       let squares = list_unique_elements (
 	inner_squares @ 
 	outer_squares
       ) in
       let is_in_ring = (fun n -> 
-	((s#dist_coords center (Nodes.node(n))#pos) <= (i2f radius)) && 
-	((s#dist_coords center (Nodes.node(n))#pos) >= (i2f (radius - 1)))) in
+	((s#dist_coords center_m (Nodes.node(n))#pos) <=  radius_m) && 
+	((s#dist_coords center_m (Nodes.node(n))#pos) >= (radius_m -. rrange_))) in
       
       List.fold_left (fun l sq -> 
 	l @
@@ -268,14 +296,23 @@ object(s)
 
 
   method find_closest ~pos ~f = (
-    let diagonal_length = f2i (ceil (sqrt (2.0 *. (size_x_ *. size_y_)))) in
-    let i = ref 1 in
+    let diagonal_length = 
+      (ceil 
+	(sqrt
+	  ( 
+	    (world_size_x_ ** 2.0)
+	    +.
+	    (world_size_y_ ** 2.0)
+	  )
+      ))
+    in
+    let r = ref rrange in
 
     let closest = ref None in 
 
-    while (!i <= diagonal_length) && (!closest = None) do
+    while (!r <= diagonal_length) && (!closest = None) do
       let candidates = Misc.list_unique_elements
-	(s#get_nodes_in_ring ~center:pos ~radius:!i) in
+	(s#get_nodes_in_ring ~center_m:pos ~radius_m:!r) in
       let (closest_id, closest_dist) = (ref None, ref max_float) in
       List.iter 
 	(fun nid -> 
@@ -289,7 +326,7 @@ object(s)
 	    | false -> ()
 	) candidates;
       closest := !closest_id;
-      incr i
+      r := !r +. rrange_
     done;
 
 (*
@@ -298,10 +335,10 @@ object(s)
     if (!closest <> slow_closest) then (
       if ((s#dist_coords (Nodes.node(o2v !closest))#pos pos) < s#dist_coords
 	(Nodes.node(o2v slow_closest))#pos pos) then 
-	Printf.printf "We got a closest that is closer!!, radius %d\n" (!i - 1)
+	Printf.printf "We got a closest that is closer!!, radius %f\n" !r
       else if (s#dist_coords (Nodes.node(o2v !closest))#pos pos >
       s#dist_coords (Nodes.node(o2v slow_closest))#pos pos) then 
-	Printf.printf "We got a closest that is further, radius %d\n" (!i - 1);
+	Printf.printf "We got a closest that is further,  radius %f\n" !r
     );
     flush stdout;
 *)
@@ -333,13 +370,14 @@ object(s)
     !l
   )
 
-(*  method scale_unit f = f /. gridsize_*)
+  (*  method scale_unit f = f /. gridsize_*)
 
-  method project_2d (x, y) =  (x /. size_x_, y /. size_y_)
+  method project_2d (x, y) =  (x /. world_size_x_, y /. world_size_y_)
 
+  (* xxx figure this one out *)
   method get_node_at ~unitpos = 
     let (x_unit, y_unit) = unitpos in
-    let scaleup = (x_unit *. size_x_, y_unit *. size_y_) in
+    let scaleup = (x_unit *. world_size_x_, y_unit *. world_size_y_) in
     let (x,y) = (s#pos_in_grid_ scaleup) in
     o2v (s#find_closest ~pos:scaleup ~f:(fun _ -> true))
 

@@ -20,91 +20,106 @@ open Misc
    xsect_circle_hline vs xsect_circle_vline 
 *)
 
-(* check if x is in grid and not nan (can happen in sqrt computation of circle) *)
-let exists_and_in_grid x gridsize = 
-  if (x >= 0.0 && x < gridsize) then [x]
+(* check if x is in world and not nan (can happen in sqrt computation of circle) *)
+let exists_and_in_world x worldsize_m = 
+  if (x >= 0.0 && x < worldsize_m) then [x]
   else []
 
 (* Intersects the (center, radius) circle with a horizontal line at y, 
    and returns the list of 0, 1, or 2 intersection points depending on their 
-   existence and their being within the grid *)
+   existence and their being within the world *)
    
-let xsect_circle_hline ~center ~radius ~y ~gridsize = (
+let xsect_circle_hline ~center ~radius ~y ~worldsize_x_m = (
   let rsq = radius ** 2.0 in
   let c = center in
-  let x1 = exists_and_in_grid ((xx c) +. sqrt (rsq -. (y -. (yy c))**2.0)) gridsize
-  and x2 = exists_and_in_grid ((xx c) -. sqrt (rsq -. (y -. (yy c))**2.0)) gridsize
+  let x1 = exists_and_in_world ((xx c) +. sqrt (rsq -. (y -. (yy c))**2.0)) worldsize_x_m
+  and x2 = exists_and_in_world ((xx c) -. sqrt (rsq -. (y -. (yy c))**2.0)) worldsize_x_m
   in x1 @ x2
 )
 
 (* Intersects the (center, radius) circle with a vertical line at x, 
    and returns the list of 0, 1, or 2 intersection points depending on their 
-   existence and their being within the grid *)
-let xsect_circle_vline ~center ~radius ~x ~gridsize = (
+   existence and their being within the world *)
+let xsect_circle_vline ~center ~radius ~x ~worldsize_y_m = (
   let rsq = radius ** 2.0 in
   let c = center in
-  let y1 = exists_and_in_grid ((yy c) +. sqrt (rsq -. (x -. (xx c))**2.0)) gridsize
-  and y2 = exists_and_in_grid ((yy c) -. sqrt (rsq -. (x -. (xx c))**2.0)) gridsize
+  let y1 = exists_and_in_world ((yy c) +. sqrt (rsq -. (x -. (xx c))**2.0)) worldsize_y_m
+  and y2 = exists_and_in_world ((yy c) -. sqrt (rsq -. (x -. (xx c))**2.0)) worldsize_y_m
   in y1 @ y2
 )
 
 (*
   val xsect_grid_and_circle : center:Coord.coordf_t -> radius:float -> 
-  gridsize:int -> Coord.coordi_t list 
+  worldsize_m:int -> Coord.coordi_t list 
 
-  Returns a list of the bottom-left coords of all grid squares that are
+  Returns a list of the bottom-left coords of all world squares that are
   touched by the circle.
+  worldsize_x_m : width of world in meters
+  worldsize_y_m : height of world in meters
+  boxsize_m : size of one grid square in meters
 *)
-let xsect_grid_and_circle ~center ~radius ~gridsize = (
 
-  let xmin = max 0.0 (floor ((xx center) -. radius))
-  and xmax = min gridsize (floor ((xx center) +. radius))
-  and ymin = max 0.0 (floor ((yy center) -. radius))
-  and ymax = min gridsize (floor ((yy center) +. radius)) in
-  let rec advanceup_ y l = 
-    if (y > ymax) then 
-      l
-    else 
-      let neighboring_squares x = 
-	match y with
-	  | 0.0 -> [(coord_f2i (coord_floor (x, y)))]
-	  | y  ->
-	      [(coord_f2i (coord_floor (x, y)));
-	      (coord_f2i (coord_floor ((x, y) +++. (0.0, -1.0))))]
+let xsect_grid_and_circle 
+  ~center_m 
+  ~radius_m 
+  ~worldsize_y_m 
+  ~worldsize_x_m
+  ~boxsize_m = (
+    
+    let pos_in_grid pos = coord_f2i (coord_floor (pos ///. boxsize_m)) in
+    
+    let xmin = max 0.0 (floor ((xx center_m) -. radius_m))
+    and xmax = min worldsize_x_m (floor ((xx center_m) +. radius_m))
+    and ymin = max 0.0 (floor ((yy center_m) -. radius_m))
+    and ymax = min worldsize_y_m (floor ((yy center_m) +. radius_m)) in
+    let rec advanceup_ y l = 
+      if (y > ymax) then 
+	l
+      else 
+	let neighboring_squares x = 
+	  match y with
+	    | 0.0 -> [pos_in_grid (x, y)]
+	    | y  -> 
+		[pos_in_grid (x, y);
+		(pos_in_grid (x, y)) +++ (0, -1)]
+	in
+	let pts = List.fold_left 
+	  (fun l x -> l @ neighboring_squares x)
+	  []
+	  (xsect_circle_hline 
+	    ~center:center_m 
+	    ~radius:radius_m 
+	    ~y
+	    ~worldsize_x_m) 
+	in
+	advanceup_ (y +. boxsize_m) pts@l
+    in
+    let rec advanceright_ x l = 
+      if (x > xmax) then 
+	l 
+      else 
+	let neighboring_squares y = 
+	  match x with
+	    | 0.0 -> [pos_in_grid (x, y)]
+	    | x -> [pos_in_grid (x, y);
+	      (pos_in_grid (x, y)) +++ (-1, 0)]
 
-
-      in
-      let pts = List.fold_left 
-	(fun l x -> l @ neighboring_squares x)
-	[]
-	(xsect_circle_hline ~center:center ~radius:radius ~y:y
-	  ~gridsize:gridsize) 
-      in
-      advanceup_ (y +. 1.0) pts@l
-  in
-  let rec advanceright_ x l = 
-    if (x > xmax) then 
-      l 
-    else 
-      let neighboring_squares y = 
-	match x with
-	  | 0.0 -> [(coord_f2i (coord_floor (x, y)))]
-	  | x -> [(coord_f2i (coord_floor (x, y)));
-	      (coord_f2i (coord_floor ((x, y) +++. (-1.0, 0.0))))]
-
-      in
-      let pts = List.fold_left
-	(fun l y ->  l @ neighboring_squares y)
-	[]
-	(xsect_circle_vline ~center:center ~radius:radius ~x:x
-	  ~gridsize:gridsize) 
-      in 
-      advanceright_ (x +. 1.0) pts@l
-  in
-  let xpoints =  (advanceup_ ymin []) @ (advanceright_ xmin []) in 
-  Misc.list_unique_elements xpoints
-
-)
+	in
+	let pts = List.fold_left
+	  (fun l y ->  l @ neighboring_squares y)
+	  []
+	  (xsect_circle_vline 
+	    ~center:center_m 
+	    ~radius:radius_m 
+	    ~x
+	    ~worldsize_y_m) 
+	in 
+	advanceright_ (x +. boxsize_m) pts@l
+    in
+    let xpoints =  (advanceup_ ymin []) @ (advanceright_ xmin []) in 
+    Misc.list_unique_elements xpoints
+      
+  )
 
 
 
@@ -119,7 +134,7 @@ let color_index = ref 0 ;;
 
 let radius = ref 2.0;;
 let next_circle() = Array.of_list (xsect_grid_and_circle ~center:(35.1, 35.1)
-       ~radius:!radius ~gridsize:75.0) ;;
+       ~radius:!radius ~worldsize_m:75.0) ;;
 let scaleup p = p *** 10;;
 
 let draw_rects a = (
