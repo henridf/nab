@@ -62,8 +62,6 @@ object
     unit
     (**  Each time a node moves, the world object should be informed through
       this method.
-      This is needed for the world to update the node and its neighbors views of their
-      neighbors as necessary.
     *)
 
   method nodepos : Common.nodeid_t -> Coord.coordf_t 
@@ -72,7 +70,9 @@ object
   method find_closest : pos:Coord.coordf_t -> f:(Common.nodeid_t -> bool) ->
     Common.nodeid_t option
     (** Returns the closest node to pos which satisfies the boolean f, or None 
-      if f never satisfied.
+      if f never satisfied. 
+      A common use is to pass the function [~f:(fun _ -> true)] in order to
+      find the node closest to a point.
     *)
 
     
@@ -82,9 +82,6 @@ object
       Warning: this is SLOW for networks in the 100s of nodes or above. *)
 
   (**/**)
-
-  method get_node_at : unitpos:Coord.coordf_t -> Common.nodeid_t 
-    (* returns closest node to unit-scaled position *)
 
   method neighbors_consistent : bool
 

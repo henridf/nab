@@ -26,7 +26,7 @@ object(s)
   val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 ([]:Common.nodeid_t list))
   val mutable node_positions_ =  [|(0., 0.)|]
 
-  val mutable ngbrs = 
+  val ngbrs = 
     (Array.make (Param.get Params.nodes) ([]:Common.nodeid_t list))
   val world_size_x_ =  x 
   val world_size_y_ =  y
@@ -39,11 +39,12 @@ object(s)
   val mutable new_ngbr_hooks = (Array.make (Param.get Params.nodes) [])
   val mutable mob_mhooks = []
 
+  val initial_pos = (0.0, 0.0)
 
   initializer (
     grid_of_nodes_ <- 
     (Array.make_matrix grid_size_x_ grid_size_y_ []);
-    node_positions_ <- Array.make (Param.get Params.nodes) (0., 0.);
+    node_positions_ <- Array.make (Param.get Params.nodes) initial_pos;
 
     Log.log#log_notice (lazy 
       (sprintf "New CRWorld : size <%f,%f>, rrange %f, #nodes %d" 
@@ -67,7 +68,7 @@ object(s)
 
   (* adds a new neighbor ngbrid to nid. 
      does NOT do the symetric operation *)
-  method private add_neighbor ~nid ~ngbrid = (
+  method private add_neighbor_ ~nid ~ngbrid = (
     assert (not (List.mem ngbrid ngbrs.(nid) ));
     List.iter 
       (fun hook -> hook ngbrid)
@@ -77,7 +78,7 @@ object(s)
 
   (* removes neighbor ngbrid from nid. 
      does NOT do the symetric operation *)
-  method private lose_neighbor ~nid ~ngbrid = (
+  method private lose_neighbor_ ~nid ~ngbrid = (
     assert (List.mem ngbrid ngbrs.(nid) );
     ngbrs.(nid) <- Misc.list_without ngbrs.(nid) ngbrid
   )
@@ -92,16 +93,17 @@ object(s)
       newy := (2.0 *. world_size_y_) -. !newy
     else if !newy < 0.0 then
       newy := (-1.0) *. !newy;
-    assert (!newx >= 0.0 && !newx <  world_size_x_ && !newy >= 0.0 && !newy <  world_size_y_);
+
+    assert (!newx >= 0.0 && !newx <=  world_size_x_ && !newy >= 0.0 && !newy <=  world_size_y_);
     (!newx, !newy)
   )
 
   method boundarize pos = s#reflect pos
 
   method dist_coords a b = sqrt (Coord.dist_sq a b)
-  method dist_nodeids id1 id2 = s#dist_coords (s#nodepos id1) (s#nodepos id2)
+  method dist_nodeids id1 id2 = s#dist_coords (node_positions_.(id1)) (node_positions_.(id2))
   method are_neighbors nid1 nid2 = 
-    nid1 <> nid2 && ((Coord.dist_sq (s#nodepos nid1) (s#nodepos nid2)) <= rrange_sq_)
+    nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
 
   method private slow_compute_neighbors_ nid = (
     let neighbors = ref [] in
@@ -112,7 +114,7 @@ object(s)
   )
 
   method private compute_neighbors_ nid = (
-    let gridpos = s#pos_in_grid_ (s#nodepos nid) in
+    let gridpos = s#pos_in_grid_ (node_positions_.(nid)) in
     let grid_at_pos p = 
       if (s#is_in_grid p)  
       then grid_of_nodes_.(xx p).(yy p) 
@@ -197,20 +199,19 @@ object(s)
     
     let (newx, newy) = s#pos_in_grid_ newpos in
     
-    let oldpos = (s#nodepos nid) in
+    let oldpos = (node_positions_.(nid)) in
     node_positions_.(nid) <- newpos;
 
     let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
     
     if (oldx, oldy) <> (newx, newy) then (
       (* only update grid_of_nodes if node moved to another slot *)
-
+      
       grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
-
+      
       assert (List.mem nid (grid_of_nodes_.(oldx).(oldy)));
       grid_of_nodes_.(oldx).(oldy) <- list_without
 	grid_of_nodes_.(oldx).(oldy) nid;      
-
     );
     s#update_node_neighbors_ nid;
 
@@ -228,28 +229,26 @@ object(s)
     
     let (newx, newy) = s#pos_in_grid_ pos in
 
+    if node_positions_.(nid) <> initial_pos then 
+      failwith "Crworld.init_pos: node already positioned";
+    
     node_positions_.(nid) <- pos;
-    
-(*    Printf.printf "newpos : %f %f, posingrid: %d %d, gridsize %d %d\n" (xx pos) (yy
-      pos) newx newy (Array.length grid_of_nodes_) (Array.length grid_of_nodes_.(0)); flush stdout;*)
-    
+
     assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
     
     grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
-    (* node is new, had no previous position *)
     
     s#update_node_neighbors_ nid;
-
-       List.iter 
+    
+    List.iter 
       (fun mhook -> mhook pos nid )
       mob_mhooks;
- 
   )
 
   method private update_node_neighbors_ nid = (
 
     (* 
-       For all neighbors, do a lose_neighbor on the neighbor and on this node.
+       For all neighbors, do a lose_neighbor_ on the neighbor and on this node.
        Then, compute new neighbors, and add them to this node and to the neighbors.
     *)
 
@@ -268,23 +267,23 @@ object(s)
     in
     List.iter 
       (fun i -> 
-	s#lose_neighbor nid  i;
-	s#lose_neighbor i nid
+	s#lose_neighbor_ ~nid  ~ngbrid:i;
+	s#lose_neighbor_ ~nid:i ~ngbrid:nid
       ) exits;
 
     List.iter 
       (fun i -> 
-	s#add_neighbor nid i;
+	s#add_neighbor_ ~nid ~ngbrid:i;
 	  if i <> nid then
 	    (* don't add twice for node itself *)
-	    s#add_neighbor i nid
+	    s#add_neighbor_ ~nid:i ~ngbrid:nid
       ) entries
   )
 
   method private update_node_neighbors_old node = (
 
     (* 
-       For all neighbors, do a lose_neighbor on the neighbor and on this node.
+       For all neighbors, do a lose_neighbor_ on the neighbor and on this node.
        Then, compute new neighbors, and add them to this node and to the neighbors.
     *)
 
@@ -305,14 +304,14 @@ object(s)
       (fun i -> 
 
 	if List.mem i ngbrs.(node#id) then ( (* these ones left *)
-	  s#lose_neighbor node#id  i;
-	  s#lose_neighbor i node#id
+	  s#lose_neighbor_ ~nid:node#id  ~ngbrid:i;
+	  s#lose_neighbor_ ~nid:i ~ngbrid:node#id
 
 	) else (	  (* these ones entered *)
-	  s#add_neighbor node#id i;
+	  s#add_neighbor_ ~nid:node#id ~ngbrid:i;
 	  if i <> node#id then
 	    (* don't add twice for node itself *)
-	    s#add_neighbor i node#id 
+	    s#add_neighbor_ ~nid:i ~ngbrid:node#id 
 	)
       ) changed_neighbors
   )
@@ -374,8 +373,8 @@ object(s)
 	outer_squares
       ) in
       let is_in_ring = (fun n -> 
-	((s#dist_coords center_m (s#nodepos n)) <=  radius_m) && 
-	((s#dist_coords center_m (s#nodepos n)) >= (radius_m -. rrange_))) in
+	((s#dist_coords center_m node_positions_.(n)) <=  radius_m) && 
+	((s#dist_coords center_m node_positions_.(n)) >= (radius_m -. rrange_))) in
       
       List.fold_left (fun l sq -> 
 	l @
@@ -407,9 +406,9 @@ object(s)
 	(fun nid -> 
 	  match f nid with
 	    | true ->
-		if (s#dist_coords pos (s#nodepos nid)) < !closest_dist then (
+		if (s#dist_coords pos node_positions_.(nid)) < !closest_dist then (
 		  closest_id := Some nid;
-		  closest_dist := (s#dist_coords pos (s#nodepos nid))
+		  closest_dist := (s#dist_coords pos node_positions_.(nid))
 		)
 	    | false -> ()
 	) candidates;
@@ -440,9 +439,9 @@ object(s)
       (fun n -> 
 	match f n with
 	  | true ->
-	      if (s#dist_coords pos (s#nodepos n#id)) < !closest_dist then (
+	      if (s#dist_coords pos node_positions_.(n#id)) < !closest_dist then (
 		closest_id := Some n#id;
-		closest_dist := (s#dist_coords pos (s#nodepos n#id))
+		closest_dist := (s#dist_coords pos node_positions_.(n#id))
 	      )
 	  | false -> ()
       );
@@ -452,23 +451,15 @@ object(s)
   method get_nodes_within_radius  ~nid ~radius = (
     
     let radius_sq = radius ** 2.0 in
-    let center = (s#nodepos nid) in
+    let center = node_positions_.(nid) in
     let l = ref [] in
-    Nodes.iteri (fun cand_id -> if s#dist_coords center (s#nodepos cand_id) <= radius then l := (cand_id)::!l);
+    Nodes.iteri (fun cand_id -> if s#dist_coords center node_positions_.(cand_id) <= radius then l := (cand_id)::!l);
     !l
   )
 
   (*  method scale_unit f = f /. gridsize_*)
 
   method project_2d (x, y) =  (x /. world_size_x_, y /. world_size_y_)
-
-  (* xxx figure this one out *)
-  method get_node_at ~unitpos = 
-    let (x_unit, y_unit) = unitpos in
-    let scaleup = (x_unit *. world_size_x_, y_unit *. world_size_y_) in
-    let (x,y) = (s#pos_in_grid_ scaleup) in
-    o2v (s#find_closest ~pos:scaleup ~f:(fun _ -> true))
-
 
   method is_connected () = (
     (* Create a graph object reflecting current connectivity *)
@@ -495,3 +486,8 @@ object(s)
 end
 
 
+class epflworld ~x ~y ~rrange : World.world_t = 
+object(s)
+  inherit crworld ~x ~y ~rrange
+  method random_pos = (0.0, 0.0)
+end
