@@ -237,14 +237,6 @@ let finish () = (
 
 let detach_daemon ?outfilename () = (
   
-
-  let pid =  Unix.fork () in
-  if pid < 0 then failwith "Error in fork";
-  if pid > 0 then exit 0;
-  let _ = Unix.setsid () in
-  Unix.close Unix.stdin;
-  Unix.close Unix.stdout;
-  Unix.close Unix.stderr;
   let fname =
     begin match outfilename with 
       | Some f -> f
@@ -257,6 +249,14 @@ let detach_daemon ?outfilename () = (
     end 
   in 
   if Sys.file_exists fname then failwith ("Eeeeek!!! File "^fname^" already exists!!!");
+
+  let pid =  Unix.fork () in
+  if pid < 0 then failwith "Error in fork";
+  if pid > 0 then exit 0;
+  let _ = Unix.setsid () in
+  close_in stdin;
+  close_out stdout;
+  close_out stderr;
   
   Log.ochan := open_out fname
     

@@ -111,12 +111,20 @@ end
 
 let sp = Printf.sprintf
 
-let get_added_stats() = 
+let sprint_added_stats() = 
   match Param.get Config.agent with
     | AODV -> let tot = Aodv_agent.total_stats() in
       Aodv_agent.Aodv_stats.sprint_stats tot
     | STR_AODV | STR_MAX | STR_AGE -> let tot = Str_agent.total_stats() in
       Str_agent.sprint_stats tot
+    | GREP -> ""
+
+let sprint_added_jdbstats() = 
+  match Param.get Config.agent with
+    | AODV -> ""
+    | STR_AODV | STR_MAX | STR_AGE -> 
+	let tot = Str_agent.total_stats() in
+	Str_agent.sprint_jdbstats tot
     | GREP -> ""
 
 let encounter_ratio() = 
@@ -234,7 +242,7 @@ let setup_or_restore() =
   Script_utils.parse_args
     ~anon_fun
     ();
-  Param.printconfig stdout;
+  Param.printconfig !Log.ochan;
   
   if !loadfile = "" then
     setup_sim ()

@@ -30,7 +30,8 @@
 open Printf
 
 let ochan = ref Pervasives.stderr
-
+let _ = 
+  Pervasives.at_exit (fun () -> if !ochan <> Pervasives.stderr then close_out !ochan)
 
 type log_level_t = LOG_DEBUG | LOG_INFO | LOG_NOTICE | LOG_WARNING | LOG_ERROR
 		   | LOG_ALWAYS

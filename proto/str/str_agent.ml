@@ -919,25 +919,39 @@ let total_stats ?(stack=0) () =
 open S
 let sprint_stats s = 
   let b = Buffer.create 64 in
-  let p = sp in 
   Buffer.add_string b "-- Basic Stats:\n";
-  Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
-  Buffer.add_string b (p "   Delivery ratio: %f (Data orig: %d, Data recv: %d) \n"
+  Buffer.add_string b (sp "   Total xmits: %d\n" s.total_xmit);
+  Buffer.add_string b (sp "   Delivery ratio: %f (Data orig: %d, Data recv: %d) \n"
     ((float s.data_recv) /. (float s.data_orig )) s.data_orig s.data_recv);
-  Buffer.add_string b (p "   Packet xmits per packet delivered: %.2f\n" 
+  Buffer.add_string b (sp "   Packet xmits per packet delivered: %.2f\n" 
     ((float s.total_xmit) /. (float s.data_recv)));
 
   Buffer.add_string b "-- Packet Transmission Breakdown:\n";
-  Buffer.add_string b (p "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
+  Buffer.add_string b (sp "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
     s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
 
   Buffer.add_string b "-- Protocol Details:\n";
-  Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d\n"
+  Buffer.add_string b (sp "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d\n"
     s.rreq_init s.rreq_orig s.rrep_orig);
-  Buffer.add_string b (p "   RREP dropped because no hop to originator: %d\n"
+  Buffer.add_string b (sp "   RREP dropped because no hop to originator: %d\n"
     s.rrep_drop_nohop);
-  Buffer.add_string b (p "   DATA dropped: %d\n"  s.data_drop);
+  Buffer.add_string b (sp "   DATA dropped: %d\n"  s.data_drop);
   Buffer.contents b
+
+
+let sprint_jdbstats s = 
+  let b = Buffer.create 64 in
+  let p = sp in 
+  Buffer.add_string b
+    "#h total_xmit del_ratio xmit_per_recv hello data rreq rrep\n";
+  Buffer.add_string b
+    (sp "#h %d %.2f %.2f %d %d %d %d\n"
+    s.total_xmit 
+      ((float s.data_recv) /. (float s.data_orig ))
+      ((float s.total_xmit) /. (float s.data_recv))
+      s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
+  Buffer.contents b
+
 
 
 module Persist : Persist.t = struct

@@ -26,30 +26,52 @@ open Printf
 open Misc
 open Script_utils
 
-let detach = Param.stringcreate 
+let detach = Param.boolcreate 
   ~name:"detach" 
   ~doc:"Detach from terminal"
   ~cmdline:true
-  ~default:""
+  ~default:false
+  ~notpersist:true
+  ()
+
+let dumpfile = Param.stringcreate ~name:"dumpfile" 
+  ~cmdline:true
+  ~doc:"File to dump results"
   ~notpersist:true
   ()
   
-
 
 let () = 
 
   Script_utils.parse_args();
   Arg.current := 0;
-  if Param.get detach <> "" then 
-    Script_utils.detach_daemon ~outfilename:(Param.get detach) ();
+  if not (Param.has_value dumpfile) then
+    failwith "need to set -dumpfile!!!";
+  
+  let dumpfile = Param.get dumpfile in
 
+  let jdbname = (Filename.chop_extension dumpfile)^".jdb" in
+  if Sys.file_exists jdbname then 
+    failwith ("eeeeEEKK! "^jdbname^" already exists!!!");
+
+
+
+  if Param.get detach then begin
+    let logname = (Filename.chop_extension dumpfile)^".log" in
+    Script_utils.detach_daemon ~outfilename:logname () end;
+  
 
   Warmup_utils.setup_or_restore();
-
+  
   Pervasives.at_exit (fun () ->
-    let stats = Warmup_utils.get_added_stats() in
+    let stats = Warmup_utils.sprint_added_stats() in
     output_string !Log.ochan "\n\n";
     output_string !Log.ochan stats;
+
+    let oc_jdb = open_out jdbname in
+    let jdbstats = Warmup_utils.sprint_added_jdbstats() in
+    output_string oc_jdb jdbstats;
+    close_out oc_jdb
   );
 
   (*

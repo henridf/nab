@@ -32,7 +32,8 @@ module Config :
     val run : int Param.t
   end
 
-val get_added_stats : unit -> string
+val sprint_added_stats : unit -> string
+val sprint_added_jdbstats : unit -> string
 val set_hellos : unit -> unit
 val setup_sim : unit -> unit
 val setup_or_restore : unit -> unit
