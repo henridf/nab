@@ -1,3 +1,5 @@
+$Header$
+
 - mhooks must be stack-aware
 - maybe with -I to ocamlmktop, we don't need the dirs in ocamlinit?????
   that would be great to automate from makefile
@@ -37,45 +39,6 @@
      to first do the rest, and test in grep.
 
 
-
-- time type and funs from common.ml should go in their own file 
-
-- think about file reorg.
-
-  mws/
-  mws/types/
-  mws/core/
-  mws/pkt/
-  mws/mob/
-  gui/    (? or does gui go under mws ?)
-  
-  lib/
-  lib/ext (stuff from other people)
-
-  maybe only core things (like sched, world, and base classes for mac, agent,
-  mob) go in mws. 
-  then would we have one 'agents' dir for all agents, and one 'mac' dir for
-  all macs, etc?
-
-  maybe better is to have the core dirs (like pkt/ mws/ ) be horizontal, in
-  that they cut across different functional aspects, but then there should be
-  'vertical' per-protocol directories? 'vertical' in the sens that a 'grep'
-  directory would contain grep agents, and also grep scripts?
-  but then this poses a problem for common scripts (to run tests against both)
-  or common code (like a base class for both aodv and grep).
-  need to think. 
-
-  for sure, directory structure should be more "readable" for a newbie.
-  maybe it makes sense to have a "types" dir (like interfaces/ in tinyos)?
-  i like that idea.
-  the types to be transferred would include:
-  world.ml (kill .mli)
-  rt_agent.ml (kill .mli)
-
-  mob.mli (need some work to split things out)
-  sched.mli (need to split out sched interface from implementation, in same 
-  way as rt_agent vs rt_agent_base ???)
-  type nodeid_t from common.ml
 
 - make all target:
   have a target that builds all scripts, so that we make sure not to break a
