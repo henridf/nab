@@ -11,19 +11,21 @@ endif
 
 
 LER_SUBDIR = ler
+LLER_SUBDIR = ller
 BLER_SUBDIR = bler
 MISC_SUBDIR = misc
 TEST_SUBDIR = test
 BIN_SUBDIR = bin
 LIB_SUBDIR = /usr/lib/ocaml
 
-INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LIB_SUBDIR)
+INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LLER_SUBDIR) -I $(LIB_SUBDIR) 
 
 
 SUBDIRS = \
 	$(MISC_SUBDIR) \
 	$(TEST_SUBDIR) \
 	$(LER_SUBDIR) \
+	$(LLER_SUBDIR) \
 	$(BLER_SUBDIR)
 
 DEPEND = .depend
@@ -61,6 +63,10 @@ BLER_OBJ_FILES = $(GFX_LIB) \
 		$(BLER_SUBDIR)/bler$(CMO) \
 		$(BLER_SUBDIR)/bler_main$(CMO) 
 
+MODULE_OBJ_FILES = \
+	$(LLER_SUBDIR)/larray$(CMO) \
+	$(LLER_SUBDIR)/circbuf$(CMO) \
+	$(LLER_SUBDIR)/itin$(CMO)
 
 
 PROOF_OBJ_FILES = $(LER_SUBDIR)/proof$(CMO)
@@ -108,6 +114,9 @@ graph-test: $(GRAPH_OBJ_FILES)
 
 proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
+
+testmodules: $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
 
 all: bler exp doplots graph-test
 
