@@ -47,25 +47,14 @@ struct
 
 
   let index__ g n = Hash.find g.hash n (* throws Not_found *)
-(* (
-    let rec _index i = (
-      if i >= g.ind then raise Not_found;
-      if g.nodes.(i) = n then i
-      else _index (i + 1)
-    )
-    in _index 0
-  )
-*)
-
-		    
-
+  
   let create_ node size gtype = {ind = 0; 
 				 size = size;
-				 nodes = Array.create size node;
-				 hash = Hash.create size;
-				 m = Array.create_matrix size size Nan; 
+				 nodes =  Array.create size node;
+				 hash =  Hash.create size;
+				 m = mat = Array.create_matrix size size Nan;
 				 t = gtype}
-
+				  
 				  
   let iteri_ f g = for i = 0 to (g.ind - 1) do f i done
   let itern_ f g = for i = 0 to (g.ind - 1) do f g.nodes.(i) done
