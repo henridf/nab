@@ -13,6 +13,7 @@ MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
 NAML_DIR = naml
 MISC_DIR = misc
+MK_DIR = mk
 TEST_DIR = test
 BIN_DIR = bin
 CAML_DIR = /usr/lib/ocaml
@@ -29,6 +30,7 @@ THFLAGS = -thread
 
 DIRS = \
 	$(MISC_DIR) \
+	$(MK_DIR) \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
 	$(MWS_SCRIPT_DIR) \
@@ -81,7 +83,6 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/linkedlist$(CMO) \
 		$(MISC_DIR)/data$(CMO) \
 		$(MWS_DIR)/common$(CMO) \
-		$(MWS_DIR)/ports$(CMO) \
 		$(MWS_DIR)/packet$(CMO) \
 		$(NAML_DIR)/naml_msg$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
