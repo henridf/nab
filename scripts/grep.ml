@@ -6,6 +6,9 @@ open Printf
 open Misc
 open Script_utils
 
+let outfd = ref Pervasives.stderr
+
+
 type agent_type = AODV | GREP
 let agent_string t = (
   match t with | AODV -> "AODV" | GREP -> "GREP"
@@ -86,37 +89,39 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
     )
   );
   
-  Printf.fprintf stderr "\n";
-  Printf.fprintf stderr "---------------------------\n";
-  Printf.fprintf stderr "\n";
-  Printf.fprintf stderr "Run %d parameters:\n" !run;
-  Printf.fprintf stderr "%d Nodes, type %s\t\t\n" nodes (agent_string agenttype);
-  Printf.fprintf stderr "Sources: %d\t\t\n" sources;
-  Printf.fprintf stderr "%d [pkt/s], %f [m/s] \n" packet_rate speed ;
-  Printf.fprintf stderr "%d [pkt bufsize]\n" Grep_agent.packet_buffer_size;
+  Printf.fprintf !outfd "\n";
+  Printf.fprintf !outfd "---------------------------\n";
+  Printf.fprintf !outfd "\n";
+  Printf.fprintf !outfd "Run %d parameters:\n" !run;
+  Printf.fprintf !outfd "%d Nodes, type %s\t\t\n" nodes (agent_string agenttype);
+  Printf.fprintf !outfd "Sources: %d\t\t\n" sources;
+  Printf.fprintf !outfd "%d [pkt/s], %f [m/s] \n" packet_rate speed ;
+  Printf.fprintf !outfd "%d [pkt bufsize]\n" Grep_agent.packet_buffer_size;
   let start_time = Common.get_time() in
 (*  (Gsched.sched())#stop_in 40.0;*)
   (Gsched.sched())#run();
   
 
-  Printf.fprintf stderr "\n";
-  Printf.fprintf stderr "Results:\n" ;
-  Printf.fprintf stderr "Packets sent: \t%d\n" !Grep_hooks.total_pkts_sent;
-  Printf.fprintf stderr "DATA sent: \t%d\n" !Grep_hooks.data_pkts_sent;
-  Printf.fprintf stderr "DATA dropped: \t%d\n" !Grep_hooks.data_pkts_drop;
-  Printf.fprintf stderr "DATA dropped on rerr: \t%d\n" !Grep_hooks.data_pkts_drop_rerr;
-  Printf.fprintf stderr "DATA orig: \t%d\n" !Grep_hooks.data_pkts_orig;
-  Printf.fprintf stderr "DATA recv: \t%d\n" !Grep_hooks.data_pkts_recv;
-  Printf.fprintf stderr "RREQ send: \t%d\n" !Grep_hooks.rreq_pkts_sent;
-  Printf.fprintf stderr "RREP/RERR send: \t%d\n" !Grep_hooks.rrep_rerr_pkts_sent;
+  Printf.fprintf !outfd "\n";
+  Printf.fprintf !outfd "Results:\n" ;
+  Printf.fprintf !outfd "Packets sent: \t%d\n" !Grep_hooks.total_pkts_sent;
+  Printf.fprintf !outfd "DATA sent: \t%d\n" !Grep_hooks.data_pkts_sent;
+  Printf.fprintf !outfd "DATA dropped: \t%d\n" !Grep_hooks.data_pkts_drop;
+  Printf.fprintf !outfd "DATA dropped on rerr: \t%d\n" !Grep_hooks.data_pkts_drop_rerr;
+  Printf.fprintf !outfd "DATA orig: \t%d\n" !Grep_hooks.data_pkts_orig;
+  Printf.fprintf !outfd "DATA recv: \t%d\n" !Grep_hooks.data_pkts_recv;
+  Printf.fprintf !outfd "RREQ send: \t%d\n" !Grep_hooks.rreq_pkts_sent;
+  Printf.fprintf !outfd "RREP/RERR send: \t%d\n" !Grep_hooks.rrep_rerr_pkts_sent;
+  Printf.fprintf !outfd "Invariant Breaks: \t%d\n" !Grep_hooks.inv_violation();
+
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in
-  Printf.fprintf stderr "Time elapsed is %f\n" (end_time -. start_time);
-  Printf.fprintf stderr "Avg neighbors per node is %f\n" avgn;
+  Printf.fprintf !outfd "Time elapsed is %f\n" (end_time -. start_time);
+  Printf.fprintf !outfd "Avg neighbors per node is %f\n" avgn;
 
   res_summary := (speed, !Grep_hooks.total_pkts_sent)::!res_summary  ;
   
-  flush stderr
+  flush !outfd
 )
 
 
@@ -202,14 +207,14 @@ let _ =
       | (speed1, aodv_pkts)::(speed2, grep_pkts)::rem ->
 	  aodvtot := aodv_pkts + !aodvtot;
 	  greptot := grep_pkts + !greptot;
-	  Printf.printf "%f %d %d\n" speed1 grep_pkts aodv_pkts;
+	  Printf.fprintf !outfd "%f %d %d\n" speed1 grep_pkts aodv_pkts;
 	  print_summary rem;
       | [] -> ()
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
   in
-  Printf.printf "Speed GREP AODV\n";
+  Printf.printf !outfd "Speed GREP AODV\n";
   print_summary !res_summary;
-    Printf.printf "Total GREP: %d , Total AODV: %d\n" !greptot !aodvtot
+  Printf.printf !outfd "Total GREP: %d , Total AODV: %d\n" !greptot !aodvtot
   
 
 (*
