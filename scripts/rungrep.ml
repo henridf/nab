@@ -2,6 +2,8 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(* ocaml unix.cma -I misc -I mws scripts/rungrep.ml 2> /tmp/log.out  *)
+
 open Printf
 open Misc
 open Script_utils
@@ -114,7 +116,8 @@ let () =
 	      rate
 	      i
 	  in
-(*	  print_endline s;*)
+	  print_endline s;
+	  flush stdout;
 	  ignore (Sys.command s);
 	  let s = 
 	    Printf.sprintf 
@@ -127,11 +130,12 @@ let () =
 	      rate
 	      i
 	  in
-(*	  print_endline s;*)
+	  print_endline s;
+	  flush stdout;
 	  ignore (Sys.command s)
 
 
 	done
-    ) quickrun
+    ) r5
     
   
