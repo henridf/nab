@@ -132,7 +132,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/route$(CMO) \
 		$(MWS_DIR)/flood$(CMO) \
 		$(MISC_DIR)/ler_graphics$(CMO) \
-		$(MWS_DIR)/nodeDB$(CMO) \
+		$(MWS_DIR)/le_tab$(CMO) \
 		$(MWS_DIR)/rtab$(CMO) \
 		$(MWS_DIR)/ether$(CMO) \
 		$(MWS_DIR)/tsource$(CMO) \
