@@ -17,7 +17,7 @@ let make_simplenodes () =
       (new Simplenode.simplenode 
 	~pos_init:((Gworld.world())#random_pos) 
 	~id:i
-	~ntargets:1)))
+      )))
 
 let set_simplenodes() = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
@@ -26,6 +26,12 @@ let set_simplenodes() = (
 
 let make_grease_nodes () = (
   set_simplenodes();
+
+  (* create grease agents, who will hook to their owners *)
+  Ease_agent.set_agents
+    (Array.init (Param.get Params.nodes)
+      (fun i -> 
+	(new Ease_agent.ease_agent (Nodes.node(i)))));
 
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
