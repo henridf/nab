@@ -73,7 +73,7 @@ object(s)
 	  );
     );
   )
-  method stop_in ~t =  s#stop_at (fun () -> ()) (Time (t +. Common.get_time()))
+  method stop_in ~t =  s#stop_at  (Time (t +. Common.get_time()))
 
   method sched_at ~handler ~t = (
     let str = ref "" in (
