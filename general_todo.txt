@@ -1,6 +1,5 @@
 $Header$
 
-- mhooks must be stack-aware
 - maybe with -I to ocamlmktop, we don't need the dirs in ocamlinit?????
   that would be great to automate from makefile
 - why l3_bcast_addr is a special int, and l2_bcast is a variant type?
@@ -13,10 +12,6 @@ $Header$
   should we put default null methods in rt_agent_base???
   
 - magic_bler_agent: merge into GREASE??
-- note: in rewriting , reorging lots of stuff, never sure whether should have
-  explicit class type, just a .mli with the class (but not the type), etc.
-  maybe emerging "rule" is to only have class types for things which have
-  multiple implementations (world, agent, mac, etc).
 
 - taurus:
   what needs to change?
@@ -60,8 +55,6 @@ $Header$
   are).
 
 
-- multiple traffic sources to multiple destinations (mentioned in
- simplenode.mli, but with XXX)
 - consider the use of named function parameters. maybe going overboard with
  the ~s right now. maybe not, but at least need to be consistent.
  one criteria could be: 
@@ -72,10 +65,6 @@ $Header$
  One the other hand, if parameter is say a L3pkt.t, then naming it ~l3pkt does
  not really help a lot.
  + when there are multiple parameters with same type, then definitely ~ helps.
-
-- add copyright. not to heap, opt, and probably some others
-/bin/sed-4.07  -i -e 's/(\*                                  \*)//g' simplenode.mli 
-/bin/sed-4.07 -i  -e 's/(\* mws  multihop wireless simulator \*)//g' simplenode.mli 
 
 - crworld.is_connected: 
   should be more efficient to originate one flood from one point, and see if
@@ -94,29 +83,6 @@ $Header$
 - config: 
   val make_cmdline_able : 'a t -> unit
   val make_not_cmdline_able : 'a t -> unit
-
-- creating nodes in script_utils
-  there are going to be an increasing # of possible configurations, ie all 
-  possible combinations of agents, MACs, etc.
-  So instead of having one explicit function for each one (make_grease_nodes,
-  make_grep_nodes, etc), we should have a more generic way of doing it.
-
-  One possible solution:maybe a make_nodes(), then a make_*_agent which makes * type agents and adds
-  them, similarly for macs, etc. Then we have a # of make funs which is linear
-  in the # of different agents/macs/nodes rather than the comb. explosion of
-  all combinations.
-
-  Another possible solution: all these choosable things (which MAC, which
-  diffusion algo, which routing agent) are settable by Params. Then there is
-  only one "make_macs" which makes them based on what the Param value is.
-  
-- a big question is coming back all the time about how/where to access
-  objects. For example, i make many hello_agents. Are these kept in an array
-  in the same file as the hello_Agent class? in the script file? this impacts
-  then routings like proportion_met_nodes(), etc..
-
-- time printing in sched should use log. but this made a headache for circular
-  dependency...
 
 - neighbors: right now, seems like a node has itself as a neighbor. is this
   necessary? seems not. check well before changing...
@@ -154,5 +120,4 @@ $Header$
   get rid of mutable fields? or if we keep them, have a failsafe way to control
   cloning etc?
 
-- make redoes everythgin when OPT
 

@@ -22,11 +22,12 @@
 
 (* $Id$ *)
 
-
-
-
 (** Hooks for reconstructing FRESH, EASE, and GREASE routes when running
-  {!Ler_agent.ler_agent}. *)
+  {!Ler_agent.ler_agent}. 
+  @author Henri Dubois-Ferriere
+*)
+
+
 
 val ler_route_pktin_mhook : 
   ?num:int ->
@@ -40,22 +41,6 @@ val ler_route_pktout_mhook :
   (Common.nodeid_t, Coord.coordf_t) Route.ler_route_t ref ->
   L2pkt.t ->
   Gpsnode.gpsnode -> 
-  unit
-
-
-(** Hooks for reconstructing routes from on-demand protocols (suitable for
-  GREP, AODV). *)
-
-val od_route_pktin_mhook : 
-  Common.nodeid_t Route.grep_route_t ref ->
-  L2pkt.t ->
-  Simplenode.simplenode -> 
-  unit
-
-val od_route_pktout_mhook : 
-  Common.nodeid_t Route.grep_route_t ref ->
-  L2pkt.t ->
-  Simplenode.simplenode -> 
   unit
 
 val routes_done : int ref

@@ -109,15 +109,15 @@ let set_src nid = (
     (Coord.sprintf (Nodes.gpsnode dst)#pos)));
   
   clear_routes();
-  Gui_hooks.routes_done := 0;
+  Ler_hooks.routes_done := 0;
   let r = [|ref []; ref []; ref []|] in
   
   for stack = 0 to nstacks - 1  do
 
     let in_mhook = 
-      Gui_hooks.ler_route_pktin_mhook ~num:!route_ctr r.(stack) in 
+      Ler_hooks.ler_route_pktin_mhook ~num:!route_ctr r.(stack) in 
     let out_mhook = 
-      Gui_hooks.ler_route_pktout_mhook ~num:!route_ctr r.(stack) in
+      Ler_hooks.ler_route_pktout_mhook ~num:!route_ctr r.(stack) in
 
     Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ~stack ());
     Nodes.gpsiter (fun n -> n#add_pktin_mhook ~stack in_mhook);
@@ -130,7 +130,7 @@ let set_src nid = (
 
   (Sched.s())#run_until 
   ~continue:(fun () -> 
-    !Gui_hooks.routes_done < nstacks;
+    !Ler_hooks.routes_done < nstacks;
   );
   
   routes.(0) <- !(r.(0));

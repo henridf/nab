@@ -22,79 +22,10 @@
 
 (* $Id$ *)
 
-
-
 open Misc
 
-
 let routes_done = ref 0
-
-let check_route_num l2pkt num_opt = 
-  match num_opt with 
-    | None -> true
-    | Some num ->
-	let l3pkt = (L2pkt.l3pkt l2pkt) in
-	let l4pkt = (L3pkt.l4pkt l3pkt) in
-	match l4pkt with 
-	  | `APP_PKT n when (num = n) -> true
-	  | `APP_PKT n -> false
-	  | _ -> failwith 
-	      "Gui_hooks.check_route_num: called with inappropriate packet type"
-
-
-
-let ler_route_pktin_mhook ?num routeref l2pkt node = (
-
-  if check_route_num l2pkt num then 
-    let l3pkt = (L2pkt.l3pkt l2pkt) in
-    let l3dst = L3pkt.l3dst l3pkt in
-    let ler_hdr = L3pkt.ler_hdr l3pkt in
-    
-    match (L2pkt.l2src l2pkt) <> node#id with
-      | _ -> 	(* Packet arriving at a node *)
-	  (Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
-	  
-	  if  node#id = l3dst then ( (* Packet arriving at dst. *)
-	    incr routes_done;
-	    routeref := Route.add_hop !routeref {
-	      Route.hop=node#id;
-	      Route.info=Some {
-		Route.anchor=(Ler_pkt.anchor ler_hdr);
-		Route.anchor_age=(Ler_pkt.enc_age ler_hdr);
-		Route.searchcost=0.0; (* hack see general_todo.txt *)
-	      }
-	    }
-	  )
-	    (* this should not be a failure. ie, a node can send a packet to itself, if 
-	       it was closest to the previous anchor, searches for a new anchor, and is
-	       closest to this anchor too *)
-	    (*    | false ->  assert(false)*)
-	    
-)
-
-let ler_route_pktout_mhook ?num routeref l2pkt node = (
-  
-  if check_route_num l2pkt num then 
-
-  let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let ler_hdr = L3pkt.ler_hdr l3pkt in
-  
-  match (L2pkt.l2src l2pkt) <> node#id with
-    | true -> 	assert(false)
-    | false ->  (* Packet leaving some node *)
-	
-	(Log.log)#log_info (lazy (Printf.sprintf "Leaving node %d" node#id));	
-	routeref := Route.add_hop !routeref {
-	  Route.hop=node#id;
-	  Route.info=Some {
-	    Route.anchor=(Ler_pkt.anchor ler_hdr);
-	    Route.anchor_age=(Ler_pkt.enc_age ler_hdr);
-	    Route.searchcost=(Ler_pkt.search_dist ler_hdr)
-	  }
-	}
-)
-
-
+ 
 let find_last_flood route = 
   let n = ref None in
   for i = (List.length route) - 1 downto 0 do
@@ -122,7 +53,7 @@ let od_route_pktin_mhook routeref l2pkt node = (
 
   and l2src = (L2pkt.l2src l2pkt) in
 
-  if (l2src = node#id) then failwith "Gui_hooks.od_route_pktin_mhook";
+  if (l2src = node#id) then failwith "Od_hooks.od_route_pktin_mhook";
 
   match aodv_grep_flags l3pkt with
     | `DATA ->
@@ -151,7 +82,7 @@ let od_route_pktin_mhook routeref l2pkt node = (
     | `RREP | `RADV | `RERR -> () (* ignore RREP/RADV/RERR*)
     | `NONE -> Log.log#log_error 
 	(lazy 
-	  "Gui_hooks.od_route_pktin_mhook: unexpected packet type not aodv or grep")
+	  "Od_hooks.od_route_pktin_mhook: unexpected packet type not aodv or grep")
 )
 
 let od_route_pktout_mhook routeref l2pkt node = (
@@ -160,7 +91,7 @@ let od_route_pktout_mhook routeref l2pkt node = (
   let l3src = L3pkt.l3src l3pkt 
   and l2src = (L2pkt.l2src l2pkt) in
   
-  if (l2src <> node#id) then failwith "Gui_hooks.od_route_pktout_mhook";
+  if (l2src <> node#id) then failwith "Od_hooks.od_route_pktout_mhook";
   
   match aodv_grep_flags l3pkt with
     | `DATA ->
@@ -194,13 +125,13 @@ let od_route_pktout_mhook routeref l2pkt node = (
 		 failed) with increase ttl. In either case, we should create a
 		 new flood structure, discarding the old one (if any). *)
 	      (Route.last_hop !routeref).Route.info <- Some (Flood.create l3src);
-	  | _ -> raise (Misc.Impossible_Case "Gui_hooks.od_route_pktout_mhook");
+	  | _ -> raise (Misc.Impossible_Case "Od_hooks.od_route_pktout_mhook");
 	end	      
 
     | `RREQ -> () (* RREQ at relay node *)
     | `RREP | `RADV | `RERR -> () (* ignore RREP/RADV/RERR*)
     | `NONE -> Log.log#log_error 
 	(lazy 
-	  "Gui_hooks.od_route_pktout_mhook: unexpected packet type not aodv or grep")
+	  "Od_hooks.od_route_pktout_mhook: unexpected packet type not aodv or grep")
 )
 

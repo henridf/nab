@@ -23,11 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 open Misc
 open GMain
 
@@ -111,11 +106,12 @@ let get_route nid = (
   
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" !src_ dst);
 
+  Log.set_log_level Log.LOG_NOTICE;
 
   let routeref = (ref (Route.create())) in
-  Gui_hooks.routes_done := 0;
-  let in_mhook = Gui_hooks.grep_route_pktin_mhook routeref in
-  let out_mhook = Gui_hooks.grep_route_pktout_mhook routeref in
+  Od_hooks.routes_done := 0;
+  let in_mhook = Od_hooks.od_route_pktin_mhook routeref in
+  let out_mhook = Od_hooks.od_route_pktout_mhook routeref in
   Nodes.iter (fun n -> n#clear_pkt_mhooks ());
   Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
   Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
@@ -123,7 +119,7 @@ let get_route nid = (
 
   (Sched.s())#run_until 
   ~continue:(fun () -> 
-    !Gui_hooks.routes_done = 1;
+    !Od_hooks.routes_done < 1;
   );
 
 
