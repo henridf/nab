@@ -9,7 +9,7 @@ else
 	include  mk/ocaml.mk	
 endif
 
-CAML_BIN_DIR	= /home/henridf/local/bin
+CAML_BIN_DIR	= $(dir $(shell which ocamlc))
 
 OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc.opt
 OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
@@ -146,12 +146,14 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/hello_agents$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/mob_ctl$(CMO) \
-		$(MWS_DIR)/persistency$(CMO) \
 		$(MWS_DIR)/crsearch$(CMO) \
 		$(MWS_DIR)/crworld$(CMO) \
-		$(MWS_DIR)/script_utils$(CMO)
-
-
+		$(MWS_DIR)/script_utils$(CMO) \
+		$(MWS_DIR)/persistency$(CMO)
+# script_utils should be as near to end as possible
+# because only scripts should need to use it
+# persistency gets an exception because it performs 
+# setup-type functions, similar to those done in a script
 
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
 		$(GUI_DIR)/data/epfl$(CMO) \
