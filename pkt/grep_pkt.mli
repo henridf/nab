@@ -9,7 +9,7 @@
 
 (* L3 STUFF *)
 type grep_flags_t = 
-    NOT_GREP | EASE | GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RERR | GREP_RADV
+ GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RADV
 
 type t = {
   mutable grep_flags : grep_flags_t;

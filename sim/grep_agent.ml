@@ -307,9 +307,6 @@ object(s)
       | Grep_pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
       | Grep_pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
       | Grep_pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
-      | Grep_pkt.NOT_GREP | Grep_pkt.EASE 
-	-> raise (Failure "Grep_agent.mac_recv_l2pkt");
-      | Grep_pkt.GREP_RERR -> raise (Failure "Grep_agent.mac_recv_l2pkt");
     end
   )
 
@@ -430,7 +427,7 @@ object(s)
       begin match (Grep_pkt.flags grep_hdr) with
 	| Grep_pkt.GREP_RREP  -> "rrep"
 	| Grep_pkt.GREP_DATA -> "data" 
-	| _ -> ""
+	| Grep_pkt.GREP_RREQ | Grep_pkt.GREP_RADV -> ""
       end
     in
     if not (
@@ -688,8 +685,6 @@ object(s)
 	    with Simplenode.Mac_Send_Failure -> failed()
 
 	  end
-      | _ ->
-	  raise (Failure "Grep_agent.send_out: unexpected packet type")
 
     end
   )

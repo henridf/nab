@@ -2,7 +2,7 @@ open Pkt_common
 
 (* L3 STUFF *)
 type grep_flags_t = 
-    NOT_GREP | EASE | GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RERR | GREP_RADV
+    GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RADV
 
 type t = {
   mutable grep_flags : grep_flags_t;
@@ -56,11 +56,10 @@ let make_grep_hdr
   = (
     begin 
       match flags with 
-	| NOT_GREP | EASE -> ()
 	| GREP_DATA -> 
 	    assert (dhc = -1 && dsn = -1  && osrc = -1 && 
     ohc = -1 && osn = -1 && rdst = -1)
-	| GREP_RREQ | GREP_RERR ->
+	| GREP_RREQ ->
 	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
     rdst <> -1 && dhc <> -1 && dsn <> -1)
 	| GREP_RREP ->
