@@ -29,7 +29,7 @@
   @author Henri Dubois-Ferriere.
  *)
 
-(** The interface which a routing agent must implement.
+(** The simplest interface which a routing agent must implement.
   
   Note for those implementing a routing agent: it is simplest to inherit
   from {!Rt_agent_base.base}, for the reasons described therein.
@@ -58,5 +58,6 @@ object
       to a next hop has failed. The callback is provided with the l3 packet
       which could not be forwarded, and the node_id to which forwarding
       failed. *)
+
 
 end
