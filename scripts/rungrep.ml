@@ -41,14 +41,14 @@ let r1 = [
 
 let r5 = [
   (* repeats hotspot speed rate nodes srcs pktssend *)
-  (10, HOTSPOT,  0.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  1.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  2.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  4.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  6.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  8.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  12.0,  4,   1000,  40,  20);
-  (10, HOTSPOT,  16.0,  4,   1000,  40,  20);
+  (4, HOTSPOT,  0.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  1.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  2.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  4.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  6.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  8.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  12.0,  0.01,   1000,  40,  100);
+  (4, HOTSPOT,  16.0,  0.01,   1000,  40,  100);
 ]
 
 let r6 = [
@@ -107,7 +107,7 @@ let () =
 
 	  let s = 
 	    Printf.sprintf 
-	      "bin/mws -pktssend %d -speed %f -loglevel info -mac null -nodes %d -sources %d -tmat %s -rate %d -agent aodv -run %d"
+	      "bin/mws -pktssend %d -speed %f -loglevel notice -mac null -nodes %d -sources %d -tmat %s -rate %f -agent aodv -run %d"
 	      pktssend
 	      sp
 	      nodes
@@ -116,12 +116,12 @@ let () =
 	      rate
 	      i
 	  in
-	  print_endline s;
-	  flush stdout;
+(*	  print_endline s;
+	  flush stdout;*)
 	  ignore (Sys.command s);
 	  let s = 
 	    Printf.sprintf 
-	      "bin/mws -pktssend %d -speed %f -loglevel info -mac null -nodes %d -sources %d -tmat %s -rate %d -agent aodv -run %d"
+	      "bin/mws -pktssend %d -speed %f -loglevel notice -mac null -nodes %d -sources %d -tmat %s -rate %f -agent grep -run %d"
 	      pktssend
 	      sp
 	      nodes
@@ -130,8 +130,8 @@ let () =
 	      rate
 	      i
 	  in
-	  print_endline s;
-	  flush stdout;
+(*	  print_endline s;
+	  flush stdout;*)
 	  ignore (Sys.command s)
 
 
