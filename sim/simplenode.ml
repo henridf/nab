@@ -20,7 +20,7 @@ object(s: #Node.node_t)
 
   val mutable recv_pkt_hooks = []
   val mutable app_send_pkt_hooks = []
-  val mutable mhooks = []
+  val mutable mhook = fun p a -> ()
    
   method pos = pos
   method id = id
@@ -94,7 +94,7 @@ object(s: #Node.node_t)
     
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
-    List.iter (fun mhook -> mhook l2pkt (s :> Node.node_t)) mhooks;
+    mhook l2pkt (s :> Node.node_t);
 
     List.iter 
       (fun hook -> hook l2pkt.Packet.l3pkt)
@@ -108,7 +108,7 @@ object(s: #Node.node_t)
     app_send_pkt_hooks <- app_send_pkt_hooks @ [hook]
 
   method add_mhook  ~hook =
-    mhooks <- mhooks @ [hook]
+    mhook <- hook
       
 
   method private send_pkt_ ~l3pkt ~dst = (
@@ -122,7 +122,7 @@ object(s: #Node.node_t)
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:(Packet.L2_DST dst#id)
       ~l3pkt:l3pkt in
 
-    List.iter (fun mhook -> mhook l2pkt (s :> Node.node_t)) mhooks;
+    mhook l2pkt (s :> Node.node_t);
 
     let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
     (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
@@ -148,7 +148,7 @@ object(s: #Node.node_t)
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:Packet.L2_BCAST
       ~l3pkt:l3pkt in
 
-    List.iter (fun mhook -> mhook l2pkt (s :> Node.node_t)) mhooks;
+    mhook l2pkt (s :> Node.node_t);
 
     Common.NodeSet.iter (fun nid -> 
       let n = (Nodes.node(nid)) in
