@@ -2,7 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Parameter handling. *)
+(** Parameter handling. 
+  @author Henri Dubois-Ferriere.
+*)
 
 
 (* todo :
@@ -76,3 +78,7 @@ val make_argspeclist : unit -> (string * Myarg.spec * string) list
 val dumpconfig : unit -> (string * string) list
   (** Returns a list of (keyword, value) pairs corresponding to the values of
     all created params which had cmdline set.*)
+
+
+val make_cmdline_able : 'a t -> unit
+val make_not_cmdline_able : 'a t -> unit
