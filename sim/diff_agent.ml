@@ -29,7 +29,7 @@ class type diff_agent_t =
 	 Simplenode.add_app_send_pkt_hook - in fact, since we are
 	 data-centric, we don't do anything with it *)
     method seqno : unit -> int
-    method private is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
+    method  is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
     method subscribe : ?delay:float -> ?ttl:int -> unit -> unit
     method private hand_upper_layer : l3pkt:L3pkt.l3packet_t -> unit
     method private incr_seqno : unit -> unit
