@@ -40,8 +40,8 @@ let () =
   Gui_gtk.init();
   let refresh() =   (
     print_endline "refresh\n";
-    Gui_gtk.draw_segments_taur [(270,380), (120,20)];
-    Gui_gtk.draw_segments_taur [(10,50), (300,300)]
+    Gui_gtk.draw_segments [(270,380), (120,20)];
+    Gui_gtk.draw_segments [(10,50), (300,300)]
   )
 
   in
