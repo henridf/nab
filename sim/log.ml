@@ -96,4 +96,4 @@ object
 end
 
 let log = (new global_loggable)
-let _ = log#set_objdescr "/global"
+let () = log#set_objdescr "/global"

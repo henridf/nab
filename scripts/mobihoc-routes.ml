@@ -118,7 +118,7 @@ let do_one_run n_nodes mob = (
 
 )
 
-let _ = 
+let () = 
   Log.set_log_level ~level:Log.LOG_NOTICE;
 
   List.iter 

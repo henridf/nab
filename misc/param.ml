@@ -68,8 +68,8 @@ let stringcreate ~name ?shortname ?(cmdline=false) ?default ~doc ?checker () =
 
 
 let set param value = (
-  let _ = (
-    match param.checker with
+
+  begin match param.checker with
       | None -> ()
       | Some f -> (
 	  try 
@@ -77,7 +77,7 @@ let set param value = (
 	  with  IllegalValue str -> 
 	    raise(Misc.Fatal(Printf.sprintf "%s\n" str))
 	)
-  ) in
+  end;	  
   param.value <- (Some value);
 )
 
