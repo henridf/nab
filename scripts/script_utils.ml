@@ -100,23 +100,28 @@ let init_all() =   (
 let install_macs_ ~stack mac_factory = 
   Nodes.iter (fun n -> n#install_mac ~stack (mac_factory n))
 
-let install_null_macs ?(stack=0) () = 
-  install_macs_ ~stack (fun n -> new Mac_null.nullmac ~stack n)
+let default_bps = 10e7
 
-let install_contention_macs ?(stack=0) () = 
-  install_macs_ ~stack (fun n -> new Mac_contention.contentionmac ~stack n)
+let install_null_macs ?(stack=0) ?(bps=default_bps) () = 
+  let makemac node = ((new Mac_null.nullmac ~stack bps node) :> Mac.t) in
+  install_macs_ ~stack makemac
 
-let install_cheat_macs ?(stack=0) () = 
-  install_macs_ ~stack (fun n -> new Mac_cheat.cheatmac ~stack n)
+let install_contention_macs ?(stack=0) ?(bps=default_bps) () = 
+  let makemac node = ((new Mac_contention.contentionmac ~stack bps node) :> Mac.t) in
+  install_macs_ ~stack makemac
 
-let install_macs ?(stack=0) () = 
+let install_cheat_macs ?(stack=0) ?(bps=default_bps) () = 
+  let makemac node = ((new Mac_cheat.cheatmac ~stack bps node) :> Mac.t) in
+  install_macs_ ~stack makemac
+
+let install_macs ?(stack=0) ?(bps=default_bps) () = 
   match Mac.mac() with
-    | Mac.Nullmac -> install_null_macs ~stack ()
-    | Mac.Contmac -> install_contention_macs ~stack ()
-    | Mac.Cheatmac -> install_cheat_macs ~stack ()
+    | Mac.Nullmac -> install_null_macs ~stack ~bps ()
+    | Mac.Contmac -> install_contention_macs ~stack ~bps ()
+    | Mac.Cheatmac -> install_cheat_macs ~stack ~bps ()
 
 
-let make_nodes ?(with_positions=true) () = (
+let make_naked_nodes ?(with_positions=true) () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
@@ -124,12 +129,16 @@ let make_nodes ?(with_positions=true) () = (
 	(new Simplenode.simplenode i
 	)));
 
-  install_macs  ();
   if with_positions then begin
     (* set up initial node position in internal structures of World object *)
     Nodes.iteri (fun nid _ -> (World.w())#init_pos ~nid ~pos:(World.w())#random_pos);
     assert ((World.w())#neighbors_consistent);
   end
+)
+
+let make_nodes ?(with_positions=true) () = (
+  make_naked_nodes ~with_positions ();
+  install_macs  ();
 )
     
 let place_nodes_on_line () = 
@@ -173,14 +182,14 @@ let make_diff_agents ?(stack=0) () = (
 
 
   Nodes.iteri (fun nid n -> 
-    let agent = (new Diff_agent.diff_agent n) in
+    let agent = (new Diff_agent.diff_agent ~stack n) in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
 let make_flood_agents ?(stack=0) () = (
   
   Nodes.iteri (fun nid n -> 
-    let agent = (new Flood_agent.flood_agent n) in
+    let agent = (new Flood_agent.flood_agent ~stack n) in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 

@@ -98,6 +98,17 @@ val make_nodes : ?with_positions:bool -> unit -> unit
 
  *)
 
+val make_naked_nodes : ?with_positions:bool -> unit -> unit
+  (** Create {!Simplenode.simplenode} nodes with no routing agents or MAC layers.
+
+    Number of nodes {!Params.nodes} should be set before calling this.
+
+    Optional [with_positions] determines whether to initialize nodes with
+    (randomly generated) positions. It is true by default, and should only be
+    false if node positions are being restored from a prior run.
+
+ *)
+
 val make_grep_nodes : unit -> unit 
   (** Create {!Simplenode.simplenode} each with a grep agent and a mac layer
     of the type specified in {!Params.mac}.
@@ -121,26 +132,25 @@ val make_grease_nodes : unit -> unit
     of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
-val place_nodes_on_line : unit -> unit
-  (** Places all nodes on a horizontal line, evenly spaced so as to use 
-    the whole width {!Params.x_size}*)
-
-val install_macs : ?stack:int -> unit -> unit
+val install_macs : ?stack:int ->  ?bps:float -> unit -> unit
   (** Installs a Mac layer of type {!Params.mac} on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Simplenode.simplenode}. *)
 
-val install_null_macs : ?stack:int -> unit -> unit
+val install_null_macs : ?stack:int ->  ?bps:float -> unit -> unit
   (** Installs a Nullmac Mac layer on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Simplenode.simplenode}. *)
 
-val install_contention_macs : ?stack:int -> unit -> unit
+val install_contention_macs : ?stack:int -> ?bps:float -> unit -> unit
   (** Installs a Contentionmac Mac layer on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Simplenode.simplenode}. *)
 
 
+val place_nodes_on_line : unit -> unit
+  (** Places all nodes on a horizontal line, evenly spaced so as to use 
+    the whole width {!Params.x_size}*)
 
 (** Actions *)
 
