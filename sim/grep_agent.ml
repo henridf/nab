@@ -464,7 +464,6 @@ object(s)
 	  -. (_HELLO_JITTER_INTERVAL() /. 2.)
 	in
 	(Sched.s())#sched_in ~f:s#send_radv ~t:next_hello_t;
-
     )
 
 
@@ -474,7 +473,7 @@ object(s)
       s#log_notice (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
 	dst ttl));
       
-      let (dseqno,dhopcount) = 
+      let (dseqno, dhopcount) = 
 	begin match (Rtab.seqno ~rt ~dst) with
 	  | None -> (0, max_int)
 	  | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
