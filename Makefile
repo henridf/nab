@@ -10,7 +10,7 @@ else
 endif
 
 
-LER_SUBDIR = ler
+MWS_SUBDIR = mws
 MISC_SUBDIR = misc
 TEST_SUBDIR = test
 UBASE_SUBDIR = ubase
@@ -18,7 +18,7 @@ BIN_SUBDIR = bin
 LIB_SUBDIR = /usr/lib/ocaml
 CAMLIMAGES_SUBDIR = $(LIB_SUBDIR)/camlimages
 
-INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(UBASE_SUBDIR)
+INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(MWS_SUBDIR) -I $(UBASE_SUBDIR)
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_SUBDIR) 
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
@@ -26,15 +26,15 @@ LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"
 SUBDIRS = \
 	$(MISC_SUBDIR) \
 	$(TEST_SUBDIR) \
-	$(LER_SUBDIR) \
+	$(MWS_SUBDIR) \
 	$(UBASE_SUBDIR) 
 
 
 DEPEND = .depend
 
 DEPENDS = \
-	$(LER_SUBDIR)/*.ml \
-	$(LER_SUBDIR)/*.mli \
+	$(MWS_SUBDIR)/*.ml \
+	$(MWS_SUBDIR)/*.mli \
 	$(TEST_SUBDIR)/*.mli \
 	$(MISC_SUBDIR)/*.ml \
 	$(MISC_SUBDIR)/*.mli \
@@ -67,30 +67,37 @@ UBASE_OBJ_FILES = $(UNIX_LIB) \
 		  $(UBASE_SUBDIR)/trace$(CMO) \
 		  $(UBASE_SUBDIR)/rx$(CMO)
 
-LER_OBJ_FILES = $(GFX_LIB) \
+MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_OBJ_FILES) \
 		$(UBASE_OBJ_FILES) \
 		$(MISC_SUBDIR)/graph$(CMO) \
 		$(MISC_SUBDIR)/param$(CMO) \
 		$(MISC_SUBDIR)/data$(CMO) \
-		$(LER_SUBDIR)/common$(CMO) \
-		$(LER_SUBDIR)/route$(CMO) \
+		$(MWS_SUBDIR)/common$(CMO) \
+		$(MWS_SUBDIR)/route$(CMO) \
 		$(MISC_SUBDIR)/ler_graphics$(CMO) \
-		$(LER_SUBDIR)/params$(CMO) \
-		$(LER_SUBDIR)/runsim$(CMO) \
-		$(LER_SUBDIR)/ler$(CMO) \
-		$(LER_SUBDIR)/lat2d_top$(CMO) \
-		$(LER_SUBDIR)/cont2d_top$(CMO) \
-		$(LER_SUBDIR)/abf$(CMO) \
-		$(LER_SUBDIR)/main$(CMO)
+		$(MWS_SUBDIR)/params$(CMO) \
+		$(MWS_SUBDIR)/topology$(CMO) \
+		$(MWS_SUBDIR)/ler$(CMO) \
+		$(MWS_SUBDIR)/discrTorusTop$(CMO) \
+		$(MWS_SUBDIR)/contTorusTop$(CMO) \
+		$(MWS_SUBDIR)/contRefTop$(CMO) \
+		$(MWS_SUBDIR)/simulator$(CMO) \
+		$(MWS_SUBDIR)/routealgo$(CMO) \
+		$(MWS_SUBDIR)/bler$(CMO) \
+		$(MWS_SUBDIR)/runsim$(CMO) \
+		$(MWS_SUBDIR)/main$(CMO)
+
+
+
 
 DATAGEN_OBJ_FILES = $(MISC_OBJ_FILES) \
 		    $(GFX_LIB) \
 		    $(MISC_SUBDIR)/graph$(CMO) \
-		    $(LER_SUBDIR)/ler$(CMO) \
+		    $(MWS_SUBDIR)/ler$(CMO) \
 		    $(MISC_SUBDIR)/ler_graphics$(CMO) \
-		    $(LER_SUBDIR)/movements$(CMO) \
-		    $(LER_SUBDIR)/datagen$(CMO)
+		    $(MWS_SUBDIR)/movements$(CMO) \
+		    $(MWS_SUBDIR)/datagen$(CMO)
 
 MODULE_OBJ_FILES = \
 	$(MISC_SUBDIR)/graph$(CMO) \
@@ -99,7 +106,7 @@ MODULE_OBJ_FILES = \
 	$(MISC_SUBDIR)/itin$(CMO)
 
 
-PROOF_OBJ_FILES = $(LER_SUBDIR)/proof$(CMO)
+PROOF_OBJ_FILES = $(MWS_SUBDIR)/proof$(CMO)
 
 DOPLOTS_OBJ_FILES = \
 		$(GFX_LIB) \
@@ -139,9 +146,9 @@ misc/im2png$(CMO): misc/im2png.ml
 im2png: misc/im2png$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(INCLUDE_CAMLIMAGES) $(CAMLIMAGES_LIBS) misc/im2png$(CMO) -o bin/$@
 
-ler: bin/ler
-bin/ler: $(LER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(LER_OBJ_FILES) -o $@ 
+mws: bin/mws
+bin/mws: $(MWS_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) -o $@ 
 
 
 datagen: bin/datagen
