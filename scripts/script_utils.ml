@@ -268,6 +268,15 @@ let size
 let interactive_print_banner s = 
   print_endline s
 
+let abort_on_kill _ = 
+  print_endline " \n ***\n *** Killed by SIGINT!\n ***\n";
+  exit (-1)
+
 let _ = 
   if !Sys.interactive then 
     print_endline ("\n     Network in a Box (nab) version "^Common.nab_release);
+  Sys.set_signal Sys.sigint (Sys.Signal_handle abort_on_kill);
+  
+  Pervasives.at_exit (fun () -> Log.log#log_always 
+    (lazy (Printf.sprintf "CPU Time: %f" (Sys.time()))))
+    
