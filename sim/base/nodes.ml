@@ -65,6 +65,7 @@ let set_gpsnodes arr =
   nodes_array := Array.map (fun gpsnode -> (gpsnode :> Simplenode.simplenode)) !gpsnodes_array
 
 let gpsiter f = check_gps(); Array.iter f !gpsnodes_array
+let gpsiteri f = check_gps(); Array.iteri f !gpsnodes_array
 let gpsmap f = check_gps(); Array.map f !gpsnodes_array
 let gpsmapi f = check_gps(); Array.mapi (fun i _ -> f i) !gpsnodes_array
 let gpsfold f init = check_gps(); Array.fold_right f !gpsnodes_array init

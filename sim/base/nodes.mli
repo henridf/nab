@@ -27,11 +27,6 @@
 *)
 
 
-
-
-
-
-
 (** Various iterators to perform actions on all node objects. 
   The iterator functions (iter, iteri, map, mapi, fold) behave like the
   Array or List iterators with similar names from the OCaml standard
@@ -56,6 +51,7 @@ val set_nodes : Simplenode.simplenode array -> unit
 val gpsnode : int -> Gpsnode.gpsnode
   
 val gpsiter : (Gpsnode.gpsnode -> unit) -> unit
+val gpsiteri : (Common.nodeid_t -> Gpsnode.gpsnode -> unit) -> unit 
 val gpsmap : (Gpsnode.gpsnode -> 'a) -> 'a array
 val gpsmapi : (Common.nodeid_t -> 'a) -> 'a array
 val gpsfold : (Gpsnode.gpsnode -> 'a -> 'a) -> 'a -> 'a
