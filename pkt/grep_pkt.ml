@@ -24,19 +24,7 @@ let hdr_size pkt = (* too lazy to differentiat btw types right now, so
 
 let clone grep_pkt = {grep_pkt with ssn=grep_pkt.ssn}
 
-(*
-  val l3grepflags : t -> grep_flags_t
-  val ssn : t -> int
-  val shc : t -> int
-  val dsn : t -> int
-  val dhc : t -> int
-  val osrc : t -> Common.nodeid_t
-  val ohc : t -> int
-  val osn : t -> int
-  val rdst : t -> Common.nodeid_t
-*)
-
-let l3grepflags grep_pkt = 
+let flags grep_pkt = 
   grep_pkt.grep_flags
 
 let ssn grep_pkt = grep_pkt.ssn

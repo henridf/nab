@@ -27,7 +27,7 @@ val hdr_size : t -> int
 
 val clone : t -> t
 
-  val l3grepflags : t -> grep_flags_t
+  val flags : t -> grep_flags_t
   val ssn : t -> int
   val shc : t -> int
   val dsn : t -> int

@@ -303,7 +303,7 @@ object(s)
     assert (update = pkt_fresh);
     
     (* hand off to per-type method private *)
-    begin match Grep_pkt.l3grepflags grep_hdr with
+    begin match Grep_pkt.flags grep_hdr with
       | Grep_pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
       | Grep_pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
       | Grep_pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
@@ -429,7 +429,7 @@ object(s)
     and next_sn = o2v (Rtab.seqno ~rt:next_rt ~dst)
     and next_hc = o2v (Rtab.hopcount ~rt:next_rt ~dst)
     and ptype = 
-      begin match (Grep_pkt.l3grepflags grep_hdr) with
+      begin match (Grep_pkt.flags grep_hdr) with
 	| Grep_pkt.GREP_RREP  -> "rrep"
 	| Grep_pkt.GREP_DATA -> "data" 
 	| _ -> ""
@@ -659,7 +659,7 @@ object(s)
     s#incr_seqno();
     Grep_pkt.incr_shc_pkt grep_hdr;
     assert (Grep_pkt.shc grep_hdr > 0);
-    begin match (Grep_pkt.l3grepflags grep_hdr) with
+    begin match (Grep_pkt.flags grep_hdr) with
       | Grep_pkt.GREP_RADV 
       | Grep_pkt.GREP_RREQ -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
@@ -673,7 +673,7 @@ object(s)
 	  end
       | Grep_pkt.GREP_DATA
       | Grep_pkt.GREP_RREP ->
-	  begin if ((Grep_pkt.l3grepflags grep_hdr) = Grep_pkt.GREP_DATA) then (
+	  begin if ((Grep_pkt.flags grep_hdr) = Grep_pkt.GREP_DATA) then (
 	    Grep_hooks.sent_data();
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
