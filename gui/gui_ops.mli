@@ -42,9 +42,13 @@ val draw_ler_route :
 
 
 val draw_grep_route : 
-  Coord.coordi_t Od_route.t
-  -> unit
-  (** Draw grep route.  *)
+  ?portion:float ->
+  Coord.coordi_t Od_route.t ->
+  unit
+  (** Draw grep route.  
+    Optional argument [portion] (default 1.0) can indicate that only a first
+    fraction of the route is to be drawn.
+  *)
 
 val draw_tree :   ?col:GDraw.color ->          
   Coord.coordi_t NaryTree.t -> unit

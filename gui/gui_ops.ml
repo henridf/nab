@@ -125,13 +125,18 @@ let draw_tree ?(col=(`NAME "light grey")) tree =
   in
   NaryTree.iter2 ~f:connect tree
 
-let draw_grep_route r = 
+let draw_grep_route ?(portion=1.0) r = 
 
-  let colors = [| "OrangeRed"; "PaleGreen"; "LightSlateBlue"|] in
+  let colors = [| "OrangeRed"; "PaleGreen"; "LightSlateBlue"; "dim grey"; "yellow"|] in
   let colindex = ref (-1) in
 
   let nhops = List.length r
-  and nsearches = List.length (List.filter (fun h -> Opt.is_some h.info) r)
+  and nsearches = List.length (List.filter (fun h -> Opt.is_some h.info) r) in
+  let portion_ = 
+    if (portion < 0.0 || portion > 1.0) then 1.0 else portion in 
+  
+  let hops_not_drawn = (List.length r) -
+    truncate ((float (List.length r)) *. portion_)
   in
 
   Log.log#log_notice 
@@ -159,8 +164,6 @@ let draw_grep_route r =
 		    let radius = 
 		      (Misc.f2i (sqrt (Misc.i2f (Coord.disti_sq hop1.hop hop2.hop)))) 
 		    in
-		    Printf.printf "drawing circle, radius %d" radius;
-		    flush stdout;
 		    Gui_gtk.draw_circle ~centr:hop1.hop ~radius;
 	    end;
 	    aux (hop2::r);
@@ -173,7 +176,7 @@ let draw_grep_route r =
   )
   in 
   let rec draw_trees_ = function 
-    | hop1::hop2::r -> (
+    | hop1::hop2::r when (List.length r >= hops_not_drawn) ->  (
 	begin
 	  match hop1.info with
 	    | None -> ()
@@ -183,9 +186,6 @@ let draw_grep_route r =
 		  ~f:(fun nid -> Gui_conv.pos_mtr_to_pix
 		    ((World.w())#nodepos nid))
 		in
-		Log.log#log_notice 
-		  (lazy (Printf.sprintf "Tree touched %d nodes"
-		    (NaryTree.size flood)));
 		draw_tree ~col:(`NAME colors.(!colindex)) pixtree;
 		draw_node ~emphasize:true (NaryTree.root flood)
 	  end;		
@@ -205,6 +205,7 @@ let draw_ler_route
     r  = (
       let colors = [|
 	"blue";
+	"yellow";
 	"dim grey";
 	"green";
 	"olive drab";
