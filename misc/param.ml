@@ -124,22 +124,26 @@ let make_argspeclist () =
   @
   List.map (fun p -> make_stringargspec p) !stringparams
     
+let get_value p = 
+  match p.value with 
+    | None -> raise (Failure ("No value for parameter "^p.name^" "^p.doc))
+    | Some v -> v
 
 let configlist () = 
   List.sort (fun (a, _) (b, _) -> String.compare a b)
-    (List.map (fun p -> (p.name, (Misc.o2v p.value))) !stringparams
+    (List.map (fun p -> (p.name, (get_value p))) !stringparams
     @
-    List.map (fun p -> (p.name, string_of_float (Misc.o2v p.value))) !floatparams
+    List.map (fun p -> (p.name, string_of_float (get_value p))) !floatparams
     @
-    List.map (fun p -> (p.name, string_of_int (Misc.o2v p.value))) !intparams)
+    List.map (fun p -> (p.name, string_of_int (get_value p))) !intparams)
 
 let configlist_doc () = 
   List.sort (fun (a, _) (b, _) -> String.compare a b)
-    (List.map (fun p -> (p.doc, (Misc.o2v p.value))) !stringparams
+    (List.map (fun p -> (p.doc, (get_value p))) !stringparams
     @
-    List.map (fun p -> (p.doc, string_of_float (Misc.o2v p.value))) !floatparams
+    List.map (fun p -> (p.doc, string_of_float (get_value p))) !floatparams
     @
-    List.map (fun p -> (p.doc, string_of_int (Misc.o2v p.value))) !intparams)
+    List.map (fun p -> (p.doc, string_of_int (get_value p))) !intparams)
     
   
 let printconfig outchan = (
@@ -160,7 +164,7 @@ let printconfig outchan = (
 )
 
 
-let sprintconfig outchan = (
+let sprintconfig () = (
   let configlist = configlist_doc () in
 
   let max_width = 
