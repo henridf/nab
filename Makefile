@@ -14,6 +14,7 @@ MWS_SCRIPT_DIR = scripts
 NAML_DIR = naml
 MISC_DIR = misc
 MK_DIR = mk
+GUI_DIR = gui
 TEST_DIR = test
 BIN_DIR = bin
 CAML_DIR = /usr/lib/ocaml
@@ -31,6 +32,7 @@ THFLAGS = -thread
 DIRS = \
 	$(MISC_DIR) \
 	$(MK_DIR) \
+	$(GUI_DIR) \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
 	$(MWS_SCRIPT_DIR) \
