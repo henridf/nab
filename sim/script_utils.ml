@@ -56,9 +56,14 @@ let make_gpsnodes () = (
 )
 
 let make_grease_nodes () = (
-  let get_init_pos() = 
-    let nodeind = Random.int 113 in
-    Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
+  let get_init_pos() = (Gworld.world())#random_pos 
+(*
+  these two lines were when we were using the epfl-constrained mob mvt, 
+  with 1200x900 pix size, etc
+  
+  let nodeind = Random.int 113 in
+  Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
+*)
   in
   Nodes.set_gpsnodes 
     (Array.init (Param.get Params.nodes)
