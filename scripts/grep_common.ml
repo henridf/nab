@@ -74,7 +74,7 @@ end
 
 let install_tsources () = 
   let sources = (Param.get Config.sources) in
-  let rndstream = Randoms.create () in
+  let rndstream = Random.State.copy (Random.get_state()) in
 
   Nodes.iter (fun n ->
     if (n#id < sources) then (
@@ -97,7 +97,7 @@ let install_tsources () =
 	in
 	(* start sessions jittered out over an interval equivalent to the
 	   inter-packet interval *)
-	let t = Randoms.float rndstream  (1. /. (Param.get Config.packet_rate)) in
+	let t = Random.State.float rndstream  (1. /. (Param.get Config.packet_rate)) in
 	(Gsched.sched())#sched_in ~f:pkt_reception ~t;
       )
     )

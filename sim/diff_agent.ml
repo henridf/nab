@@ -80,7 +80,7 @@ object(s)
   val mutable seqno = 0
   val mutable subscribed = false
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
-  val rnd = Randoms.create ~seed:!rndseed ()
+  val rnd = Random.State.make [|!rndseed|]
 
   initializer (
     s#set_objdescr ~owner "/diffagent";
@@ -407,7 +407,7 @@ object(s)
 
     s#send_out ~l3pkt;
 
-    let next_interest_timeout = expo ~rand:(Randoms.float rnd 1.0)
+    let next_interest_timeout = expo ~rand:(Random.State.float rnd 1.0)
       ~lambda:(interest_lambda()) in
       (Gsched.sched())#sched_in ~f:s#send_interest ~t:next_interest_timeout
   )
@@ -450,7 +450,7 @@ object(s)
        number of sends *)
     List.iter (fun sink -> 
       (Gsched.sched())#sched_in ~f:(fun _ -> s#send_data_to_sink sink)
-      ~t:(Randoms.float rnd (float (List.length sinks_to_send_to))))
+      ~t:(Random.State.float rnd (float (List.length sinks_to_send_to))))
       sinks_to_send_to
 
   )

@@ -2,7 +2,7 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Data structures for representing globally floods (for
+(** Data structures for representing floods (for
   monitoring or gui purposes). 
   @author Henri Dubois-Ferriere.
 *)

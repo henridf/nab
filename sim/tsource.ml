@@ -6,7 +6,7 @@ open Misc
 
 type traffic_generator_t = (unit -> float option)
 
-let rndgen = Randoms.create ()
+let rndgen = Random.State.copy (Random.get_state())
 
 let make_finite_trafficsource f num_pkts = 
     let ct_ = ref 0 in 
@@ -26,7 +26,7 @@ let make_cbr ?num_pkts ~pkts_per_sec () =
     
 let make_poisson ?num_pkts ~lambda () =
   let time_to_next_pkt() = 
-    let rand = Randoms.float rndgen 1.0 in
+    let rand = Random.State.float rndgen 1.0 in
     Misc.expo ~rand ~lambda
   in
   match num_pkts with 

@@ -37,7 +37,7 @@ object(s)
   val mutable sending_until = Common.get_time()
   val mutable receiving_from = 0
   val mutable receiving = false
-  val rnd = Randoms.create ~seed:!rndseed ()
+  val rnd = Random.State.make [|!rndseed|] 
 
   initializer (
     s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/cmac";
@@ -109,8 +109,8 @@ object(s)
 
   method xmit ~l2pkt = 
 
-    if (Randoms.int rnd 2) = 1 then (
-      let delay = Randoms.float rnd 0.1 in
+    if (Random.State.int rnd 2) = 1 then (
+      let delay = Random.State.float rnd 0.1 in
       (Gsched.sched())#sched_in ~f:(fun () -> s#xmit ~l2pkt) ~t:delay;
       s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
     )
