@@ -114,6 +114,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/common$(CMO) \
 		$(PKT_DIR)/pkt_common$(CMO) \
 		$(PKT_DIR)/l4pkt$(CMO) \
+		$(PKT_DIR)/ease_pkt$(CMO) \
 		$(PKT_DIR)/grep_pkt$(CMO) \
 		$(PKT_DIR)/aodv_pkt$(CMO) \
 		$(PKT_DIR)/diff_pkt$(CMO) \
