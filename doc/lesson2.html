@@ -34,10 +34,11 @@ online. This file has revision $Revision$.</font>
 
 <p>
 
-0. <a href="#0">Prerequisites</a><br>
-1. <a href="#1">Simulation setup</a><br>
+0. <a href="#0">Prerequisites.</a><br>
+1. <a href="#1">Simulation setup.</a><br>
 2. <a href="#2">Using parallel stacks</a><br>
-3. <a href="#3">Launching the flood and computing statistics</a><br>
+3. <a href="#3">Setting up hooks and launching the flood.</a><br>
+4. <a href="#4">Computing statistics.</a><br>
 <p>
 
 <hr>
@@ -50,152 +51,392 @@ This lesson requires the following:
 
 <h2><a name="1">1. Simulation setup</a></h2>
 <p>
-To be filled in... check back soon on http://nab.epfl.ch <p> 
-For now, please see <a href="lesson2.ml">lesson2.ml</a> for the full commented script.
+
+We start off by configuring the number of nodes, radio range and world size,
+creating the world object, and selecting the node nearest the center to be the
+originating node. These steps have already been done and documented in lesson 1.
+<pre class=example>
+# let nodes = 900;;
+val nodes : int = 900
+# let rrange = 12.0;;
+val rrange : float = 12.
+# let avg_degree = 10;;
+
+val avg_degree : int = 10
+# Param.set Params.nodes 800;;
+- : unit = ()
+# Param.set Params.radiorange 12.;;
+  - : unit = ()
+# let size = Script_utils.size ~rrange ~nodes ~avg_degree ();;
+val size : float = 201.728530456155369
+# Param.set Params.x_size size;;
+- : unit = ()
+# Param.set Params.y_size size;;
+- : unit = ()
+# Script_utils.init_lazy_world();;
+0.000000 /global World: 201.73 x 201.73 [m],  12.00 radio range [m], 800 nodes
+- : unit = ()
+# let center_x = (Param.get Params.x_size) /. 2.0                  <!--test_keep-->
+  and center_y = (Param.get Params.y_size) /. 2.0;;
+val center_x : float = 100.864265228077684
+val center_y : float = 100.864265228077684
+# let originator = ref (Opt.get ((World.w())#find_closest ~pos:(center_x, center_y) ()));;
+val originator : Common.nodeid_t ref = {contents = 397}
+# let nstacks = 3
+val nstacks : int = 3
+</pre>  
+
 <p>
 <p>
 
-<h2><a name="2">2. Using parallel stacks</a></h2>
 <p>
-To be filled in... check back soon on http://nab.epfl.ch <p> 
-For now, please see <a href="lesson2.ml">lesson2.ml</a> for the full commented script.
+<h2><a name="2">2. Using parallel stacks.</a></h2>
+It is possible with nab to run several independent protocol stacks on each
+node. Each stack is a complete entity with its own routing agent and mac
+layer; each stack runs in parallel with <i>no interference</i> between
+different stacks. More information on the use of stacks is in the <a
+href="gen/Simplenode.simplenode.html">simplenode</a> documentation.
+Note that all the logic for dealing with stacks is factored out into the base
+classes for <a href="gen/Mac_base.html">mac layers</a> and <a
+href="gen/Rt_agent_base.html">routing agents</a>, so protocol/mac
+implementations do not have to be aware that any of this is going on. 
+<p>
+Stacks are identified by an <code>int</code> (stack 0, stack 1, etc). In all
+functions and methods which take a stack parameter, this parameter is optional
+and defaults to 0. That is why we have never had to specify a stack id in
+lesson 1.
+<p>
+We will use 3 parallel stacks in this simulation, which each run a simple
+flooding agent as in lesson 1. The difference between the stacks will come in
+the MAC layer: stack 0 will run a <a href="gen/Mac_null.html">null MAC</a>, whereas stacks 1 and 2 will run
+<a href="gen/Mac_contention.html">contention macs</a> with different bit rates.
+This makes it straightforward to compare simple flooding behavior over
+different MACs, in a situation where all other parameters are
+identical. (Easy comparison of
+multiple protocols or configurations is one advantage of parallel
+stacks. Another is efficiency: costly computations such as node neighborhoods
+are done only once, rather than once for each stack if we had to run them
+sequentially).
+<p>
+
+We first create the nodes. We use the <code>make_naked_nodes</code> (which
+creates nodes having neither MAC layer nor routing agent) function rather
+than the <code>make_nodes</code> of lesson 1 because we will manually configure them
+afterwards. <br>
+
+<pre class=example>
+# Script_utils.make_naked_nodes ();;
+- : unit = ()
+</pre>
+
+In the following block we install the MAC layers as described above: null macs
+on stack 0, and contention MACs on stacks 1 (with bitrate 100Kbps) and 2 (200
+Kbps). We also define an array containing one description strings for each MAC
+type (to be used below when printing out results).
+
+<pre class=example>
+# Script_utils.install_null_macs ~bps:1e5 ~stack:0 ();;
+- : unit = ()
+# Script_utils.install_contention_macs ~bps:1e5 ~stack:1 ();;
+- : unit = ()
+# Script_utils.install_contention_macs ~bps:2e5 ~stack:2 ();;
+- : unit = ()
+# let stack_descriptions = <!--test_keep-->
+  [|<!--test_keep-->
+    "Null MAC, 100Kbps";<!--test_keep-->
+    "Contention MAC, 100Kbps, 0.1s jitter";<!--test_keep-->
+    "Contention MAC, 200Kbps, 3s jitter"<!--test_keep-->
+  |];;
+val stack_descriptions : string array =
+  [|"Null MAC, 100Kbps"; "Contention MAC, 100Kbps, 0.1s jitter";
+    "Contention MAC, 200Kbps, 3s jitter"|]
+</pre>
+
+
+We also modify the jitter value (documented <a
+href="gen/Mac_contention.contentionmac.html">here</a>) on stack 2, setting it
+to 3 seconds. 
+This means that MACs on stack 2 will wait for a random time (uniformly
+distributed between 0 and 3 seconds) before transmitting every packet. A
+higher jitter value results in lower collision probability when neighboring
+nodes receive and rebroadcast a flood packet.
+
+<pre class=example>
+# Hashtbl.iter (fun nid mac -> mac#set_jitter 3.0) (Mac_contention.macs ~stack:2 ());;
+- : unit = ()
+</pre>
+
+Finally we must not forget to create the flooding agents on all 3 stacks:
+
+<pre class=example>
+# for stack = 0 to nstacks - 1 do                       <!--test_keep-->
+    Script_utils.make_flood_agents ~stack ()            <!--test_keep-->
+  done;;
+- : unit = ()
+</pre>
+
+
+
 <p>
 <p>
 
+<h2><a name="3">3. Setting up hooks and launching the flood.</a></h2>
 
-<h2><a name="3">3. Launching the flood and viewing the statistics</a></h2>
+Our nodes are now configured and ready to go. If we wish, we can now originate
+flood packets at any node as in lesson 1. But before so doing, we shall
+install monitoring hooks to reconstruct the flood tree. Note that in lesson 1
+we have already used hooks, in a very simple configuration, in order to count
+the total number of packet transmissions. To do this, our hook functions
+simply needed to increment a global counter each time they were called.<br>
 
-Now that everything is set up, we can originate the flood and view the
-results! <br>
-For each MAC, the first line shows the total number of packets send and
-received. Unsurprisingly the highest numbers are for the null mac: since there
-are no collisions, every node receives the flood packet once and reforwards
-it. <p>
-The number of overall transmissions is reduced for contention MACS due to
-collisions. The breakdown of collision types is given in the second line (for
-stacks 1 and 2). Please see <a href="gen/Mac_contention.html">here</a> for a
-more detailed explanation of the collision types.<p>
-Finally the number of backward links is given in the third line. As expected,
-we see a correlation between collisions and backward links.
+Reconstructing a global flood tree is not as trivial as counting packets, but
+we will now see that thanks to ocaml's high-level type system, it is quite
+easy with <code>nab</code>. Let us first define what we mean by flood
+tree. For a given network flood, a flood tree is the tree such that:
+a) the root is the node which originates the flood, and b) each node has as
+parent the node from which it first received the flood packet. <br>
+Therefore the this corresponds to the reverse-path tree of the flood.
 
+The hook uses the <a href="gen/NaryTree.html">n-ary tree</a> implementation
+provided with nab. We will setup the hook to be called each time a packet is
+received by a node. When this happens our hook tries to extend the tree
+representing the flood, by adding the receiving node as the child of the node
+which sent the packet. If the receiving node is already in the tree, this
+means that it is receiving the packet for the second time, in which case we do
+not modify the tree.
+
+<pre class=example>
+# let tree_hook flood_tree l2pkt node = (                                    <!--test_keep-->
+  let l2src = (L2pkt.l2src l2pkt) in                                         <!--test_keep-->
+  flood_tree := try (Flood.addnode  ~parent:l2src ~node:node#id !flood_tree) <!--test_keep-->
+  with (Failure "addnode") -> !flood_tree                                    <!--test_keep-->
+);;
+val tree_hook : Flood.t ref -> L2pkt.t -> < id : Common.nodeid_t; .. > -> unit = <fun>
+</pre>
+
+Of course we will build one distinct tree for each protocol stack. We store
+the three trees (initially empty) in an array and install the hooks on the
+nodes:
+
+<pre class=example>
+# let flood_trees = ref ( Array.init nstacks (fun _ -> ref (Flood.create !originator)));;
+val flood_trees : Flood.t ref array ref =
+  {contents =
+    [|{contents = NaryTree.Node (397, [])};
+      {contents = NaryTree.Node (397, [])};
+      {contents = NaryTree.Node (397, [])}|]}
+# for stack = 0 to nstacks - 1  do                                           <!--test_keep-->
+    Nodes.iter (fun n -> n#clear_pkt_mhooks ~stack ());                      <!--test_keep-->
+    Nodes.iter (fun n -> n#add_pktin_mhook ~stack (tree_hook !flood_trees.(stack)));<!--test_keep-->
+  done;;
+- : unit = ()
+</pre>
+
+
+And now we are ready to originate the flood! Note that after you enter the
+run() command, the toplevel might take a few seconds to complete the flood.
+
+<pre class=example>
+# (Nodes.node !originator)#originate_app_pkt ~l4pkt:(`APP_PKT 0) ~dst:L3pkt.l3_bcast_addr;;
+# (Sched.s())#run();;
+- : unit = ()
+</pre>
+
+
+
+<h2><a name="4">4. Computing statistics.</a></h2>
+
+Now that the flood has been done, we can ask the ocaml toplevel to give us the
+text representation of the generated tree by entering the variable name at the
+prompt. As you can see this is not very easy to parse visually. (But if you're
+feeling adventurous, you could use the <code>draw_tree</code> primitive
+in <a href="gen/Gui_ops.html">visualization</a> libraries to draw the trees in a
+graphics window).
+
+<p>
+<pre class=example>
+# !flood_trees.(0);;
+  - : Flood.t ref =
+{contents =
+  NaryTree.Node (397,
+   [NaryTree.Node (538, []);
+    NaryTree.Node (498,
+     [NaryTree.Node (560,
+       [NaryTree.Node (490,
+         [NaryTree.Node (489,
+           [NaryTree.Node (441, []);
+            NaryTree.Node (150,
+             [NaryTree.Node (215,
+               [NaryTree.Node (551,
+                 [NaryTree.Node (517,
+                   [NaryTree.Node (281, []);
+                    NaryTree.Node (627,
+                     [NaryTree.Node (651,
+                       [NaryTree.Node (158,
+                         [NaryTree.Node (149, []); NaryTree.Node (62, [])]);
+                        NaryTree.Node (645, []); NaryTree.Node (694, []);
+               .
+               .  
+               .  
+        ...]);
+      ...]);
+    ...])}
+</pre>
+
+
+Ok, so inspecting our tree as above is not too helpful. However, we can
+extract our statistic of interest (number of bw links) in a few lines of code:
+
+<pre class=example>
+# let dist_to_originator n =                           <!--test_keep-->
+  let orig_pos = ((World.w())#nodepos !originator)     <!--test_keep-->
+  and n_pos = ((World.w())#nodepos n)                  <!--test_keep-->
+  in  Coord.dist_sq  orig_pos n_pos;;                  <!--test_keep-->
+val dist_to_originator : Common.nodeid_t -> float = <fun>
+
+# let is_backward child parent =  dist_to_originator child < dist_to_originator parent<!--test_keep-->
+val is_backward : Common.nodeid_t -> Common.nodeid_t -> bool = <fun>
+# let count_backward_links tree =                                     <!--test_keep-->
+  let ctr = ref 0 in                                                  <!--test_keep-->
+  NaryTree.iter2                                                      <!--test_keep-->
+    (fun ~parent  ~child -> if is_backward child parent then incr ctr)<!--test_keep-->
+    tree;                                                             <!--test_keep-->
+  !ctr                                                                <!--test_keep-->
+val count_backward_links : Common.nodeid_t NaryTree.t -> int = <fun>
+</pre>
+
+
+We can now count and dump out the number of backward links for each stack. It
+should not be too surprising that there are more backward links with a
+contention mac, given that the contention mac can have collisions, which can
+cause a node not to receive the flood packet from the first node which emits
+it.
 
 
 <pre class=example>
-# do_flood();;
-# print_info();;
+# for stack = 0 to nstacks - 1 do                                       <!--test_keep-->
+    Printf.printf "Stack %d (%s) \n\n" stack stack_descriptions.(stack);<!--test_keep-->
+    let backlinks = (count_backward_links !(!flood_trees.(stack))) in   <!--test_keep-->
+    Printf.printf "\t%d backward links\n\n" backlinks;                  <!--test_keep-->
+done;;                                                                  <!--test_keep-->
 
 Stack 0 (Null MAC, 100Kbps) 
 
-	RX: 8506 pkts. TX: 900 pkts
-	27 backward links
-
+	42 backward links
 
 Stack 1 (Contention MAC, 100Kbps, 0.1s jitter) 
 
-	RX: 1973 pkts. TX: 429 pkts
-	4 RX/RX colls, 216 RX/TX colls, 0 TX/TX drops, 419 TX/RX drops
-	297 backward links
-
+	228 backward links
 
 Stack 2 (Contention MAC, 200Kbps, 3s jitter) 
 
-	RX: 6615 pkts. TX: 800 pkts
-	4 RX/RX colls, 10 RX/TX colls, 0 TX/TX drops, 101 TX/RX drops
-	133 backward links
+	160 backward links
 
-</pre>
-
-<p>
-Note that we can directly 'inspect' the generated tree. But this is not, er,
-not easy to parse visually. If you're feeling adventurous, note that a primitive is
-available in the <a href="gen/Gui_ops.html">visualization</a> libraries to
-draw trees on top of the network layout.
-<p>
-<pre class=example>
-# !(!flood_trees.(2));;
-- : Flood.t =
-NaryTree.Node (397,
- [NaryTree.Node (538, []);
-  NaryTree.Node (498,
-   [NaryTree.Node (560, []); NaryTree.Node (17, []); NaryTree.Node (817, []);
-    NaryTree.Node (519, [])]);
-  NaryTree.Node (353,
-   [NaryTree.Node (368, []);
-    NaryTree.Node (599,
-     [NaryTree.Node (748,
-       [NaryTree.Node (490,
-         [NaryTree.Node (489, []); NaryTree.Node (896, []);
-          NaryTree.Node (270, []); NaryTree.Node (334, []);
-          NaryTree.Node (267, []); NaryTree.Node (347, []);
-          NaryTree.Node (203, []);
-          NaryTree.Node (114,
-           [NaryTree.Node (475,
-             [NaryTree.Node (185,
-               [NaryTree.Node (841, []);
-                NaryTree.Node (215,
-                 [NaryTree.Node (150,
-                   [NaryTree.Node (831, []);
-                    NaryTree.Node (453,
-                     [NaryTree.Node (680, []);
-                      NaryTree.Node (302,
-                       [NaryTree.Node (534,
-                         [NaryTree.Node (83, []); NaryTree.Node (842, []);
-                          NaryTree.Node (774,
-                           [NaryTree.Node (618, [NaryTree.Node (838, [])]);
-                            NaryTree.Node (851, [])]);
-                          NaryTree.Node (65, []); NaryTree.Node (497, [])]);
-                        NaryTree.Node (320,
-                         [NaryTree.Node (823, [NaryTree.Node (601, [])])])]);
-                      NaryTree.Node (525, [])]);
-                    NaryTree.Node (441, [])]);
-                  NaryTree.Node (847, []); NaryTree.Node (879, []);
-                  NaryTree.Node (551,
-                   [NaryTree.Node (115,
-                     [NaryTree.Node (530,
-                       [NaryTree.Node (54,
-                         [NaryTree.Node (808, [NaryTree.Node (149, [])]);
-                          NaryTree.Node (322, [NaryTree.Node (15, [])]);
-                          NaryTree.Node (844, [])])]);
-                      NaryTree.Node (897, []);
-                      NaryTree.Node (167,
-                       [NaryTree.Node (885, [NaryTree.Node (197, [])]);
-                        NaryTree.Node (315, []);
-                        NaryTree.Node (486,
-                         [NaryTree.Node (627, []); NaryTree.Node (742, []);
-                          NaryTree.Node (626, []);
-                          NaryTree.Node (651, [NaryTree.Node (158, [])]);
-                          NaryTree.Node (70, []);
-                          NaryTree.Node (502,
-                           [NaryTree.Node (71, [NaryTree.Node (456, [])]);
-                            NaryTree.Node (645, []); NaryTree.Node (674, []);
-                            NaryTree.Node (752, [NaryTree.Node (62, [])]);
-                            NaryTree.Node (694, []); NaryTree.Node (839, []);
-                            NaryTree.Node (142, [])]);
-                          NaryTree.Node (402, [])]);
-                        NaryTree.Node (266, []); NaryTree.Node (329, [])]);
-                      NaryTree.Node (176,
-                       [NaryTree.Node (417, []);
-                        NaryTree.Node (281,
-                         [NaryTree.Node (633,
-                           [NaryTree.Node (527,
-                             [NaryTree.Node (662,
-                               [NaryTree.Node (97, [NaryTree.Node (588, [])])]);
-                              NaryTree.Node (649, []);
-                              NaryTree.Node (237, []);
-                              NaryTree.Node (629, [])])]);
-                          NaryTree.Node (256, [])]);
-                        NaryTree.Node (685, [])])]);
-                    NaryTree.Node (517, []); NaryTree.Node (512, [])]);
-                  NaryTree.Node (230, []); NaryTree.Node (467, []);
-                  NaryTree.Node (603, [NaryTree.Node (164, [])])]);
-                NaryTree.Node (853, []); NaryTree.Node (541, ...); ...]);
-              ...]);
-            ...]);
-          ...]);
-        ...]);
-      ...]);
-    ...]);
-  ...])
+- : unit = ()
 # 
 </pre>
+
+Let's see if the MAC-layer statistics give us more insight into the backward
+link figures we have just observed. <br>
+First, a word on the statistics exported by MAC layers. Each MAC layer object
+keeps track of packets/bits transmitted/received, and makes these available as
+a record of type <a href="gen/Mac.html#TYPEbasic_stats">basic_stats</a>
+through an accessor method with same name. These statistics can be see as the
+"lowest common denominator" of MAC-layer stats, hence their simplicity.
+<br> Then,
+individual MAC types can maintain additional information which is accessible through
+the virtual method <a href="gen/Mac_base.base.html">other_stats</a> of the
+base MAC class. 
+The <a href="gen/Mac_contention.html">contentionmac</a> MAC for example keeps
+counters for the various possible types of collisions.
+<p>
+We now define some functions to compute the totals over all MACs' statistics:
+
+<pre class=example>
+let add_basic_stats stack = <!--test_keep-->
+  Hashtbl.fold <!--test_keep-->
+    (fun nodeid mac stats -> Mac_base.add_bstats mac#basic_stats stats)<!--test_keep-->
+    (Mac_base.macs ~stack ())<!--test_keep-->
+    (Mac_base.zero_bstats())<!--test_keep-->
+;;
+val add_basic_stats : int -> Mac.basic_stats = <fun>
+
+# let add_cont_stats stack = <!--test_keep-->
+  Hashtbl.fold <!--test_keep-->
+    (fun nodeid mac stats -> Mac_contention.add_ostats mac#other_stats stats)<!--test_keep-->
+    (Mac_contention.macs ~stack ())<!--test_keep-->
+    (Mac_contention.zero_ostats());;
+val add_cont_stats : int -> Mac_contention.stats = <fun>
+# 
+</pre>
+
+If you are new to ocaml and the notion of "folding" (as in
+<code>Hashtbl.fold</code> above) a data structure is not familiar, you should
+probably spend a little time gaining familiarity with by looking at the
+various fold_* functions in the ocaml standard library
+(Array.fold_left/fold_right, List.fold_left/fold_right, etc). Folding is a
+very powerful and general means of computing some result over a data structure
+containing multiple values.
+
+For example, consider the function below, which does exactly the same thing as
+<code>add_basic_stats</code> above, but in a more "c-like" way (ie with a for
+loop instead of a fold). Less concise and much less readable!
+
+<pre class=example>
+# let add_basic_stats_imperative stack = <!--test_keep-->
+  let totals = ref (Mac_base.zero_bstats()) in<!--test_keep-->
+  let macs = (Mac_base.macs ~stack ()) in<!--test_keep-->
+  for nodeid = 0 to Param.get Params.nodes - 1 do<!--test_keep-->
+    let mac = Hashtbl.find macs nodeid <!--test_keep-->
+    in totals := Mac_base.add_bstats !totals mac#basic_<!--test_keep-->stats
+  done;<!--test_keep-->
+  !totals;;
+val add_basic_stats_imperative : int -> Mac.basic_stats = <fun>
+</pre>
+
+With this, we can dump out the aggregate stats over all mac layers and all stacks:
+
+<pre class=example>
+# for stack = 0 to nstacks - 1 do <!--test_keep-->
+    Printf.printf "Stack %d (%s) \n\n" stack stack_descriptions.(stack);<!--test_keep-->
+    let totals = add_basic_stats stack in<!--test_keep-->
+    Printf.printf "\t%s\n" (Mac_base.string_of_bstats_pkts totals);<!--test_keep-->
+
+    if stack <> 0 then ( (* null mac doesn't have additional stats *)<!--test_keep-->
+      let totals = add_cont_stats stack in<!--test_keep-->
+      Printf.printf "\t%s\n" (Mac_contention.string_of_ostats totals);<!--test_keep-->
+    );<!--test_keep-->
+    print_newline();<!--test_keep-->
+  done;;
+
+Stack 0 (Null MAC, 100Kbps) 
+
+	RX: 6707 pkts. TX: 801 pkts
+
+Stack 1 (Contention MAC, 100Kbps, 0.1s jitter) 
+
+	RX: 1656 pkts. TX: 373 pkts
+	4 RX/RX colls, 186 RX/TX colls, 0 TX/TX drops, 359 TX/RX drops
+
+Stack 2 (Contention MAC, 200Kbps, 3s jitter) 
+
+	RX: 5524 pkts. TX: 725 pkts
+	2 RX/RX colls, 9 RX/TX colls, 0 TX/TX drops, 76 TX/RX drops
+
+- : unit = ()
+# 
+</pre>
+For each MAC, the first line shows the total number of packets sent and
+received. Not surprisingly the highest numbers are for the null mac: since there
+are no collisions, every node receives the flood packet once and reforwards
+it. 
+The number of overall transmissions is reduced for contention MACS due to
+collisions. The breakdown of collision types is given in the second line (for
+stacks 1 and 2). Not surprisingly, stack 1 has more collisions than stack 2:
+since it has a both lower bit rate and lower jitter, packet transmission last
+lower and are less spread out in time.
+Please see <a href="gen/Mac_contention.html">here</a> for a
+more detailed explanation of the collision types.<p>
+
+<p>
 </html>

@@ -28,10 +28,9 @@ revision $Revision$.
 <p>
 0. <a href="#0">Prerequisites</a><br>
 1. <a href="#1">Simulation setup</a><br>
-2. <a href="#2">Using parallel stacks</a><br>
-3. <a href="#3">Making nodes move.</a><br>
-4. <a href="#4">Computing a few routes and statistics.</a><br>
-5. <a href="#5">Visualizing the routes.</a><br>
+2. <a href="#2">Making nodes move.</a><br>
+3. <a href="#3">Computing a few routes and statistics.</a><br>
+4. <a href="#4">Visualizing the routes.</a><br>
 <p>
 
 <hr>
@@ -87,7 +86,8 @@ val avg_degree : int = 10
 - : unit = ()
 </pre>
 
-Now we create the nodes. We use <code>make_naked_nodes</code> function rather
+Now we create the nodes. We use the <code>make_naked_nodes</code> (which
+creates nodes having neither MAC layer nor routing agent) function rather
 than the <code>make_nodes</code> because we will manually configure them
 afterwards. <br>
 Note that we create <a href="gen/Gpsnode.html">position-aware</a> nodes by passing the optional
@@ -99,32 +99,10 @@ necessary for the EASE and GREASE algorithms.
 - : unit = ()
 </pre>
 
-
-
-<p>
-<h2><a name="2">2. Using parallel stacks.</a></h2>
-It is possible with nab to run several independent protocol stacks on each
-node. Each stack is a complete entity with its own routing agent and mac
-layer; each stack runs in parallel with <i>no interference</i> between
-different stacks. More information on the use of stacks is in the <a
-href="gen/Simplenode.simplenode.html">simplenode</a> documentation.
-Note that all the logic for dealing with stacks is factored out into the base
-classes for <a href="gen/Mac_base.html">mac layers</a> and <a
-href="gen/Rt_agent_base.html">routing agents</a>, so protocol implementations
-do not have to be aware that any of this is going on. 
-<p>
-Stacks are identified by an <code>int</code> (stack 0, stack 1, etc). In all
-functions and methods which take a stack parameter, this parameter is optional
-and defaults to 0. That is why we have never had to specify a stack id in
-lessons 1 and 2.
 <p>
 We will use 3 parallel stacks in this simulation, which will run GREASE, EASE,
-and FRESH respectively. This allows us to compare the different routes
-obtained by the three protocols in an identical situation. (Easy comparison of
-multiple protocols or configurations is one advantage of parallel
-stacks. Another is efficiency: costly computations such as node neighborhoods
-are done only once, rather than once for each stack if we had to run them
-sequentially).
+and FRESH respectively (see lesson 2 for more information on parallel
+stacks). 
 <p>
 
 To start off let's install a mac layer on each node, on all three
@@ -157,7 +135,7 @@ below) faster.
 - : unit = ()
 </pre>
 
-<h2><a name="3">3. Making nodes move.</a></h2>
+<h2><a name="2">2. Making nodes move.</a></h2>
 In simple terms, the defining characteristic of EASE and FRESH is that they
 take advantage of node mobility. More specifically, the EASE protocol on a node
 remembers <i>when and where</i> it has encountered other nodes; FRESH
@@ -228,7 +206,7 @@ and repeats if not.
 </pre>
 
 
-<h2><a name="4">4. Computing a few routes and statistics.</a></h2>
+<h2><a name="3">3. Computing a few routes and statistics.</a></h2>
 Before moving to the route visualization proper, we will see how one might go
 about computing some routes, and a few statistics on these routes. To initiate
 a route computation, we must inject an application packet at a node, as we
@@ -366,7 +344,7 @@ Of course measuring performance on a single route is not representative - as
 an exercise one could write a little script which would compute routes from
 every possible source to the destination, and compare the average cost.
 
-<h2><a name="5">5. Visualizing the routes.</a></h2>
+<h2><a name="4">4. Visualizing the routes.</a></h2>
 OK, we've spent enough time typing commands into the toplevel now!! Let's
 launch the GUI. This is done by simply typing the three commands below.
 The first two commands initialize nab's general gui code and the LER-specific
