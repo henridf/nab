@@ -5,10 +5,73 @@
 open Packet
 open Printf
 
+(* Magic_bler_agent: 
+   Simplified bler algorithm which simply sends packets from anchor 
+   to anchor. Does not do a real flooding.
+   Is also incomplete in that it does not need to properly fill in 
+   bler packets with  the current encounter age. *)
+
+(* right now this mhook does not distinguish betwen src-dst pairs, it takes
+   anything and tries to construct the route.
+   Later, it should take src and dst as parameters, and script would create a
+   closured mhook with appropriate src and dsts.
+   This would allow having multiple route constructions ongoing and mhooks
+   demuxing between them apropriately.
+*)
+
+let magic_bler_route_mhook routeref l2pkt (node:Node.node_t) = (
+
+  let l3dst = (Packet.get_l3hdr l2pkt.l3pkt).dst 
+  and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in
+  
+  match l2pkt.l2hdr.l2src <> node#id with
+    | true -> 	(* Packet arriving at a node *)
+
+	if  node#id = l3dst then  (* Packet arriving at dst. *)
+	  	    
+	  routeref := Route.add_hop !routeref {
+	    Route.hop=node#id;
+	    Route.anchor=node#id;
+	    Route.anchor_age=0.0;
+	    Route.searchcost=0.0
+	  }
+
+	else  (* Packet arriving at intermediate node *)
+	  routeref := Route.add_hop !routeref {
+	    Route.hop=node#id;
+	    Route.anchor=node#id;
+(*	    Route.anchor_age=0.0;*)
+	    Route.anchor_age=(node#db)#encounter_age ~nid:l3dst;
+	    Route.searchcost=0.0 (* will be filled in when the packet
+				    leaves this intermediate node below *)
+	  }
+  
+    | false ->  (* Packet leaving some node *)
+
+	if  node#id = l3src then  (* Packet leaving src *)
+	  	    
+	  routeref := Route.add_hop !routeref {
+	    Route.hop=node#id;
+	    Route.anchor=node#id;
+	    Route.anchor_age=(node#db)#encounter_age ~nid:l3dst;
+	    Route.searchcost=0.0
+	  }
+
+	else    (* Packet leaving intermediate node. *)
+
+	  (* now we know the next hop, we can figure out the search cost *)
+	  let next_hop = 
+	    match l2pkt.l2hdr.l2dst with
+	      | L2_DST d -> d
+	      | L2_BCAST -> 
+		  raise (Failure "Bler_agent.bler_route_mhook: didn't expect to see a L2_BCAST")
+	  in
+	  (Route.last_hop !routeref).Route.searchcost <- 
+	  (((Gworld.world())#dist_nodeids next_hop node#id) ** 2.0)
+)
 
 
-
-class bler_agent owner  = 
+class magic_bler_agent owner  = 
 object(s)
 
   inherit Log.loggable
@@ -16,35 +79,44 @@ object(s)
   val owner:Node.node_t = owner
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/Bler_Agent")
+    objdescr <- (owner#objdescr ^  "/Bler_Agent");
+    owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
+    owner#add_app_send_pkt_hook ~hook:s#app_send
   )
 
+  method mac_recv_hook pkt = 
+    match pkt with
+      | BLER_PKT p ->  s#recv_bler_pkt_ p
+      | _ -> ()
 
-  method recv pkt = (
-    
+  method app_send pkt = (
+    let l3hdr = 
+      Packet.make_l3hdr ~srcid:pkt.l3hdr.src ~dstid:pkt.l3hdr.dst  ()
+    and pld = 
+      Packet.ANCH_REQ (pkt.l3hdr.dst, max_float); 
+    in
+    s#recv_bler_pkt_ (Packet.make_bler_pkt ~l3hdr:l3hdr ~blerpld:pld)
+  )
+
+  method private recv_bler_pkt_ (pkt:Packet.bler_packet_t) = (
     s#log_info (sprintf "%d received pkt with src %d, dst %d"
-      owner#id pkt.src pkt.dst);
+      owner#id (pkt.l3hdr.src) (pkt.l3hdr.dst));
 
-    match  owner#id = pkt.dst with
-
-      | true -> (* Packet arrived. *)
-	  pkt.route <- Route.add_hop pkt.route {
-	    Route.hop=owner#id;
-	    Route.anchor=owner#id;
-	    Route.anchor_age=0.0;
-	    Route.searchcost=0.0
-	  };
+    match  owner#id = pkt.l3hdr.dst with
+	
+      | true -> (* We are destination. *)
 	  s#log_debug (sprintf "packet has arrived");
-      | false ->  (* Intermediate Hop *)
 
-	  s#log_debug (sprintf "We are intermediate hop");
+      | false ->  (* We are src or intermediate hop *)
 
+	  s#log_debug (sprintf "We are first or intermediate hop");
+	  
 	  (* when did we see dst ? *)
-
+	  
 	  let our_encounter_age = (
-
- 	    match (owner#db)#last_encounter ~nid:pkt.dst with
-	      | None when (pkt.src <> owner#id) 
+	    
+ 	    match (owner#db)#last_encounter ~nid:pkt.l3hdr.dst with
+	      | None when (pkt.l3hdr.src <> owner#id) 
 		  -> raise (Failure "Got bler packet for a node I have never seen\n")
 	      | None ->  max_float (* we're src and we've never seen dst *) 
 	      | Some enc ->  Common.enc_age enc
@@ -52,26 +124,22 @@ object(s)
 
 	  
 	  (* who's seen dst more recently than us? *)
-
+	  
 	  let next_hop =  
 	    (Gworld.world())#find_closest 
-	    owner 
-	      (fun n -> if (n#db)#encounter_age pkt.dst < our_encounter_age then true else false)
+	    (* the inequality has to be sharp to ensure that we make. But if
+	       we are right next to the destination, it could be that our last
+	       encounter was 'now', in which case the destination won't
+	       satisfy the inequality, hence the first test *)
+	    owner#pos 
+	      (fun n -> 
+		n#id = pkt.l3hdr.dst ||
+		(n#db)#encounter_age pkt.l3hdr.dst < our_encounter_age)
+
 	  in
-	  
-	  (* stick us onto route *)
+	  (* Send through our containing nodes' mac layer *)
+	  owner#cheat_send_pkt ~l3pkt:(BLER_PKT pkt) ~dst:(Nodes.node(Misc.o2v next_hop))
+  )
 
-	  pkt.route <- Route.add_hop pkt.route {
-	    Route.hop=owner#id;
-	    Route.anchor=owner#id;
-	    Route.anchor_age=our_encounter_age;
-	    Route.searchcost=(((Gworld.world())#dist_nodeids next_hop owner#id) ** 2.0)
-	  };
-
-	  (* schedule for forwarding *)
-
-	  let pkt_reception() = (Nodes.node(next_hop))#recv_pkt pkt in
-	  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP)
-	)
 
 end
