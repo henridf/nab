@@ -15,15 +15,15 @@
 
   Returns a list of the bottom-left coords of all world squares that are
   touched by the circle.
-  worldsize_x_m : width of world in meters
-  worldsize_y_m : height of world in meters
-  boxsize_m : size of one grid square in meters
+  worldsize_x : width of world in meters
+  worldsize_y : height of world in meters
+  boxsize : size of one grid square in meters
 *)
 val xsect_grid_and_circle : 
-  center_m:Coord.coordf_t -> 
-  radius_m:float -> 
-  worldsize_x_m:float ->
-  worldsize_y_m:float -> 
-  boxsize_m:float ->
+  center:Coord.coordf_t -> 
+  radius:float -> 
+  worldsize_x:float ->
+  worldsize_y:float -> 
+  boxsize:float ->
   Coord.coordi_t list 
 
