@@ -10,7 +10,7 @@ module type Itinerary_t =
 sig
   exception Itin_size_not_set
   type t   
-  val create_ : itinsize:int -> graphsize:int -> t
+  val make_ : itinsize:int -> graphsize:int -> t
   val length_ : t -> int
   val addplace_ : t -> int -> unit
   val get_ : t -> int -> int           (* get an entry in the itinerary, specified by relative age *)
@@ -35,16 +35,16 @@ struct
 	     mutable counter: int
 	    }
 
-  let last_visit_of_place__ = ref (Array.create 0 max_int) (* to avoid allocating each time in unroll_ *)
+  let last_visit_of_place__ = ref (Array.make 0 max_int) (* to avoid allocating each time in unroll_ *)
     
   let p2i__ = function 
       None -> raise (Invalid_argument "Itinerary.p2i__: Cannot convert None to int")
     | Place i -> i
 
 
-  let create_ ~itinsize ~graphsize = {cbuf=CircBuf.create_ itinsize None;
+  let make_ ~itinsize ~graphsize = {cbuf=CircBuf.make_ itinsize None;
 				      graphsize=graphsize;
-				      arr=Array.create graphsize (max_int);
+				      arr=Array.make graphsize (max_int);
 			              counter=0
 				     }
 
@@ -93,7 +93,7 @@ struct
 
     let l1 = hops_to_place_ leftitin (p2i__ p) in
     let l2 = (length_ rightitin) - (hops_to_place_ rightitin (p2i__ p)) in
-    let newitin = create_ ~itinsize:(l1 + l2)  ~graphsize:leftitin.graphsize in
+    let newitin = make_ ~itinsize:(l1 + l2)  ~graphsize:leftitin.graphsize in
 
       for i = (length_ rightitin) - 1 downto (hops_to_place_ rightitin (p2i__ p)) do
 	addplace_ newitin (get_ rightitin i)
@@ -138,7 +138,7 @@ struct
     
     (* last_visit_of_place__.(n) = how long ago we last visited place n in the graph  (max_int if never visited)  *)
     if (Array.length !last_visit_of_place__ <> itin.graphsize) then 
-      last_visit_of_place__ := Array.create itin.graphsize max_int
+      last_visit_of_place__ := Array.make itin.graphsize max_int
     else
       (* to avoid reallocs, reuse the same one across invocations when graphsize doesn't change *)
       ArrayLabels.fill !last_visit_of_place__ ~pos:0 ~len:itin.graphsize  max_int;
@@ -156,7 +156,7 @@ struct
     
     (* reverse-walk list and each time you encounter a place that's not the first encounter noted above,  *)
     (* make the shortcut. *)
-    let larr = LinkedArray.create_ (CircBuf.toarray_ itin.cbuf) in (* larr.(0) will be most recently visited place *)
+    let larr = LinkedArray.make_ (CircBuf.toarray_ itin.cbuf) in (* larr.(0) will be most recently visited place *)
       
     let rec revwalk t = (  
       (* recursion over t:int offset going backward in time *)
@@ -187,10 +187,10 @@ struct
       revwalk (CircBuf.length_ itin.cbuf - 1); 
       let newcb = CircBuf.fromarray_ (LinkedArray.toarray_ larr) in
       let unroll_len = CircBuf.length_ itin.cbuf in
-      let newarr = Array.create itin.graphsize max_int in
+      let newarr = Array.make itin.graphsize max_int in
 	CircBuf.iteri_ (fun i place ->  newarr.(p2i__ place) <- unroll_len - i - 1) newcb;
 
-      (* xxx/slow 2 allocations here. Could create a CircBuf.fromlinkedarray that skips one alloc *)
+      (* xxx/slow 2 allocations here. Could make a CircBuf.fromlinkedarray that skips one alloc *)
       {cbuf=newcb;
        arr=newarr;
        counter=unroll_len;
@@ -208,7 +208,7 @@ struct
 
     let graphsize = ref 5 in
     let make_itin size input = (
-      let itin = create_ ~itinsize:size ~graphsize:!graphsize in 
+      let itin = make_ ~itinsize:size ~graphsize:!graphsize in 
 	array_rev_iter (fun x -> addplace_ itin  x) input; itin;
     ) in
     let test_unrolling size input unrolled_check = (
@@ -222,7 +222,7 @@ struct
 
     ) in
 
-    let itin = create_ ~itinsize:4 ~graphsize:!graphsize in
+    let itin = make_ ~itinsize:4 ~graphsize:!graphsize in
       assert (length_ itin = 4);
       for i = 0 to 3 do
 	try (

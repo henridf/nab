@@ -4,7 +4,7 @@ module type LinkedArray_t =
 sig
   type 'a linkedArray_t
   type ngbr_t = None_head | None_tail | Ngbr of int
-  val create_ : 'a array -> 'a linkedArray_t
+  val make_ : 'a array -> 'a linkedArray_t
   val toarray_ : 'a linkedArray_t -> 'a array
   val get_ : 'a linkedArray_t -> int -> 'a
   val next_ : 'a linkedArray_t -> int -> ngbr_t (* None_tail means no successor   *)
@@ -40,7 +40,7 @@ struct
   let next_ larr i = try larr.arr.(i).next with Invalid_argument "Array.get" -> raise (Invalid_argument "LinkedArray.next_")
   let prev_ larr i = try larr.arr.(i).prev with Invalid_argument "Array.get" -> raise (Invalid_argument "LinkedArray.prev_")
 
-  let create_ arr = (
+  let make_ arr = (
     let len = (Array.length arr) - 1 in
     let a = Array.mapi (fun i content ->
 			  match i with 
@@ -67,7 +67,7 @@ struct
 
   let toarray_ larr = (
     if length_ larr = 0 then [||] else 
-      let arr = Array.create (length_ larr) (get_ larr 0) in
+      let arr = Array.make (length_ larr) (get_ larr 0) in
       let rec _toarray  arrindex = function
 	  None_tail -> ()
 	| n -> 
@@ -147,16 +147,16 @@ struct
   let test_ () = (
     (* connect head to tail, check length = 0 and toarray = [||] *)
 
-    let la = create_ [||] in 
+    let la = make_ [||] in 
       assert (length_ la = 0);
       assert (toarray_ la = [||]);
 
-      let la = create_ [|1.0|] in 
+      let la = make_ [|1.0|] in 
 	assert (length_ la = 1);
 	assert (toarray_ la = [|1.0|]);
 	consistency_check__ la;
 
-	let la = create_ [| 0.; 1.; 2.; 3.; 4.; 5. |] in 
+	let la = make_ [| 0.; 1.; 2.; 3.; 4.; 5. |] in 
 	  assert (length_ la = 6);
 	  assert (toarray_ la = [| 0.; 1.; 2.; 3.; 4.; 5. |]);
 	  for i = 0 to 5 do 

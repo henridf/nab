@@ -4,7 +4,7 @@ module type CircBuf_t =
 sig 
   type 'a circbuf_t
 
-  val create_ : int -> 'a -> 'a circbuf_t
+  val make_ : int -> 'a -> 'a circbuf_t
   val length_ : 'a circbuf_t -> int
   val get_ : 'a circbuf_t -> int -> 'a      (* offset counts backward from latest element inserted *)
   val push_ : 'a circbuf_t -> 'a -> unit
@@ -20,9 +20,9 @@ struct
   type 'a circbuf_t = {buf : 'a array;
 		       mutable head : int}
 			
-  let create_ size item = (
-    if size <= 0   then raise (Invalid_argument "CircBuf.create_ : size must be > 0");
-    {buf = (Array.create size item); head=0}
+  let make_ size item = (
+    if size <= 0   then raise (Invalid_argument "CircBuf.make_ : size must be > 0");
+    {buf = (Array.make size item); head=0}
   )
 			    
   let length_ cbuf = Array.length cbuf.buf
@@ -56,7 +56,7 @@ struct
   )
 			
   let toarray_ cbuf = (
-    let arr = Array.create (length_ cbuf) (get_ cbuf 0) in
+    let arr = Array.make (length_ cbuf) (get_ cbuf 0) in
       Array.blit cbuf.buf cbuf.head arr 0 (Array.length cbuf.buf - cbuf.head);
       Array.blit cbuf.buf 0 arr (Array.length cbuf.buf - cbuf.head) cbuf.head;
       arr
@@ -66,7 +66,7 @@ struct
 			 
 			 
   let test_ () = ( 
-    let cb = create_ 5 1.0 in
+    let cb = make_ 5 1.0 in
       assert (length_ cb = 5);
       for i = 0 to 4 do 
 	push_ cb (i2f i);
