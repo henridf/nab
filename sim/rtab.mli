@@ -28,7 +28,6 @@ val repairing  : rt:rtab_t -> dst:Common.nodeid_t -> bool
 val repair_start  : rt:rtab_t -> dst:Common.nodeid_t -> unit
 val repair_done  : rt:rtab_t -> dst:Common.nodeid_t -> unit
 
-
 val newadv : 
   rt:rtab_t -> 
   dst:Common.nodeid_t -> 
@@ -44,3 +43,13 @@ val newadv_ignorehops :
   bool
   (* same as newadv except based on seqnos only: a fresher or equal seqno is
   accepted, older seqno not *)
+
+
+val clear_entry : rt:rtab_t -> dst:Common.nodeid_t -> unit
+  (** Set entry for dst back to 'empty' state (ie, state when a routing table
+    is initially created *)
+
+val clear_all_entries : rt:rtab_t -> unit
+  (** Set all entries back to 'empty' state (ie, state when a routing table
+    is initially created *)
+

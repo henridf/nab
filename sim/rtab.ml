@@ -20,23 +20,34 @@ type rtab_entry_t = {
 
 type rtab_t = rtab_entry_t array
 
-let create_aodv ~size = Array.init size 
-  (fun n -> {
-    seqno=None; 
-    nexthop=None;
-    hopcount=None; 
-    repairing=false; 
+
+(* these two funs only exist to make sure that initialization (create_* ) and
+  clear_* funs have the same behavior *)
+let empty_aodv_entry() = {
+    seqno=None; nexthop=None;
+    hopcount=None;  repairing=false; 
     other= `AODV {valid=false}
-})
+}
+let empty_grep_entry() = {
+    seqno=None;  nexthop=None;
+    hopcount=None;  repairing=false; 
+    other= `GREP
+}
+
+let create_aodv ~size = Array.init size 
+  (fun n -> empty_aodv_entry())
 
 let create_grep ~size = Array.init size 
-  (fun n -> {
-    seqno=None; 
-    nexthop=None;
-    hopcount=None; 
-    repairing=false; 
-    other= `GREP
-})
+  (fun n -> empty_grep_entry())
+
+let clear_entry ~rt ~dst = 
+  match   rt.(dst).other with
+    | `AODV _ -> rt.(dst) <- empty_aodv_entry()
+    | `GREP -> rt.(dst) <- empty_grep_entry()
+
+
+let clear_all_entries ~rt  = 
+  Array.iteri (fun i _ -> clear_entry ~rt ~dst:i) rt
 
 let seqno ~rt ~dst = rt.(dst).seqno
 let nexthop ~rt ~dst = rt.(dst).nexthop
