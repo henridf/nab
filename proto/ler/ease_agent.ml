@@ -107,7 +107,7 @@ object(s)
 	      ((World.w())#nodepos nid) anchor_pos < d_here_to_anchor then true 
 	    else false
 	  in
-	  match ((World.w())#find_closest ~pos:owner#pos ~f)
+	  match ((World.w())#find_closest ~pos:owner#pos ~f ())
 	  with 
 	    | None -> myid
 	    | Some n when (
@@ -153,11 +153,12 @@ object(s)
 	     we are right next to the destination, it could be that our last
 	     encounter was 'now', in which case the destination won't
 	     satisfy the inequality, hence the first test *)
-	  owner#pos 
-	  (fun nid -> 
+	  ~pos:owner#pos 
+	  ~f:(fun nid -> 
 	    (nid = dst)
 	    ||
 	    !agents_array.(nid)#le_tab#le_age ~nid:dst < cur_enc_age)
+	  ()
 	)
       in
       if (msngr = dst) then 
