@@ -20,6 +20,7 @@ sig
   val nhop_neigbors_  : t -> node:elt -> radius:int -> elt list
   val nhop_neigborsi_ : t -> index:int -> radius:int -> int list
 
+
   val size_      : t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
   val index_     : t -> elt -> int
   val node_      : t -> int -> elt
@@ -153,9 +154,11 @@ struct
   )
 
   let neigborsi_ g index = (
-    (* xxx/slow : 3 allocations *)
     if containsi_ g index then 
-      List.filter (fun n -> n >= 0) (Array.to_list (Array.mapi (fun i c -> if c <> Nan then i else -1) g.m.(index)))
+      
+      let n = ref [] in
+	Array.iteri (fun i c -> if c <> Nan then n := i::!n) g.m.(index);
+	!n;
     else
       raise (Invalid_argument "Graph.neigborsi_: index does not exist")
   )
