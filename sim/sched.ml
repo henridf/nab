@@ -48,10 +48,8 @@ let set_time t = (
 class type virtual scheduler_t = 
 object 
 
-
   method run : unit -> unit 
     (** Keep processing queued events until none left. *)
-
   
   method run_until : 
     continue:(unit -> bool) -> 
