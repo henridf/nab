@@ -147,7 +147,18 @@ object ('a)
       create the packet and shove it down the app_send_pkt_hooks *)
 
   method mac_send_failure : ?stack:int -> L2pkt.t -> unit
-    
+    (** A MAC implementation may call this method when  a unicast transmission
+      fails. If and when a MAC layer detects a unicast transmission failure
+      depends on the type of MAC. For example, a MACAW mac would call
+      [unicast_failure] when the RTS/CTS/DATA/ACK cycle fails. Or a MACA mac,
+      which does not have ACKs, will never call [unicast_failure]. 
+      
+      Note that in a typical IP over 802.11b stack, there is no such callback
+      from the device driver to the IP layer when a packet transmission
+      fails. So a simulation wanting to faithfully mimic the behavior of a
+      IP over 802.11b device should consider ignoring these callbacks.
+    *)
+
   (** Inserting hooks. *)
     
   method add_pktin_mhook : ?stack:int -> (L2pkt.t -> 'a -> unit) -> unit
