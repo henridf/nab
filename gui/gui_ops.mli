@@ -9,7 +9,7 @@ val draw_ease_route :
   ?anchors:bool ->
   ?disks:bool ->
   ?portion:float ->
-  Coord.coordi_t Route.ease_route_t
+  (Coord.coordi_t, Coord.coordi_t) Route.ease_route_t
   -> unit
   (** Draw ease route. 
     Optional arguments [lines] [anchors] [disks] specify respectively which

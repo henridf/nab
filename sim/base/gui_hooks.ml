@@ -20,7 +20,7 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  route_done := true;
 	  routeref := Route.add_hop !routeref {
-	    Route.hop=node#pos;
+	    Route.hop=node#id;
 	    Route.info=Some {
 	      Route.anchor=(Ease_pkt.anchor ease_hdr);
 	      Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
@@ -41,11 +41,11 @@ let ease_route_pktout_mhook routeref l2pkt node = (
   
   match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
-    | false ->  (* Packet leaving some node *)
+    | false ->  (* Packet leaving source node *)
 	
 	(Log.log)#log_info (lazy (Printf.sprintf "Leaving src %d" node#id));	
 	routeref := Route.add_hop !routeref {
-	  Route.hop=node#pos;
+	  Route.hop=node#id;
 	  Route.info=Some {
 	    Route.anchor=(Ease_pkt.anchor ease_hdr);
 	    Route.anchor_age=(Ease_pkt.enc_age ease_hdr);

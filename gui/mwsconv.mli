@@ -24,12 +24,12 @@ val route_nodeid_to_pix :
   (Coord.coordi_t, 'b) Route.t  
 
 val ease_route_mtr_to_pix :
-  Coord.coordf_t Route.ease_route_t  ->
-  Coord.coordi_t Route.ease_route_t  
+  (Coord.coordf_t, Coord.coordf_t) Route.ease_route_t  ->
+  (Coord.coordi_t, Coord.coordi_t) Route.ease_route_t  
 
 val ease_route_nodeid_to_pix :
-  Common.nodeid_t Route.ease_route_t  ->
-  Coord.coordi_t Route.ease_route_t  
+  (Common.nodeid_t, Common.nodeid_t) Route.ease_route_t  ->
+  (Coord.coordi_t, Coord.coordi_t) Route.ease_route_t  
 
 
 (* gui => mws *)
