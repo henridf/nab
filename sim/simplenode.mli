@@ -17,8 +17,6 @@ exception Mac_Send_Failure
 
 type node_state_t = Coord.coordf_t
     (** this type is used for storing node state to file *)
-    
-
 
 
 
@@ -37,12 +35,12 @@ type node_state_t = Coord.coordf_t
   It is possible in mws to simultaneously run multiple protocol stacks on each
   node. These are completely oblivious to, and independent of, each
   other. Running multiple stacks can be helpful for example when comparing
-  several routing protocols, MAC layers, or combination thereof: instead of
-  scripting as many simulation runs as configurations, and running them
-  sequentially, it is possible to do them all together. This can remove quite
-  some scripting hassle, and allows to be confident that each protocol is
-  being presented with {i exactly} the same conditions in terms of mobility,
-  traffic, etc.
+  different routing protocols, parameters, MAC layers, or combinations
+  thereof: instead of scripting as many simulation runs as configurations, and
+  running them sequentially, it is possible to do them all together. This can
+  remove quite some scripting hassle, and allows to be confident that each
+  protocol is being presented with {i exactly} the same conditions in terms of
+  mobility, traffic, etc.
 
   Using multiple stacks together can also be faster, since all the
   computations related to node mobility, computing node neighbors, etc (which
