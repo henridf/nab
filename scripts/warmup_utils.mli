@@ -22,20 +22,9 @@
 
 (* $Id$ *)
 
-type warmup_type = TRAFFIC | MOB | NONE
-and agent_type = 
-  | AODV | STR_MAX | STR_AGE | STR_AODV | LER_FRESH | LER_GREASE | LER_EASE
-
-module Config :
-  sig
-    val warmup : warmup_type Param.t
-    val agent : agent_type Param.t
-    val run : int Param.t
-  end
 
 val sprint_added_stats : unit -> string
 val sprint_added_jdbstats : unit -> string
-val set_hellos : unit -> unit
-val setup_sim : unit -> unit
+
 val setup_or_restore : unit -> unit
 val maybe_warmup : string -> unit
