@@ -22,90 +22,182 @@
 
 (* $Id$ *)
 
-
+(* Rem:
+   if any mutables get introduced, remember to change clone_aodv_pkt
+*)
 
 open Pkt_common
+open Misc
 
-(* L3 STUFF *)
-type aodv_flags_t = 
-    [ `DATA | `RREQ | `RREP | `RERR | `RADV ]
+type seqno_t = int
 
-type t = {
-  mutable aodv_flags : aodv_flags_t;
-  ssn : int;         (* Source Seqno: All *)
-  dsn : int;         (* Destination Seqno: RREQ *)
-  mutable shc : int; (* Source hopcount: All *)
-  mutable dhc : int; (* Destination hopcount: RREQ *)
-  osrc : Common.nodeid_t; (* OBO Source: RREP *)
-  osn : int;              (* OBO Seqno: RREP *)
-  ohc : int;      (* OBO Hopcount: RREP *)
-  rdst : Common.nodeid_t; (* Route request destination : RREQ *)
+
+type rreq_flags = {
+  g : bool; (** Grat RREP. *)
+  d : bool; (** Destination only. *)
+  u : bool; (** Unknown sequence number. *)
 }
 
-let hdr_size _ = (* too lazy to differentiat btw types right now, so
-			     just putting the 'average' size *)
-      1  (* aodv_flags *)
-      + (2 * _SEQNO_SIZE)  (* ssn, dsn *)
-      + (2 * _TTL_SIZE) (* shc, dhc *)
+type rreq = {
+  rreq_flags :  rreq_flags;
+  rreq_hop_count :   int;
+  rreq_id :     int;
+  rreq_dst :    Common.nodeid_t;
+  rreq_dst_sn : seqno_t;
+  rreq_orig :        Common.nodeid_t;
+  rreq_orig_sn :     seqno_t;
+}
 
-let clone aodv_pkt = {aodv_pkt with ssn=aodv_pkt.ssn}
+type rrep_flags = {
+  a  : bool; (** Acknowledgement required. *)
+}
+
+type rrep = {
+  rrep_flags :   rrep_flags;
+  prefix_size :  char;
+  rrep_hop_count :    int;
+  rrep_dst :     Common.nodeid_t;
+  rrep_dst_sn :  seqno_t;
+  rrep_orig :         Common.nodeid_t;
+  lifetime :     int;
+}
+
+type rerr_flags = {
+  n : bool (** No delete. *)
+}
+
+type rerr = {
+  rerr_flags : rerr_flags;
+  unreach : (Common.nodeid_t * seqno_t) list
+}
+
+type t =  
+  | NONE 
+  | RREQ of rreq 
+  | RREP of rrep 
+  | RERR of rerr
+  | RREP_ACK 
 
 
-let flags aodv_pkt = 
-  aodv_pkt.aodv_flags
-
-let ssn aodv_pkt = aodv_pkt.ssn
-let shc aodv_pkt = aodv_pkt.shc
-let dsn aodv_pkt = let v = aodv_pkt.dsn in assert (v <> -1); v
-let dhc aodv_pkt = let v = aodv_pkt.dhc in assert (v <> -1); v
-let osrc aodv_pkt = let v = aodv_pkt.osrc in assert (v <> -1); v
-let ohc aodv_pkt = let v = aodv_pkt.ohc in assert (v <> -1); v
-let osn aodv_pkt = let v = aodv_pkt.osn in assert (v <> -1); v
-let rdst aodv_pkt = let v = aodv_pkt.rdst in assert (v <> -1); v
+let hdr_size aodv_hdr = 
+  (* directly read off the written out packet formats in
+     draft. *)
+  match aodv_hdr with 
+    | NONE -> 0
+    | RREP_ACK -> 2
+    | RREQ _ -> 24
+    | RREP _ -> 20
+    | RERR rerr -> 4 + 8 * (List.length rerr.unreach)
 
 
-let incr_shc_pkt aodv_pkt  = 
-  aodv_pkt.shc <- aodv_pkt.shc + 1
+(* must change if any mutables get introduced!! *)
+let clone aodv_pkt = aodv_pkt
 
-let decr_shc_pkt aodv_pkt  = 
-  aodv_pkt.shc <- aodv_pkt.shc - 1
+let make_rrep_hdr 
+  ?(flags = {a=false}) 
+  ?(prefix_size = (char 0))
+  ~hop_count
+  ~dst
+  ~dst_sn
+  ~orig
+  ~lifetime () 
+  = 
+  assert (hop_count >= 0 && lifetime > 0 );
+  RREP {
+    rrep_flags = flags;
+    prefix_size = prefix_size;
+    rrep_hop_count = hop_count;
+    rrep_dst = dst;
+    rrep_dst_sn = dst_sn;
+    rrep_orig = orig;
+    lifetime = lifetime;
+  }
 
-let make_aodv_hdr 
-  ?(dhc = -1)
-  ?(dsn= -1)
-  ?(osrc= -1)
-  ?(ohc= -1)
-  ?(osn= -1)
-  ?(rdst= -1) 
-  ~flags 
-  ~ssn 
-  ~shc
-  ()
-  = (
-    begin 
-      match flags with 
-	| `DATA -> 
-	    assert (dhc = -1 && dsn = -1  && osrc = -1 && 
-    ohc = -1 && osn = -1 && rdst = -1)
-	| `RREQ | `RERR ->
-	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
-    rdst <> -1 && dhc <> -1 && dsn <> -1)
-	| `RREP ->
-	    assert (ohc <> -1 && osn <> -1 && osrc <> -1 && 
-	    rdst = -1 && dhc = -1 && dsn = -1)
-	| `RADV  -> 
-	    assert (ohc = -1 && osn = -1 && osrc = -1 && 
-	    rdst = -1 && dhc = -1 && dsn = -1)
-    end;
-    {
-      aodv_flags=flags;
-      ssn=ssn;
-      shc=shc;
-      dhc=dhc;
-      dsn=dsn;
-      ohc=ohc;
-      osn=osn;
-      osrc=osrc;
-      rdst=rdst
-    }
-  )
+
+let make_rerr_hdr  ?(flags={n=false}) unreachables = 
+  assert (List.length unreachables > 0);
+  RERR {
+    rerr_flags = flags;
+    unreach = unreachables
+  }
+    
+
+let make_rreq_hdr 
+  ?(flags={g=false; d=false; u=false}) 
+  ~hop_count 
+  ~rreq_id 
+  ~rreq_dst 
+  ~rreq_dst_sn 
+  ~orig 
+  ~orig_sn () 
+  = 
+  assert (hop_count >= 0);
+  RREQ {
+    rreq_flags = flags;
+    rreq_hop_count = hop_count;
+    rreq_id = rreq_id;
+    rreq_dst = rreq_dst;
+    rreq_dst_sn = rreq_dst_sn;
+    rreq_orig = orig;
+    rreq_orig_sn = orig_sn;
+  }
+    
+
+let rreq_orig_sn hdr = match hdr with 
+  | RREQ h ->  h.rreq_orig_sn
+  | NONE | RREP_ACK | RREP _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rreq_orig_sn")
+
+let rreq_orig hdr = match hdr with 
+  | RREQ h ->  h.rreq_orig
+  | NONE | RREP_ACK | RREP _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rreq_orig")
+
+let rreq_dst_sn hdr = match hdr with 
+  | RREQ h ->  h.rreq_dst_sn
+  | NONE | RREP_ACK | RREP _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rreq_dst_sn")
+
+let rreq_dst hdr = match hdr with 
+  | RREQ h ->  h.rreq_dst
+  | NONE | RREP_ACK | RREP _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rreq_dst")
+      
+
+let rrep_orig hdr = match hdr with 
+  | RREP h ->  h.rrep_orig
+  | NONE | RREP_ACK | RREQ _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rrep_orig")
+
+let rrep_dst_sn hdr = match hdr with 
+  | RREP h ->  h.rrep_dst_sn
+  | NONE | RREP_ACK | RREQ _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rrep_dst_sn")
+
+let rrep_dst hdr = match hdr with 
+  | RREP h ->  h.rrep_dst
+  | NONE | RREP_ACK | RREQ _ | RERR _ ->
+      raise (Invalid_argument "Aodv_pkt.rrep_dst")
+      
+
+
+
+let incr_hop_count hdr  = 
+  match hdr with 
+    | RREQ h -> RREQ { h with rreq_hop_count = h.rreq_hop_count + 1}
+    | RREP h -> RREP { h with rrep_hop_count = h.rrep_hop_count + 1}
+    | NONE | RREP_ACK  | RERR _ ->
+	raise (Invalid_argument "Aodv_pkt.incr_hop_count")
+
+let decr_hop_count hdr  = 
+  match hdr with 
+    | RREQ h -> 
+	assert (h.rreq_hop_count > 0);
+	RREQ { h with rreq_hop_count = h.rreq_hop_count - 1}
+    | RREP h -> 
+	assert (h.rrep_hop_count > 0);
+	RREP { h with rrep_hop_count = h.rrep_hop_count - 1}
+    | NONE | RREP_ACK  | RERR _ ->
+	raise (Invalid_argument "Aodv_pkt.decr_hop_count")
+
+

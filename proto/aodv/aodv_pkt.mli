@@ -29,54 +29,106 @@
 
 
 (** AODV packet types and manipulators.
+  As per draft-ietf-manet-aodv-13.txt, Feb 2003. 
+  
   @author Henri Dubois-Ferriere.
 *)
 
+type seqno_t = int
 
-(* L3 STUFF *)
-type aodv_flags_t = 
-    [ `DATA | `RREQ | `RREP | `RERR | `RADV ]
 
-type t = {
-  mutable aodv_flags : aodv_flags_t;
-  ssn : int;         (* Source Seqno: All *)
-  dsn : int;         (* Destination Seqno: RREQ *)
-  mutable shc : int; (* Source hopcount: All *)
-  mutable dhc : int; (* Destination hopcount: RREQ *)
-  osrc : Common.nodeid_t; (* OBO Source: RREP *)
-  osn : int;              (* OBO Seqno: RREP *)
-  ohc : int;      (* OBO Hopcount: RREP *)
-  rdst : Common.nodeid_t; (* Route request destination : RREQ *)
+type rreq_flags = {
+  g : bool; (** Grat RREP. *)
+  d : bool; (** Destination only. *)
+  u : bool; (** Unknown sequence number. *)
 }
 
+type rreq = {
+  rreq_flags :  rreq_flags;
+  rreq_hop_count :   int;
+  rreq_id :     int;
+  rreq_dst :    Common.nodeid_t;
+  rreq_dst_sn : seqno_t;
+  rreq_orig :        Common.nodeid_t;
+  rreq_orig_sn :     seqno_t;
+}
+
+type rrep_flags = {
+  a  : bool; (** Acknowledgement required. *)
+}
+
+type rrep = {
+  rrep_flags :   rrep_flags;
+  prefix_size :  char;
+  rrep_hop_count :    int;
+  rrep_dst :     Common.nodeid_t;
+  rrep_dst_sn :  seqno_t;
+  rrep_orig :         Common.nodeid_t;
+  lifetime :     int;
+}
+
+
+
+type rerr_flags = {
+  n : bool (** No delete. *)
+}
+
+type rerr = {
+  rerr_flags : rerr_flags;
+  unreach : (Common.nodeid_t * seqno_t) list
+}
+
+type t =  
+  | NONE 
+  | RREQ of rreq 
+  | RREP of rrep 
+  | RERR of rerr
+  | RREP_ACK 
 
 val hdr_size : t -> int
 
 val clone : t -> t
 
-val flags : t -> aodv_flags_t
-val ssn : t -> int
-val shc : t -> int
-val dsn : t -> int
-val dhc : t -> int
-val osrc : t -> Common.nodeid_t
-val ohc : t -> int
-val osn : t -> int
-val rdst : t -> Common.nodeid_t
-
-
-val incr_shc_pkt : t -> unit
-val decr_shc_pkt : t -> unit
-
-val make_aodv_hdr :
-  ?dhc:int ->
-  ?dsn:int ->
-  ?osrc:Common.nodeid_t ->
-  ?ohc:int ->
-  ?osn:int ->
-  ?rdst:Common.nodeid_t ->
-  flags:aodv_flags_t ->
-  ssn:int -> 
-  shc:int -> 
-  unit ->
+val make_rrep_hdr : 
+  ?flags:rrep_flags ->
+  ?prefix_size:char -> 
+  hop_count:int ->
+  dst:Common.nodeid_t ->
+  dst_sn:seqno_t ->
+  orig:Common.nodeid_t ->
+  lifetime:int -> unit -> 
   t
+
+val make_rreq_hdr :
+  ?flags:rreq_flags ->
+  hop_count:int ->
+  rreq_id:int ->
+  rreq_dst:Common.nodeid_t ->
+  rreq_dst_sn:seqno_t ->
+  orig:Common.nodeid_t -> 
+  orig_sn:seqno_t -> unit -> 
+  t
+
+val make_rerr_hdr :  
+  ?flags : rerr_flags -> 
+  (Common.nodeid_t * seqno_t) list -> 
+  t
+
+val incr_hop_count : t -> t (* increase hop_count (RREQ/RREP only) *)
+val decr_hop_count : t -> t (* decrease hop_count (RREQ/RREP only) *)
+
+(* RREQ only *)
+val rreq_orig : t -> Common.nodeid_t
+val rreq_orig_sn : t -> seqno_t 
+val rreq_dst : t ->  Common.nodeid_t
+val rreq_dst_sn : t ->  seqno_t
+
+(* RREP only *)
+val rrep_orig : t -> Common.nodeid_t
+val rrep_dst : t -> Common.nodeid_t
+val rrep_dst_sn : t ->  seqno_t
+
+
+
+
+
