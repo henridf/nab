@@ -159,6 +159,21 @@ struct
       _allneigbors 0
   )
 
+(*  let lattice_neigbors__ point side = (
+
+    let ngbrs = Array.create (2 * (Array.length point)) point in
+      for i = 0 to (Array.length point - 1) do
+	let twoi = 2 * i and twoiplus1 = (2 * i) + 1 in
+	point.(i) <- point.(i) + 1;
+	ngbrs.(twoi) <- wrap_tuple__ side point;
+	point.(i) <- point.(i) - 2;
+	ngbrs.(twoiplus1) <- wrap_tuple__ side point;
+	point.(i) <- point.(i) + 1;
+      done;
+      ngbrs
+  )
+*)
+
   let create_lattice_ ~dim ~size = (
     if not (ispower ~pow:dim ~num:size) then raise (Invalid_argument "Graph.create_lattice_ : incompatible dimension and size");
     let side = f2i ((i2f size) ** (1.0 /. i2f dim)) in
@@ -264,17 +279,14 @@ struct
 	in
 	  assert (CoordSet.equal ngbrs_set exp_ngbrs_set);
       
-
-
       Printf.printf "Graph.test_ : passed \n";
 
   )
 		   
   end;;
 
-
-  Graph.test_ ();;
-
+Graph.test_ ();;
+(*let l = Graph.create_lattice_ 2 4096*)
 
 
 
