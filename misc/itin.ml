@@ -99,7 +99,6 @@ struct
     for i = 0 to l - 1 do
       Printf.printf "%d " (get_ itin i)
     done;
-    Printf.printf "[maxlength %d]" (maxlength_ itin);
     Printf.printf "\n"; flush stdout
   )
 
