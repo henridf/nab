@@ -23,10 +23,6 @@
 (* $Id$ *)
 
 
-(** 
-  AODV defaults and constants. From RFC (xxx name).
-  @author Henri Dubois-Ferriere.
-*)
 
 open Misc
 

@@ -25,7 +25,7 @@
 
 (** 
   AODV defaults and constants. 
-  As per draft-ietf-manet-aodv-13.txt, Feb 2003. 
+  As per draft-ietf-manet-aodv-13.txt, Feb 2003.
 
   @author Henri Dubois-Ferriere.
 *)
