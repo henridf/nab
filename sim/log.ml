@@ -56,25 +56,6 @@ object(s)
   method private set_objdescr s = objdescr <- s
   method objdescr = objdescr
 
-
-  (* Naml msg logging *)
-  method private logmsg_level ~msg:msg ~level:l =
-    if l >= !current_log_level then 
-      log (Naml_msg.line_of_msg (Naml_msg.mk_stamped_msg  ~t:(Common.get_time()) ~msg:msg))
-
-  method private logmsg msg = 
-    s#logmsg_level ~level:LOG_NOTICE ~msg:msg
-
-    (* shorthand wrappers for log_level *)
-  method private logmsg_debug = s#logmsg_level ~level:LOG_DEBUG
-  method private logmsg_info = s#logmsg_level ~level:LOG_INFO 
-  method private logmsg_notice = s#logmsg_level ~level:LOG_NOTICE
-  method private logmsg_warning = s#logmsg_level ~level:LOG_WARNING
-  method private logmsg_error = s#logmsg_level ~level:LOG_ERROR
-  method private logmsg_always = s#logmsg_level ~level:LOG_ALWAYS
-
-
-
   (* General (non-naml) message logging *)
   method private log_level ~msg:msg ~level:l =
     if l >= !current_log_level then 
