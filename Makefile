@@ -11,6 +11,7 @@ endif
 
 MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
+GUI_DIR = gui
 MISC_DIR = misc
 MK_DIR = mk
 GUI_DIR = gui
@@ -20,7 +21,7 @@ CAML_DIR = /usr/lib/ocaml
 GTK_DIR = $(CAML_DIR)/lablgtk
 CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
 
-INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GTK_DIR) -I $(NAML_DIR)
+INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GTK_DIR) -I $(GUI_DIR)
 
 
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR) 
@@ -35,15 +36,15 @@ DIRS = \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
 	$(MWS_SCRIPT_DIR) \
-	$(NAML_DIR)
+	$(GUI_DIR)
 
 DEPEND = .depend
 
 DEPENDS = \
 	$(MWS_DIR)/*.ml \
 	$(MWS_DIR)/*.mli \
-	$(NAML_DIR)/*.ml \
-	$(NAML_DIR)/*.mli \
+	$(GUI_DIR)/*.ml \
+	$(GUI_DIR)/*.mli \
 	$(MWS_SCRIPT_DIR)/*.ml \
 	$(MWS_SCRIPT_DIR)/*.mli \
 	$(TEST_DIR)/*.mli \
@@ -85,7 +86,6 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/data$(CMO) \
 		$(MWS_DIR)/common$(CMO) \
 		$(MWS_DIR)/packet$(CMO) \
-		$(NAML_DIR)/naml_msg$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MWS_DIR)/trace$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
@@ -105,17 +105,20 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/persistency$(CMO) \
 		$(MWS_DIR)/crsearch$(CMO) \
 		$(MWS_DIR)/crworld$(CMO) \
-		$(MWS_DIR)/script_utils$(CMO) \
-		$(MWS_SCRIPT)
+		$(MWS_DIR)/script_utils$(CMO)
 
 
-NAML_OBJ_FILES = $(MISC_OBJ_FILES) \
-		$(MWS_DIR)/common$(CMO) \
-		$(NAML_DIR)/naml_msg$(CMO) \
-		$(NAML_DIR)/naml_gtk$(CMO) \
-		$(NAML_DIR)/naml_action$(CMO) \
-		$(NAML_DIR)/naml_io$(CMO) \
-		$(NAML_DIR)/naml_main$(CMO) \
+
+
+
+GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
+		$(MISC_DIR)/graph$(CMO) \
+		$(GUI_DIR)/read_coords$(CMO) \
+		$(GUI_DIR)/gui_gtk$(CMO) \
+		$(GUI_DIR)/gui_ctl$(CMO) \
+		$(GUI_DIR)/gui_pos$(CMO) \
+		$(GUI_DIR)/gui_hooks$(CMO) \
+		$(GUI_DIR)/gui_ops$(CMO)
 
 
 MODULE_OBJ_FILES = \
@@ -152,16 +155,17 @@ im2png: misc/im2png$(CMO)
 	$(CAMLIMAGES_LIBS) misc/im2png$(CMO) -o bin/$@
 
 mws: bin/mws
-bin/mws: $(MWS_OBJ_FILES) 
-	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES)  -o $@ 
+bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT)
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)
 	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES) -o $@
 
-naml: bin/naml
-bin/naml: $(NAML_OBJ_FILES) 
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_TH_STUFF) $(NAML_OBJ_FILES) -o $@ 
+gui: bin/gui
+bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
+	$(GUI_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
 
 
 camlgtk-th: bin/camlgtk-th
