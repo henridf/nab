@@ -111,7 +111,7 @@ let do_one_run ~trafficmat ~agenttype ~nodes ~sources ~packet_rate ~speed
  
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in
-(*  Printf.fprintf !outfd "Avg neighbors per node is %f\n" avgn;*)
+(*  Printf.fprintf !outfd "# Avg neighbors per node is %f\n" avgn;*)
 
   res_summary := 
   (speed, 
@@ -227,9 +227,9 @@ let rec print_summary l =
       ((sp2, dorig2, ts2, dr2, ds2, rreps2, rreqs2, dd2, ddrerr2) as grep)
       ::
       rem ->
-	Printf.fprintf !outfd_det "%d %d %d %d %d %d %d %d (AODV)\n" 
+	Printf.fprintf !outfd_det "# %d %d %d %d %d %d %d %d (AODV)\n" 
 	  dorig ts dr ds rreps rreqs dd ddrerr;
-	Printf.fprintf !outfd_det "%d %d %d %d %d %d %d %d (GREP)\n\n" 
+	Printf.fprintf !outfd_det "# %d %d %d %d %d %d %d %d (GREP)\n\n" 
 	  dorig2 ts2 dr2 ds2 rreps2 rreqs2 dd2 ddrerr2;
 	aodvtots := addtots !aodvtots aodv;
 	greptots := addtots !greptots grep;
@@ -292,17 +292,17 @@ let _ =
     greptots :=  (0, 0, 0, 0, 0, 0, 0, 0);
 
     incr run;
-    Printf.fprintf !outfd "\n---------------------------\n";
-    Printf.fprintf !outfd "Scenario %d parameters:\n" !run;
-    Printf.fprintf !outfd "%d Nodes, %d repeats\t\t\n" nodes repeats;
-    Printf.fprintf !outfd "Sources: %d\t\t\n" sources;
-    Printf.fprintf !outfd "%d [pkt/s], %f [m/s] \n" rate speed ;
-    Printf.fprintf !outfd_det "\n---------------------------\n";
-    Printf.fprintf !outfd_det "Scenario %d parameters:\n" !run;
-    Printf.fprintf !outfd_det "%d Nodes, %d repeats\t\t\n" nodes repeats;
-    Printf.fprintf !outfd_det "Sources: %d\t\t\n" sources;
-    Printf.fprintf !outfd_det "%d [pkt/s], %f [m/s] \n" rate speed ;
-    Printf.fprintf !outfd_det "DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
+    Printf.fprintf !outfd "\n#---------------------------\n";
+    Printf.fprintf !outfd "# Scenario %d parameters:\n" !run;
+    Printf.fprintf !outfd "# %d Nodes, %d repeats\t\t\n" nodes repeats;
+    Printf.fprintf !outfd "# Sources: %d\t\t\n" sources;
+    Printf.fprintf !outfd "# %d [pkt/s], %f [m/s] \n" rate speed ;
+    Printf.fprintf !outfd_det "\n# ---------------------------\n";
+    Printf.fprintf !outfd_det "# Scenario %d parameters:\n" !run;
+    Printf.fprintf !outfd_det "# %d Nodes, %d repeats\t\t\n" nodes repeats;
+    Printf.fprintf !outfd_det "# Sources: %d\t\t\n" sources;
+    Printf.fprintf !outfd_det "# %d [pkt/s], %f [m/s] \n" rate speed ;
+    Printf.fprintf !outfd_det "# DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
     flush !outfd;
     Misc.repeat repeats (fun () -> 
       do_one_run 
@@ -326,28 +326,49 @@ let _ =
 
     print_summary !res_summary;
     
-    Printf.fprintf !outfd "\nResults:\n";
-    let (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = !aodvtots in
-    Printf.fprintf !outfd "DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
-    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (AODV)\n" 
-      (dorig / repeats)
-      (ts  / repeats)
-      (dr  / repeats)
-      (ds  / repeats)
-      (rreps  / repeats)
-      (rreqs / repeats)
-      (dd  / repeats)
-      (ddrerr  / repeats); 
-    let (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = !greptots in
-    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (GREP)\n" 
-      (dorig / repeats)
-      (ts  / repeats)
-      (dr  / repeats)
-      (ds  / repeats)
-      (rreps  / repeats)
-      (rreqs / repeats)
-      (dd  / repeats)
-      (ddrerr  / repeats); 
+    Printf.fprintf !outfd "\n#Results:\n";
+    let (dorig_a, ts_a, dr_a, ds_a, rreps_a, rreqs_a, dd_a, ddrerr_a) = !aodvtots in
+    Printf.fprintf !outfd "# DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
+    Printf.fprintf !outfd "# %d %d %d %d %d %d %d %d (AODV)\n" 
+      (dorig_a / repeats)
+      (ts_a / repeats)
+      (dr_a / repeats)
+      (ds_a / repeats)
+      (rreps_a / repeats)
+      (rreqs_a / repeats)
+      (dd_a  / repeats)
+      (ddrerr_a  / repeats); 
+    let (dorig_g, ts_g, dr_g, ds_g, rreps_g, rreqs_g, dd_g, ddrerr_g) = !greptots in
+    Printf.fprintf !outfd "# %d %d %d %d %d %d %d %d (GREP)\n" 
+      (dorig_g / repeats)
+      (ts_g  / repeats)
+      (dr_g  / repeats)
+      (ds_g  / repeats)
+      (rreps_g  / repeats)
+      (rreqs_g / repeats)
+      (dd_g  / repeats)
+      (ddrerr_g  / repeats); 
+
+    (* finally this uncommented line is the data per se *)
+    Printf.fprintf !outfd "%0f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n" 
+      speed
+      (dorig_a / repeats)
+      (ts_a / repeats)
+      (dr_a / repeats)
+      (ds_a / repeats)
+      (rreps_a / repeats)
+      (rreqs_a / repeats)
+      (dd_a  / repeats)
+      (ddrerr_a  / repeats)
+      (dorig_g / repeats)
+      (ts_g  / repeats)
+      (dr_g  / repeats)
+      (ds_g  / repeats)
+      (rreps_g  / repeats)
+      (rreqs_g / repeats)
+      (dd_g  / repeats)
+      (ddrerr_g  / repeats); 
+
     res_summary := []
   ) !runs;
   
