@@ -24,6 +24,13 @@
 
 (** 
   A null MAC layer, (no collisions) with a packet send queue.
+   It abstracts the wireless case as a graph with point-to-point links
+   and transform the problem into a graph with nearest neighbor
+   connectivity.
+   
+   This mac models the following behaviour:
+   - nodes can only transmit one packet at the time
+   - nodes can receive at the same time from multiple neighbors
 
 *)
 
@@ -46,7 +53,7 @@ val macs : ?stack:int -> unit -> (Common.nodeid_t, nullmac_q) Hashtbl.t
   *)
 
 val mac :  ?stack:int -> Common.nodeid_t -> nullmac_q
-  (** Returns the nullmac mac object for given node on given stack.
-    @raise Not_found if there is no nullmac on this stack/node pair.
+  (** Returns the nullmac_q mac object for given node on given stack.
+    @raise Not_found if there is no nullmac_q on this stack/node pair.
   *)
 
