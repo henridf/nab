@@ -15,30 +15,30 @@ let init_gfx () = (
   Graphics.open_graph " 600x600";
 )
 
-let close_gfx () = Graphics.close_graph ();;
-let clear_gfx () = Graphics.clear_graph ();;
+let close_gfx () = Graphics.close_graph ()
+let clear_gfx () = Graphics.clear_graph ()
 
 let scale_x x = 
   (* recompute scales each time for testcases where gridsize is changed *)
   let xratio = float_of_int (Graphics.size_x ()) /. (i2f params.gridsize) in
-  f2i (round (xratio *. x));;
+  f2i (round (xratio *. x))
 
 let scale_y y = 
   let yratio = float_of_int (Graphics.size_y ()) /. (i2f params.gridsize) in
-  f2i (round (yratio *. y));;
+  f2i (round (yratio *. y))
 
 let unscale_x x = 
   let xratio = float_of_int (Graphics.size_x ()) /. (i2f params.gridsize) in
-  f2i (round (x /. xratio));;
+  f2i (round (x /. xratio))
   
 let unscale_y y = 
   let yratio = float_of_int (Graphics.size_y ()) /. (i2f params.gridsize) in
-  f2i (round (y /. yratio));;
+  f2i (round (y /. yratio))
 
-let scale_pos p = (scale_x (i2f (x p)),  scale_y (i2f (y p)));;
-let unscale_pos p = (unscale_x (i2f (x p)),  unscale_y (i2f (y p)));;
-let scale_posf p = (scale_x  (x p),  scale_y  (y p));;
-let unscale_posf p = (unscale_x  (x p),  unscale_y  (y p));;
+let scale_pos p = (scale_x (i2f (x p)),  scale_y (i2f (y p)))
+let unscale_pos p = (unscale_x (i2f (x p)),  unscale_y (i2f (y p)))
+let scale_posf p = (scale_x  (x p),  scale_y  (y p))
+let unscale_posf p = (unscale_x  (x p),  unscale_y  (y p))
 
 let scale_points l = Array.map (fun p -> scale_pos p)  l
 let scale_pointsf l = Array.map (fun p -> scale_posf p)  l
@@ -69,7 +69,7 @@ let label_node pos label = begin
     Graphics.draw_string label
 end
 
-let draw_and_label_nodes l = draw_nodes l; label_nodes l;;
+let draw_and_label_nodes l = draw_nodes l; label_nodes l
 
 let circle_nodes l radius = begin
 
@@ -159,12 +159,12 @@ end
 let ler_draw_segment a = 
   assert (Array.length a == 2);
   let scaled = scale_points a in
-    Graphics.draw_segments [| x scaled.(0), y scaled.(0), x scaled.(1), y scaled.(1)|];;
+    Graphics.draw_segments [| x scaled.(0), y scaled.(0), x scaled.(1), y scaled.(1)|]
 
 let ler_draw_segmentf a = 
   assert (Array.length a == 2);
   let scaled = scale_pointsf a in
-    Graphics.draw_segments [| x scaled.(0), y scaled.(0), x scaled.(1), y scaled.(1)|];;
+    Graphics.draw_segments [| x scaled.(0), y scaled.(0), x scaled.(1), y scaled.(1)|]
 
 (* takes a list of points and connects them *)
 let ler_draw_segments a = (
@@ -179,7 +179,7 @@ let ler_draw_segments_reflect a =
     let segments = reflect_segment [|a.(i); a.(i+1)|] in
     ler_draw_segment ([|segments.(0); segments.(1)|]);
       if (Array.length segments == 4) then ler_draw_segment ([|segments.(2); segments.(3)|]);
-  done;;
+  done
 
 let draw_grid n = begin
   for i = 0 to n do
@@ -189,7 +189,7 @@ let draw_grid n = begin
 	ler_draw_segment [| (0, pt); (params.gridsize, pt)|];
     end
     done
-end;;
+end
 
 let draw_gradient gradient_matrix = (
   for i = 0 to (params.gridsize - 1) do 
@@ -252,9 +252,12 @@ let draw_itin itin lattice = animate_itin itin lattice (fun x -> ())
 *)
 
 
+
 let dump_window outfile = (
-  let image = Graphic_image.get_image 0 0 (Graphics.size_x ())  (Graphics.size_y ()) in
-  Png.save outfile [] (Image.Rgb24 image)
+  let colorarray = Graphics.dump_image (Graphics.get_image 0 0 (Graphics.size_x ()) (Graphics.size_y()))  in
+  let fd = open_out_bin outfile in
+  Marshal.to_channel fd colorarray [];
+  close_out fd
 )
 
 
