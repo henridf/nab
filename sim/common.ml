@@ -92,12 +92,14 @@ type enc_t = {
   mutable p: Coord.coordf_t
 }
     
-let time = ref 0.0
+let time_ = ref 0.0
 
-let set_time t = time := t
+let set_time t = time_ := t
 
-let get_time () = !time
-  
+let get_time () = !time_
+let time = get_time
+
+
 let enc ~time ~place = {t = time; p = place}
 let enc_age  m = (get_time ()) -. m.t
 
