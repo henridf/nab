@@ -34,7 +34,7 @@ struct
   let floodint = 
     Pm.floatcreate
       ~name:"floodint"
-      ~default:30.
+      ~default:60.
       ~cmdline:true
       ~doc:"Mean interval between floods" ()
       ~checker:(fun n -> Diff_agent.mean_interest_interval := n)
