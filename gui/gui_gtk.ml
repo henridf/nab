@@ -139,17 +139,21 @@ let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
 
 )
 
-
-(* pixcenter in gtk pixels *)
-
-let draw_cross ?(col=cl_fg) ?(target=false) (x, y) = 
+let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (
   let (pixwid, thick) = if target then (4, 2) else (2, 1) in
-
-  draw_segments_buf ~col ~thick
+  let segs = if diag then 
+    [
+      (x - pixwid, y - pixwid), (x + pixwid + 1, y + pixwid + 1);
+      (x + pixwid + 1, y - pixwid - 1), (x - pixwid, y + pixwid)
+    ]
+  else
     [
       (x, y - pixwid), (x, y + pixwid);
       (x - pixwid, y), (x + pixwid, y)
     ]
+  in
+   draw_segments_buf ~col ~thick segs
+)  
 
 let draw_segments ?(col=cl_fg) l = (
   (drawing())#set_foreground col;

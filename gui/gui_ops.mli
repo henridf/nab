@@ -17,6 +17,10 @@ val draw_nodes_time :
 
 
 val draw_route : 
+  ?lines:bool ->
+  ?anchors:bool ->
+  ?disks:bool ->
+  portion:float ->
   Coord.coordi_t Route.t
   -> unit
 

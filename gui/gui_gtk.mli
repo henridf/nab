@@ -34,6 +34,14 @@ val draw_node :
   Coord.coordi_t -> 
   unit
 
+val draw_cross :
+  ?diag:bool ->
+  ?col:GDraw.color ->          
+  ?target:bool ->
+  Coord.coordi_t -> 
+  unit
+
+
 val draw_nodes : 
   Coord.coordi_t list 
   -> unit

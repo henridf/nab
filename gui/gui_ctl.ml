@@ -19,7 +19,11 @@ let choose_route_btn = ref None
 let rt_btn() = o2v !choose_route_btn
 
 let show_nodes = ref true
+let show_route_lines = ref true
+let show_route_anchors = ref true
+let show_route_disks = ref true
 
+let route_portion = ref 1.0
 
 let run() = (
   Gui_gtk.set_expose_event_cb (fun _ -> true);
@@ -37,13 +41,19 @@ let run() = (
 let refresh ?(clear=false) ()  = (
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
   (*
-  Gui_ops.draw_all_routes(); 
-  Gui_ops.draw_all_boxes(); 
-*)
+    Gui_ops.draw_all_routes 
+    (); 
+    Gui_ops.draw_all_boxes(); 
+  *)
   Gui_gtk.draw ~clear ();
   if (!rt <> None) then
-    Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route (o2v !rt));
-false
+    Gui_ops.draw_route 
+      ~lines:!show_route_lines
+      ~anchors:!show_route_anchors
+      ~disks:!show_route_disks
+      ~portion:!route_portion
+      (Gui_hooks.mtr_2_pix_route (o2v !rt));
+  false
 )
 
 let refresh_cb _ = refresh ()
@@ -116,19 +126,25 @@ let set_src x y = (
   Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
   (*  ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
     srcnode)#pos);*)
-  Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route !routeref);
+  Gui_ops.draw_route 
+    ~lines:!show_route_lines
+    ~anchors:!show_route_anchors
+    ~disks:!show_route_disks
+    ~portion:!route_portion
+    (Gui_hooks.mtr_2_pix_route !routeref);
+  
   rt := Some !routeref;
 )
 
 
 let install_get_node_cb() = (
-  Gui_gtk.txt_msg "Choose source node";
+  Gui_gtk.txt_msg "Choisissez la source";
   get_node_cb_sig_id := Some (
     Gui_gtk.install_button_press_cb 
     (fun b -> 
       let x, y = (GdkEvent.Button.x b, GdkEvent.Button.y b) in
       begin
-	Gui_gtk.txt_msg "Src node chosen. Computing route..";	    
+	Gui_gtk.txt_msg "Calcul de la route..";	    
 	set_src (f2i x) (f2i y);
       end;
       (* returning true or false from this callback does not seem to make any
@@ -165,41 +181,57 @@ let create_buttons() = (
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 
   choose_route_btn := Some (GButton.toggle_button ~draw_indicator:false
-    ~label:"choose node" ()) ;
+    ~label:"dessiner une route" ()) ;
   ignore ((rt_btn())#connect#released ~callback:(choose_node));
   ss_tab#attach (rt_btn())#coerce ~left:1 ~top:0 ~right:2 ~bottom:1
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 
-  let box1 = GPack.vbox  () in
-  ss_tab#attach box1#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
+  let checkbox_tab = (GPack.table ~rows:2 ~columns:2 ~homogeneous:false 
+    ~row_spacings:3 ~col_spacings:3 ~border_width:10
+    ()) in
+
+  ss_tab#attach checkbox_tab#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
-  let box2 = GPack.hbox ~spacing: 10 ~border_width: 10
-    ~packing: box1#pack () in
+(*  let box2 = GPack.vbox ~spacing: 0 ~border_width: 10
+    ~packing: box1#pack () in*)
   
-  let show_nodes_btn = (GButton.check_button ~label:("Hide nodes")
-    ~packing: box2#add ()) in
 
-  ignore (show_nodes_btn#connect#released 
-    ~callback:(fun _ -> 
-      show_nodes := not !show_nodes;
-      ignore (refresh ~clear:true ()) ;
-    ));
-
+  let checkboxlist = [
+    ("Cacher noeuds", show_nodes, 0, 0);
+    ("Cacher ancres", show_route_anchors, 0, 1);
+    ("Cacher directions", show_route_lines, 1, 0);
+    ("Cacher disques", show_route_disks, 1, 1);
+  ] in
   
+  List.iter (fun (txt, boolref, left, top) ->
+    let btn = (GButton.check_button ~label:txt
+      ()) in
+    checkbox_tab#attach btn#coerce ~left ~top ~right:(left + 1) 
+      ~bottom:(top +  1)  ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+    
+    ignore (btn#connect#released 
+      ~callback:(fun _ -> 
+	boolref := not !boolref;
+	ignore (refresh ~clear:true ()) ;
+      )
+    )) checkboxlist;
+
   let adj =
     GData.adjustment ~lower:0. ~upper:100. ~step_incr:1. ~page_incr:10. () in
   let sc = GRange.scale `HORIZONTAL ~adjustment:adj ~draw_value:false
     ~packing:(Gui_gtk.packer()) () in
     
-  let counter = new GUtil.variable 0 in
-
   ignore (adj#connect#value_changed
-    ~callback:(fun () -> counter#set (truncate adj#value)));
+    ~callback:(fun () -> 
+      route_portion := adj#value/.100.;
+      if (!rt <> None) then ignore (refresh() ~clear:true);
+    ));
 
 
-  ignore (counter#connect#changed ~callback:(fun n -> 
+
+(*  ignore (counter#connect#changed ~callback:(fun n -> 
     Gui_gtk.txt_msg (Printf.sprintf "New value %s.." (string_of_int n))));
-
+*)
   )    
 (* to kill: window#destroy ()*)
 
