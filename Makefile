@@ -135,6 +135,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/grep_agent$(CMO) \
 		$(MWS_DIR)/diff_agent$(CMO) \
 		$(MWS_DIR)/ease_agent$(CMO) \
+		$(MWS_DIR)/gui_hooks$(CMO) \
 		$(MWS_DIR)/hello_agents$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/mob_ctl$(CMO) \
@@ -147,7 +148,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
 		$(GUI_DIR)/data/epfl$(CMO) \
-		$(GUI_DIR)/gui_hooks$(CMO) \
+		$(GUI_DIR)/mwsconv$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
 		$(GUI_DIR)/gui_ctl$(CMO) 
