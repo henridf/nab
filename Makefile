@@ -119,6 +119,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/grep_agent$(CMO) \
 		$(MWS_DIR)/ease_agent$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
+		$(MWS_DIR)/mob_ctl$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
 		$(MWS_DIR)/crsearch$(CMO) \
 		$(MWS_DIR)/crworld$(CMO) \
@@ -195,6 +196,9 @@ DOC_DIR = doc
 
 htmldoc:
 	$(OCAMLDOC) -html -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
+
+dotdoc:
+	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 
 camlgtk-th: bin/camlgtk-th
