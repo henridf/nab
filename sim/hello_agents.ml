@@ -15,8 +15,8 @@ object(s)
 
   val owner:Gpsnode.gpsnode = owner
 
-  (** This {!NodeDB.nodeDB} object is our last-encounter table *)
-  val mutable db = new NodeDB.nodeDB (Param.get Params.ntargets)
+  (** This {!Le_tab.le_tab} object is our last-encounter table *)
+  val mutable db = new Le_tab.le_tab (Param.get Params.ntargets)
 
   method db = db
   method set_db thedb = db <- thedb
@@ -41,16 +41,13 @@ object(s)
 	  in
 
 	  s#log_debug (lazy (sprintf "Adding encounter with %d" src));
-	  (* This encounter value encapsulates time & place of this encounter *)
-	  let encounter = 
-	    (Common.enc ~time:(Common.get_time()) ~place:pos) 
-	  in
 
 	  (* Add in our last-encounter table that node src was at place pos at current
 	     time *)
 	  db#add_encounter 
 	    ~nid:src 
-	    ~enc:encounter
+	    ~pos
+
 	    
       | _ -> () (* ignore any other type of packet *)
 )
