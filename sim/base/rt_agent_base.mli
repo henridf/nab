@@ -76,4 +76,12 @@ object
     (** Returns the speed of the underlying MAC layer for the node this agent
       is running on. *)
 
+
+end
+
+class virtual ['a, 'b] base_persist : ?stack:int -> #Simplenode.simplenode -> 
+object
+  inherit ['a] base 
+  method virtual dump_state : unit -> 'b
+  method virtual read_state : 'b -> unit
 end

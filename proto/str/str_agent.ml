@@ -59,31 +59,6 @@
 *)
 
 
-(* 
-   todo before testing: 
-
-   fill in binding_metric_ in str_rtab
-
-
-   - notion of time: 
-
-   to check loop-free invariant (that a packet always goes to a node with
-   lower ST-cost to the destination), we could put destination age/distance in
-   header for all unicast packets, and have receiver always check invariant,
-   drop packet (and log error) otherwise.
-
-
-
-   [need to think through what to do with the valid/invalid distinction.] for
-   now, the only way for an entry to be invalidated is when the fwding to the
-   nexthop fails (and in this case all entries with this nexthop are
-   invalidated). don't really think that adding timeouts (as in AODV) will
-   make a noticeable difference (we would save the step the failed fwding, but
-   for the rest no difference i thinks).
-
-*)
-
-
 open Str_pkt
 open Str_defaults
 open Printf
@@ -107,61 +82,70 @@ module Str_stats = struct
     mutable data_drop : int; 
   }
 
-let create_stats() = {
-  total_xmit = 0; 
-  data_xmit = 0; 
-  data_orig = 0; 
-  data_recv = 0;
-  hello_xmit = 0;
-  rreq_xmit = 0; 
-  rreq_init = 0; 
-  rreq_orig = 0; 
-  rrep_xmit = 0; 
-  rrep_orig = 0; 
-  rrep_drop_nohop = 0;
-  data_drop = 0; 
-}
+  let create_stats() = {
+    total_xmit = 0; 
+    data_xmit = 0; 
+    data_orig = 0; 
+    data_recv = 0;
+    hello_xmit = 0;
+    rreq_xmit = 0; 
+    rreq_init = 0; 
+    rreq_orig = 0; 
+    rrep_xmit = 0; 
+    rrep_orig = 0; 
+    rrep_drop_nohop = 0;
+    data_drop = 0; 
+  }
 
-let add s1 s2 = {
-  total_xmit = s1.total_xmit + s2.total_xmit; 
-  data_xmit = s1.data_xmit + s2.data_xmit; 
-  data_orig = s1.data_orig + s2.data_orig; 
-  data_recv = s1.data_recv + s2.data_recv;
-  hello_xmit = s1.hello_xmit + s2.hello_xmit;
-  rreq_xmit = s1.rreq_xmit + s2.rreq_xmit; 
-  rreq_init = s1.rreq_init + s2.rreq_init; 
-  rreq_orig = s1.rreq_orig + s2.rreq_orig; 
-  rrep_xmit = s1.rrep_xmit + s2.rrep_xmit; 
-  rrep_orig = s1.rrep_orig + s2.rrep_orig; 
-  rrep_drop_nohop = s1.rrep_drop_nohop + s2.rrep_drop_nohop;
-  data_drop = s1.data_drop + s2.data_drop; 
-}
+  let add s1 s2 = {
+    total_xmit = s1.total_xmit + s2.total_xmit; 
+    data_xmit = s1.data_xmit + s2.data_xmit; 
+    data_orig = s1.data_orig + s2.data_orig; 
+    data_recv = s1.data_recv + s2.data_recv;
+    hello_xmit = s1.hello_xmit + s2.hello_xmit;
+    rreq_xmit = s1.rreq_xmit + s2.rreq_xmit; 
+    rreq_init = s1.rreq_init + s2.rreq_init; 
+    rreq_orig = s1.rreq_orig + s2.rreq_orig; 
+    rrep_xmit = s1.rrep_xmit + s2.rrep_xmit; 
+    rrep_orig = s1.rrep_orig + s2.rrep_orig; 
+    rrep_drop_nohop = s1.rrep_drop_nohop + s2.rrep_drop_nohop;
+    data_drop = s1.data_drop + s2.data_drop; 
+  }
 end
 
 
-let agents_array_ = 
-  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+
 
 module S = Str_stats
   (* locally rename module Str_stats as 'S' to make things more compact each
      time we refer to a stats field. *)
 
-class str_agent ?(stack=0) (metric : Str_rtab.metric_t) theowner = 
+
+type persist_t = 
+    {rt : Str_rtab.t;
+    seqno : int;
+    metric : Str_rtab.metric_t}
+
+let agents_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+    
+
+class str_agent ?(stack=0) ?(state : persist_t option) (metric : Str_rtab.metric_t) theowner = 
 object(s)
 
-
-  inherit [S.stats] Rt_agent_base.base ~stack theowner 
+  inherit [S.stats, persist_t] Rt_agent_base.base_persist ~stack theowner 
 
   (* 
    *  Instance Variables. 
    *)
 
-  val mutable last_bcast_time = Time.time() 
+  val mutable last_bcast_time = Time.time()
     (* We keep track of the last time since we sent any broadcastpacket in
        order to know when hello message is nec. (rfc 6.9)*)
 
-  val rt = Str_rtab.create 100
-    (* our routing table *)
+  val rt = 
+    if state = None then Str_rtab.create 100 else (Opt.get state).rt
+      (* our routing table *)
 
   val pktqs : (Common.nodeid_t, L3pkt.t Queue.t) Hashtbl.t = 
     Hashtbl.create str_PKTQUEUE_SIZE
@@ -185,12 +169,7 @@ object(s)
     
   val mutable send_hellos = true
 
-  val mutable seqno = 0
-
-  method stop_hello = send_hellos <- false
-  method start_hello = send_hellos <- true
-
-  method private incr_seqno = seqno <- seqno + 1
+  val mutable seqno = if state = None then 0 else (Opt.get state).seqno
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/str";
@@ -200,7 +179,12 @@ object(s)
     (Sched.s())#sched_in ~f:s#send_hello
     ~t:(Random.float str_HELLO_INTERVAL);
   )
-    
+
+  method stop_hello = send_hellos <- false
+  method start_hello = send_hellos <- true
+
+  method private incr_seqno = seqno <- seqno + 1
+
   (* 
    *  Methods
    *)
@@ -895,7 +879,13 @@ object(s)
 
   method stats = stats
 
+  method dump_state() = {rt=rt; seqno=seqno; metric=metric}
+  method read_state (s : persist_t) = 
+    failwith "pass to initializer"; ()
+
 end
+
+
 
 
 let total_stats ?(stack=0) () = 
@@ -929,6 +919,6 @@ let sprint_stats s =
   Buffer.contents b
 
 
-    
+
 
 let () = Time.maintain_discrete_time()

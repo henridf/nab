@@ -52,4 +52,12 @@ object(s : #Rt_agent.t)
 
   method private bps = (owner#mac ~stack ())#bps
 
+
+end
+
+class virtual ['a, 'b] base_persist  ?(stack=0) owner =
+object
+  inherit ['a] base ~stack owner
+  method virtual dump_state : unit -> 'b
+  method virtual read_state : 'b -> unit
 end
