@@ -22,30 +22,32 @@
 
 (* $Id$ *)
 
-
-
-
-
-
-
 (** Layer 2 packet types and manipulators.
   
   @author Henri Dubois-Ferriere.
 *)
 open L3pkt
 
+val l2_bcast_addr : int
+
+
 (** {2 L2 Packet Types} *)
 
-type l2_dst_t = L2_BCAST | L2_DST of Common.nodeid_t
-and l2hdr_t = { l2src : Common.nodeid_t; l2dst : l2_dst_t; }
-type t = { l2hdr : l2hdr_t; l3pkt : L3pkt.t; }
+type l2hdr_ext_t = 
+    NONE | MACAW of Macaw_pkt.t
+
+type l2hdr_t (** A L2 header contains a src, dst and maybe some MAC-specific
+	       extensions. *)
+
+
+type t (** The type of a layer 2 packet, which contains a l2 header and a
+	 l3pkt. *)
 
 
 (** {2 L2 Packet Constructors} *)
 
-val clone_l2hdr : l2hdr:l2hdr_t -> l2hdr_t
 val make_l2pkt :
-  srcid:Common.nodeid_t -> l2_dst:l2_dst_t -> l3pkt:L3pkt.t -> t
+  ?ext:l2hdr_ext_t -> src:Common.nodeid_t -> dst:Common.nodeid_t -> L3pkt.t -> t
 val clone_l2pkt : l2pkt:t -> t
 
 
@@ -53,12 +55,13 @@ val clone_l2pkt : l2pkt:t -> t
 (** {2 L2 Packet Deconstructors} *)
 
 val l3pkt : t -> L3pkt.t
-val l2hdr : t -> l2hdr_t
+(*val l2hdr : t -> l2hdr_t*)
 val l2src : t -> Common.nodeid_t
-val l2dst : t -> l2_dst_t
-val string_of_l2dst : l2_dst_t -> string
+val l2dst : t -> Common.nodeid_t
+val string_of_l2dst : Common.nodeid_t -> string
+
+val l2hdr_ext : t -> l2hdr_ext_t
 
 (** {2 Packet Sizes} *)
 
-val l2hdr_size : int
 val l2pkt_size : l2pkt:t -> int

@@ -23,31 +23,40 @@
 (* $Id$ *)
 
 
-
-
-
-
-
+open Misc
 open L3pkt 
-
-let _ADDR_SIZE = 4
-let _TTL_SIZE = 1
-let _SEQNO_SIZE = 4
-let _FLOAT_SIZE = 8
+open Pkt_common
 
 (* L2 STUFF *)
 
-type l2_dst_t = L2_BCAST | L2_DST of Common.nodeid_t
+let l2_bcast_addr = (* 255.255.255.255 *)
+  255 + 
+  powi ~num:2 ~exp:8 + 
+  powi ~num:2 ~exp:16 + 
+  powi ~num:2 ~exp:24
+
+
+type l2hdr_ext_t = 
+    NONE | MACAW of Macaw_pkt.t
 
 type l2hdr_t = {
   l2src: Common.nodeid_t;
-  l2dst: l2_dst_t
+  l2dst: Common.nodeid_t;
+  ext: l2hdr_ext_t;
 }
 
-(* 20 should vaguely represent the mac-layer framing bytes *) 
-let l2hdr_size = 20 + 2 * _ADDR_SIZE 
+let clone_l3hdr_ext = function
+  | NONE -> NONE
+  | MACAW e -> MACAW (Macaw_pkt.clone e)
 
-let clone_l2hdr ~l2hdr = {l2hdr with l2src = l2hdr.l2src}
+let l3hdr_ext_size = function
+  | NONE -> 0
+  | MACAW e -> Macaw_pkt.size e
+
+(* 8 should vaguely represent the mac-layer framing bytes *) 
+let l2hdr_size hdr = 8 + 2 * _ADDR_SIZE + (l3hdr_ext_size hdr.ext)
+
+let clone_l2hdr ~l2hdr = {l2hdr with ext=clone_l3hdr_ext l2hdr.ext}
 
 type t = {
   l2hdr : l2hdr_t;
@@ -55,7 +64,7 @@ type t = {
 }
 
 let l2pkt_size ~l2pkt = 
-  l2hdr_size +
+  l2hdr_size l2pkt.l2hdr +
   l3pkt_size l2pkt.l3pkt
 
 let clone_l2pkt ~l2pkt = {
@@ -66,15 +75,16 @@ let clone_l2pkt ~l2pkt = {
 let l3pkt l2pkt = l2pkt.l3pkt
 
 let l2hdr pkt = pkt.l2hdr
-let l2src pkt = (l2hdr pkt).l2src
-let l2dst pkt = (l2hdr pkt).l2dst
+let l2src pkt = pkt.l2hdr.l2src
+let l2dst pkt = pkt.l2hdr.l2dst
 let string_of_l2dst l2dst = 
-  match l2dst with 
-    | L2_BCAST -> "L2_bcast"
-    | L2_DST d -> string_of_int d
+  if l2dst = l2_bcast_addr then "L2_bcast"
+  else string_of_int l2dst
 
-let make_l2pkt ~srcid ~l2_dst ~l3pkt = 
-  let l2hdr = {l2src=srcid; l2dst=l2_dst} 
+let l2hdr_ext l2pkt = l2pkt.l2hdr.ext
+
+let make_l2pkt ?(ext=NONE) ~src ~dst l3pkt = 
+  let l2hdr = {l2src=src; l2dst=dst; ext=ext} 
   in {l2hdr=l2hdr; l3pkt=l3pkt}
 
 
