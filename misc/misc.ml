@@ -52,6 +52,7 @@ let norm a = let n = ref 0.0 in Array.iter (fun x -> n := !n +. (x ** 2.0)) a; s
 let normdot a = let n = ref 0.0 in Array.iter (fun x -> n := !n +. ((i2f x) ** 2.0)) a; sqrt !n
 
 let id x = x
+let const x = fun _ -> x
 
 let facto n = 
   let rec tailrec x n = 
@@ -124,6 +125,10 @@ let mapi2 f arr1 arr2 = Array.mapi (fun i v -> f v arr2.(i)) arr1
 let (|+|) = mapi2 (+)
 let (|+.|) = mapi2 (+.)
 
+let array_mem arr v = Array.fold_left 
+  (fun boolean item -> boolean || (item = v)) 
+  false
+  arr
 
 (* val array_count : 'a -> 'a array -> int = <fun> *)
 let array_count elt a = array_count_filt (fun x -> x = elt) a
@@ -143,7 +148,8 @@ let repeat n f = begin
   let ctr = ref 0 in 
     while (!ctr < n) do f (); incr ctr  done;
 end
-    
+
+let foreach l f = List.iter f l    
 
 (**  Options *)
 
