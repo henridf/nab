@@ -58,7 +58,7 @@ object(s)
     Graph.lattice_dist_ g 
       (s#gnodepos id1) (s#gnodepos id2)
 
-    
+(*    
   method neighbors : Common.nodeid_t -> Common.nodeid_t list
 
   method are_neighbors : Common.nodeid_t -> Common.nodeid_t -> bool
@@ -112,3 +112,5 @@ object(s)
   method get_node_at : unitpos:Coord.coordf_t -> Common.nodeid_t 
     (* returns closest node to unit-scaled position *)
 
+*)
+end
