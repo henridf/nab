@@ -62,11 +62,11 @@ object
 
   method project_2d : Coord.coordf_t -> Coord.coordf_t 
     (* return position projected to a unit square *)
-
-(*  method scale_unit : float -> float 
-    return coordinate scaled to [0;1] interval. 
-       can be used for example for drawing search disks *)
-
+    
+  (*  method scale_unit : float -> float 
+      return coordinate scaled to [0;1] interval. 
+      can be used for example for drawing search disks *)
+    
   method boundarize : Coord.coordf_t -> Coord.coordf_t
     (* A topology-specific function which should put a point back within the
        boundaries of the world, if it has stepped outside, and should return
