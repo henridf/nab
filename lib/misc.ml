@@ -73,6 +73,8 @@ let is_finite x =
   let cx = classify_float x in
   cx <> FP_infinite && cx <> FP_nan
 
+let isin value (left, right) = value >= left && value <= right
+
 let minus flt = 0. -. flt
 
 let expo ~rand ~lambda = minus (log (1. -. rand))/.lambda
