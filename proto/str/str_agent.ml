@@ -28,7 +28,7 @@
 (* 
    xxx todo:
 
-   currently disabled updating hop to previous route for non-HELLo packets.
+   currently disabled updating hop to previous node for non-HELLo packets.
    In order to re-enable, either 
    - explicify seqno of previous hop in str header. 
    - would it work to simply put add previous hop as valid, with seqno (-1)?
@@ -36,7 +36,6 @@
    this? seems fragile.
    - if have any entry with 'real' seqno, simply take seqno as previous
    seqno + 1, and add valid entry with this seqno.
-
 
 
    timeout for an entry to become invalid should be > than 2 * max RREQ timeout,
@@ -104,7 +103,8 @@ module Str_stats = struct
     mutable rreq_orig : int; 
     mutable rrep_xmit : int; 
     mutable rrep_orig : int; 
-    mutable data_drop_overflow : int; 
+    mutable rrep_drop_nohop : int; 
+    mutable data_drop : int; 
   }
 
 let create_stats() = {
@@ -118,7 +118,8 @@ let create_stats() = {
   rreq_orig = 0; 
   rrep_xmit = 0; 
   rrep_orig = 0; 
-  data_drop_overflow = 0; 
+  rrep_drop_nohop = 0;
+  data_drop = 0; 
 }
 
 let add s1 s2 = {
@@ -132,7 +133,8 @@ let add s1 s2 = {
   rreq_orig = s1.rreq_orig + s2.rreq_orig; 
   rrep_xmit = s1.rrep_xmit + s2.rrep_xmit; 
   rrep_orig = s1.rrep_orig + s2.rrep_orig; 
-  data_drop_overflow = s1.data_drop_overflow + s2.data_drop_overflow; 
+  rrep_drop_nohop = s1.rrep_drop_nohop + s2.rrep_drop_nohop;
+  data_drop = s1.data_drop + s2.data_drop; 
 }
 end
 
@@ -205,6 +207,7 @@ object(s)
     
   method myid = myid
 
+  method rtab_metric = rt, metric
   method private make_l3str ?(src=myid) ?(ttl=L3pkt.default_ttl) ?(l4pkt=`EMPTY) ~dst strhdr = 
     L3pkt.make_l3pkt 
       ~l3hdr:(L3pkt.make_l3hdr ~ttl ~src ~dst 
@@ -248,7 +251,7 @@ object(s)
     (Sched.s())#sched_in ~f:s#clean_data_structures ~t:str_PATH_DISCOVERY_TIME;
   )
 
-  method private repairing dst = 
+  method repairing dst = 
     try
       let q = Hashtbl.find pktqs dst in
       Queue.length q > 0
@@ -296,12 +299,40 @@ object(s)
   method private drop_buffered_packets ~dst = 
     try 
       let q = Hashtbl.find pktqs dst in
+      s#log_notice (lazy (sprintf "Dropping packet(s) for dst %d" dst));      
+      while (not (Queue.is_empty q)) do 
+	let p = Queue.pop q in
+	let str_hdr = L3pkt.str_hdr p in
+	match str_hdr with 
+	  | DATA str -> 
+	      s#log_info
+	      (lazy (Printf.sprintf 
+		"Dropped DATA has src %d, dst %d" (L3pkt.l3src p) (L3pkt.l3dst p)));
+	      s#log_info
+	      (lazy (Printf.sprintf 
+		"Dropped DATA has valid entry: sn=%d, dist=%d, age=%.2f"
+		str.v_ent.sn str.v_ent.hc str.v_ent.age ));
+	      s#log_info
+		(lazy (Printf.sprintf 
+		  "Dropped DATA has invalid entry: sn=%d, dist=%d, age=%.2f"
+		  str.i_ent.sn str.i_ent.hc str.i_ent.age ));
+	      s#log_info 
+		(lazy (Printf.sprintf 
+		  "Dest. %d has %d neighbors, I have %d, our distance is %.2f" (L3pkt.l3dst p)
+		  (List.length ((World.w())#neighbors dst))
+		  (List.length ((World.w())#neighbors myid))
+		  ((World.w())#dist_nodeids dst myid)));
+	      stats.S.data_drop <- stats.S.data_drop + 1;
+	  | RREP _ | RREQ _ | HELLO _ -> ()
+      done;
+      
       Hashtbl.remove pktqs dst
     with Not_found -> ()
 
   (* DATA packets are buffered when they fail on send, 
      or if there are already buffered packets for that destination *)
   method private buffer_packet ~(l3pkt:L3pkt.t) = (
+
     let dst = L3pkt.l3dst l3pkt in
     assert (dst <> L3pkt.l3_bcast_addr);
     match s#queue_size() < str_PKTQUEUE_SIZE with 
@@ -313,7 +344,7 @@ object(s)
 	    Hashtbl.add pktqs dst q
 	end
       | false -> 
-	  stats.S.data_drop_overflow <- stats.S.data_drop_overflow + 1;
+	  stats.S.data_drop <- stats.S.data_drop + 1;
 	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" dst));
   )
 
@@ -332,8 +363,9 @@ object(s)
     begin match str_hdr with
       | HELLO seqno ->     (* update route to previous hop. *)
 	  let nexthop_ent = {age=0.0; sn=seqno; hc=1} in
-	  assert (Str_rtab.add_entry rt ~valid:true ~dst:sender ~ent:nexthop_ent
-	    ~nh:sender);
+	  let added = Str_rtab.add_entry rt ~valid:true ~dst:sender ~ent:nexthop_ent
+	    ~nh:sender in
+	  assert (added);
 	  s#after_send_any_buffered_pkts sender;
       | DATA _ -> s#process_data_pkt l3pkt sender;
       | RREQ rreq_hdr -> s#process_rreq_pkt src (L3pkt.l3ttl l3pkt) rreq_hdr
@@ -350,7 +382,7 @@ object(s)
   (* return true if we can answer this rreq, ie if we have a route with lower
      binding cost. 
 
-     assumes that the hopcount field on the rreq has *not* yet been incremented.
+     assumes that the hopcount field on the rreq *has* been incremented.
   *)
   method private can_reply (str, rreq) = 
     let dst = rreq.rreq_dst in
@@ -373,7 +405,7 @@ object(s)
 	    str.v_ent.sn str.v_ent.hc str.v_ent.age ));
 	s#log_info 
 	  (lazy (Printf.sprintf 
-	    "We have valid route with sn=%d, dist=(%d  + rreq_hc=%d + 1), age=%.2f"
+	    "We have valid route with sn=%d, dist=(%d  + rreq_hc=%d), age=%.2f"
 	    v_ent.sn v_ent.hc str.orig_hc v_ent.age));
       );
       let i_ent = Str_rtab.better_invalid_route rt metric ~offset:true str dst in
@@ -389,7 +421,7 @@ object(s)
 	    str.i_ent.age str.i_ent.hc (Str_rtab.cost metric str.i_ent)));
 	  s#log_info 
 	    (lazy (Printf.sprintf 
-	      "We have invalid route with age=%.2f, dist=(%d  + rreq_hc=%d + 1)"
+	      "We have invalid route with age=%.2f, dist=(%d  + rreq_hc=%d)"
 	      i_ent.age i_ent.hc str.orig_hc));
 	  );
       if not (valid_ok || invalid_ok) then (
@@ -498,7 +530,11 @@ object(s)
     
     let dst = (L3pkt.l3dst l3pkt) and src = (L3pkt.l3src l3pkt) in
 
-      let data_hdr =  
+    if (L3pkt.l3ttl l3pkt <= 0) then (
+      s#log_error (lazy "DATA packet TTL went to 0. looop???");
+      failwith "DATA packet TTL went to 0. looop???";
+    );
+    let data_hdr =  
 	match L3pkt.str_hdr l3pkt with
 	| DATA data_hdr ->     
 	    {data_hdr with orig_hc = data_hdr.orig_hc + 1}
@@ -560,8 +596,24 @@ object(s)
       Str_rtab.using_entry rt dst i_u_ent;
       s#send_out ~nh:i_u_nh new_l3pkt;
       true
-    ) else false
-    
+    ) else (
+      s#log_info (lazy (sprintf "Could not forward data packet to dst %d" dst));
+      s#log_info (lazy (Printf.sprintf 
+	"DATA pkt has valid entry: sn=%d, dist=%d, age=%.2f"
+	data_hdr.v_ent.sn data_hdr.v_ent.hc data_hdr.v_ent.age ));
+      s#log_info (lazy (Printf.sprintf 
+	"DATA pkt has invalid entry: age=%.2f, dist=%d, cost=%.2f"
+	data_hdr.i_ent.age data_hdr.i_ent.hc (Str_rtab.cost metric data_hdr.i_ent)));
+      let i_ent, _ = Str_rtab.best_usable_invalid_entry rt metric dst in
+      s#log_info (lazy (Printf.sprintf 
+	"Our best usable invalid entry: age=%.2f, dist=%d, cost=%.2f"
+	i_ent.age i_ent.hc (Str_rtab.cost metric i_ent)));
+      let i_ent = Str_rtab.best_invalid_entry rt metric dst in
+      s#log_info (lazy (Printf.sprintf 
+	"Our best invalid entry: age=%.2f, dist=%d, cost=%.2f"
+	i_ent.age i_ent.hc (Str_rtab.cost metric i_ent)));
+      false
+    )
     
   method private init_rreq dst = (
     stats.S.rreq_init <-  stats.S.rreq_init + 1;
@@ -584,9 +636,12 @@ object(s)
 	  stats.S.data_xmit <- stats.S.data_xmit - 1;
 	  let src, dst = L3pkt.l3src l3pkt, L3pkt.l3dst l3pkt in
 	  Str_rtab.invalidate_nexthop rt nexthop;
+	  let repairing = s#repairing dst in 
+	  (* need to get repairing *before* buffer data packet, otherwise will
+	     always be true *)
 	  s#buffer_packet ~l3pkt; 
-	  if (not (s#repairing dst)) then s#init_rreq dst
-
+	  if not repairing then 
+	    s#init_rreq dst
       | RREP _ -> stats.S.rrep_xmit <- stats.S.rrep_xmit - 1;
       | HELLO _ | RREQ _ -> raise (Misc.Impossible_Case "Str_agent.mac_callback"); 
 	  (* rreqs and hellos are always broadcast *)
@@ -610,15 +665,14 @@ object(s)
       if Str_rtab.cost metric ent < Str_rtab.cost metric pkt_ent then ent else pkt_ent
     in
     let invalid_queue = Queue.fold f_invalid null_triple q in
-    let invalid_rtab, _ = Str_rtab.best_usable_invalid_entry rt metric dst in
-    let i_ent = if invalid_queue >>> invalid_rtab 
+    let invalid_rtab = Str_rtab.best_invalid_entry rt metric dst in
+    let i_ent = if (Str_rtab.cost metric invalid_queue) < (Str_rtab.cost metric invalid_rtab)
     then invalid_queue else invalid_rtab in
 
     let valid_queue = Queue.fold f_valid null_triple q in
     let valid_rtab, _ = Str_rtab.best_valid_entry rt dst in
     let v_ent = 
-      if (Str_rtab.cost metric valid_queue) < (Str_rtab.cost metric valid_rtab) 
-      then valid_queue else valid_rtab 
+      if valid_queue >>> valid_rtab then valid_queue else valid_rtab 
     in v_ent, i_ent
 
   method private make_l3_rreq_pkt ~radius ~dst = (
@@ -661,56 +715,56 @@ object(s)
        with a ttl 32. So we use these per-destination ers_uids which are
        unique across a whole RREQ ERS. 
     *)
-    
-    if beb lsr str_RREQ_RETRIES = 1 then (
-      s#log_info (lazy (sprintf "Reached RREQ_RETRIES for dst %d, abandoning" dst));
-      s#drop_buffered_packets ~dst;
-    ) else if s#ers_uid dst ers_uid && (s#repairing dst) then
-      if s#rreq_ratelimit_ok then (
-	
-	(* If we are done repairing this route (maybe a rreq from that node
-	   arrived in the meantime) then we would not emit a new RREQ.*)
-	s#log_info (lazy (sprintf 
-	  "ERS RREQ pkt for dst %d with radius %d" dst radius));
-
-	rreq_id <- rreq_id + 1;
-
-	let l3pkt = s#make_l3_rreq_pkt ~radius ~dst in
-	
-	(* set up event for next rreq in ERS. *)
-	let next_radius = 
-	  if radius + str_TTL_INCREMENT <= str_TTL_THRESHOLD then
-	    radius + str_TTL_INCREMENT else str_NET_DIAMETER in
-
-	(* Figure out timeout for this rreq and (possibly) new Binary expo backoff
-	   value *)
-	let timeout, next_beb = 
-	  match beb with 
-	    | 0 -> str_RING_TRAVERSAL_TIME radius,
-	      if radius = str_NET_DIAMETER then 2 else 0
-	    | n -> ((float n) *. str_RING_TRAVERSAL_TIME radius, n * 2) in
-		
-	(* Setup event when this rreq times out. *)
-	let evt = 
-	  fun _ -> 
-	    s#send_rreq ~beb:next_beb ~radius:next_radius ~dst ~ers_uid ()
-	in
-
-	stats.S.rreq_orig <- stats.S.rreq_orig + 1;
-	(* Schedule the event *)
-	(Sched.s())#sched_in ~f:evt ~t:timeout;
-
-	(* Add to cache and sent out packet. *)
-	Hashtbl.replace rreq_cache (myid, rreq_id) (Time.time());
-	s#send_out l3pkt;
-      ) else (
-	(* we cannot send the RREQ immediately, because if so we would not be
-	   respecting RREQ_RATELIMIT. So, we will try again in a little bit.*)
-	s#log_info (lazy (sprintf 
-	  "Delaying RREQ to %d by 0.2 due to rreq ratelimiting" dst));
-	let evt() = s#send_rreq ~beb ~radius ~dst ~ers_uid ()
-	in (Sched.s())#sched_in ~f:evt ~t:0.2;
-      )
+    if (s#repairing dst) then
+      if beb lsr str_RREQ_RETRIES = 1 then (
+	s#log_info (lazy (sprintf "Reached RREQ_RETRIES for dst %d, abandoning" dst));
+	s#drop_buffered_packets ~dst;
+      ) else if s#ers_uid dst ers_uid then
+	if s#rreq_ratelimit_ok then (
+	  
+	  (* If we are done repairing this route (maybe a rreq from that node
+	     arrived in the meantime) then we would not emit a new RREQ.*)
+	  s#log_info (lazy (sprintf 
+	    "ERS RREQ pkt for dst %d with radius %d" dst radius));
+	  
+	  rreq_id <- rreq_id + 1;
+	  
+	  let l3pkt = s#make_l3_rreq_pkt ~radius ~dst in
+	  
+	  (* set up event for next rreq in ERS. *)
+	  let next_radius = 
+	    if radius <= str_NET_DIAMETER / str_TTL_MULT then
+	      radius * str_TTL_MULT else str_NET_DIAMETER in
+	  
+	  (* Figure out timeout for this rreq and (possibly) new Binary expo backoff
+	     value *)
+	  let timeout, next_beb = 
+	    match beb with 
+	      | 0 -> str_RING_TRAVERSAL_TIME radius,
+		if radius = str_NET_DIAMETER then 2 else 0
+	      | n -> ((float n) *. str_RING_TRAVERSAL_TIME radius, n * 2) in
+	  
+	  (* Setup event when this rreq times out. *)
+	  let evt = 
+	    fun _ -> 
+	      s#send_rreq ~beb:next_beb ~radius:next_radius ~dst ~ers_uid ()
+	  in
+	  
+	  stats.S.rreq_orig <- stats.S.rreq_orig + 1;
+	  (* Schedule the event *)
+	  (Sched.s())#sched_in ~f:evt ~t:timeout;
+	  
+	  (* Add to cache and sent out packet. *)
+	  Hashtbl.replace rreq_cache (myid, rreq_id) (Time.time());
+	  s#send_out l3pkt;
+	) else (
+	  (* we cannot send the RREQ immediately, because if so we would not be
+	     respecting RREQ_RATELIMIT. So, we will try again in a little bit.*)
+	  s#log_info (lazy (sprintf 
+	    "Delaying RREQ to %d by 0.2 due to rreq ratelimiting" dst));
+	  let evt() = s#send_rreq ~beb ~radius ~dst ~ers_uid ()
+	  in (Sched.s())#sched_in ~f:evt ~t:0.2;
+	)
   )
     
 
@@ -720,6 +774,14 @@ object(s)
       "Received RREP pkt (replier %d originator %d, dst %d)"
       rrep.rrep_replier rrep.rrep_orig rrep.rrep_dst));
 
+    s#log_info (lazy (Printf.sprintf 
+      "RREP pkt has valid entry: sn=%d, dist=%d, age=%.2f"
+      str.v_ent.sn str.v_ent.hc str.v_ent.age ));
+    s#log_info (lazy (Printf.sprintf 
+      "RREP pkt has invalid entry: age=%.2f, dist=%d, cost=%.2f"
+      str.i_ent.age str.i_ent.hc (Str_rtab.cost metric str.i_ent)));
+
+    
     let (+++) ent offset = {ent with hc = ent.hc + offset} in
     (* Add/update entry to dest for which this rrep advertises reachability.*)
     let updated_v = if str.v_ent <> Str_pkt.null_triple then
@@ -729,19 +791,22 @@ object(s)
     in
     let updated_i = if str.i_ent <> Str_pkt.null_triple then
       Str_rtab.add_entry rt ~valid:false ~dst:rrep.rrep_dst ~nh:sender 
-	~ent:(str.i_ent +++ (str.orig_hc + 1)) 
+	~ent:(str.i_ent +++ (str.orig_hc + 1))
     else false 
     in
     let updated = updated_i || updated_v in
     
     if updated then 
-      s#after_send_any_buffered_pkts rrep.rrep_dst;
+      s#after_send_any_buffered_pkts rrep.rrep_dst
+    else 
+      s#log_info (lazy (Printf.sprintf "Did not update"));
     (* We can forward rrep if we're not the originator, have updated the route
        above, and have a next hop. *)
     if updated && myid <> rrep.rrep_orig then (
       let ent, nh = Str_rtab.best_valid_entry rt rrep.rrep_orig in
 
       if ent = Str_pkt.null_triple then (
+	stats.S.rrep_drop_nohop <- stats.S.rrep_drop_nohop + 1;
 	s#log_error 
 	(lazy (Printf.sprintf 
 	  "Cannot forward RREP because no next hop to originator %d" rrep.rrep_orig));
@@ -813,7 +878,7 @@ object(s)
 
   
   method private recv_pkt_app (l4pkt : L4pkt.t) dst = (
-    stats.S.data_orig <- stats.S.data_orig - 1;
+    stats.S.data_orig <- stats.S.data_orig + 1;
     s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
     let str_hdr = {
 	orig_hc = 0; 
@@ -846,29 +911,24 @@ let sprint_stats s =
   let p = Printf.sprintf in 
   Buffer.add_string b "-- Basic Stats:\n";
   Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
-  Buffer.add_string b (p "   Data orig: %d, Data recv: %d, Delivery ratio: %f\n"
-    s.data_orig s.data_recv ((float s.data_recv) /. (float s.data_orig )));
+  Buffer.add_string b (p "   Delivery ratio: %f (Data orig: %d, Data recv: %d) \n"
+    ((float s.data_recv) /. (float s.data_orig )) s.data_orig s.data_recv);
+  Buffer.add_string b (p "   Packet xmits per packet delivered: %.2f\n" 
+    ((float s.total_xmit) /. (float s.data_recv)));
 
   Buffer.add_string b "-- Packet Transmission Breakdown:\n";
   Buffer.add_string b (p "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
     s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
 
-  Buffer.add_string b "-- Protocol Phases:\n";
-  Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d"
-    s.rreq_init s.rreq_orig s.rrep_orig)
+  Buffer.add_string b "-- Protocol Details:\n";
+  Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d\n"
+    s.rreq_init s.rreq_orig s.rrep_orig);
+  Buffer.add_string b (p "   RREP dropped because no hop to originator: %d\n"
+    s.rrep_drop_nohop);
+  Buffer.add_string b (p "   DATA dropped: %d\n"  s.data_drop);
+  Buffer.contents b
+
 
     
 
-(*
-type stats = {
-    mutable hello_xmit : int;
-    mutable rreq_xmit : int; 
-    mutable rreq_init : int; 
-    mutable rreq_orig : int; 
-    mutable rrep_xmit : int; 
-    mutable rrep_orig : int; 
-    mutable data_drop_overflow : int; 
-  }  
-
-*)
 let () = Time.maintain_discrete_time()
