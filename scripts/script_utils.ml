@@ -44,9 +44,9 @@ let set_debug_level s =
   Log.set_log_level level
 
 
-let parse_args() = (
+let parse_args ?(anon_fun=(fun _ -> ())) () = (
   let s = Param.make_argspeclist () in
-  Arg.parse s (fun _ -> ()) "";
+  Arg.parse s anon_fun "";
 )
 
 let init_sched() = Sched.set_sched (new Sched.schedHeap)
@@ -125,6 +125,16 @@ let install_macs ?(stack=0) ?(bps=default_bps) () =
     | Mac.Cheatmac -> install_cheat_macs ~stack ~bps ()
     | Mac.MACA_simple -> install_maca_simple_macs ~stack ~bps ()
     | Mac.MACA_contention -> install_maca_contention_macs ~stack ~bps ()
+
+let install_mobs ?gran () = 
+  match Mob_ctl.getmob() with 
+    | Mobs.Uniwaypoint  -> Mob_ctl.make_uniwaypoint_mobs ?gran ()
+    | Mobs.Borderwaypoint  -> Mob_ctl.make_borderwaypoint_mobs ?gran ()
+    | Mobs.Epfl_waypoint  -> Mob_ctl.make_epfl_waypoint_mobs ()
+    | Mobs.Billiard  -> Mob_ctl.make_billiard_mobs ?gran ()
+    | Mobs.Randomwalk  -> Mob_ctl.make_discrete_randomwalk_mobs ?gran ()
+    | Mobs.None -> ()
+
 
 let make_naked_nodes ?(pos_aware=false) ?(with_positions=true) () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)

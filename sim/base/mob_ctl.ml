@@ -24,9 +24,24 @@
 
 
 
+let mob_ = ref Mobs.None
 
+let getmob() = !mob_
 
+let mob_of_string = function
+  | "borderwp" | "borderwaypoint" | "border" -> Mobs.Borderwaypoint
+  | "waypoint" | "uniwaypoint" | "uniwp" -> Mobs.Uniwaypoint
+  | "epfl" -> Mobs.Epfl_waypoint
+  | "rw" | "randomwalk" -> Mobs.Randomwalk
+  | "billiard" -> Mobs.Billiard
+  | "none" -> Mobs.None
+  | _ -> raise (Failure "Invalid format for mobility type")
 
+let strset_mob mob = mob_ := (mob_of_string mob)
+
+let mob = 
+  Param.stringcreate ~name:"mob" ~default:"billiard" ~cmdline:true
+    ~doc:"Mobility process" ~checker:(fun s -> strset_mob s) ()
 
 let mob_array = ref ([||]: Mob.t array)
 
@@ -48,8 +63,8 @@ let make_borderwaypoint_mobs ?gran () = mob_array :=
 let make_billiard_mobs ?gran () = mob_array := 
   (Nodes.map (fun n -> new Mobs.billiard n ?gran ()))
 
-let make_discrete_randomwalk_mobs() = mob_array := 
-  (Nodes.gpsmap (fun n -> new Mobs.discreteRandomWalk n ()))
+let make_discrete_randomwalk_mobs ?gran () = mob_array := 
+  (Nodes.map (fun n -> new Mobs.discreteRandomWalk n ?gran ()))
 
 let make_epfl_waypoint_mobs() = (
   mob_array := (Nodes.map (fun n -> new Mobs.epfl_waypoint n ()));
@@ -64,3 +79,4 @@ let start_node i = !mob_array.(i)#start
 let stop_node i = !mob_array.(i)#stop
 let start_all() = Array.iteri (fun i _ -> start_node i) !mob_array
 let stop_all() = Array.iteri (fun i _ -> stop_node i) !mob_array
+

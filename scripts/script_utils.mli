@@ -31,7 +31,7 @@
 
 (** Arguments *)
 
-val parse_args : unit -> unit
+val parse_args : ?anon_fun:Arg.anon_fun -> unit -> unit
 val print_header : unit -> unit
 
 (** Setup/Initialization/Cleanup *) 
@@ -157,6 +157,7 @@ val install_contention_macs : ?stack:int -> ?bps:float -> unit -> unit
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Simplenode.simplenode}. *)
 
+val install_mobs : ?gran:float -> unit -> unit
 
 val place_nodes_on_line : unit -> unit
   (** Places all nodes on a horizontal line, evenly spaced so as to use 

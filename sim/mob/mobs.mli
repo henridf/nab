@@ -28,6 +28,8 @@
   @author Henri Dubois-Ferriere.
 *)
 
+type mob_t = Uniwaypoint  | Borderwaypoint | Epfl_waypoint | Billiard |
+  Randomwalk | None
 
 
 (** Uniform waypoint mobility class: waypoints are chosen at random uniformly
@@ -86,5 +88,6 @@ class billiard :
   step *)
 class discreteRandomWalk :
   #Simplenode.simplenode ->
+  ?gran:float ->
   unit ->
   Mob.t

@@ -39,16 +39,18 @@ val make_borderwaypoint_mobs : ?gran:float -> unit -> unit
 
 val make_billiard_mobs : ?gran:float -> unit -> unit
   (** Create {!Mob.t} objects that implement a border waypoint mobility
-    model (see {!Mobs.billiard}). Optional gran indicates the mobility granularity. 
+    model (see {!Mobs.billiard}). Optional [gran] indicates the mobility granularity. 
   *)
 
 val make_epfl_waypoint_mobs : unit -> unit
   (** Create {!Mob.t} objects that implement a waypoint mobility model
     over epfl campus, using graph representation of epfl campus (see file [gui/epflcoords.ml]). *)
 
-val make_discrete_randomwalk_mobs : unit -> unit
+val make_discrete_randomwalk_mobs : ?gran:float -> unit -> unit
   (** Create {!Mob.t} objects that implement a discrete random walk 
-    mobility model. *)
+    mobility model. 
+    Optional [gran] indicates the step size.
+  *)
 
 val set_speed_mps : ?nidopt:Common.nodeid_t -> float -> unit
   (** Set mobility speed in meters/sec. If optional nodeid is given, only that
@@ -72,4 +74,11 @@ val start_all : unit -> unit
 val stop_all : unit -> unit
   (** Stops mobility of all nodes. Idempotent.*)
 
+val strset_mob : string -> unit
+  (** Set the default mobility via a string (for example provided as cmdline argument). *)
 
+val getmob : unit -> Mobs.mob_t
+  (** Returns the mobility model. *)
+
+val mob : string Param.t
+  (** Mob param *)

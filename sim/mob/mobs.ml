@@ -30,6 +30,9 @@ open Misc
 
 module Random = Random.State 
 
+type mob_t = Uniwaypoint  | Borderwaypoint | Epfl_waypoint | Billiard |
+  Randomwalk | None
+
 class virtual waypoint
   (owner:#Simplenode.simplenode) 
   ?gran
@@ -248,30 +251,31 @@ end
 
 class discreteRandomWalk 
   (owner:#Simplenode.simplenode) 
+  ?gran 
   () = 
 object 
 
-  inherit Mob_base.mobility owner ()
+  inherit Mob_base.mobility owner ?gran ()
 
   (* ignores gran, meaningless for a discrete mob *)
   method getnewpos ~gran = 
     let pos = ((World.w())#nodepos owner#id) in
     let step = 
       [|
-	(1., 0.); 
-	(-1., 0.); 
-	(0., 1.); 
-	(0., -1.)
+	(gran, 0.); 
+	(-. gran, 0.); 
+	(0., gran); 
+	(0., -. gran)
       |].(Random.int rnd 4) in
     let newx = ref (xx (pos +++. step)) 
     and newy = ref (yy (pos +++. step)) in
-    Printf.printf "Mob.ml: newx %f newy %f\n" !newx !newy; flush stdout;      
+(*    Printf.printf "Mob.ml: newx %f newy %f\n" !newx !newy; flush stdout;      *)
 
-    if (!newx = -1.) then newx := 0.;
-    if (!newy = -1.) then newy := 0.;
-    if (!newx = (Param.get Params.x_size)) then newx := ((Param.get
+    if (!newx < 0.0) then newx := 0.;
+    if (!newy < 0.0) then newy := 0.;
+    if (!newx > (Param.get Params.x_size)) then newx := ((Param.get
       Params.x_size) -. 1.);
-    if (!newy = (Param.get Params.y_size)) then newy := ((Param.get
+    if (!newy > (Param.get Params.y_size)) then newy := ((Param.get
       Params.y_size) -. 1.);
     (World.w())#boundarize (!newx, !newy)
 
