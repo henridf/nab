@@ -2,24 +2,44 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(** General utils and helpers for writing MWS scripts *)
 
-(* Setup/Initialization/Cleanup *) 
+
+(** Setup/Initialization/Cleanup *) 
+
 val init_sched : unit -> unit
+  (** Instantiate the global scheduler object. Uses a Heap Scheduler by
+    default. *)
+
 val init_world : unit -> unit
+  (** Instantiate the global world object. 
+    Number of nodes (Params.nodes) should be set before calling this *)
 
-val make_grep_nodes : unit -> unit (* consults Params.nodes *)
-val make_grease_nodes : unit -> unit (* consults Params.nodes *)
-val make_aodv_nodes : unit -> unit (* consults Params.nodes *)
 
-val cleanup : unit -> unit
 
-(* Actions *)
+
+val make_grep_nodes : unit -> unit 
+  (** Create simplenodes each with a grep agent.
+    Number of nodes (Params.nodes) should be set before calling this *)
+
+val make_aodv_nodes : unit -> unit 
+  (** Create simplenodes each with a aodv agent.
+    Number of nodes (Params.nodes) should be set before calling this *)
+
+val make_grease_nodes : unit -> unit 
+  (** Create gpsnodes each with a grep agent.
+    Number of nodes (Params.nodes) should be set before calling this *)
+
+
+(** Actions *)
+
 val move_nodes : 
   prop:float -> (* btw 0 and 1 *)
   targets:int -> 
   unit
 
-(* Stats *)
+(** Stats *)
+
 val proportion_met_nodes : targets:int -> float 
 val avg_neighbors_per_node : unit -> float 
 

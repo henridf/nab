@@ -73,17 +73,6 @@ let make_aodv_nodes () = (
   assert ((Gworld.world())#neighbors_consistent);
 )
 
-let cleanup, add_cleanup_hook = 
-  let cleanup_functions = ref [] in
-  let cleanup_ () = List.iter (fun c -> c()) !cleanup_functions in
-  let add_cleanup_hook_ f = cleanup_functions := !cleanup_functions @ [f]
-  in (cleanup_, add_cleanup_hook_)
-
-let set_tracefile f = (
-  Trace.set_trace_chan (open_out_bin f);
-  add_cleanup_hook (fun () -> Trace.close_trace_chan())
-)
-
 let proportion_met_nodes ~targets  = 
   Ease_agent.proportion_met_nodes ~targets
 
