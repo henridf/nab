@@ -65,6 +65,9 @@ let binomial ~pick ~outof = (facto outof) / ((facto pick)  * (facto (outof - pic
 
 let pi = 4. *. atan 1.
 
+let rad2deg rad = (rad /. pi) *. 180.
+
+
 let is_finite x =
   let cx = classify_float x in
   cx <> FP_infinite && cx <> FP_nan
