@@ -58,6 +58,13 @@ let facto n =
 
 let binomial ~pick ~outof = (facto outof) / ((facto pick)  * (facto (outof - pick)))
 
+let pi = 4. *. atan 1.
+
+let is_finite x =
+  let cx = classify_float x in
+  cx <> FP_infinite && cx <> FP_nan
+
+
 (**  Lists *)
 
 let listlast l = List.nth l (List.length l - 1)
@@ -94,13 +101,17 @@ let array_rev_iteri f a =
 let array_rev_iter f a = 
   for i = Array.length a - 1 downto 0 do f (Array.unsafe_get a i) done
 
-
 (*val array_count_filt : ('a -> bool) -> 'a array -> int = <fun> *)
 let array_count_filt f a = (
   let c = ref 0 in 
     Array.iter (fun el -> if (f el) then incr c) a; 
     !c
 )
+
+let mapi2 f arr1 arr2 = Array.mapi (fun i v -> f v arr2.(i)) arr1
+let (|+|) = mapi2 (+)
+let (|+.|) = mapi2 (+.)
+
 
 (* val array_count : 'a -> 'a array -> int = <fun> *)
 let array_count elt a = array_count_filt (fun x -> x = elt) a
@@ -161,3 +172,42 @@ let equal_or_print a b ~equal ~print =
     let l = len - (String.length s) in 
     if l <= 0 then s else s ^ String.make l ch
 
+(** I/O *)
+
+let for_stdin_lines f = 
+  try (while true do (f (input_line stdin)) done) with End_of_file -> ()
+
+let for_channel_lines chan f = 
+  try (while true do (f (input_line chan)) done) with End_of_file -> ()
+
+let lines_of_chan chan = 
+  begin 
+    let accum = ref [] in for_channel_lines chan (fun ss -> accum := ss ::
+      !accum); 
+    List.rev !accum; 
+  end
+
+let lines_of_file fname = 
+  begin 
+    let accum = ref [] in 
+    let infile = open_in fname in 
+    begin
+      for_channel_lines infile (fun ss -> accum := ss :: !accum); 
+      close_in infile; 
+      List.rev !accum; 
+    end 
+  end
+
+let file_map_list fname f = 
+  begin 
+    let accum = ref [] in 
+    let infile = open_in fname in 
+    begin
+      for_channel_lines infile (fun ss -> accum := ss :: !accum); 
+      close_in infile; 
+      List.rev_map f !accum; 
+    end 
+  end
+
+let file_map_array fname f = 
+  Array.of_list (file_map_list fname f)
