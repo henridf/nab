@@ -22,12 +22,18 @@
 
 (* $Id$ *)
 
+let macs_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
+let macs ?(stack=0) () = macs_array_.(stack)
+let mac ?(stack=0) i = 
+  Hashtbl.find macs_array_.(stack) i
+
 
 
 open Misc
 
 class virtual ['stats] base ?(stack=0) ~bps owner = 
-object
+object(s)
 
   inherit Log.inheritable_loggable as log
 
@@ -38,13 +44,22 @@ object
   val myid = owner#id
   val owner:#Simplenode.simplenode = owner
 
+  initializer (
+    Hashtbl.replace macs_array_.(stack) owner#id (s :> Mac.t);
+  )
+
+
   method basic_stats = {
-    Mac.bits_RX = bitsTX; 
-    Mac.bits_TX = bitsRX;
-    Mac.pkts_RX = pktsTX; 
-    Mac.pkts_TX = pktsRX
+    Mac.bits_RX = bitsRX; 
+    Mac.bits_TX = bitsTX;
+    Mac.pkts_RX = pktsRX; 
+    Mac.pkts_TX = pktsTX
   }
-  method private reset_stats = bitsTX <- 0; bitsRX <- 0
+  method reset_stats = 
+    bitsTX <- 0; 
+    bitsRX <- 0;
+    pktsTX <- 0; 
+    pktsRX <- 0
     
 
   method private set_objdescr ?owner string = 
@@ -84,3 +99,21 @@ let string_of_bstats_bits s =
     s.Mac.bits_TX
   )
 
+let add_bstats s1 s2 = 
+  {
+    Mac.bits_RX = s1.Mac.bits_RX + s2.Mac.bits_RX; 
+    Mac.bits_TX = s1.Mac.bits_TX + s2.Mac.bits_TX; 
+    Mac.pkts_RX = s1.Mac.pkts_RX + s2.Mac.pkts_RX; 
+    Mac.pkts_TX = s1.Mac.pkts_TX + s2.Mac.pkts_TX
+  }
+  
+
+
+let zero_bstats () = 
+  {
+    Mac.bits_RX = 0;
+    Mac.bits_TX = 0;
+    Mac.pkts_RX = 0;
+    Mac.pkts_TX = 0
+  }
+  

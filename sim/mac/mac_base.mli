@@ -39,6 +39,9 @@
 *)
 
 
+val macs : ?stack:int -> unit -> (Common.nodeid_t, Mac.t) Hashtbl.t
+val mac : ?stack:int -> Common.nodeid_t -> Mac.t
+
 
 (** @param stack serves to distinguish the stack when multiple stacks are being
   used. Defaults to 0. (The notion of multiple stacks is explained in
@@ -64,16 +67,26 @@ object
   method private send_up : l2pkt:L2pkt.t -> unit
   method virtual other_stats : 'a
 
-  method private reset_stats : unit
-
   (** Methods documented in {!Mac.t}. *)
   method virtual recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method virtual xmit : l2pkt:L2pkt.t -> unit
   method virtual bps : float
   method basic_stats : Mac.basic_stats
-
+  method reset_stats : unit
 end
+
+
+
+(** Return string representations of basic_stats. *) 
 
 val string_of_bstats : Mac.basic_stats -> string
 val string_of_bstats_bits : Mac.basic_stats -> string
 val string_of_bstats_pkts : Mac.basic_stats -> string
+
+
+val add_bstats : Mac.basic_stats -> Mac.basic_stats -> Mac.basic_stats
+  (** Add two basic_stats. *)
+
+
+val zero_bstats : unit -> Mac.basic_stats
+  (** Return a basic_stats with all values initialized to 0. *)
