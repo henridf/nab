@@ -151,6 +151,7 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
+		 $(MISC_DIR)/myarg$(CMO) \
 		 $(MISC_DIR)/coord$(CMO)
 
 TEST_OBJ_FILES = \
@@ -222,6 +223,8 @@ testmodules:  $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES)
 ocamlgfx: 
 	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
 
+ocamlstr: 
+	ocamlmktop -o bin/ocamlstr $(STR_LIB) 
 
 CLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out); done
 EMACSCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *~; rm -f .*~); done
