@@ -45,7 +45,7 @@ object(s)
     (Array.make_matrix grid_size_x_ grid_size_y_ []);
     node_positions_ <- Array.make (Param.get Params.nodes) (0., 0.);
 
-    Log.log#log_info (lazy 
+    Log.log#log_notice (lazy 
       (sprintf "New CRWorld : size <%f,%f>, rrange %f, #nodes %d" 
       x y rrange (Param.get Params.nodes))
     );
