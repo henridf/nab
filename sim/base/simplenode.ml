@@ -65,24 +65,33 @@ object(s)
 
   val id = id
 
-  method mac ?(stack=0) () = o2v macs.(stack)
-
-  method install_mac ?(stack=0) themac = 
-    assert(macs.(stack) = None);
-    macs.(stack) <- Some themac
-
-  method id = id
-
   initializer (
     s#set_objdescr (sprintf "/node/%d" id);
     s#log_debug (lazy (sprintf "New node %d" id));
   )
 
+  method id = id
+
+  method mac ?(stack=0) () = o2v macs.(stack)
+
+  method install_mac ?(stack=0) themac = 
+    if (macs.(stack) <> None) then 
+      failwith "Simplenode.install_mac: mac already there!";
+    macs.(stack) <- Some themac
+
+  method remove_mac ?(stack=0) () = 
+    macs.(stack) <- None
+
+  method remove_stack ?(stack=0) () = 
+    s#remove_mac ~stack ();
+    s#remove_rt_agent ~stack ()
 
   method install_rt_agent ?(stack=0) (theagent : Rt_agent.t)  = 
     if (rt_agents.(stack) <> None) then 
       failwith "Simplenode.install_rt_agent: agent already there!";
     rt_agents.(stack) <- Some theagent
+
+  method agent ?(stack=0) () = o2v rt_agents.(stack)
 
   method remove_rt_agent ?(stack=0) () = 
     rt_agents.(stack) <- None
