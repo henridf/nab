@@ -51,6 +51,7 @@ val route_valid : 'a t -> src:'a -> dst:'a -> bool
      - anchor_age must be monotonically decreasing
      - anchor_age can only change when anchor changes
      - starts at src, ends at dst
+     - is loop-free (no hop is repeated twice)
   *)
 
 val eucl_length : dist_f:(Coord.coordf_t -> Coord.coordf_t -> float) -> Coord.coordf_t t -> float

@@ -121,6 +121,16 @@ let route_valid route ~src ~dst= (
     || raise (Failure "Anchor age changed but anchor did not")
   ) in
 
+  (* loop-free (no hop is repeated twice)*)
+  let loop_free() = (
+    List.fold_left  
+    (fun stat h ->
+      ((List.length (List.filter (fun k -> k.hop = h.hop) route)) = 1) && stat)
+    true 
+    route
+  || raise (Failure "Route has a loooop")
+  )
+  in    
   length()
   &&
   start_at_src()
@@ -132,6 +142,8 @@ let route_valid route ~src ~dst= (
   anchor_age_decreasing()
   &&
   anchor_age_changes_with_anchor()
+  &&
+  loop_free()
 )
 	  
 let eucl_length ~dist_f route = (
