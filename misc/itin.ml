@@ -48,8 +48,8 @@ struct
         array of places visited *)
     let get = get_ itin in
     let rec _hops_to_place  = function
-	l when ((get l) = place) -> l
-      |	l when (l = length_ itin) -> max_int
+    	l when (l = length_ itin) -> max_int
+      | l when ((get l) = place) -> l
       | l -> _hops_to_place (l + 1)
     in
       _hops_to_place 0
@@ -141,12 +141,15 @@ struct
 	addplace_ itin (Place i);
       done;
       for i = 0 to 3 do
+	assert ((hops_to_place_ itin (Place i)) =  3 - i);
 	assert ((get_ itin i) = Place (3 - i))
       done;
       (* 3-3-3-3 *)
       for i = 0 to 3 do
 	addplace_ itin (Place 3);
       done;
+	assert ((hops_to_place_ itin (Place 3)) = 0);
+	assert ((hops_to_place_ itin (Place 2)) = max_int);
       for i = 0 to 3 do
 	assert ((get_ itin i) = Place 3)
       done;
@@ -171,7 +174,7 @@ struct
 
       set_itin_size_ 10; (* size of graph (not itineraries!) *)
 
-      (* shows that current unrolling algorithm is not the best! *)
+      (* incidentally, shows that current unrolling algorithm is not the best! *)
       test_unrolling 12  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 2; 9|] [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 9|];
       test_unrolling 12  [| 0; 1; 2; 3; 4; 5; 6; 7; 8; 2; 9; 9|] [| 0; 1; 2; 9|];
 
