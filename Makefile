@@ -101,8 +101,8 @@ STR_LIB = $(LIB_DIR)/str$(CMA)
 THREADS_LIB = $(LIB_DIR)/threads/threads$(CMA)
 
 
-GTK_LIBS = $(GTK_DIR)/lablgtk$(CMA) $(UNIX_LIB) $(STR_LIB)
-GTK_TH_LIBS = $(UNIX_LIB) $(THREADS_LIB) $(STR_LIB)  $(GTK_DIR)/lablgtk$(CMA)
+GTK_LIBS = $(GTK_DIR)/lablgtk$(CMA) $(UNIX_LIB)
+GTK_TH_LIBS = $(UNIX_LIB) $(THREADS_LIB) $(GTK_DIR)/lablgtk$(CMA)
 GTK_TH_OBJS =  $(GTK_DIR)/gtkThread$(CMO)  $(GTK_DIR)/gtkInit$(CMO) $(GTK_DIR)/gtkThInit$(CMO)
 GTK_INIT_OBJS = $(GTK_DIR)/gtkInit$(CMO)
 
