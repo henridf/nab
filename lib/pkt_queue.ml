@@ -54,13 +54,17 @@ let pop (q, _, stats) =
 
 
 let peek (q, _, _) = Queue.peek q
-let clear ?(stats=true) (q, _, qstats) = 
-  if stats then (
+
+let reset_stats_ qstats = 
     qstats.dropped <- 0;
     qstats.inpkts <- 0;
-    qstats.outpkts <- 0;
-  );
+    qstats.outpkts <- 0
+
+let clear ?(stats=true) (q, _, qstats) = 
+  if stats then reset_stats_ qstats;
   Queue.clear q
+
+let reset_stats (_, _, qstats) = reset_stats_ qstats
 
 let copy (q, _, _) = Queue.copy q
 let is_empty (q, _, _) = Queue.is_empty q

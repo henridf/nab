@@ -58,6 +58,8 @@ val clear : ?stats:bool -> 'a t -> unit
     Default value of [stats] is true.
   *)
 
+val reset_stats : 'a t -> unit
+  (** Reset the stats of the queue (leaves queue contents unmodified).*)
 
 val push : 'a -> 'a t -> bool 
   (** Same as [Queue.push] in stdlib, except that a bool is returned,
