@@ -1,3 +1,6 @@
+(* Open things:
+   t.info is hardwired to be int lists. Maybe should be flexible (like nodes are type elt)
+*)
 open Misc
 open Set
 open Hashtbl
@@ -20,6 +23,11 @@ sig
   val size_      : t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
   val contains_  : t -> elt -> bool
   val containsi_ : t -> int -> bool
+
+  val setinfo_   : t -> elt -> int list -> unit
+  val setinfoi_  : t -> int -> int list -> unit
+  val getinfo_   : t -> elt -> int list
+  val getinfoi_  : t -> int -> int list
 
   val add_node_  : t -> elt -> unit
   val add_edge_  : t -> elt -> elt  -> float ->  unit
@@ -45,9 +53,11 @@ struct
   type t = { mutable ind : int;  (* index of next new node in nodes array. Equal to size when full *)
 	     size : int;         (* max # nodes in graph *)
 	     nodes : elt array;   
+	     info : int list array; (* allows client to store info in the graph, like which walkers are at a node *)
 	     hash : int Hash.t;
 	     m : adj_mat_t;
-	     t : graphtype_t;}
+	     t : graphtype_t
+	   }
 
 
   let index__ g n = Hash.find g.hash n (* throws Not_found *)
@@ -55,6 +65,7 @@ struct
   let create_ node size gtype = {ind = 0; 
 				 size = size;
 				 nodes =  Array.create size node;
+				 info = Array.create size [];
 				 hash =  Hash.create size;
 				 m =  Array.create_matrix size size Nan;
 				 t = gtype}
@@ -69,14 +80,30 @@ struct
   let contains_ g n = try ignore (index__ g n); true with Not_found -> false
   let containsi_ g i = g.ind > i
 			 
-  let add_edge_ g n1 n2 c  = (
-    if (n1 = n2) then raise (Invalid_argument "Graph.add_edge_: cannot connect a node to itself");
+  let getinfoi_ g i = (
+    if i >= g.ind then raise (Invalid_argument "Graph.getinfoi_ : index does not exist");
+    g.info.(i);
+  )
+
+  let getinfo_ g n  = (
     try 
-      let x = index__ g n1 and y = index__ g n2 in
- 	g.m.(x).(y) <- Cost c;
-	if g.t = Undirected then g.m.(y).(x) <- Cost c;
-    with 
-	Not_found -> raise (Invalid_argument  "Graph.add_edge_: node does not exist");
+      let i = index__ g n in 
+	getinfoi_ g i 
+    with
+	Not_found -> raise (Invalid_argument  "Graph.getinfo_: node does not exist");
+  )
+
+  let setinfoi_ g i info = (
+    if i >= g.ind then raise (Invalid_argument "Graph.setinfoi_ : index does not exist");
+    g.info.(i) <- info
+  )
+
+  let setinfo_ g n info = (
+    try 
+      let i = index__ g n in 
+	setinfoi_ g i info
+    with
+	Not_found -> raise (Invalid_argument  "Graph.setinfo_: node does not exist");
   )
 
   let add_edgei_ g i1 i2 c = (
@@ -85,6 +112,16 @@ struct
     g.m.(i1).(i2) <- Cost c;
     if g.t = Undirected then g.m.(i2).(i1) <- Cost c;
   )
+
+  let add_edge_ g n1 n2 c  = (
+    if (n1 = n2) then raise (Invalid_argument "Graph.add_edge_: cannot connect a node to itself");
+    try 
+      let x = index__ g n1 and y = index__ g n2 in 
+	add_edgei_ g x y c
+    with 
+	Not_found -> raise (Invalid_argument  "Graph.add_edge_: node does not exist");
+  )
+
 
   let add_node_ g n = (
     if g.ind = g.size then failwith "add_node: graph is full";
@@ -234,6 +271,15 @@ let test_ () = (
 	FG.add_edgei_ g 0 1 0.0;
 	assert (FG.neigborsi_ g 0 = [1]);
 	assert (FG.neigborsi_ g 1 = []);
+
+	assert ((FG.getinfo_ g 0.0) = []);
+	assert ((FG.getinfoi_ g 0) = []);
+	FG.setinfo_ g 0.0 [0;0];
+	FG.setinfoi_ g 1 [1;1];
+	assert ((FG.getinfo_ g 0.0) = [0;0]);
+	assert ((FG.getinfoi_ g 0) = [0;0]);
+	assert ((FG.getinfo_ g 1.0) = [1;1]);
+	assert ((FG.getinfoi_ g 1) = [1;1]);
 
 	Printf.printf "Graph.test_ : passed \n";
 )   
