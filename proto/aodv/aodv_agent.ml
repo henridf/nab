@@ -166,7 +166,7 @@ object(s)
     match s#queue_size() < packet_buffer_size with 
       | true ->
 	  let dst = L3pkt.l3dst ~l3pkt in
-	  assert (dst <> L3pkt._L3_BCAST_ADDR);
+	  assert (dst <> L3pkt.l3_bcast_addr);
 	  Queue.push l3pkt pktqs.(dst);
       | false -> (
 	  Grep_hooks.drop_data();
@@ -491,7 +491,7 @@ object(s)
       let l3hdr = 
 	L3pkt.make_l3hdr
 	  ~srcid:myid
-	  ~dstid:L3pkt._L3_BCAST_ADDR
+	  ~dstid:L3pkt.l3_bcast_addr
 	  ~ext:aodv_hdr
 	  ~ttl:ttl 
 	  ()
@@ -605,7 +605,7 @@ object(s)
 
       | Aodv_pkt.AODV_RADV 
       | Aodv_pkt.AODV_RREQ -> 
-	  assert (dst = L3pkt._L3_BCAST_ADDR);
+	  assert (dst = L3pkt.l3_bcast_addr);
 	  L3pkt.decr_l3ttl ~l3pkt;
 	  begin
 	    match ((L3pkt.l3ttl ~l3pkt) >= 0)  with

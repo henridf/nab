@@ -189,9 +189,9 @@ object(s)
   )
 
   method get_state () = 
-      {seqno=seqno;
-      hello_period = hello_period_;
-      rt = rt}
+    {seqno=seqno;
+    hello_period = hello_period_;
+    rt = rt}
 
   method set_state state = 
     seqno <- state.seqno;
@@ -242,7 +242,7 @@ object(s)
     match s#queue_size() < packet_buffer_size with 
       | true ->
 	  let dst = L3pkt.l3dst ~l3pkt in
-	  assert (dst <> L3pkt._L3_BCAST_ADDR);
+	  assert (dst <> L3pkt.l3_bcast_addr);
 	  Queue.push l3pkt pktqs.(dst);
       | false -> (
 	  Grep_hooks.drop_data();
@@ -255,23 +255,23 @@ object(s)
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
   method private newadv ~dst ~sn ~hc ~nh  = (
-      let update = 
-	Rtab.newadv ~rt ~dst ~sn ~hc ~nh
-      in
-      if update then (
-	s#log_info 
-	(lazy (sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
-	  dst nh hc sn));
-	Rtab.repair_done ~rt ~dst;
-	(* if route to dst was accepted, send any packets that were waiting
-	   for a route to this dst *)
-	if (s#packets_waiting ~dst) then (
-	  s#send_waiting_packets ~dst
-	);
-
+    let update = 
+      Rtab.newadv ~rt ~dst ~sn ~hc ~nh
+    in
+    if update then (
+      s#log_info 
+      (lazy (sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
+	dst nh hc sn));
+      Rtab.repair_done ~rt ~dst;
+      (* if route to dst was accepted, send any packets that were waiting
+	 for a route to this dst *)
+      if (s#packets_waiting ~dst) then (
+	s#send_waiting_packets ~dst
       );
-      update
-    )
+
+    );
+    update
+  )
 
   method private packet_fresh ~l3pkt = (
     let grep_hdr = L3pkt.grep_hdr l3pkt in
@@ -379,7 +379,7 @@ object(s)
 	  (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
 	    (L3pkt.l3src ~l3pkt) rdst));
   )
-      
+    
   method private send_rrep ~dst ~obo = (
     s#log_info 
     (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
@@ -495,9 +495,9 @@ object(s)
     *)
 
     if (not (Rtab.repairing ~rt ~dst)) then (
-    (* for the initial route request, we don't do it if there's already one
-       going on for this destination (which isn't really expected to happen,
-       but you never know) *)
+      (* for the initial route request, we don't do it if there's already one
+	 going on for this destination (which isn't really expected to happen,
+	 but you never know) *)
 
       rreq_uids.(dst) <- Random.int max_int;
 
@@ -522,35 +522,35 @@ object(s)
 
   method private send_radv() = (
     
-      let grep_hdr = 
-	Grep_pkt.make_grep_hdr
-	  ~flags:Grep_pkt.GREP_RADV
-	  ~ssn:seqno
-	  ~shc:0
-	  ()
-      in
-      let l3hdr = 
-	L3pkt.make_l3hdr
-	  ~srcid:myid
-	  ~dstid:L3pkt._L3_BCAST_ADDR
-	  ~ext:(`GREP_HDR grep_hdr)
-	  ~ttl:1 
-	  ()
-      in
-      let l3pkt = 
-	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
+    let grep_hdr = 
+      Grep_pkt.make_grep_hdr
+	~flags:Grep_pkt.GREP_RADV
+	~ssn:seqno
+	~shc:0
+	()
+    in
+    let l3hdr = 
+      L3pkt.make_l3hdr
+	~srcid:myid
+	~dstid:L3pkt.l3_bcast_addr
+	~ext:(`GREP_HDR grep_hdr)
+	~ttl:1 
+	()
+    in
+    let l3pkt = 
+      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
 
-      in	
-      s#send_out ~l3pkt;
-      
-      if (Opt.is_some hello_period_) then 
-	let next_hello_t = 
-	  _DEFAULT_HELLO_PERIOD 
-	  +. Random.float (_HELLO_JITTER_INTERVAL())
-	  -. (_HELLO_JITTER_INTERVAL() /. 2.)
-	in
-	(Sched.s())#sched_in ~f:s#send_radv ~t:next_hello_t;
-    )
+    in	
+    s#send_out ~l3pkt;
+    
+    if (Opt.is_some hello_period_) then 
+      let next_hello_t = 
+	_DEFAULT_HELLO_PERIOD 
+	+. Random.float (_HELLO_JITTER_INTERVAL())
+	-. (_HELLO_JITTER_INTERVAL() /. 2.)
+      in
+      (Sched.s())#sched_in ~f:s#send_radv ~t:next_hello_t;
+  )
 
 
   method private send_rreq ~ttl ~dst ~rreq_uid = (
@@ -577,7 +577,7 @@ object(s)
       let l3hdr = 
 	L3pkt.make_l3hdr
 	  ~srcid:myid
-	  ~dstid:L3pkt._L3_BCAST_ADDR
+	  ~dstid:L3pkt.l3_bcast_addr
 	  ~ext:(`GREP_HDR  grep_hdr)
 	  ~ttl:ttl 
 	  ()
@@ -589,11 +589,11 @@ object(s)
       let next_rreq_timeout = 
 	((i2f (2 * next_ttl)) *. (hop_traversal_time s#bps)) in
       let next_rreq_event() = 
-	  (s#send_rreq 
-	    ~ttl:next_ttl
-	    ~dst
-	    ~rreq_uid
-	  )
+	(s#send_rreq 
+	  ~ttl:next_ttl
+	  ~dst
+	  ~rreq_uid
+	)
       in	
       s#send_out ~l3pkt;
       
@@ -608,7 +608,7 @@ object(s)
     ~(sender:Common.nodeid_t)
     ~(fresh:bool)
     = (
-    let grep_hdr = L3pkt.grep_hdr l3pkt in
+      let grep_hdr = L3pkt.grep_hdr l3pkt in
 
       let update = s#newadv 
 	~dst:(Grep_pkt.osrc grep_hdr)
@@ -657,7 +657,7 @@ object(s)
     begin match (Grep_pkt.flags grep_hdr) with
       | Grep_pkt.GREP_RADV 
       | Grep_pkt.GREP_RREQ -> 
-	  assert (dst = L3pkt._L3_BCAST_ADDR);
+	  assert (dst = L3pkt.l3_bcast_addr);
 	  L3pkt.decr_l3ttl ~l3pkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
 	    | true -> 

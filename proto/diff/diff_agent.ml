@@ -288,7 +288,7 @@ object(s)
     assert (Diff_pkt.shc diff_hdr > 0);
     begin match (Diff_pkt.flags diff_hdr) with
       | Diff_pkt.DIFF_RADV -> 
-	  assert (dst = L3pkt._L3_BCAST_ADDR);
+	  assert (dst = L3pkt.l3_bcast_addr);
 	  L3pkt.decr_l3ttl ~l3pkt:newpkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt:newpkt) >= 0)  with
 	    | true -> 
@@ -327,7 +327,7 @@ object(s)
     if subscribed then 
       begin
 	let l3hdr = L3pkt.make_l3hdr
-	  ~srcid:myid	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
+	  ~srcid:myid	~dstid:L3pkt.l3_bcast_addr ~ttl
 	  ~ext:(`DIFF_HDR diff_hdr) () in
 
 	let l3pkt = (L3pkt.make_l3pkt ~l3hdr ~l4pkt:`APP_PKT) in
