@@ -9,9 +9,13 @@
   - finding the nearest node to a point satisfying some property
   - computing a delaunay triangulation
   - computing the shortest path between two nodes
+  - checking connectedness of a network.
+
+  @author Henri Dubois-Ferriere.
 *)
 
 open Misc
+
 open Common
 
 class type world_t = 
@@ -70,6 +74,12 @@ object
     (** Returns the closest node to pos which satisfies the boolean f, or None 
       if f never satisfied.
     *)
+
+    
+  method is_connected : unit -> bool
+    (** Returns true if the network is connected (under a boolean connectivity
+      model, with connectivity up to Params.rrange), false otherwise.
+      Warning: this is SLOW for networks in the 100s of nodes or above. *)
 
   (**/**)
 
