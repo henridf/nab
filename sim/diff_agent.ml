@@ -17,6 +17,7 @@ let strset_difftype s = match s with
 
 let mean_interest_interval = ref 60.
 let interest_lambda() = 1. /.  !mean_interest_interval
+
 let nsinks_ = ref None
 let nsinks() = o2v !nsinks_
 
@@ -24,33 +25,19 @@ let rndseed = ref 0
 
 class type diff_agent_t =
   object
-    method private publish : unit
+    inherit Log.inheritable_loggable
+    inherit Rt_agent.t
 
     method app_recv_l4pkt : L4pkt.t -> Common.nodeid_t ->  unit
       (* Publish must take a ~dst because of the rt_agent_base.t interface.
 	 But in fact, since we are
 	 data-centric, we don't do anything with it *)
 
-    method myid : Common.nodeid_t
     method seqno : unit -> int
     method is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
-    method subscribe : ?delay:float -> ?ttl:int -> unit -> unit
-    method private hand_upper_layer : l3pkt:L3pkt.t -> unit
-    method private incr_seqno : unit -> unit
+    method subscribe : ?delay:float ->  ?one_shot:bool -> ?ttl:int -> unit -> unit
+    method unsubscribe : unit
     method get_rtab : Rtab.rtab_t
-    method newadv : 
-      dst:Common.nodeid_t -> 
-      sn:int -> hc:int -> nh:int ->
-      bool
-    method objdescr : string
-    method private packet_fresh : l3pkt:L3pkt.t -> bool
-    method private process_data_pkt : l3pkt:L3pkt.t -> unit
-    method private process_radv_pkt :
-      l3pkt:L3pkt.t -> 
-      l2sender:Common.nodeid_t -> unit
-    method mac_recv_l3pkt : L3pkt.t -> unit
-    method mac_recv_l2pkt : L2pkt.t -> unit
-    method private send_out : l3pkt:L3pkt.t -> unit
 
     method closest_sinks : unit -> Common.nodeid_t list 
       (** Returns closest sink (or sinks, if more than one at closest
@@ -115,7 +102,7 @@ object(s)
   (* wrapper around Rtab.newadv which additionally checks for 
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
-  method newadv ~dst ~sn ~hc ~nh  = (
+  method private newadv ~dst ~sn ~hc ~nh  = (
       let update = 
 	Rtab.newadv ~rt ~dst ~sn ~hc ~nh
       in
@@ -140,7 +127,7 @@ object(s)
 	  <
 	  o2v (Rtab.hopcount ~rt ~dst:(L3pkt.l3src l3pkt))
       | Some s when (pkt_ssn < s) -> false
-      | _ -> raise (Misc.Impossible_Case "Grep_agent.packet_fresh()")
+      | _ -> raise (Misc.Impossible_Case "Diff_agent.packet_fresh()")
   )
     
   method mac_recv_l3pkt _ = ()
@@ -175,7 +162,7 @@ object(s)
     
     sinks
   )
-    
+ 
   method closest_sinks () = (
     let sinks = s#known_sinks() in
     let closest_hops = 
@@ -243,7 +230,7 @@ object(s)
 	  s#send_out ~l3pkt
       | true, false, `Voronoi -> 
  	  s#log_info   (lazy (sprintf "Dropping Interest pkt from src %d (not closest sink)"
-	    (L3pkt.l3src ~l3pkt) ))
+	    (L3pkt.l3src ~l3pkt)))
   ) 
 
 
@@ -390,9 +377,8 @@ object(s)
 	  raise (Failure "Grep_agent.send_out: unexpected packet type")
     end
   )
-		
-	
 
+    
   (* this is a null method because so far we don't need to model apps getting
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
@@ -401,35 +387,49 @@ object(s)
 	  (L3pkt.l3src ~l3pkt)));
   )
 
-  method private send_interest ?(ttl=255) () = (
+  method private send_interest ?(one_shot=false) ?(ttl=255) () = (
     s#log_notice (lazy "Sending interest");
 
-    let l3hdr = L3pkt.make_l3hdr
-	~srcid:myid	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
-	~ext:(L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_RADV ~ssn:seqno ~shc:0 ()) () in
+    if subscribed then 
+      begin
+	let l3hdr = L3pkt.make_l3hdr
+	  ~srcid:myid	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
+	  ~ext:(L3pkt.make_grep_l3hdr_ext
+	    ~flags:L3pkt.GREP_RADV ~ssn:seqno ~shc:0 ()) () in
 
-    let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:`APP_PKT) in
+	let l3pkt = (L3pkt.make_l3pkt ~l3hdr ~l4pkt:`APP_PKT) in
 
-    s#send_out ~l3pkt;
+	s#send_out ~l3pkt;
 
-    let next_interest_timeout = expo ~rand:(Random.State.float rnd 1.0)
-      ~lambda:(interest_lambda()) in
-      (Gsched.sched())#sched_in ~f:s#send_interest ~t:next_interest_timeout
+	if (not one_shot) then begin
+	  let next_interest_timeout = expo ~rand:(Random.State.float rnd 1.0)
+	    ~lambda:(interest_lambda()) in
+	  (Gsched.sched())#sched_in ~f:(s#send_interest ~ttl)
+	  ~t:next_interest_timeout 
+	end
+      end;
+
+      if one_shot then s#unsubscribe
   )
 
 
 
-  method subscribe ?delay ?(ttl=255) () = (
+  method unsubscribe = 
+    if not subscribed then
+      s#log_error (lazy "Not subscribed");
+    subscribed <- false;
+    s#log_notice (lazy "Unsubscribing")
+
+  method subscribe ?delay ?(one_shot=false) ?(ttl=255) () = (
     if subscribed then 
       s#log_error (lazy "Already Subscribed");
     subscribed <- true;
     s#log_notice (lazy "Subscribing");
+    let f = s#send_interest ~one_shot ~ttl in
     match delay with 
-      | None -> s#send_interest ();
-      | Some t -> (Gsched.sched())#sched_in ~f:s#send_interest ~t
+      | None -> f ();
+      | Some t -> (Gsched.sched())#sched_in ~f ~t
   )
-
 
   method private send_data_to_sink sink = 
       s#log_info (lazy (sprintf "Originating data pkt to sink %d"
