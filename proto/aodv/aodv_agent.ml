@@ -868,3 +868,20 @@ object(s)
   method stats = stats
 
 end
+
+open S
+let sprint_stats s = 
+  let b = Buffer.create 64 in
+  let p = Printf.sprintf in 
+  Buffer.add_string b "-- Basic Stats:\n";
+  Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
+  Buffer.add_string b (p "   Data orig: %d, Data recv: %d, Delivery ratio: %f\n"
+    s.data_orig s.data_recv ((float s.data_recv) /. (float s.data_orig )));
+
+  Buffer.add_string b "-- Packet Transmission Breakdown:\n";
+  Buffer.add_string b (p "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
+    s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
+
+  Buffer.add_string b "-- Protocol Phases:\n";
+  Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d"
+    s.rreq_init s.rreq_orig s.rrep_orig)
