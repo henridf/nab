@@ -113,7 +113,7 @@ let get_route nid = (
   Gui_hooks.route_done := false;
   let in_mhook = Gui_hooks.grep_route_pktin_mhook routeref in
   let out_mhook = Gui_hooks.grep_route_pktout_mhook routeref in
-  Nodes.iter (fun n -> n#clear_pkt_mhooks);
+  Nodes.iter (fun n -> n#clear_pkt_mhooks ());
   Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
   Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
   (Nodes.node (!src_))#originate_app_pkt ~dst;
