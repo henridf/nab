@@ -251,7 +251,7 @@ ocamlgfx:
 ocamlstr: 
 	ocamlmktop -o bin/ocamlstr $(STR_LIB) 
 
-CLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out); done
+CLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out *.annot); done
 EMACSCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *~; rm -f .*~); done
 
 clean:
