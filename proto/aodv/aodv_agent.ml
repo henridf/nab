@@ -549,6 +549,7 @@ object(s)
   )
 
   method private do_local_repair dst = 
+    localrepair &&
     match Aodv_rtab.hopcount_opt rt dst with 
       | Some hc -> hc < aodv_MAX_REPAIR_TTL
       | None -> false
@@ -557,7 +558,9 @@ object(s)
   (* Originate a route error, when forwarding a data packet failed (either
      immediately if no local repair attempted, or after doing a local repair).
      nd is a boolean representing the 'No Delete' RERR flag.*)
-  method private orig_rerr nd dst = (
+  method private orig_rerr unreachables nd dst = (
+    assert (List.mem dst unreachables);
+
     (* Follows the steps from rfc 6.11, case (i) *)
 
 
@@ -565,11 +568,6 @@ object(s)
     (* since this method might end up getting called some time after the
        broken forwarding happened (if we attempted a local repair), the
        corresponding entry might have timed out and become invalid. *)
-
-    (* All destinations whose nexthop is the broken hop are unreachable. *)
-    let unreachables = Aodv_rtab.dests_thru_hop rt nexthop in 
-    assert (List.mem dst unreachables);
-
 
     (* 2. Create new rerr packet. It should contain all the unreachable nodes
        satisfying 1. above *and* for which the precursor list is non-empty. 
@@ -623,8 +621,9 @@ object(s)
     begin match L3pkt.aodv_hdr l3pkt with
       | DATA ->     
 	  let src, dst = L3pkt.l3src l3pkt, L3pkt.l3dst l3pkt in
+	  let unreachables = (Aodv_rtab.dests_thru_hop rt nexthop) in
 	  List.iter (Aodv_rtab.invalidate rt) 
-	    (Aodv_rtab.dests_thru_hop rt nexthop);
+	    unreachables;
 
 	  if src = myid then (
 	    s#buffer_packet ~l3pkt; 
@@ -635,7 +634,7 @@ object(s)
 	    if (not (Aodv_rtab.repairing rt dst)) then
 	      s#init_rreq_localrepair ~dst ~src:(L3pkt.l3dst l3pkt)
 	  ) else 
-	    s#orig_rerr false dst 
+	    s#orig_rerr unreachables false dst 
       | RREP _ | RERR _ | RREP_ACK -> ()
       | RREQ _ -> raise (Misc.Impossible_Case "Aodv_agent.mac_callback"); 
 	  (* rreqs are always broadcast *)
@@ -719,8 +718,8 @@ object(s)
 	       source, with 'no delete' flag set if repair was succesful *)
 	    (fun _ -> 
 	      Aodv_rtab.repair_end rt dst;
-	      if Aodv_rtab.repairing rt dst then s#orig_rerr false dst
-	      else s#orig_rerr true dst)
+	      if Aodv_rtab.repairing rt dst then s#orig_rerr [dst] false dst
+	      else s#orig_rerr [dst] true dst)
 	  else 
 	    (* Otherwise, we do another rreq *)
 	    fun _ -> 
