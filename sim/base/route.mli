@@ -68,38 +68,6 @@ type 'a hops_only_route_t = ('a, unit) t
     (** A route type for routes with no protocol-specific information. *)
 
 
-type 'anchor ease_info_t = 
-    {anchor: 'anchor; 
-    anchor_age: Time.time_t; 
-    searchcost: float}
-    (**
-      The info type attached to hops in a EASE/GREASE route.
-      The anchor changes at the hop which does a new anchor search (or in the
-      case of GREASE, at the hop which locally has a better anchor, in which
-      case the searchcost will be 0.)
-      The anchor_age represents the age of the current anchor, and also changes 
-      when the anchor changes.
-      The searchcost can only be non-zero at hops where the anchor is
-      different than the previous hop.
-    *)
-    
-type ('hop, 'anchor) ease_route_t = ('hop, 'anchor ease_info_t) t
-    (** A EASE/GREASE route, using [ease_info_t] for additional info. 
-      Note this type is still polymorphic in ['a], to allow representing the
-      hops either as node ids or as geographical positions (useful in a GUI).*)
-
-type grep_info_t = Flood.t
-    (** The optional info type attached to a GREP route is a {!Flood.t}
-      object, which represents the (flooded) search which some nodes
-      perform. At hops where no flood was necessary, the [hop_t.info] field is
-      set to [None]. *)
-
-
-type 'a grep_route_t = ('a, grep_info_t) t
-    (** The type of GREP routes. *)
-
-
-
 val create : unit -> ('a, 'b) t
 
 val add_hop : ('a, 'b) t -> ('a, 'b) hop_t -> ('a, 'b) t 
@@ -113,20 +81,6 @@ val last_hop : ('a, 'b) t -> ('a, 'b) hop_t
 
 val length : ('a, 'b) t -> int
 
-
-val ease_route_valid : ('hop, 'anchor) ease_route_t -> src:'hop -> dst:'hop -> bool
-  (* generic checks:
-     - length >= 1
-     - searchcost >= 0
-     - searchcost can only be non-zero when anchor changes
-     - anchor_age must be monotonically decreasing
-     - anchor_age can only change when anchor changes
-     - starts at src, ends at dst
-     - is loop-free (no hop is repeated twice)
-  *)
-
-val search_cost : ('a, 'b) ease_route_t -> float 
-  (* Sum of squares of all search radii *)
 
 val eucl_length : dist_f:(Coord.coordf_t -> Coord.coordf_t -> float) ->
   (Coord.coordf_t, 'b) t -> float
@@ -143,4 +97,4 @@ val sprintf_hopsonly : (Coord.coordf_t, 'b) t -> string
 val sprinti_hopsonly : (Coord.coordi_t, 'b) t -> string  
 val sprintnid_hopsonly : (Common.nodeid_t, 'b) t -> string  
 
-val sprintnid : (Common.nodeid_t, Coord.coordf_t) ease_route_t -> string  
+

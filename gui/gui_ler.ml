@@ -137,7 +137,7 @@ let set_src nid = (
   routes.(1) <- !(r.(1));
   routes.(2) <- !(r.(2));
 
-  Log.log#log_info  (lazy (Route.sprintnid routes.(stack_of_proto())));
+  Log.log#log_info  (lazy (Ler_route.sprintnid routes.(stack_of_proto())));
 (*
   ignore (Route.ler_route_valid !routeref 
     ~dst

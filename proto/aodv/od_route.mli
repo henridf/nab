@@ -22,41 +22,21 @@
 
 (* $Id$ *)
 
+(** Data structure and assorted functions representing routes and route
+  establishments for on-demand distance-vector  protocols (ie AODV or GREP).
 
-
-
-
-
-
-(** 
-  Conversions/interface for data between simulator and gui. 
-  In particular, between simulation coordinates (meters) and screen coordinates (pixels).
-  @author Henri Dubois-Ferriere.
+  @author Henri Dubois-Ferriere
 *)
 
-val init : unit -> unit
 
-val x_mtr_to_pix : float -> int
 
-val pos_pix_to_mtr : Coord.coordi_t -> Coord.coordf_t
-val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t
 
-val route_mtr_to_pix :
-  (Coord.coordf_t, 'b) Route.t  ->
-  (Coord.coordi_t, 'b) Route.t  
+type info_t = Flood.t
+    (** The optional info type attached to a GREP route is a {!Flood.t}
+      object, which represents the (flooded) search which some nodes
+      perform. At hops where no flood was necessary, the [hop_t.info] field is
+      set to [None]. *)
 
-val route_nodeid_to_pix :
-  (Common.nodeid_t, 'b) Route.t  ->
-  (Coord.coordi_t, 'b) Route.t  
+type 'a t = ('a, info_t) Route.t
+    (** The type of GREP routes. *)
 
-val ler_route_mtr_to_pix :
-  (Coord.coordf_t, Coord.coordf_t) Ler_route.t  ->
-  (Coord.coordi_t, Coord.coordi_t) Ler_route.t  
-
-val ler_route_nodeid_to_pix :
-  (Common.nodeid_t, Coord.coordf_t) Ler_route.t  ->
-  (Coord.coordi_t, Coord.coordi_t) Ler_route.t  
-
-val closest_node_at :
-  Coord.coordi_t ->
-    Common.nodeid_t

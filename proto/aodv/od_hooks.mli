@@ -26,13 +26,13 @@
   GREP, AODV). *)
 
 val od_route_pktin_mhook : 
-  Common.nodeid_t Route.grep_route_t ref ->
+  Common.nodeid_t Od_route.t ref ->
   L2pkt.t ->
   Simplenode.simplenode -> 
   unit
 
 val od_route_pktout_mhook : 
-  Common.nodeid_t Route.grep_route_t ref ->
+  Common.nodeid_t Od_route.t ref ->
   L2pkt.t ->
   Simplenode.simplenode -> 
   unit

@@ -160,6 +160,10 @@ SIM_OBJS = $(GFX_LIB) \
 		$(SIM_BASE_DIR)/nodes$(CMO) \
 		$(SIM_BASE_DIR)/route$(CMO) \
 		$(SIM_BASE_DIR)/flood$(CMO) \
+		$(PROTO_LER_DIR)/ler_hooks$(CMO) \
+		$(PROTO_LER_DIR)/ler_route$(CMO) \
+		$(PROTO_AODV_DIR)/od_hooks$(CMO) \
+		$(PROTO_AODV_DIR)/od_route$(CMO) \
 		$(PROTO_LER_DIR)/le_tab$(CMO) \
 		$(SIM_BASE_DIR)/rtab$(CMO) \
 		$(SIM_BASE_DIR)/ether$(CMO) \

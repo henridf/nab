@@ -228,14 +228,14 @@ let draw_ler_route
 	      -> (
 		Gui_gtk.txt_msg 
 		(Printf.sprintf "Anchor Age: %d seconds" 
-		  (truncate (Opt.get hop2.info).anchor_age))
+		  (truncate (Opt.get hop2.info).Ler_route.anchor_age))
 	      )
 	  | hop1::hop2::r -> (
 
 	      (* we assume that the rectangle ratio of the window and the world
 		 are the same, otherwise this would not be a circle *)
 	      Gui_gtk.draw_circle ~centr:hop1.hop 
-	      ~radius:(Gui_conv.x_mtr_to_pix (Opt.get hop1.info).searchcost);
+	      ~radius:(Gui_conv.x_mtr_to_pix (Opt.get hop1.info).Ler_route.searchcost);
 	      draw_disks_ (hop2::r);
 	    )
 	  | hop1::r -> ()
@@ -248,11 +248,11 @@ let draw_ler_route
 	  colindex := (!colindex + 1) mod (Array.length colors);
 	  if lines then (
 	    Gui_gtk.draw_segments ~col:(`NAME colors.(!colindex))
-	    [hop.hop, (Opt.get hop.info).anchor];
+	    [hop.hop, (Opt.get hop.info).Ler_route.anchor];
 	  );
 	  if (anchors) then (
 	    Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex))
-	    ~target:true (Opt.get hop.info).anchor
+	    ~target:true (Opt.get hop.info).Ler_route.anchor
 	  )
 	in
 
@@ -264,8 +264,8 @@ let draw_ler_route
 	      draw_anchors_ false (hop1::hop2::r)
 	    )
 	  | hop1::hop2::r -> (
-	      if (Opt.get hop2.info).anchor_age <> 
-		(Opt.get hop1.info).anchor_age then draw_anchor_line hop2;
+	      if (Opt.get hop2.info).Ler_route.anchor_age <> 
+		(Opt.get hop1.info).Ler_route.anchor_age then draw_anchor_line hop2;
 	      draw_anchors_ false (hop2::r);
 	    )
 	  | hop1::r -> ()

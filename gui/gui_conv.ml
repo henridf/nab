@@ -29,6 +29,7 @@
 
 open Misc
 open Route
+open Ler_route
 
 let x_pix_size = ref (Param.get Params.x_pix_size)
 let y_pix_size = ref (Param.get Params.y_pix_size)

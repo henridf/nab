@@ -54,9 +54,9 @@ let ler_route_pktin_mhook ?num routeref l2pkt node = (
 	    routeref := Route.add_hop !routeref {
 	      Route.hop=node#id;
 	      Route.info=Some {
-		Route.anchor=(Ler_pkt.anchor ler_hdr);
-		Route.anchor_age=(Ler_pkt.enc_age ler_hdr);
-		Route.searchcost=0.0; (* hack see general_todo.txt *)
+		Ler_route.anchor=(Ler_pkt.anchor ler_hdr);
+		Ler_route.anchor_age=(Ler_pkt.enc_age ler_hdr);
+		Ler_route.searchcost=0.0; (* hack see general_todo.txt *)
 	      }
 	    }
 	  )
@@ -82,9 +82,9 @@ let ler_route_pktout_mhook ?num routeref l2pkt node = (
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#id;
 	  Route.info=Some {
-	    Route.anchor=(Ler_pkt.anchor ler_hdr);
-	    Route.anchor_age=(Ler_pkt.enc_age ler_hdr);
-	    Route.searchcost=(Ler_pkt.search_dist ler_hdr)
+	    Ler_route.anchor=(Ler_pkt.anchor ler_hdr);
+	    Ler_route.anchor_age=(Ler_pkt.enc_age ler_hdr);
+	    Ler_route.searchcost=(Ler_pkt.search_dist ler_hdr)
 	  }
 	}
 )

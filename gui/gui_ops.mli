@@ -31,7 +31,7 @@ val draw_ler_route :
   ?anchors:bool ->
   ?disks:bool ->
   ?portion:float ->
-  (Coord.coordi_t, Coord.coordi_t) Route.ler_route_t
+  (Coord.coordi_t, Coord.coordi_t) Ler_route.t
   -> unit
   (** Draw LER route. 
     Optional arguments [lines] [anchors] [disks] specify respectively which
@@ -42,7 +42,7 @@ val draw_ler_route :
 
 
 val draw_grep_route : 
-  Coord.coordi_t Route.grep_route_t
+  Coord.coordi_t Od_route.t
   -> unit
   (** Draw grep route.  *)
 
