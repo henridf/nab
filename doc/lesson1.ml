@@ -56,7 +56,7 @@ let setup() = (
 let hook pkt node = incr pkt_count
 
 let setup_hooks() = (
-  Nodes.iter (fun n -> n#clear_pkt_mhooks);
+  Nodes.iter (fun n -> n#clear_pkt_mhooks());
   Nodes.iter (fun n -> n#add_pktout_mhook hook);
 )
 
