@@ -60,8 +60,9 @@ type state_hdr_t = {
 type sim_state_t = Simplenode.node_state_t array
   
 let save_node_state ?(gpsnodes=false) oc = (
+  Log.log#log_notice (lazy "Saving node state..");
   let node_cnt = (Param.get Params.nodes) in
-  let descr = sprintf "mws datafile\n Parameters:\n nodes: %d\n time: %f\n" 
+  let descr = sprintf "NAB datafile\n Parameters:\n nodes: %d\n time: %f\n" 
     node_cnt 
     (Time.get_time())
   in
@@ -81,10 +82,8 @@ let save_node_state ?(gpsnodes=false) oc = (
   Marshal.to_channel oc descr [];
   Marshal.to_channel oc state_hdr [];
   Marshal.to_channel oc node_states [];
+  Log.log#log_notice (lazy "Done.");
 
-  Log.log#log_notice (lazy "Saving node state..");
-
-  close_out oc
 )
 
 
@@ -124,47 +123,40 @@ let read_node_state ?(gpsnodes=false) ic  =
       ) node_states)
   )
   else (
-    (* No state to restore in the node objects themselves. 
-    Script_utils.make_nodes ~with_positions:false ();*)
+    (* No state to restore in the node objects themselves. *)
+    Script_utils.make_nodes ~with_positions:false ();
 
     (* set up initial node position in internal structures of World.object *)
     Nodes.iteri (fun nid _ -> 
-      (World.w())#movenode ~nid ~newpos:node_states.(nid));
+      (World.w())#init_pos ~nid ~pos:node_states.(nid));
 
   );
   assert ((World.w())#neighbors_consistent);
 )
 
-let save_grep_agents ?(stack=0) oc = 
-  let agents = 
-    List.sort ~cmp:(fun a b -> compare a#myid b#myid)
-    (Misc.listofhash (Grep_agent.agents ~stack ()) )
-  in
-  let states = 
-    List.map agents
-    ~f:(fun agent -> agent#get_state ())
-  in Marshal.to_channel oc states [];
-  Log.log#log_notice (lazy "Saving grep_agents state..")
+let save_str_agents ?(stack=0) oc = 
+  Log.log#log_notice (lazy "Saving state of str agents..");
+  for i = 0 to (Param.get Params.nodes) - 1 do
+    let agent = Hashtbl.find Str_agent.agents_array_.(stack) i in
+    let (state : Str_agent.persist_t) = (agent#dump_state()) in
+    Marshal.to_channel oc state []
+  done;
 
+  Log.log#log_notice (lazy "Done.")
 
-let read_grep_agents ?(stack=0) ic = 
-  let state_list = (Marshal.from_channel ic : Grep_agent.grep_state_t list) in
-  Log.log#log_notice (lazy
-      (sprintf "Restoring grep_agents..."));
-  if List.length state_list  <> (Param.get Params.nodes) then (
-    Log.log#log_error (lazy
-      (sprintf "Read in list of %d grep_agents, but there are %d nodes!!!"
-	(List.length state_list)
-	(Param.get Params.nodes)));
-    exit (-1);
-  );
+let read_str_agents ?(stack=0) ic = 
+
+  Log.log#log_notice (lazy (sprintf "Restoring str agents..."));
+
   
-  Nodes.iter (fun n -> ignore (new Grep_agent.grep_agent ~stack n));
-  List.iteri ~f:(fun state i -> (Grep_agent.agent ~stack i)#set_state state) state_list;
-
   Nodes.iter (fun n -> n#remove_rt_agent ~stack ());
+  for i = 0 to (Param.get Params.nodes) - 1 do
+    let state = (Marshal.from_channel ic : Str_agent.persist_t) in
+    let node = Nodes.node i in
+    ignore (new Str_agent.str_agent ~stack ~state state.Str_agent.metric node)
+  done;
   Nodes.iteri (fun i n -> 
-    n#install_rt_agent ~stack ((Grep_agent.agent ~stack i) :> Rt_agent.t));
+    n#install_rt_agent ~stack ((Hashtbl.find Str_agent.agents_array_.(stack) i) :> Rt_agent.t))
 
 
 
