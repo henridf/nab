@@ -16,6 +16,7 @@ sig
   val addplace_ : t -> int -> unit
   val get_ : t -> int -> int           (* get an entry in the itinerary, specified by relative age *)
   val hops_to_place_ : t -> int -> int (* throws Failure if place not in itin *)
+  val sub_ : t -> int -> t             (* sub itin up to place specified by int *)
   val unroll_ : t -> t                 
   val shorten_ : aux:t -> main:t -> t  
   val equal_ : t -> t -> bool          (* semantic equality *)
@@ -135,7 +136,16 @@ struct
 	| Some integer -> splice__ aux main integer
   )
 
-  let unroll_ itin = (
+  let sub_ itin target = (
+    let index = hops_to_place_ itin target + 1 in
+      {cbuf = CircBuf.sub_ itin.cbuf index;
+       graphsize = itin.graphsize;
+       arr = itin.arr;
+       counter = itin.counter}
+  )
+      
+
+  let unroll_ itin  = (
     
     (* last_visit_of_place__.(n) = how long ago we last visited place n in the graph  (max_int if never visited)  *)
     if (Array.length !last_visit_of_place__ <> itin.graphsize) then 
@@ -234,9 +244,32 @@ struct
     ) in
 
     (* semantic equality *)
-    assert (equal_ (make_itin 4 [| 1; 2; 3; 4|]) (make_itin 6 [| 1; 2; 3; 4|]));
-    assert (not (equal_ (make_itin 4 [| 1; 2; 3; 4|]) (make_itin 4 [| 1; 2; 3|])));
+    assert (equal_ 
+	      (make_itin 4 [| 1; 2; 3; 4|]) 
+	      (make_itin 6 [| 1; 2; 3; 4|])
+	   );
+    assert (not 
+	      (equal_ 
+		 (make_itin 4 [| 1; 2; 3; 4|]) 
+		 (make_itin 4 [| 1; 2; 3|])
+	      )
+	   );
 
+    (* sub itineraries *)
+    assert (equal_ 
+	      (sub_
+		 (make_itin 4 [| 4; 3; 2; 1|])
+		 3)
+	      (make_itin 2 [| 4; 3; 2; 1|])
+	   );
+    assert (equal_ 
+	      (sub_
+		 (make_itin 4 [| 4; 3; 2; 1|])
+		 1)
+	      (make_itin 4 [| 4; 3; 2; 1|])
+	   );	      
+    
+    
     let itin = make_ ~itinsize:4 ~graphsize:!graphsize in
       assert (maxlength_ itin = 4);
       for i = 0 to 3 do
