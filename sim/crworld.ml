@@ -30,12 +30,12 @@ object(s)
   method private pos_in_grid_ pos = coord_f2i (coord_floor pos)
 
   method random_pos  = (
-    let pos = [|Random.float gridsize_; Random.float gridsize_|] in
+    let pos = (Random.float gridsize_, Random.float gridsize_) in
     pos
   )
 
   method private reflect pos = (
-    let newx = ref (x pos) and newy = ref (y pos) in 
+    let newx = ref (xx pos) and newy = ref (yy pos) in 
     if !newx >  gridsize_ then 
       newx := (2.0 *. gridsize_) -. !newx
     else if !newx < 0.0 then
@@ -45,7 +45,7 @@ object(s)
     else if !newy < 0.0 then
       newy := (-1.0) *. !newy;
     assert (!newx >= 0.0 && !newx <  gridsize_ && !newy >= 0.0 && !newy <  gridsize_);
-    [|!newx; !newy|];
+    (!newx, !newy)
   )
 
   method boundarize pos = s#reflect pos
@@ -55,12 +55,44 @@ object(s)
   method dist_nodeids id1 id2 = s#dist_coords (Nodes.node(id1))#pos (Nodes.node(id2))#pos
   method neighbors n1 n2 = (s#dist_coords n1#pos n2#pos) <= 1.0
     
-  method private compute_neighbors node = (
-    let neighbors = ref NodeSet.empty in
+  method private slow_compute_neighbors_ node = (
+    let neighbors = ref [] in
     Nodes.iter 
       (fun a_node -> if s#neighbors node a_node  then 
-	neighbors := NodeSet.add a_node#id !neighbors);
-    !neighbors
+	neighbors := (a_node#id)::!neighbors);
+    !neighbors;
+  )
+
+  method private compute_neighbors_ node = (
+    Misc.matrix_iter (fun x -> let unique = list_unique_elements x in
+    assert (Misc.list_same x unique)) grid_of_nodes_;
+    let gridpos = s#pos_in_grid_ node#pos in
+    let grid_at_pos p = 
+      if (xx p) >= 0 && (yy p) >= 0 && 
+	(xx p) < (f2i gridsize_) && (yy p) < (f2i gridsize_)
+      then grid_of_nodes_.(xx p).(yy p) else [] 
+    in
+    let north = 0,1
+    and south = 0,-1 
+    and west = -1,0 
+    and east = 1,0 in
+    let northeast = north +++ east 
+    and northwest = north +++ west
+    and southeast = south +++ east
+    and southwest = south +++ west in
+    
+    let candidates = 
+      grid_at_pos gridpos @
+      grid_at_pos (gridpos +++ north) @
+      grid_at_pos (gridpos +++ east) @
+      grid_at_pos (gridpos +++ west) @
+      grid_at_pos (gridpos +++ south) @
+      grid_at_pos (gridpos +++ northeast) @
+      grid_at_pos (gridpos +++ southeast) @
+      grid_at_pos (gridpos +++ northwest) @
+      grid_at_pos (gridpos +++ southwest)
+    in
+    List.filter (fun a_node -> s#neighbors node (Nodes.node(a_node))) candidates
   )
 
   method neighbors_consistent = (
@@ -83,7 +115,9 @@ object(s)
     let correct_neighbors() = (
     Nodes.iter
       (fun n -> consistent := !consistent && 
-	(Common.NodeSet.equal n#neighbors (s#compute_neighbors n)));
+	(Misc.list_same 
+	  (Common.NodeSet.elements n#neighbors)
+	    (s#compute_neighbors_ n)));
       !consistent
     ) || raise (Failure "Neighbors not correct")
     in
@@ -93,34 +127,37 @@ object(s)
   )
     
   method update_pos ~node ~oldpos_opt = (
-    (* 
-       For all neighbors, do a lose_neighbor on the neighbor and on this node.
-       Then, compute new neighbors, and add them to this node and to the neighbors.
-    *) 
+    (* update local data structures (grid_of_nodes) with new pos, 
+       then update the node and neighbor node objects *)
     
     let index = node#id in
     let newpos = node#pos in
 
-    let (newx, newy) = ((s#pos_in_grid_ newpos).(0), (s#pos_in_grid_ newpos).(1)) in
+    let (newx, newy) = s#pos_in_grid_ newpos in
 
     let _ = 
-    match oldpos_opt with
 
-      | None ->  grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
-	  (* node is new, had no previous position *)
-
-      | Some oldpos -> (
-	  let (oldx, oldy) = ((s#pos_in_grid_ oldpos).(0), (s#pos_in_grid_ oldpos).(1)) in
-
-	  if (oldx, oldy) <> (newx, newy) then (
-	    (* only update grid_of_nodes if node moved to another slot *)
-
-	    grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
-	    assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
-	    grid_of_nodes_.(oldx).(oldy) <- list_without
-	      grid_of_nodes_.(oldx).(oldy) index;      
-	  )
-	) 
+	match oldpos_opt with
+	    
+	  | None ->  (
+	      assert (not (List.mem index grid_of_nodes_.(newx).(newy)));
+	      grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+	      (* node is new, had no previous position *)
+	    )
+	  | Some oldpos -> (
+	      let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
+	      
+	      if (oldx, oldy) <> (newx, newy) then (
+		(* only update grid_of_nodes if node moved to another slot *)
+		
+		grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+		assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
+		grid_of_nodes_.(oldx).(oldy) <- list_without
+		  grid_of_nodes_.(oldx).(oldy) index;      
+	      )
+	    )
+	      (* note for checkin comment: remove catch because it was
+		 assuming wrongly that there was a single possible error *)
     in
 
     s#update_node_neighbors_ node;
@@ -129,8 +166,15 @@ object(s)
 
   method private update_node_neighbors_ node = (
 
+    (* 
+       For all neighbors, do a lose_neighbor on the neighbor and on this node.
+       Then, compute new neighbors, and add them to this node and to the neighbors.
+    *)
+
     let old_neighbors = node#neighbors in
-    let new_neighbors = s#compute_neighbors node in
+    let new_neighbors = Common.nodeset_of_list (s#compute_neighbors_ node) in
+
+
     (* figure out which nodes have entered or exited neighborhood *)
     let changed_neighbors = 
       (NodeSet.union 
@@ -154,34 +198,16 @@ object(s)
       ) changed_neighbors
   )
 
-(*
-  method update_node_neighbors node = (
-    let n = Array.length data.db 
-    and ntargets = Array.length data.db.(0) in
-    
-    (* we do not exploit the fact that the 'meeting' is symetric (if A meets B, B meets A)*)
-    
-    let _update_db node neighbor = 
-      data.db.(node).(neighbor) <- meeting (get_time())  data.pos.(neighbor) in
-    
-    for i = 0 to n - 1 do
-      for j = 0 to ntargets - 1 do
-	if (s#zero_hop_neighbors data.pos.(i) data.pos.(j)) then
-	  _update_db i j;
-      done;
-    done;
-  )
-*)
 
-  method find_closest ~src ~f = (
-    let (closest_id, closest_dist) = (ref 0, ref max_float) in
+  method find_closest ~pos ~f = (
+    let (closest_id, closest_dist) = (ref None, ref max_float) in
     Nodes.iter 
       (fun n -> 
 	match f n with
 	  | true ->
-	      if (s#dist_coords src#pos n#pos) < !closest_dist then (
-		closest_id := n#id;
-		closest_dist := (s#dist_coords src#pos n#pos)
+	      if (s#dist_coords pos n#pos) < !closest_dist then (
+		closest_id := Some n#id;
+		closest_dist := (s#dist_coords pos n#pos)
 	      )
 	  | false -> ()
       );
@@ -199,12 +225,13 @@ object(s)
 
   method scale_unit f = f /. gridsize_
 
-  method project_2d coord =  Array.map (fun x -> s#scale_unit x) coord 
+  method project_2d (x, y) =  (s#scale_unit x, s#scale_unit y)
 
-  method get_nodes_at pos = 
-    let scaleup = pos ***. gridsize_ in
-    let (x,y) = ((s#pos_in_grid_ scaleup).(0), (s#pos_in_grid_ scaleup).(1)) in
-    grid_of_nodes_.(x).(y)
+  method get_node_at ~unitpos = 
+    let scaleup = unitpos ***. gridsize_ in
+    let (x,y) = (s#pos_in_grid_ scaleup) in
+    o2v (s#find_closest ~pos:scaleup ~f:(fun _ -> true))
+
 
   method sprint_info () = Printf.sprintf "\tGridsize:\t\t\t %f\n" gridsize_
 
