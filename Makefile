@@ -143,6 +143,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
 		$(PROTO_MISC_DIR)/simple_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l3pkt$(CMO) \
+		$(SIM_MAC_DIR)/macaw_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l2pkt$(CMO) \
 		$(SIM_LIB_DIR)/log$(CMO) \
 		$(SIM_BASE_DIR)/world$(CMO) \
@@ -166,7 +167,6 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/mac_contention$(CMO) \
 		$(SIM_MAC_DIR)/mac_cheat$(CMO) \
 		$(SIM_BASE_DIR)/gpsnode$(CMO) \
-		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_defaults$(CMO) \
@@ -176,6 +176,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
+		$(PROTO_MISC_DIR)/null_agent$(CMO) \
 		$(SIM_MOB_DIR)/mob_base$(CMO) \
 		$(SIM_MOB_DIR)/mobs$(CMO) \
 		$(SIM_BASE_DIR)/mob_ctl$(CMO) \
@@ -225,17 +226,13 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-alltargets: nab nabgrep grepviz nab-top nabviz nabviz-top
-allopttargets: nab nabgrep grepviz nabviz 
+alltargets: nab grepviz nab-top nabviz nabviz-top
+allopttargets: nab grepviz nabviz 
 
 nab: bin/nab
 bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
 
-
-nabgrep: bin/nabgrep
-bin/nabgrep: $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
 
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
