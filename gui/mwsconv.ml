@@ -2,6 +2,7 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 open Misc
+open Route
 
 let x_pix_size = ref (Param.get Params.x_pix_size)
 let y_pix_size = ref (Param.get Params.y_pix_size)
@@ -32,22 +33,44 @@ let closest_node_at pix_pos =
   let pos = pos_pix_to_mtr pix_pos in
     (o2v ((Gworld.world())#find_closest ~pos ~f:(fun _ -> true)))
 
-let mtr_2_pix_route r = 
+let route_mtr_to_pix r = 
+  List.map 
+    (fun h -> {h with hop=(pos_mtr_to_pix h.hop)})
+    r
+
+let route_nodeid_to_pix r = 
   List.map 
     (fun h -> 
-      {h with
-	Route.hop=(pos_mtr_to_pix h.Route.hop);
-	Route.anchor=(pos_mtr_to_pix h.Route.anchor)
-	}
+      let nodepos = (Gworld.world())#nodepos h.hop in
+      {h with hop=(pos_mtr_to_pix nodepos)}
     ) r
 
-let nodeid_2_pix_route r = 
+let ease_route_mtr_to_pix r = 
   List.map 
     (fun h -> 
-      let nodepos = (Gworld.world())#nodepos h.Route.hop in
-      let anchorpos = (Gworld.world())#nodepos h.Route.anchor in
-      {h with
-	Route.hop=(pos_mtr_to_pix nodepos);
-	Route.anchor=(pos_mtr_to_pix anchorpos)
-	}
+      let info = 
+	match h.info with 
+	  | None -> None
+	  | Some i -> Some {i with  anchor = (pos_mtr_to_pix i.anchor)}
+      in
+      {h with hop=(pos_mtr_to_pix h.hop); 
+      info = info}
+    )
+    r
+
+let ease_route_nodeid_to_pix r = 
+  List.map 
+    (fun h -> 
+      let nodepos = (Gworld.world())#nodepos h.hop in
+      let info = 
+	match h.info with 
+	  | None -> None
+	  | Some i -> 
+	      let anchorpos = (Gworld.world())#nodepos i.anchor in
+	      Some {i with  anchor = (pos_mtr_to_pix anchorpos)}
+      in
+
+      {h with hop=(pos_mtr_to_pix nodepos);
+	info = info}
+
     ) r
