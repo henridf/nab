@@ -76,7 +76,7 @@ let magic_bler_route_mhook routeref l2pkt (node:Simplenode.simplenode) = (
 class magic_bler_agent owner  = 
 object(s)
 
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   val owner:Simplenode.simplenode = owner
 

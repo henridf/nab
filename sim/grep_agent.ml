@@ -98,7 +98,7 @@ let _ERS_MULT_FACT = 2
 class grep_agent owner : grep_agent_t = 
 object(s)
 
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   val owner:Simplenode.simplenode = owner
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
@@ -106,7 +106,7 @@ object(s)
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/GREP_Agent ");
+    s#set_objdescr ~owner "/GREP_Agent";
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()
@@ -136,18 +136,18 @@ object(s)
   method private send_waiting_packets ~dst = 
     while s#packets_waiting ~dst do
       let pkt = (Queue.pop pktqs.(dst)) in
-	try 
-	  s#log_info 
-	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+      try 
+	s#log_info 
+	  (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+	    (L3pkt.l3src ~l3pkt:pkt) dst));
+	s#send_out ~l3pkt:pkt
+      with 
+	| Send_Out_Failure -> 
+	    s#log_warning 
+	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
 	      (L3pkt.l3src ~l3pkt:pkt) dst));
-	  s#send_out ~l3pkt:pkt
-	with 
-	  | Send_Out_Failure -> 
-	      s#log_warning 
-	      (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
-		(L3pkt.l3src ~l3pkt:pkt) dst));
     done
-
+    
   (* DATA packets are buffered when they fail on send, 
      or if there are already buffered packets for that destination *)
   method private buffer_packet ~(l3pkt:L3pkt.l3packet_t) = (

@@ -97,7 +97,7 @@ let _ERS_MULT_FACT = 2
 class aodv_agent owner : aodv_agent_t = 
 object(s)
 
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   val owner:#Simplenode.simplenode = owner
   val rt = Rtab.create_aodv ~size:(Param.get Params.nodes) 
@@ -105,7 +105,7 @@ object(s)
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/AODV_Agent ");
+    s#set_objdescr ~owner  "/AODV_Agent");
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()

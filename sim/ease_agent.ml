@@ -13,7 +13,6 @@ open Printf
 class type ease_agent_t = 
   object
     val mutable db : NodeDB.nodeDB
-    val mutable objdescr : string
     val owner : Gpsnode.gpsnode
     method add_neighbor : Common.nodeid_t -> unit
     method app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
@@ -43,7 +42,7 @@ let proportion_met_nodes()   =
 class ease_agent owner = 
 object(s)
 
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   val owner:Gpsnode.gpsnode = owner
 
@@ -54,12 +53,11 @@ object(s)
   method set_db thedb = db <- thedb
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/Ease_Agent");
+    s#set_objdescr  "/Ease_Agent";
     owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor
   )
-
 
    method add_neighbor nid = (
      if nid < (Param.get Params.ntargets) then (

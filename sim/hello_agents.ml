@@ -11,7 +11,7 @@ open Printf
   this agent is running *)
 class base_hello_agent owner = 
 object(s)
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   val owner:Gpsnode.gpsnode = owner
 
