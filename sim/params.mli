@@ -32,3 +32,7 @@ val ntargets : int Param.t
     is kept small. For example, in EASE routing, the size of the
     Last-Encounter table depends on this value *)
     
+
+val make_argspeclist : unit -> (string * Arg.spec * string) list
+  (** Returns a list of  triples [(key, spec, doc)] which can be used 
+    to call Arg.parse with. *)
