@@ -1,4 +1,49 @@
+- a bit odd to have both mac_recv_l{2,3}_pkt in agents, no?
+  in a way do we expect that an agent *has* to only implement one?
+  should we put default null methods in rt_agent_base???
+  
+- magic_bler_agent: merge into GREASE??
+- note: in rewriting , reorging lots of stuff, never sure whether should have
+  explicit class type, just a .mli with the class (but not the type), etc.
+  maybe emerging "rule" is to only have class types for things which have
+  multiple implementations (world, agent, mac, etc).
+
+- taurus:
+  what needs to change?
+  a) Crworld methods from world.mli:
+     world.boundarize
+     world.dist_coords
+     world.are_neighbors
+
+     Crworld 'internal' methods:
+     grid_neighbors_ 
+     get_nodes_in_ring  ** 
+
+
+  b) Crsearch.xsect_grid_and_circle **
+    
+
+  c) Mobility processes
+
+  ** these are only used when calling 'find_closest_node' - so should be able
+     to first do the rest, and test in grep.
+
+
+
+- time type and funs from common.ml should go in their own file 
+
 - think about file reorg.
+
+  mws/
+  mws/types/
+  mws/core/
+  mws/pkt/
+  mws/mob/
+  gui/    (? or does gui go under mws ?)
+  
+  lib/
+  lib/ext (stuff from other people)
+
   maybe only core things (like sched, world, and base classes for mac, agent,
   mob) go in mws. 
   then would we have one 'agents' dir for all agents, and one 'mac' dir for
@@ -11,6 +56,38 @@
   but then this poses a problem for common scripts (to run tests against both)
   or common code (like a base class for both aodv and grep).
   need to think. 
+
+  for sure, directory structure should be more "readable" for a newbie.
+  maybe it makes sense to have a "types" dir (like interfaces/ in tinyos)?
+  i like that idea.
+  the types to be transferred would include:
+  world.ml (kill .mli)
+  rt_agent.ml (kill .mli)
+
+  mob.mli (need some work to split things out)
+  sched.mli (need to split out sched interface from implementation, in same 
+  way as rt_agent vs rt_agent_base ???)
+  type nodeid_t from common.ml
+
+- make all target:
+  have a target that builds all scripts, so that we make sure not to break a
+  the build for "old" scripts. 
+  started doing this. need to figure out a clean way to build for all scripts
+  in a list, rather than have to make an explicit target in teh makefile for
+  each one.
+  hand-tested diffusion_example.ml; doesn't work - need to revive
+  make_gpsnodes in script_utils.ml, should probably find this in cvs.
+	
+- persistency: 
+  not really figured out if restoring nodes should make us delete node objects,
+  and then recreate them (along with any mob, mac, agent, .. objects; this would
+  require a way to specify what such objects must be created for each node)
+  or simply as currently.
+  Decided to keep things as are for now. this is not a definite solution, but
+  it makes more sense to try to come up with a full solution when i'll be
+  faced with the need for it (and will thus better understand what the needs
+  are).
+
 
 - multiple traffic sources to multiple destinations (mentioned in
  simplenode.mli, but with XXX)
@@ -28,24 +105,13 @@
 - add copyright. not to heap, opt, and probably some others
 /bin/sed-4.07  -i -e 's/(\*                                  \*)//g' simplenode.mli 
 /bin/sed-4.07 -i  -e 's/(\* mws  multihop wireless simulator \*)//g' simplenode.mli 
-- (idea) in mods.ml, add stg like Module List = ListLabels, etc, for other
-  labelled modules. Then need to modify code, for all list iterations we would
-  then be able to put list before function for example.
+
 - crworld.is_connected: 
   should be more efficient to originate one flood from one point, and see if
   everyone gets it. 
--  mob.ml is tied in an ugly manner to pixels, epflcoords, etc, which obliges
-    things like:
-    (a) have epflcoords and readcoords in mws_object_files in makefile
-    (b) replicate pix/mtr conversion functions in mob.ml
-
-    need to break this somehow.
-    this will also allow putting the params.x/y_pix_size into mwsconv.ml,
-    where they belong
-
-    actually it's not clear that (a) is really bad.
-    for (b), the root of the problem seems to be that epflcoords is
-    represented in pixels. one approach would be to convert it to meters.
+-  should clean up read_coords/epflcoords. 
+   probably wait till a new dataset comes in (from michal?) and at that point,
+   figure out the proper interfaces, abstractions, etc.
 
 - mhooks : when you replace an array of agents with new ones, the old ones
   don't go away because they are still hooked in to their owners...
