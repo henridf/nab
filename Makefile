@@ -117,6 +117,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/mac$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MISC_DIR)/heap$(CMO) \
+		$(MWS_DIR)/rt_agent$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
 		$(MWS_DIR)/gsched$(CMO) \
 		$(MWS_DIR)/gworld$(CMO) \
@@ -135,6 +136,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/gpsnode$(CMO) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
 		$(MWS_DIR)/aodv_grep_common$(CMO) \
+		$(MWS_DIR)/rt_agent_base$(CMO) \
 		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
 		$(MWS_DIR)/diff_agent$(CMO) \
@@ -200,6 +202,10 @@ bin/mwsgrep: $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO)
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
+
+mwsvor: bin/mwsvor
+bin/mwsvor:  $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO)
+	$(MLCOMP) $(MLFLAGS)  $(INCLUDE) $(GTK_STUFF) $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
 bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
