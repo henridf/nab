@@ -40,6 +40,8 @@ object
 	~oldpos should only be None if the node is new.
     *)
 
+  method neighbors_consistent : bool
+
   method find_closest : src:Node.node_t -> f:(Node.node_t -> bool) -> nodeid_t
     (* returns the closest node to src which satisfies the boolean f *)
 
@@ -49,6 +51,13 @@ object
   method scale_unit : float -> float 
     (* return coordinate scaled to [0;1] interval. 
        can be used for example for drawing search disks *)
+
+  method boundarize : Coord.coordf_t -> Coord.coordf_t
+    (* A topology-specific function which should put a point back within the
+       boundaries of the world, if it has stepped outside, and should return
+       the point intact if it has not.
+       For example this might be wrapping in a torus, or bouncing on
+       reflective borders, etc *)
 
   method get_nodes_at : Coord.coordf_t -> int list 
     (* returns nodes at given position which is projected to unit square *)

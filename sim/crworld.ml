@@ -7,12 +7,12 @@
 open Coord
 open Misc
 open Common
-
+open Printf
 
 (* This class duplicates code from  contTaurusTop.ml, keep in mind when 
    changing things *)
 
-class crworld : World.world_t = 
+class crworld ~node_cnt : World.world_t = 
 object(s)
 
   val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 [])
@@ -21,22 +21,20 @@ object(s)
   val mutable center_ =  [|0.5; 0.5|]
 
   initializer (
-    let g = round (sqrt (i2f (Param.get Params.nodes))) in
+    let g = round (sqrt (i2f node_cnt)) in
     gridsize_ <- g;
     center_ <- [|g /. 2.0; g /. 2.0|];
     grid_of_nodes_ <- (Array.make_matrix (f2i g) (f2i g) []);
-
   )
 
   method private pos_in_grid_ pos = coord_f2i (coord_floor pos)
 
   method random_pos  = (
     let pos = [|Random.float gridsize_; Random.float gridsize_|] in
-    let (x, y) = ((s#pos_in_grid_ pos).(0), (s#pos_in_grid_ pos).(1)) in
     pos
   )
 
-  method private reflect_ pos = (
+  method private reflect pos = (
     let newx = ref (x pos) and newy = ref (y pos) in 
     if !newx >  gridsize_ then 
       newx := (2.0 *. gridsize_) -. !newx
@@ -50,12 +48,13 @@ object(s)
     [|!newx; !newy|];
   )
 
+  method boundarize pos = s#reflect pos
+
   method dist_coords a b = sqrt (Coord.dist_sq a b)
   method dist_nodes n1 n2 = s#dist_coords n1#pos n2#pos
   method dist_nodeids id1 id2 = s#dist_coords (Nodes.node(id1))#pos (Nodes.node(id2))#pos
   method neighbors n1 n2 = (s#dist_coords n1#pos n2#pos) <= 1.0
     
-
   method private compute_neighbors node = (
     let neighbors = ref NodeSet.empty in
     Nodes.iter 
@@ -64,7 +63,7 @@ object(s)
     !neighbors
   )
 
-  method private neighbors_consistent = (
+  method neighbors_consistent = (
     let consistent = ref true in
 
     (* Check that neighbors are commutative *)
@@ -96,25 +95,35 @@ object(s)
   method update_pos ~node ~oldpos_opt = (
     (* 
        For all neighbors, do a lose_neighbor on the neighbor and on this node.
-       Then, compute new neigbors, and add them to this node and to the neighbors.
+       Then, compute new neighbors, and add them to this node and to the neighbors.
     *) 
     
     let index = node#id in
     let newpos = node#pos in
 
     let (newx, newy) = ((s#pos_in_grid_ newpos).(0), (s#pos_in_grid_ newpos).(1)) in
-    grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
 
+    let _ = 
     match oldpos_opt with
-      | None -> ()
+
+      | None ->  grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+	  (* node is new, had no previous position *)
+
       | Some oldpos -> (
 	  let (oldx, oldy) = ((s#pos_in_grid_ oldpos).(0), (s#pos_in_grid_ oldpos).(1)) in
-	  assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
-	  grid_of_nodes_.(oldx).(oldy) <- list_without grid_of_nodes_.(oldx).(oldy) index;      
-	);
+
+	  if (oldx, oldy) <> (newx, newy) then (
+	    (* only update grid_of_nodes if node moved to another slot *)
+
+	    grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+	    assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
+	    grid_of_nodes_.(oldx).(oldy) <- list_without
+	      grid_of_nodes_.(oldx).(oldy) index;      
+	  )
+	) 
+    in
 
     s#update_node_neighbors_ node;
-    assert (s#neighbors_consistent);
   )
     
 
@@ -123,18 +132,24 @@ object(s)
     let old_neighbors = node#neighbors in
     let new_neighbors = s#compute_neighbors node in
     (* figure out which nodes have entered or exited neighborhood *)
-    let changed_neighbors = NodeSet.diff old_neighbors new_neighbors in
-
+    let changed_neighbors = 
+      (NodeSet.union 
+	(NodeSet.diff old_neighbors new_neighbors) 
+	(NodeSet.diff new_neighbors old_neighbors)) 
+    in
     NodeSet.iter 
       (fun i -> 
-	if node#is_neighbor (Nodes.node i) then (
-	  (* these ones left *)
+
+	if node#is_neighbor (Nodes.node i) then ( (* these ones left *)
 	  node#lose_neighbor (Nodes.node i);
 	  (Nodes.node i)#lose_neighbor node
-	) else (
-	  (* these ones entered *)
+
+	) else (	  (* these ones entered *)
+
 	  node#add_neighbor (Nodes.node i);
-	  (Nodes.node i)#add_neighbor node
+	  if i <> node#id then
+	    (* don't add twice for node itself *)
+	    (Nodes.node i)#add_neighbor node
 	)
       ) changed_neighbors
   )
