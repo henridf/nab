@@ -16,6 +16,10 @@ val draw_nodes_time :
   unit
 
 
+val draw_route : 
+  Coord.coordi_t Route.t
+  -> unit
+
 (* draw node at current time's position *)
 val draw_node :  
   Common.nodeid_t -> 
