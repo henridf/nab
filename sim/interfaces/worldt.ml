@@ -22,11 +22,8 @@
 
 (* $Id$ *)
 
-
-
-
-
-
+open Misc
+open Common
 
 (** 
   World: All computation requiring omniscience is done here. 
@@ -39,11 +36,6 @@
 
   @author Henri Dubois-Ferriere.
 *)
-
-open Misc
-
-open Common
-
 class type lazy_world_t = 
 object
     

@@ -30,7 +30,7 @@
 
 (** 
   Conversions/interface for data between simulator and gui. 
-  In particular, between mws coordinates (meters) and screen coordinates (pixels).
+  In particular, between simulation coordinates (meters) and screen coordinates (pixels).
   @author Henri Dubois-Ferriere.
 *)
 

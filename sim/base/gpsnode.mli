@@ -24,22 +24,27 @@
 
 
 
+(** Gpsnode: A node with all functionality of a [Simplenode], and which also
+  has knowledge of its position. This can be used by geographic routing
+  agents for example.
+
+  @author Henri Dubois-Ferriere. 
+*)
 
 
-
-
-
-  
 class gpsnode :  Common.nodeid_t ->
 	  
 object
   inherit Simplenode.simplenode
     
   method pos : Coord.coordf_t
+    (** Returns the position of this node. *)
+
+    (**/**)
   method coerce : Simplenode.simplenode
-
-
-
+    (* This was only to untangle a circular dependency between files, which
+       was happening when we were doing :> Simplenode.simplenode directly in
+       nodes.ml *)
 end
   
 	  
