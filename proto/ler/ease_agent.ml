@@ -41,7 +41,7 @@ object(s)
   method set_le_tab tab = le_tab <- tab
 
   initializer (
-    s#set_objdescr  "/Ease_Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Ease_Agent";
 
     (* Here we ask the global world object to inform us each time a node enters
        our neighborhood, by calling our method add_neighbor.
@@ -249,7 +249,7 @@ object(s)
 	  let cur_enc_age = (Ease_pkt.enc_age ease_hdr) in
 	  if (
 	    s#we_are_closest_to_anchor (Ease_pkt.anchor ease_hdr) || 
-	    grease || (* if false, short-circuit boolean evaluation means 
+	    grease && (* if false, short-circuit boolean evaluation means 
 			 that we don't do the test below, and hence don't
 			 consult our local encounter table. *)
 	    s#have_better_anchor dst cur_enc_age
