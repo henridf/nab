@@ -97,7 +97,6 @@ let _ERS_MULT_FACT = 2
 class diff_agent  ?(stack=0) theowner : diff_agent_t = 
 object(s)
 
-  inherit Log.inheritable_loggable
   inherit Rt_agent_base.base ~stack theowner 
 
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 

@@ -31,10 +31,15 @@
 
 class virtual base ?(stack=0) owner =
 object(s : #Rt_agent.t)
+  inherit Log.inheritable_loggable as log
+
   val myid = owner#id
   val owner:#Simplenode.simplenode = owner
 
   method myid = myid
+
+  method private set_objdescr ?owner string = 
+    log#set_objdescr ?owner ((Misc.slashify string)^(Misc.i2s stack))
 
   method private mac_bcast_pkt l3pkt = owner#mac_bcast_pkt ~stack l3pkt
 

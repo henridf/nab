@@ -40,14 +40,15 @@ open Printf
   this agent is running *)
 class flood_agent ?(stack=0) theowner = 
 object(s)
-  inherit Log.inheritable_loggable
+
   inherit Rt_agent_base.base ~stack theowner 
 
   val pkt_hash = Hashtbl.create 50;
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Flood_Agent";
-  )
+    s#set_objdescr 
+    ~owner:(theowner :> Log.inheritable_loggable) "/Flood_Agent/";
+  ) 
 
   val mutable seqno = 1
 

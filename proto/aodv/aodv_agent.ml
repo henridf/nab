@@ -115,7 +115,6 @@ let agents_array_ =
 class aodv_agent ?(stack=0) theowner : aodv_agent_t = 
 object(s)
 
-  inherit Log.inheritable_loggable
   inherit Rt_agent_base.base ~stack theowner 
 
   val rt = Rtab.create_aodv ~size:(Param.get Params.nodes) 

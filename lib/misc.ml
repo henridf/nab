@@ -213,21 +213,23 @@ let equal_or_print a b ~equal ~print =
 	
 
 (** Random *)
-  let wait_for_line() = (
-    Printf.printf "Press enter to continue...\n" ; 
-    flush stdout;
-    ignore (read_line())
-  )
-
+let wait_for_line() = (
+  Printf.printf "Press enter to continue...\n" ; 
+  flush stdout;
+  ignore (read_line())
+)
+  
 (** String Handling *)
+  
+let padto ?(ch=' ') s len = 
+  let l = len - (String.length s) in 
+  if l <= 0 then s else s ^ String.make l ch
+    
+let chopper = (Str.regexp "[ \t]+$")
+  
+let chop s = Str.global_replace chopper "" s
 
-  let padto ?(ch=' ') s len = 
-    let l = len - (String.length s) in 
-    if l <= 0 then s else s ^ String.make l ch
-
-  let chopper = (Str.regexp "[ \t]+$")
-
-  let chop s = Str.global_replace chopper "" s
+let slashify s = if (Mods.String.last s) = '/' then s else s^"/"
 
 
 (** I/O *)

@@ -58,10 +58,6 @@ let proportion_met_nodes ?(stack=0) () =
 class ease_agent ?(stack=0) ~grease theowner = 
 object(s)
   
-  (* We inherit logging methods from Log.inheritable_loggable.
-     Most classes in mws inherit from it. *)
-  inherit Log.inheritable_loggable
-
   (* We inherit from the base routing agent class. This is documented in
      rt_agent_base.ml and rt_agent.mli. *)
   inherit Rt_agent_base.base ~stack theowner 

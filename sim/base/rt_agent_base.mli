@@ -48,6 +48,8 @@ class virtual base : ?stack:int -> #Simplenode.simplenode ->
     The notion of multiple stacks is explained in {!Simplenode.simplenode}.*)
 object
 
+  inherit Log.inheritable_loggable
+
   val myid : Common.nodeid_t
   val owner:#Simplenode.simplenode
 

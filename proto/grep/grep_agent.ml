@@ -204,7 +204,6 @@ let agent ?(stack=0) i =
 class grep_agent ?(stack=0) theowner : grep_agent_t = 
 object(s)
 
-  inherit Log.inheritable_loggable
   inherit Rt_agent_base.base ~stack theowner 
 
   val mutable rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
