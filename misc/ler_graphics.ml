@@ -267,6 +267,7 @@ Graphics.rgb 0 0 0
 )
   
 
+(*
 let draw_route ~color ~route = (
 
   let len =  Route.length route in
@@ -322,6 +323,7 @@ let draw_route ~color ~route = (
   draw_route_ route;
   Graphics.set_color Graphics.black
 )
+*)
 
 
 
