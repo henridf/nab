@@ -3,18 +3,22 @@
 (*                                  *)
 
 (** 
-  MAC layer class type and helper functions.
+  MAC layer interface and helper functions.
+
   @author Henri Dubois-Ferriere.
 *)
 
 
-(** The interface that a MAC class should implement.
-  A MAC class should also inherit from {!Mac_base.base}.
+(**  The interface which a MAC layer must implement.
 
-  For a simple example of a MAC class, see {!Mac.mac_null}.
+  Note for those implementing a MAC layer: it is simplest to inherit
+  from {!Mac_base.base}, for the reasons described therein.
+  For a simple example of a MAC class, see {!Mac_null.nullmac}.
 *)
-class type mac_t  = 
+class type t  = 
 object
+
+  inherit Log.inheritable_loggable 
 
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
     (** This is called when a packet arrives at a node.
@@ -26,8 +30,6 @@ object
       
   method xmit : l2pkt:L2pkt.t -> unit
 
-  (**/**)
-  method objdescr : string
 end
     
 type mactype = Nullmac | Contmac

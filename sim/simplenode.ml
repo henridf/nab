@@ -30,12 +30,13 @@ object(s)
 
   val mutable pktin_mhooks = []
   val mutable pktout_mhooks = []
-  val mutable macs = Array.make  max_nstacks (None : Mac.mac_t option)
-  val mutable rt_agents = Array.make max_nstacks (None : Rt_agent_base.t option)
+  val mutable macs = Array.make  max_nstacks (None : Mac.t option)
+  val mutable rt_agents = Array.make max_nstacks (None : Rt_agent.t option)
 
   val id = id
 
   method mac ?(stack=0) () = o2v macs.(stack)
+
   method install_mac ?(stack=0) themac = 
     assert(macs.(stack) = None);
     macs.(stack) <- Some themac
@@ -48,7 +49,8 @@ object(s)
   )
 
 
-  method add_rt_agent ?(stack=0) (theagent : Rt_agent_base.t)  = 
+  method install_rt_agent ?(stack=0) (theagent : Rt_agent.t)  = 
+    assert(rt_agents.(stack) = None);
     rt_agents.(stack) <- Some theagent
 
 
@@ -103,15 +105,15 @@ object(s)
     (s#mac ~stack ())#xmit ~l2pkt
   )
 
-  method mac_send_pkt ?(stack=0) ~l3pkt ~dstid () = (
-    if not ((Gworld.world())#are_neighbors s#id dstid) then (
-	s#log_notice (lazy (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid));
+  method mac_send_pkt ?(stack=0) ~dst l3pkt  = (
+    if not ((Gworld.world())#are_neighbors s#id dst) then (
+	s#log_notice (lazy (Printf.sprintf "mac_send_pkt: %d not a neighbor." dst));
 	raise Mac_Send_Failure
       ) else
-	s#send_pkt_ ~stack ~l3pkt:l3pkt dstid
+	s#send_pkt_ ~stack ~l3pkt:l3pkt dst
   )
     
-  method cheat_send_pkt ?(stack=0) ~l3pkt dstid = s#send_pkt_ ~l3pkt:l3pkt dstid
+  method cheat_send_pkt ?(stack=0) ~dst l3pkt = s#send_pkt_ ~l3pkt:l3pkt dst
 
   method mac_bcast_pkt ?(stack=0) l3pkt = (
 
@@ -124,6 +126,7 @@ object(s)
     (fun mhook -> mhook l2pkt s )
       pktout_mhooks;
 
+(*    Printf.printf "\ngot a bcast on stack %d\n" stack;*)
     (s#mac ~stack ())#xmit ~l2pkt;
   )
 
@@ -145,7 +148,7 @@ object(s)
       
   method originate_app_pkt ~dst = 
     Array.iter 
-      (Opt.may (fun agent -> agent#app_recv_l4pkt `APP_PKT ~dst))
+      (Opt.may (fun agent -> agent#app_recv_l4pkt `APP_PKT dst))
       rt_agents 
 
   method dump_state = (Gworld.world())#nodepos id

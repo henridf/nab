@@ -12,13 +12,13 @@ open Printf
 
 class type ease_agent_t = 
   object
+    inherit Rt_agent.t
+    inherit Log.inheritable_loggable
+
     val mutable db : NodeDB.nodeDB
     val owner : Gpsnode.gpsnode
     method add_neighbor : Common.nodeid_t -> unit
-    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t -> unit
     method db : NodeDB.nodeDB
-    method mac_recv_l3pkt : L3pkt.t -> unit
-    method objdescr : string
     method set_db : NodeDB.nodeDB -> unit
     method private recv_ease_pkt_ : L3pkt.t -> unit
   end
@@ -39,13 +39,11 @@ let proportion_met_nodes()   =
 
 
 
-class ease_agent owner = 
+class ease_agent ?(stack=0) theowner = 
 object(s)
 
   inherit Log.inheritable_loggable
-
-  val owner:Gpsnode.gpsnode = owner
-
+  inherit Rt_agent_base.base ~stack theowner 
 
   val mutable db = new NodeDB.nodeDB (Param.get Params.ntargets)
 
@@ -54,7 +52,7 @@ object(s)
 
   initializer (
     s#set_objdescr  "/Ease_Agent";
-    (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor
+    (Gworld.world())#add_new_ngbr_hook theowner#id ~hook:s#add_neighbor
   )
 
    method add_neighbor nid = (
@@ -67,15 +65,17 @@ object(s)
   method mac_recv_l3pkt l3pkt = 
     s#recv_ease_pkt_ l3pkt 
 
+  method mac_recv_l2pkt _ = ()
+
   method private our_enc_age dst = 
       match db#last_encounter ~nid:dst with
 	| None -> max_float
 	| Some enc ->  Common.enc_age enc
 
-  method app_recv_l4pkt (l4pkt:L4pkt.t) ~dst = (
+  method app_recv_l4pkt (l4pkt:L4pkt.t) dst = (
     s#recv_ease_pkt_ 
     (L3pkt.make_ease_l3pkt 
-      ~srcid:owner#id 
+      ~srcid:myid 
       ~dstid:dst 
       ~anchor_pos:owner#pos
       ~enc_age:(s#our_enc_age dst)
@@ -87,7 +87,7 @@ object(s)
 
       match (anchor_pos = owner#pos) with
 	| true -> 
-	    owner#id; (* we are the anchor (probably we are the src) *)
+	    myid; (* we are the anchor (probably we are the src) *)
 	| false ->
 	    
 	    let d_here_to_anchor = (Gworld.world())#dist_coords owner#pos anchor_pos in
@@ -99,12 +99,12 @@ object(s)
 	    in
 	    match ((Gworld.world())#find_closest ~pos:owner#pos ~f)
 	    with 
-	      | None -> owner#id
+	      | None -> myid
 	      | Some n when (
 		  ((Gworld.world())#dist_coords (Nodes.gpsnode n)#pos anchor_pos) >
 		  d_here_to_anchor)
 		  ->
-		  owner#id
+		  myid
 	      | Some n -> n
   )
 
@@ -156,7 +156,7 @@ object(s)
 
 
   method private we_are_closest_to_anchor anchor_pos = 
-    (s#closest_toward_anchor anchor_pos) = owner#id;
+    (s#closest_toward_anchor anchor_pos) = myid;
 
 
   method private geo_fw_pkt_ pkt = (
@@ -166,12 +166,12 @@ object(s)
        the same position as the destination, in which case the find_closest call
        in closest_toward_anchor might return us *)
     if owner#pos = (Nodes.gpsnode (L3pkt.l3dst pkt))#pos  then 
-      owner#cheat_send_pkt ~l3pkt:pkt (Nodes.gpsnode dst)#id
+      s#cheat_send_pkt pkt (Nodes.gpsnode dst)#id
     else (
       (* find next closest node toward anchor *)
       let closest_id = s#closest_toward_anchor (L3pkt.l3anchor pkt) in
       
-      if closest_id = owner#id then (
+      if closest_id = myid then (
 	
 	s#log_debug (lazy (sprintf "We are closest to %d" closest_id));
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
@@ -184,7 +184,7 @@ object(s)
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
 	  (Coord.sprintf (Nodes.gpsnode dst)#pos)))
       );
-      owner#cheat_send_pkt ~l3pkt:pkt closest_id
+      s#cheat_send_pkt pkt closest_id
     )
   )
     
@@ -193,7 +193,7 @@ object(s)
 
     s#log_info 
     (lazy (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
-      owner#id 
+      myid 
       (L3pkt.l3src pkt)
       (L3pkt.l3dst pkt)
       (L3pkt.l3enc_age pkt)
@@ -202,7 +202,7 @@ object(s)
     
     L3pkt.set_search_dist ~l3hdr 0.0;
 
-    match  owner#id = (L3pkt.l3dst pkt) with
+    match  myid = (L3pkt.l3dst pkt) with
 	
       | true -> (* We are destination. *)
 	  s#log_debug (lazy (sprintf "packet has arrived"));

@@ -38,7 +38,9 @@ let packet_buffer_size = 50
 
 class type aodv_agent_t =
   object
-    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t -> unit
+    inherit Log.inheritable_loggable
+    inherit Rt_agent.t
+      
     method private buffer_packet : l3pkt:L3pkt.t -> unit
     method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
@@ -46,7 +48,6 @@ class type aodv_agent_t =
       dst:Common.nodeid_t -> 
       sn:int -> hc:int -> nh:int ->
       bool
-    method objdescr : string
     method private packet_fresh : l3pkt:L3pkt.t -> bool
     method private queue_size : unit -> int
     method private packets_waiting : dst:Common.nodeid_t -> bool
@@ -69,8 +70,6 @@ class type aodv_agent_t =
     method private process_rreq_pkt :
       l3pkt:L3pkt.t -> 
       fresh:bool -> unit
-    method mac_recv_l2pkt : L2pkt.t -> unit
-    method mac_recv_l3pkt : L3pkt.t -> unit
     method private recv_l3pkt_ : l3pkt:L3pkt.t ->
       sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
@@ -92,25 +91,26 @@ let agent i = !agents_array.(i)
 
 
 
-class aodv_agent theowner : aodv_agent_t = 
+class aodv_agent ?(stack=0) theowner : aodv_agent_t = 
 object(s)
 
   inherit Log.inheritable_loggable
+  inherit Rt_agent_base.base ~stack theowner 
 
-  val owner:#Simplenode.simplenode = theowner
   val rt = Rtab.create_aodv ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
-  val myid = theowner#id
 
   val rreq_uids = Array.create (Param.get Params.nodes) 0
     (* see #init_rreq for explanation on this *)
 
 
   initializer (
-    s#set_objdescr ~owner:theowner  "/AODV_Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
     s#incr_seqno()
   )
+
+  method myid = myid
 
   method private incr_seqno() = (
     seqno <- seqno + 1;
@@ -604,7 +604,7 @@ object(s)
 	    match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
 	      | true -> 
 		  Grep_hooks.sent_rreq() ;
-		  owner#mac_bcast_pkt l3pkt;
+		  s#mac_bcast_pkt l3pkt;
 	      | false ->
 		  s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
@@ -623,7 +623,7 @@ object(s)
 		| Some nh -> nh
 	    in 
 	      try begin
-		owner#mac_send_pkt ~l3pkt ~dstid:nexthop (); end
+		s#mac_send_pkt ~dstid:nexthop l3pkt; end
 	      with Simplenode.Mac_Send_Failure -> failed()
 	  end
 
@@ -663,7 +663,7 @@ object(s)
   *)
     
 
-  method private app_recv_l4pkt l4pkt ~dst = (
+  method private app_recv_l4pkt l4pkt dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
      dst));
     let l3hdr =  

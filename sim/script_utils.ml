@@ -55,19 +55,19 @@ let init_all() =   (
   init_lazy_world()
 )
 
-let install_macs_ mac_factory = 
-  Nodes.iter (fun n -> n#install_mac (mac_factory n))
+let install_macs_ ~stack mac_factory = 
+  Nodes.iter (fun n -> n#install_mac ~stack (mac_factory n))
 
-let install_null_macs () = 
-  install_macs_ (fun n -> new Mac_null.nullmac n)
+let install_null_macs ?(stack=0) () = 
+  install_macs_ ~stack (fun n -> new Mac_null.nullmac ~stack n)
 
-let install_contention_macs () = 
-  install_macs_ (fun n -> new Mac_contention.contentionmac n)
+let install_contention_macs ?(stack=0) () = 
+  install_macs_ ~stack (fun n -> new Mac_contention.contentionmac ~stack n)
 
-let install_macs () = 
+let install_macs ?(stack=0) () = 
   match Mac.mac() with
-    | Mac.Nullmac -> install_null_macs()
-    | Mac.Contmac -> install_contention_macs()
+    | Mac.Nullmac -> install_null_macs ~stack ()
+    | Mac.Contmac -> install_contention_macs ~stack ()
 
 
 let make_nodes () = (
@@ -78,15 +78,15 @@ let make_nodes () = (
 	(new Simplenode.simplenode i
 	)));
 
-  install_macs();
+  install_macs  ();
   (* set up initial node position in internal structures of world object *)
-  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
+  Nodes.iteri (fun nid _ -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
   assert ((Gworld.world())#neighbors_consistent);
 )
     
 let place_nodes_on_line () = 
   let x_incr = (Param.get Params.x_size) /.  float (Param.get Params.nodes) in
-  Nodes.iteri (fun nid -> 
+  Nodes.iteri (fun nid _ -> 
     let newpos = ((float nid) *. x_incr, 0.0) in
     (Gworld.world())#movenode ~nid ~newpos)
 
@@ -114,24 +114,32 @@ let make_grease_nodes () = (
 let make_grep_nodes () = (
   make_nodes();
 
-  (* create grep agents, who will hook to their owners *)
+  (* create grep agents, and 'insert' them into their owner nodes. *)
   Grep_agent.set_agents
-    (Nodes.map (fun n -> let agent = new Grep_agent.grep_agent n in
-    n#add_rt_agent (agent :> Rt_agent_base.t); agent));
+    (Nodes.map (fun n -> new Grep_agent.grep_agent n));
+
+  Nodes.iteri (fun nid n -> 
+    n#install_rt_agent (!Grep_agent.agents_array.(nid) :> Rt_agent.t));
 )
 
 let make_diff_agents () = (
-  (* create diff agents, who will hook to their owners *)
+  (* create grep agents, and 'insert' them into their owner nodes. *)
   Diff_agent.set_agents
     (Nodes.map (fun n -> new Diff_agent.diff_agent n));
+
+  Nodes.iteri (fun nid n -> 
+    n#install_rt_agent (!Grep_agent.agents_array.(nid) :> Rt_agent.t));
 )
 
 let make_aodv_nodes () = (
   make_nodes();
 
-  (* create aodv agents, who will hook to their owners *)
+  (* create aodv agents, and 'insert' them into their owner nodes. *)
   Aodv_agent.set_agents
     (Nodes.map (fun n -> new Aodv_agent.aodv_agent n));
+
+  Nodes.iteri (fun nid n -> 
+    n#install_rt_agent (!Diff_agent.agents_array.(nid) :> Rt_agent.t));
 )
 
 

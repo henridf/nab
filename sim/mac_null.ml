@@ -3,7 +3,7 @@
 (*                                  *)
 
 (** 
-  Null MAC Layer: A simple example of a class implementing the {!Mac.mac_t}
+  Null MAC Layer: A simple example of a class implementing the {!Mac.t}
   interface.
   
   "Null" meaning that there are no collisions, no losses, only transmission
@@ -17,17 +17,15 @@ open Printf
 
 let bps = 1e7
 
-class nullmac ?(stack=0) owner : Mac.mac_t = 
+class nullmac ?(stack=0) theowner : Mac.t = 
 object(s)
 
-  inherit Log.inheritable_loggable
-  inherit Mac_base.base ~stack ~bps owner as super
-
-  val ownerid = owner#id
-  val owner:#Simplenode.simplenode = owner
+  inherit Log.inheritable_loggable 
+  inherit Mac_base.base ~stack ~bps theowner as super
 
   initializer (
-    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/nullmac"
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/nullmac";
+    Mac.setbps bps;
   )
 
   method recv ?snr ~l2pkt () = (
@@ -40,7 +38,7 @@ object(s)
 	  (sprintf "Start RX, l2src %d, l2dst broadcast" (l2src ~pkt:l2pkt)));
 	  s#accept_ l2pkt;
 
-      | L2_DST d when (d = ownerid) ->  s#log_debug  (lazy
+      | L2_DST d when (d = myid) ->  s#log_debug  (lazy
 	  (sprintf "Start RX, l2src %d, l2dst %d" (l2src ~pkt:l2pkt) d));
 	  s#accept_ l2pkt;
 
@@ -69,7 +67,7 @@ object(s)
 
   method xmit ~l2pkt = (
     s#log_debug (lazy "TX packet ");
-    SimpleEther.emit ~stack ~nid:ownerid l2pkt
+    SimpleEther.emit ~stack ~nid:myid l2pkt
   )
 end
       

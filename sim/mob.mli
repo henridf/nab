@@ -13,32 +13,32 @@ class virtual mobility :
   #Simplenode.simplenode ->
   ?gran:float ->
   unit ->
-  object
+object
+  
+  inherit Log.inheritable_loggable 
+    
+  method set_speed_mps : float -> unit
+    (** Set the speed in meters/sec. *)
+    
+  method  start : unit
+    (** Stop movement. Idempotent. *)
 
-    method objdescr : string
-      
-    method set_speed_mps : float -> unit
-      (** Set the speed in meters/sec. *)
-      
-    method  start : unit
-      (** Stop movement. Idempotent. *)
+  method stop : unit
+    (** Start movement. Idempotent. *)
 
-    method stop : unit
-      (** Start movement. Idempotent. *)
-
-    method virtual getnewpos : gran:float -> Coord.coordf_t
-      (** This method is called in order to get the next position for the node
-	associated with this mobility object.
-	The frequency at which it is called depends on the speed of the node.
-	parameter {i gran} is the required {i granularity}, or {i distance} of the
-	movement, expressed in meters. This allows tuning the 'resolution' of
-	movement steps. This parameter can be ignored by processes such as a
-	discrete random walk.
-	Be careful: If high speed and low granularity, then load the scheduler
-	will be given "large" numbers of small movement events.
-      *)
-	
-  end
+  method virtual getnewpos : gran:float -> Coord.coordf_t
+    (** This method is called in order to get the next position for the node
+      associated with this mobility object.
+      The frequency at which it is called depends on the speed of the node.
+      parameter {i gran} is the required {i granularity}, or {i distance} of the
+      movement, expressed in meters. This allows tuning the 'resolution' of
+      movement steps. This parameter can be ignored by processes such as a
+      discrete random walk.
+      Be careful: If high speed and low granularity, then load the scheduler
+      will be given "large" numbers of small movement events.
+    *)
+    
+end
 
 (** Uniform waypoint mobility class: waypoints are chosen at random uniformly
   over surface. *)
@@ -46,29 +46,29 @@ class uniwaypoint :
   #Simplenode.simplenode ->
   ?gran:float ->
   unit ->
-  object
-    inherit mobility
-    method getnewpos : gran:float -> Coord.coordf_t
-  end
+object
+  inherit mobility
+  method getnewpos : gran:float -> Coord.coordf_t
+end
 
 (** Border waypoint mobility class: waypoints are chosen only on the borders. *)
 class borderwaypoint :
   #Simplenode.simplenode ->
   ?gran:float ->
   unit ->
-  object
-    inherit mobility
-    method getnewpos : gran:float -> Coord.coordf_t
-  end
+object
+  inherit mobility
+  method getnewpos : gran:float -> Coord.coordf_t
+end
 
 (** Waypoint over EPFL mobility class. *)
 class epfl_waypoint :
   #Simplenode.simplenode ->
   unit ->
-  object
-    inherit mobility
-    method getnewpos : gran:float -> Coord.coordf_t
-  end
+object
+  inherit mobility
+  method getnewpos : gran:float -> Coord.coordf_t
+end
   
   
 (** Billiard mobility model: 
@@ -82,10 +82,10 @@ class billiard :
   #Simplenode.simplenode ->
   ?gran:float ->
   unit ->
-  object
-    inherit mobility
-    method getnewpos : gran:float -> Coord.coordf_t
-  end
+object
+  inherit mobility
+  method getnewpos : gran:float -> Coord.coordf_t
+end
 
 
   
@@ -94,10 +94,10 @@ class billiard :
 class discreteRandomWalk :
   #Simplenode.simplenode ->
   unit ->
-  object
-    inherit mobility
-    method getnewpos : gran:float -> Coord.coordf_t
-  end
+object
+  inherit mobility
+  method getnewpos : gran:float -> Coord.coordf_t
+end
 
 
 

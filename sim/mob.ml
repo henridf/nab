@@ -117,7 +117,7 @@ object(s)
   val mutable target_ = (0.0, 0.0)
 
   initializer (
-    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/waypoint";
+    s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/waypoint";
     target_ <- (Gworld.world())#random_pos
   )
 
@@ -186,7 +186,7 @@ object(s)
   val mutable time_next_dir_change = Common.get_time()
 
   initializer (
-    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/billiard";
+    s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/billiard";
     dir_ <- s#new_direction
   )
 
@@ -290,7 +290,7 @@ object(s)
   val mutable current_graph_pos_ = 0
 
   initializer (
-    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable) "/epfl_waypoint";
+    s#set_objdescr ~owner:(owner :> Log.inheritable_loggable) "/epfl_waypoint";
     current_graph_pos_ <- closest_epfl_node ((Gworld.world())#nodepos owner#id);
     s#get_new_target;
   )

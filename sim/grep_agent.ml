@@ -44,18 +44,15 @@ let packet_buffer_size = 50
 
 class type grep_agent_t =
   object
-    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t -> unit
-    method private buffer_packet : l3pkt:L3pkt.t -> unit
-    method private hand_upper_layer : l3pkt:L3pkt.t -> unit
-    method private incr_seqno : unit -> unit
-    method private inv_packet_upwards :
-      nexthop:Common.nodeid_t -> l3pkt:L3pkt.t -> unit
+    inherit Log.inheritable_loggable
+    inherit Rt_agent.t
+      
     method get_rtab : Rtab.rtab_t
     method newadv : 
       dst:Common.nodeid_t -> 
       sn:int -> hc:int -> nh:int ->
       bool
-    method objdescr : string
+
     method start_hello :  unit -> unit
     method stop_hello : unit -> unit
 
@@ -74,8 +71,6 @@ class type grep_agent_t =
     method private process_rreq_pkt :
       l3pkt:L3pkt.t -> 
       fresh:bool -> unit
-    method mac_recv_l2pkt : L2pkt.t -> unit
-    method mac_recv_l3pkt : L3pkt.t -> unit
     method private recv_l3pkt_ : l3pkt:L3pkt.t ->
       sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
@@ -96,28 +91,28 @@ let agent i = !agents_array.(i)
 
 
 
-class grep_agent theowner : grep_agent_t = 
+class grep_agent ?(stack=0) theowner : grep_agent_t = 
 object(s)
 
   inherit Log.inheritable_loggable
+  inherit Rt_agent_base.base ~stack theowner 
 
-  val owner:Simplenode.simplenode = theowner
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
 
   val mutable hello_period_ = None
 
-  val myid = theowner#id
-
   val rreq_uids = Array.create (Param.get Params.nodes) 0
     (* see #init_rreq for explanation on this *)
 
   initializer (
-    s#set_objdescr ~owner:theowner "/GREP_Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_Agent";
 
     s#incr_seqno()
   )
+
+  method myid = myid
 
   method get_rtab = rt
 
@@ -232,7 +227,7 @@ object(s)
 
   method mac_recv_l3pkt _  = ()
 
-  method  mac_recv_l2pkt l2pkt = (
+  method mac_recv_l2pkt l2pkt = (
     
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
@@ -576,7 +571,7 @@ object(s)
 	  begin match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
 	    | true -> 
 		Grep_hooks.sent_rreq() ;
-		owner#mac_bcast_pkt l3pkt;
+		s#mac_bcast_pkt l3pkt;
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
@@ -595,7 +590,7 @@ object(s)
 	    in 
 	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt;
 	    try begin
-	      owner#mac_send_pkt ~l3pkt ~dstid:nexthop (); end
+	      s#mac_send_pkt  ~dstid:nexthop l3pkt; end
 	    with Simplenode.Mac_Send_Failure -> failed()
 	      
 	  end
@@ -636,7 +631,7 @@ object(s)
   *)
     
     
-  method private app_recv_l4pkt l4pkt ~dst = (
+  method private app_recv_l4pkt l4pkt dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
       dst));
     let l3hdr = 

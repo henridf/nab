@@ -26,13 +26,14 @@ class type diff_agent_t =
   object
     method private publish : unit
 
-    method app_recv_l4pkt : L4pkt.t -> dst:Common.nodeid_t ->  unit
+    method app_recv_l4pkt : L4pkt.t -> Common.nodeid_t ->  unit
       (* Publish must take a ~dst because of the rt_agent_base.t interface.
 	 But in fact, since we are
 	 data-centric, we don't do anything with it *)
 
+    method myid : Common.nodeid_t
     method seqno : unit -> int
-    method  is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
+    method is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
     method subscribe : ?delay:float -> ?ttl:int -> unit -> unit
     method private hand_upper_layer : l3pkt:L3pkt.t -> unit
     method private incr_seqno : unit -> unit
@@ -47,7 +48,8 @@ class type diff_agent_t =
     method private process_radv_pkt :
       l3pkt:L3pkt.t -> 
       l2sender:Common.nodeid_t -> unit
-    method  mac_recv_l2pkt : L2pkt.t -> unit
+    method mac_recv_l3pkt : L3pkt.t -> unit
+    method mac_recv_l2pkt : L2pkt.t -> unit
     method private send_out : l3pkt:L3pkt.t -> unit
 
     method closest_sinks : unit -> Common.nodeid_t list 
@@ -73,12 +75,12 @@ let _ERS_START_TTL = 2
 let _ERS_MULT_FACT = 2
 
 
-class diff_agent owner : diff_agent_t = 
+class diff_agent  ?(stack=0) theowner : diff_agent_t = 
 object(s)
 
   inherit Log.inheritable_loggable
+  inherit Rt_agent_base.base ~stack theowner 
 
-  val owner:Simplenode.simplenode = owner
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val mutable subscribed = false
@@ -86,10 +88,12 @@ object(s)
   val rnd = Random.State.make [|!rndseed|]
 
   initializer (
-    s#set_objdescr ~owner "/diffagent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/diffagent";
     s#incr_seqno();
     incr rndseed;
   )
+
+  method myid = myid
 
   method get_rtab = rt
 
@@ -100,10 +104,10 @@ object(s)
     let update = 
       Rtab.newadv 
 	~rt 
-	~dst:owner#id
+	~dst:myid
 	~sn:seqno
 	~hc:0
-	~nh:owner#id
+	~nh:myid
     in 
     assert(update);
   )
@@ -139,6 +143,7 @@ object(s)
       | _ -> raise (Misc.Impossible_Case "Grep_agent.packet_fresh()")
   )
     
+  method mac_recv_l3pkt _ = ()
   method mac_recv_l2pkt l2pkt = (
     
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
@@ -164,7 +169,7 @@ object(s)
 	| Some hc -> sinks := i::!sinks
     done;
     let sinks = 
-      List.filter (fun i -> i <> owner#id) !sinks
+      List.filter (fun i -> i <> myid) !sinks
     in if ((List.length sinks) > nsinks()) then
       s#log_error (lazy (sprintf "nsinks %d, sinks %s" (nsinks()) (Misc.sprintlist "%d" sinks)));
     
@@ -248,7 +253,7 @@ object(s)
       let dst = (L3pkt.l3dst ~l3pkt) in
       begin try
 	
-	if (dst = owner#id) then ( (* pkt for us *)
+	if (dst = myid) then ( (* pkt for us *)
 	  s#hand_upper_layer ~l3pkt;
 	  raise Break 
 	);
@@ -311,7 +316,7 @@ object(s)
       in
       let l3hdr = 
 	L3pkt.make_l3hdr
-	  ~srcid:owner#id
+	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
 	  ~ext:grep_l3hdr_ext
 	  ~ttl:ttl 
@@ -348,7 +353,7 @@ object(s)
     let newpkt = L3pkt.clone_l3pkt ~l3pkt in
     let l3pkt = 1 in
     let dst = L3pkt.l3dst ~l3pkt:newpkt in
-    assert (dst <> owner#id);
+    assert (dst <> myid);
     assert (L3pkt.l3ttl ~l3pkt:newpkt >= 0);
     assert (L3pkt.ssn ~l3pkt:newpkt >= 1);
 
@@ -365,7 +370,7 @@ object(s)
 	  L3pkt.decr_l3ttl ~l3pkt:newpkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt:newpkt) >= 0)  with
 	    | true -> 
-		owner#mac_bcast_pkt newpkt;
+		s#mac_bcast_pkt newpkt;
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
@@ -377,7 +382,7 @@ object(s)
 		| Some nh -> nh 
 	    in 
 	    try begin
-	      owner#mac_send_pkt ~l3pkt:newpkt ~dstid:nexthop () ; end
+	      s#mac_send_pkt ~dstid:nexthop newpkt; end
 	    with Simplenode.Mac_Send_Failure -> failed()
 	      
 	  end
@@ -400,7 +405,7 @@ object(s)
     s#log_notice (lazy "Sending interest");
 
     let l3hdr = L3pkt.make_l3hdr
-	~srcid:owner#id	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
+	~srcid:myid	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
 	~ext:(L3pkt.make_grep_l3hdr_ext
 	  ~flags:L3pkt.GREP_RADV ~ssn:seqno ~shc:0 ()) () in
 
@@ -429,7 +434,7 @@ object(s)
   method private send_data_to_sink sink = 
       s#log_info (lazy (sprintf "Originating data pkt to sink %d"
 	sink));
-      let l3hdr = L3pkt.make_l3hdr  ~srcid:owner#id ~dstid:sink  ~ttl:255
+      let l3hdr = L3pkt.make_l3hdr  ~srcid:myid ~dstid:sink  ~ttl:255
 	~ext:(L3pkt.make_grep_l3hdr_ext   ~flags:L3pkt.GREP_DATA
 	  ~ssn:seqno   ~shc:0  ())  ()
       in
@@ -437,7 +442,7 @@ object(s)
       s#send_out ~l3pkt;
 
 
-  method app_recv_l4pkt _ ~dst:_ = 
+  method app_recv_l4pkt _ _ = 
     s#publish
 
   method private publish  = (

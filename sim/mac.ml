@@ -4,9 +4,10 @@
 
 open Misc 
 
-class type mac_t  = 
+class type t  = 
 object
-  method objdescr : string
+
+  inherit Log.inheritable_loggable 
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method xmit : l2pkt:L2pkt.t -> unit
 end

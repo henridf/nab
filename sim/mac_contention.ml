@@ -27,14 +27,11 @@ let rndseed = ref 0
 let bps = 1e7
 
 
-class contentionmac ?(stack=0) owner : Mac.mac_t = 
+class contentionmac ?(stack=0) owner : Mac.t = 
 object(s)
 
   inherit Log.inheritable_loggable
   inherit Mac_base.base ~stack ~bps owner as super
-
-  val ownerid = owner#id
-  val owner:#Simplenode.simplenode = owner
 
   val mutable collision = false
   val mutable interfering_until = Common.get_time()
@@ -44,7 +41,8 @@ object(s)
   val rnd = Random.State.make [|!rndseed|] 
 
   initializer (
-    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/cmac";
+    s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/cmac";
+    Mac.setbps bps;
     incr rndseed
   )
 
@@ -72,7 +70,7 @@ object(s)
       begin
 	assert (interfering_until = Common.get_time());
 	let dst = l2dst ~pkt:l2pkt in
-	if (dst = L2_BCAST || dst = L2_DST ownerid) then 
+	if (dst = L2_BCAST || dst = L2_DST myid) then 
 	  super#send_up ~l2pkt
       end
   )
@@ -126,7 +124,7 @@ object(s)
 	  +. super#xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
 	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
-	SimpleEther.emit ~nid:ownerid l2pkt
+	SimpleEther.emit ~nid:myid l2pkt
       ) else (
 	let msg = 
 	  if s#sending then "sending" else  "receiving" 
