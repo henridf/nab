@@ -61,8 +61,8 @@ DEPENDS = \
 	$(PKT_DIR)/*.mli \
 	$(GUI_DIR)/*.ml \
 	$(GUI_DIR)/*.mli \
-	$(GUI_DIR)/data/*.ml \
-	$(GUI_DIR)/data/*.mli \
+	$(GUI_DATA_DIR)/*.ml \
+	$(GUI_DATA_DIR)/*.mli \
 	$(MWS_SCRIPT_DIR)/*.ml \
 	$(MWS_SCRIPT_DIR)/*.mli \
 	$(TEST_DIR)/*.mli \
@@ -162,8 +162,9 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 # setup-type functions, similar to those done in a script
 
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
-		$(GUI_DIR)/data/epfl$(CMO) \
-		$(GUI_DIR)/data/blank$(CMO) \
+		$(GUI_DATA_DIR)/epfl$(CMO) \
+		$(GUI_DATA_DIR)/blank$(CMO) \
+		$(GUI_DIR)/params_gui$(CMO) \
 		$(GUI_DIR)/mwsconv$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
@@ -239,6 +240,8 @@ DOC_FILES = \
 	$(MWS_DIR)/*.mli \
 	$(PKT_DIR)/*.ml \
 	$(PKT_DIR)/*.mli \
+	$(GUI_DATA_DIR)/*.ml \
+	$(GUI_DATA_DIR)/*.mli \
 	$(GUI_DIR)/*.ml \
 	$(GUI_DIR)/*.mli \
 	$(MISC_DIR)/*.ml \
@@ -248,8 +251,8 @@ GUI_OBJ_ONLY_CMOS = $(filter %.cmo, $(GUI_OBJ_FILES))
 GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
 DOC_DIR = doc
 
-htmldoc: $(MWS_OBJ_FILES)
-	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE_DOCS)  $(DOC_FILES)
+htmldoc: $(GUI_OBJ_FILES)
+	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
 	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE_DOCS)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
