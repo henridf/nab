@@ -1,5 +1,11 @@
 release 0.8
 -----------
+        - Persistency: Support for saving/restoring nearly all state of a
+	simulation (Parameters, mobility objects, routing agents, etc).
+	
+	- Removed GPSnodes, having a separate class for this (along with
+	separate functions in nodes.ml) was overkill. 
+	
 	- Use odoc_fhtml (by M. Guesdon) to generate javadoc-like html
 	documentation (ie, with frames).
 	
