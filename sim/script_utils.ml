@@ -38,6 +38,21 @@ let init_all() =   (
   init_world()
 )
 
+let install_macs_ mac_factory = 
+  Nodes.iter (fun n -> n#install_mac (mac_factory n))
+
+let install_null_macs () = 
+  install_macs_ (fun n -> new Mac_null.nullmac n)
+
+let install_contention_macs () = 
+  install_macs_ (fun n -> new Mac_contention.contentionmac n)
+
+let install_macs () = 
+  match Mac.mac() with
+    | Mac.Nullmac -> install_null_macs()
+    | Mac.Contmac -> install_contention_macs()
+
+
 let make_nodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
   Nodes.set_nodes 
@@ -46,6 +61,7 @@ let make_nodes () = (
 	(new Simplenode.simplenode i
 	)));
 
+  install_macs();
   (* set up initial node position in internal structures of world object *)
   Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
   assert ((Gworld.world())#neighbors_consistent);
@@ -109,14 +125,6 @@ let make_aodv_nodes () = (
 )
 
 
-let install_macs_ mac_factory = 
-  Nodes.iter (fun n -> n#install_mac (mac_factory n))
-
-let install_null_macs () = 
-  install_macs_ (fun n -> new Mac_null.nullmac n)
-
-let install_contention_macs () = 
-  install_macs_ (fun n -> new Mac_contention.contentionmac n)
 
 
 let proportion_met_nodes()  = 

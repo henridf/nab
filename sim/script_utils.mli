@@ -31,11 +31,14 @@ val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
     degree, given the number of nodes and radio range *)
     
 val make_nodes : unit -> unit
-  (** Create {!Simplenode.simplenode} each with a grep agent.
+  (** Create {!Simplenode.simplenode} each with a mac layer of the type
+    specified in {!Params.mac}.
+
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_grep_nodes : unit -> unit 
-  (** Create {!Simplenode.simplenode} each with a grep agent.
+  (** Create {!Simplenode.simplenode} each with a grep agent and a mac layer
+    of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_diff_agents : unit -> unit 
@@ -43,16 +46,22 @@ val make_diff_agents : unit -> unit
     Nodes should be created before calling this.*)
 
 val make_aodv_nodes : unit -> unit 
-  (** Create {!Simplenode.simplenode} each with a aodv agent.
+  (** Create {!Simplenode.simplenode} each with a aodv agent and a mac layer
+    of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_grease_nodes : unit -> unit 
-  (** Create gpsnodes each with a EASE agent.
+  (** Create gpsnodes each with a EASE agent and a mac layer
+    of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val place_nodes_on_line : unit -> unit
   (** Places all nodes on a horizontal line, evenly spaced so as to use 
     the whole width {!Params.x_size}*)
+
+val install_macs : unit -> unit
+  (** Installs a Mac layer of type {!Params.mac} on each node.
+    Nodes should be created before calling this.*)
 
 val install_null_macs : unit -> unit
   (** Installs a Nullmac Mac layer on each node.
