@@ -1,3 +1,71 @@
+(*  
+    14Jan04
+    LCA4 Group meeting. A number of interesting issues/ideas were raised by
+    Matt.
+
+    a) Suboptimal route reply
+
+    S has an old route to D. Packet is unicast all the way to I, where
+    there is a broken hop. I buffers S's data pkt, floods a RREQ.
+    RREQ is replied by D and arrives at I.  At this point we know that 
+    the path from I to D is "straight".
+    
+
+    S - x - x - x - I
+                   /
+                 /
+               /
+             /
+           /
+         J
+       D
+
+
+    Now let's assume that J had a direct route to S which was established at
+    some prior time. In 'vanilla' GREP, this route would not be used on the 
+    reverse path, because the data packet coming from S has been originated
+    more recently, therefore the J's good, direct route, will be overwritten
+    by a fresher (but longer) route via I.
+
+    How can we ensure that this route remains?
+    Two options:
+    - "Forked" Replies.
+    When J receives a RREP from D, it forwards it toward I (this is necessary
+    because I has S's buffered data packet still waiting), and also sends an
+    "extra" RREP towards S along the direct route. (call this a Forked RREP).
+    
+    - AODV-style seqno incrementing.
+    The underlying reason why J "loses" its route to S in the above scenario
+    is that S has incremented its sequence number before originating the 
+    DATA packet for D; the data packet therefore has a higher seqno than
+    whatever seqno J had for S.
+
+    In AODV however, a node only increments its seqno before originating a
+    routing packet (RREP or RREQ), not before originating a data
+    packet. Therefore the above problem would not occur: J keeps its direct
+    route to D, and a data packet travelling back from D to S takes this
+    direct route. Note however that packets from S to D continue to take the
+    detour through I, so this only solves "half" of the problem.
+
+    Wait - in this setup, what happens if J doesn't have a route to D?
+    If I's RREQ flood only allows routing entries for I to be written, then D
+    only has a route to I after it sends the route reply. Then the data packet
+    is forwarded from I to D. How does the reverse route from D to S then get
+    setup? Need to go through RFC again.
+
+
+    b) directional flooding
+
+
+    c) separate seqnos for 1-hop versus n-hop entries.
+
+
+    
+    
+
+
+*)
+
 (* send out only checks ttl on RADV/RREQ packets ???? *)
 
 (* we should have a 'valid neighbors' table. 
@@ -44,12 +112,19 @@ open Misc
 
 let packet_buffer_size = 50
 
+type grep_state_t = 
+  {
+    seqno : int;
+    hello_period : float option; 
+    rt : Rtab.t
+  }
+
 class type grep_agent_t =
   object
     inherit Log.inheritable_loggable
     inherit Rt_agent.t
       
-    method get_rtab : Rtab.rtab_t
+    method get_rtab : Rtab.t
     method private newadv : 
       dst:Common.nodeid_t -> 
       sn:int -> hc:int -> nh:int ->
@@ -57,6 +132,9 @@ class type grep_agent_t =
 
     method start_hello :  unit -> unit
     method stop_hello : unit -> unit
+
+    method set_state : grep_state_t -> unit
+    method get_state : unit -> grep_state_t
 
     method private packet_fresh : l3pkt:L3pkt.t -> bool
     method private queue_size : unit -> int
@@ -91,17 +169,15 @@ let agents_array = ref ([||]:grep_agent_t array)
 let set_agents arr = agents_array := arr
 let agent i = !agents_array.(i)
 
-
-
 class grep_agent ?(stack=0) theowner : grep_agent_t = 
 object(s)
 
   inherit Log.inheritable_loggable
   inherit Rt_agent_base.base ~stack theowner 
 
-  val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
+  val mutable rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
-  val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
+  val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create())
 
   val mutable hello_period_ = None
 
@@ -110,12 +186,21 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_Agent";
-
     s#incr_seqno()
   )
 
-  method myid = myid
+  method get_state () = 
+      {seqno=seqno;
+      hello_period = hello_period_;
+      rt = rt} 
 
+  method set_state state = 
+    seqno <- state.seqno;
+    hello_period_ <- state.hello_period;
+    rt <- state.rt
+      
+  method myid = myid
+    
   method get_rtab = rt
 
   method private incr_seqno() = (
@@ -190,12 +275,13 @@ object(s)
     )
 
   method private packet_fresh ~l3pkt = (
-    let pkt_ssn = L3pkt.ssn ~l3pkt in
+    let grep_hdr = L3pkt.grep_hdr l3pkt in
+    let pkt_ssn = Grep_pkt.ssn grep_hdr in
     match (Rtab.seqno ~rt ~dst:(L3pkt.l3src l3pkt)) with
       | None -> true 
       | Some s when (pkt_ssn > s) -> true
       | Some s when (pkt_ssn = s) -> 
-	  L3pkt.shc l3pkt 
+	  Grep_pkt.shc grep_hdr
 	  <
 	  o2v (Rtab.hopcount ~rt ~dst:(L3pkt.l3src l3pkt))
       | Some s when (pkt_ssn < s) -> false
@@ -206,24 +292,25 @@ object(s)
     (* update route to source if packet came over fresher route than what we
        have *)
     let pkt_fresh = (s#packet_fresh ~l3pkt)
-    and update =  
+    and grep_hdr = L3pkt.grep_hdr l3pkt in
+    let update =  
       s#newadv 
 	~dst:(L3pkt.l3src ~l3pkt)
-	~sn:(L3pkt.ssn ~l3pkt)
-	~hc:(L3pkt.shc ~l3pkt)
+	~sn:(Grep_pkt.ssn grep_hdr)
+	~hc:(Grep_pkt.shc grep_hdr)
 	~nh:sender
     in
     assert (update = pkt_fresh);
     
     (* hand off to per-type method private *)
-    begin match L3pkt.l3grepflags ~l3pkt with
-      | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
-      | L3pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
-      | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
-      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
-      | L3pkt.NOT_GREP | L3pkt.EASE 
+    begin match Grep_pkt.l3grepflags grep_hdr with
+      | Grep_pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
+      | Grep_pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
+      | Grep_pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~sender;
+      | Grep_pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
+      | Grep_pkt.NOT_GREP | Grep_pkt.EASE 
 	-> raise (Failure "Grep_agent.mac_recv_l2pkt");
-      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.mac_recv_l2pkt");
+      | Grep_pkt.GREP_RERR -> raise (Failure "Grep_agent.mac_recv_l2pkt");
     end
   )
 
@@ -263,9 +350,10 @@ object(s)
   method private process_radv_pkt ~l3pkt ~sender = ()
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
+    let grep_hdr = L3pkt.grep_hdr l3pkt in
     
-    let rdst = (L3pkt.rdst ~l3pkt) 
-    and dsn =  (L3pkt.dsn ~l3pkt) 
+    let rdst = (Grep_pkt.rdst grep_hdr) 
+    and dsn =  (Grep_pkt.dsn grep_hdr) 
     in
     s#log_info 
       (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
@@ -281,7 +369,7 @@ object(s)
 	      | Some s when (s = dsn) ->
 		  (o2v (Rtab.hopcount ~rt ~dst:rdst)
 		  <
-		  (L3pkt.dhc ~l3pkt) + L3pkt.shc ~l3pkt)
+		  (Grep_pkt.dhc grep_hdr) + Grep_pkt.shc grep_hdr)
 	      | Some s when (s < dsn) -> false
 	      | _ -> raise (Misc.Impossible_Case "Grep_agent.answer_rreq()") end
 	  in
@@ -301,9 +389,9 @@ object(s)
     s#log_info 
     (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
       dst obo));
-    let grep_l3hdr_ext = 
-      L3pkt.make_grep_l3hdr_ext 
-	~flags:L3pkt.GREP_RREP
+    let grep_hdr = 
+      Grep_pkt.make_grep_hdr
+	~flags:Grep_pkt.GREP_RREP
 	~ssn:seqno
 	~shc:0
 	~osrc:obo
@@ -315,7 +403,7 @@ object(s)
       L3pkt.make_l3hdr
 	~srcid:myid
 	~dstid:dst
-	~ext:grep_l3hdr_ext
+	~ext:(`GREP_HDR grep_hdr)
 	()
     in
     let l3pkt =
@@ -332,6 +420,8 @@ object(s)
 
   method private inv_packet_upwards ~nexthop ~l3pkt = (
     (* this expects to be called just prior to sending l3pkt*)
+    let grep_hdr = L3pkt.grep_hdr l3pkt in
+
     let dst = (L3pkt.l3dst ~l3pkt) in
     let next_rt = (agent nexthop)#get_rtab in
     let this_sn = o2v (Rtab.seqno ~rt ~dst)
@@ -339,9 +429,9 @@ object(s)
     and next_sn = o2v (Rtab.seqno ~rt:next_rt ~dst)
     and next_hc = o2v (Rtab.hopcount ~rt:next_rt ~dst)
     and ptype = 
-      begin match (L3pkt.l3grepflags ~l3pkt) with
-	| L3pkt.GREP_RREP  -> "rrep"
-	| L3pkt.GREP_DATA -> "data" 
+      begin match (Grep_pkt.l3grepflags grep_hdr) with
+	| Grep_pkt.GREP_RREP  -> "rrep"
+	| Grep_pkt.GREP_DATA -> "data" 
 	| _ -> ""
       end
     in
@@ -379,8 +469,9 @@ object(s)
 	  | Send_Out_Failure -> 
 	      begin
 		s#log_notice 
-		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-		    dst));
+		  (lazy 
+		    (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+		      dst));
 		s#buffer_packet ~l3pkt;
 		s#init_rreq  ~dst;
 	      end
@@ -417,7 +508,7 @@ object(s)
 
       Rtab.repair_start ~rt ~dst;
       s#log_notice 
-      (lazy (sprintf "Initiating RREQ for dst %d" dst ));
+	(lazy (sprintf "Initiating RREQ for dst %d" dst ));
       s#send_rreq ~ttl:_ERS_START_TTL ~dst ~rreq_uid:rreq_uids.(dst)
     )
   )
@@ -436,9 +527,9 @@ object(s)
 
   method private send_radv() = (
     
-      let grep_l3hdr_ext = 
-	L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_RADV
+      let grep_hdr = 
+	Grep_pkt.make_grep_hdr
+	  ~flags:Grep_pkt.GREP_RADV
 	  ~ssn:seqno
 	  ~shc:0
 	  ()
@@ -447,7 +538,7 @@ object(s)
 	L3pkt.make_l3hdr
 	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
-	  ~ext:grep_l3hdr_ext
+	  ~ext:(`GREP_HDR grep_hdr)
 	  ~ttl:1 
 	  ()
       in
@@ -478,9 +569,9 @@ object(s)
 	  | None -> (0, max_int)
 	  | Some s -> (s, o2v (Rtab.hopcount ~rt ~dst)) end
       in
-      let grep_l3hdr_ext = 
-	L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_RREQ
+      let grep_hdr = 
+	Grep_pkt.make_grep_hdr
+	  ~flags:Grep_pkt.GREP_RREQ
 	  ~ssn:seqno
 	  ~shc:0
 	  ~rdst:dst
@@ -492,7 +583,7 @@ object(s)
 	L3pkt.make_l3hdr
 	  ~srcid:myid
 	  ~dstid:L3pkt._L3_BCAST_ADDR
-	  ~ext:grep_l3hdr_ext
+	  ~ext:(`GREP_HDR  grep_hdr)
 	  ~ttl:ttl 
 	  ()
       in
@@ -509,11 +600,11 @@ object(s)
 	    ~rreq_uid
 	  )
       in	
-	s#send_out ~l3pkt;
-	
-	
-(*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
-	  (Sched.s())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
+      s#send_out ~l3pkt;
+      
+      
+      (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
+      (Sched.s())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
     )
   )
     
@@ -522,21 +613,23 @@ object(s)
     ~(sender:Common.nodeid_t)
     ~(fresh:bool)
     = (
+    let grep_hdr = L3pkt.grep_hdr l3pkt in
+
       let update = s#newadv 
-	~dst:(L3pkt.osrc ~l3pkt)
-	~sn:(L3pkt.osn ~l3pkt)
-	~hc:((L3pkt.ohc ~l3pkt) + (L3pkt.shc ~l3pkt))
+	~dst:(Grep_pkt.osrc grep_hdr)
+	~sn:(Grep_pkt.osn grep_hdr)
+	~hc:((Grep_pkt.ohc grep_hdr) + (Grep_pkt.shc grep_hdr))
 	~nh:sender
       in 
 
       if (update || 
       (fresh && (
-	(L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt))))
+	(Grep_pkt.osrc grep_hdr) = (L3pkt.l3src ~l3pkt))))
       then (
 	(* the second line is for the case where the rrep was originated by the
 	   source, in which case update=false (bc the info from it has already
 	   been looked at in mac_recv_l2pkt) *)
-	Rtab.repair_done ~rt ~dst:(L3pkt.osrc ~l3pkt);
+	Rtab.repair_done ~rt ~dst:(Grep_pkt.osrc grep_hdr);
 	if ((L3pkt.l3dst ~l3pkt) <> myid) then (
 	  try 
 	    s#send_out ~l3pkt
@@ -545,7 +638,7 @@ object(s)
 		s#log_notice 
 		(lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
 		  (L3pkt.l3dst ~l3pkt)
-		  (L3pkt.osrc ~l3pkt)));
+		  (Grep_pkt.osrc grep_hdr)));
 	)
       )
     )
@@ -553,20 +646,22 @@ object(s)
   method private send_out ~l3pkt = (
     
     let dst = L3pkt.l3dst ~l3pkt in
+    let grep_hdr = L3pkt.grep_hdr l3pkt in
+
     assert (dst <> myid);
     assert (L3pkt.l3ttl ~l3pkt >= 0);
-    assert (L3pkt.ssn ~l3pkt >= 1);
+    assert (Grep_pkt.ssn grep_hdr >= 1);
 
     let failed() = (
-      L3pkt.decr_shc_pkt ~l3pkt;
+      Grep_pkt.decr_shc_pkt grep_hdr;
       raise Send_Out_Failure
     ) in
     s#incr_seqno();
-    L3pkt.incr_shc_pkt ~l3pkt;
-    assert (L3pkt.shc ~l3pkt > 0);
-    begin match (L3pkt.l3grepflags ~l3pkt) with
-      | L3pkt.GREP_RADV 
-      | L3pkt.GREP_RREQ -> 
+    Grep_pkt.incr_shc_pkt grep_hdr;
+    assert (Grep_pkt.shc grep_hdr > 0);
+    begin match (Grep_pkt.l3grepflags grep_hdr) with
+      | Grep_pkt.GREP_RADV 
+      | Grep_pkt.GREP_RREQ -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
 	  L3pkt.decr_l3ttl ~l3pkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt) >= 0)  with
@@ -576,9 +671,9 @@ object(s)
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-      | L3pkt.GREP_DATA
-      | L3pkt.GREP_RREP ->
-	  begin if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
+      | Grep_pkt.GREP_DATA
+      | Grep_pkt.GREP_RREP ->
+	  begin if ((Grep_pkt.l3grepflags grep_hdr) = Grep_pkt.GREP_DATA) then (
 	    Grep_hooks.sent_data();
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
@@ -593,25 +688,25 @@ object(s)
 	    try begin
 	      s#mac_send_pkt  ~dstid:nexthop l3pkt; end
 	    with Simplenode.Mac_Send_Failure -> failed()
-	      
+
 	  end
       | _ ->
 	  raise (Failure "Grep_agent.send_out: unexpected packet type")
 
     end
   )
-		
-	
+
+
 
   (* this is a null method because so far we don't need to model apps getting
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
   method private hand_upper_layer ~l3pkt = (
     Grep_hooks.recv_data();
-     s#log_info (lazy (sprintf "Received app pkt from src %d"
-	  (L3pkt.l3src ~l3pkt)));
+    s#log_info (lazy (sprintf "Received app pkt from src %d"
+      (L3pkt.l3src ~l3pkt)));
   )
-
+    
   (*
     method ctrl_hook action = (
 
@@ -635,16 +730,19 @@ object(s)
   method private app_recv_l4pkt l4pkt dst = (
     s#log_info (lazy (sprintf "Originating app pkt with dst %d"
       dst));
+    let grep_hdr = 
+      (Grep_pkt.make_grep_hdr
+	~flags:Grep_pkt.GREP_DATA
+	~ssn:seqno
+	~shc:0
+	()
+      )
+    in
     let l3hdr = 
       L3pkt.make_l3hdr
 	~srcid:myid
 	~dstid:dst
-	~ext:(L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_DATA
-	  ~ssn:seqno
-	  ~shc:0
-	  ()
-	)
+	~ext:(`GREP_HDR grep_hdr)
 	()
     in
     assert (dst <> myid);
