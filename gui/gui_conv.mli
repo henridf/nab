@@ -29,7 +29,7 @@
 
 
 (** 
-  Conversions/interface between mws and gui. 
+  Conversions/interface for data between simulator and gui. 
   In particular, between mws coordinates (meters) and screen coordinates (pixels).
   @author Henri Dubois-Ferriere.
 *)
@@ -54,11 +54,9 @@ val ease_route_mtr_to_pix :
   (Coord.coordi_t, Coord.coordi_t) Route.ease_route_t  
 
 val ease_route_nodeid_to_pix :
-  (Common.nodeid_t, Common.nodeid_t) Route.ease_route_t  ->
+  (Common.nodeid_t, Coord.coordf_t) Route.ease_route_t  ->
   (Coord.coordi_t, Coord.coordi_t) Route.ease_route_t  
 
-
-(* gui => mws *)
 val closest_node_at :
   Coord.coordi_t ->
     Common.nodeid_t

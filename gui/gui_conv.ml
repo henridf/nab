@@ -91,9 +91,7 @@ let ease_route_nodeid_to_pix r =
       let info = 
 	match h.info with 
 	  | None -> None
-	  | Some i -> 
-	      let anchorpos = (World.w())#nodepos i.anchor in
-	      Some {i with  anchor = (pos_mtr_to_pix anchorpos)}
+	  | Some i -> Some {i with  anchor = (pos_mtr_to_pix i.anchor)}
       in
 
       {h with hop=(pos_mtr_to_pix nodepos);
