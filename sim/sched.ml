@@ -2,55 +2,73 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(* There are currently two schedulers. One is list-based , and has 
-   O(n) insert time and O(1) pop time, other is heap-based and has O(logn)
-   insert and pop time.
+(** Discrete event schedulers. *)
 
-   For the list-based scheduler, multiple events scheduled at the same time
-   (or at ASAP) are executed in FIFO order.
 
-   For the heap based scheduler, multiple events scheduled at the same time
-   (or at ASAP) are executed in undefined order.
+(** 
+  There are currently two schedulers. One is list-based , and has 
+  O(n) insert time and O(1) pop time, other is heap-based and has O(logn)
+  insert and O(logn) pop time.
+
+  For the list-based scheduler, multiple events scheduled at the same time
+  (or at ASAP) are executed in FIFO order.
+
+  For the heap based scheduler, multiple events scheduled at the same time
+  (or at ASAP) are executed in undefined order.
 *)
 
 open Printf
 
 type handler_t = Stop | Handler of (unit -> unit)
-type sched_time_t = | ASAP (* schedule as soon as possible *)
-		    | ALAP (* schedule as late as possible *)
-		    | Time of Common.time_t  (* schedule at given time *)
+  (** The type of event handlers. *)
 
+type sched_time_t = | ASAP (** Schedule as soon as possible. *)
+		    | ALAP (** Schedule as late as possible. *)
+		    | Time of Common.time_t  (** Schedule at given time. *)
+
+
+
+(** The type of events. *)
 type event_t = {
   handler:handler_t;
-  time:Common.time_t;
-}
+  time:Common.time_t;}
 
+    
+
+(** The interface that any scheduler implementation must conform to. *)
 class type virtual scheduler_t = 
 object 
 
-  (* keep processing queued events until none left *)
-  method run : unit -> unit 
 
-  (* same as #run except that continure is called between each event, and
-     processing stops if continue() returns false *)
+  method run : unit -> unit 
+    (** Keep processing queued events until none left. *)
+
+  
   method run_until : 
     continue:(unit -> bool) -> 
     unit 
+    (** Same as #run except that continue() is called between each event, and
+       processing stops if continue() returns false. *)
 
   method run_for : duration:Common.time_t -> unit
-    (* runs until no more events or duration secs passed, whichever
-       occurs first*)
+    (** Runs until no more events or duration secs passed, whichever
+      occurs first. *)
 
   method objdescr : string
 
   method sched_in : f:(unit -> unit) -> t:Common.time_t -> unit
+    (** Schedule function f() to be called in t simulated seconds. *)
+
   method sched_at : f:(unit -> unit) -> t:sched_time_t -> unit
+    (** Schedule function f() to be called at simulated time t. *)
+
   method virtual private sched_event_at : ev:event_t -> unit
 
   method stop_in :  t:Common.time_t -> unit
+    (** Tell the scheduler to stop running in t simulated seconds. *)
+
   method stop_at :  t:sched_time_t -> unit
-
-
+    (** Tell the scheduler to stop running at simulated time t. *)
 
   method virtual private next_event : event_t option 
 end
