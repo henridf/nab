@@ -13,10 +13,7 @@ let outfile_det = ref (Unix.getcwd())
 let outfd = ref Pervasives.stderr
 let outfd_det = ref Pervasives.stderr
 
-type agent_type = AODV | GREP
-let agent_string t = (
-  match t with | AODV -> "AODV" | GREP -> "GREP"
-)
+
 let run = ref 0
 
 let node_degree = 12
@@ -53,12 +50,63 @@ let nextseed() = (
 
 let res_summary = ref []
 
-type trafficmatrix = HOTDEST  | BIDIR | UNIDIR
-let trafficmatrix_descr tmat = 
+type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
+type agent_type = AODV | GREP
+
+let string_of_agent t =  match t with | AODV -> "AODV" | GREP -> "GREP"
+
+module Config = 
+struct
+let string_of_tmat tmat = 
   match tmat with 
-    | HOTDEST -> "hotspot "
+    | HOTSPOT -> "hotspot "
     | BIDIR  -> "bidirectional"
     | UNIDIR -> "unidirectional"
+
+let tmat_of_string tmat = 
+  match tmat with 
+    | "hotspot" | "hot" -> HOTSPOT
+    | "bidirectional" | "bi" | "bidir" -> BIDIR  
+    | "unidirectional" | "uni" | "unidir" -> UNIDIR  
+    | _ -> raise (Failure "Invalid format for traffic type")
+
+let tmat = 
+  Param.stringcreate  ~name:"tmat" ~default:"hotspot" 
+    ~cmdline:true
+    ~doc:"Traffic Type" ~checker:(fun s -> ignore (tmat_of_string s))
+    ()
+
+let sources = 
+  Param.intcreate  ~name:"sources" ~default:1
+    ~cmdline:true
+    ~doc:"Number of sources"  ()
+    
+let packet_rate = 
+  Param.intcreate ~name:"rate" ~default:4
+    ~cmdline:true
+    ~doc:"Orig rate [pkt/s]"  ()
+
+let speed = 
+  Param.floatcreate ~name:"speed" ~default:4.
+    ~cmdline:true
+    ~doc:"Node Speed [m/s]"  ()
+
+let agent_of_string = function
+  | "aodv" | "AODV" -> AODV
+  | "grep" | "GREP" -> GREP
+  | _ -> raise (Failure "Invalid format for agent type")
+
+let agent = Param.stringcreate
+  ~name:"agent"
+  ~default:"hotspot"
+  ~doc:"Traffic Type"
+  ~checker:(fun s -> ignore (agent_of_string s))
+  ()
+
+end
+
+
+
 
 let do_one_run ~trafficmat ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_send = (
@@ -95,7 +143,7 @@ let do_one_run ~trafficmat ~agenttype ~nodes ~sources ~packet_rate ~speed
     if (n#id < sources) then (
       let dst = 
 	match trafficmat with
-	  | HOTDEST -> ((Param.get Params.nodes)  - 1 )
+	  | HOTSPOT -> ((Param.get Params.nodes)  - 1 )
 	  | UNIDIR -> (((Param.get Params.nodes)  - 1 ) - n#id)
 	  | BIDIR -> (sources - n#id)
       in
@@ -149,14 +197,14 @@ let r1 = [
 
 let r5 = [
   (* repeats hotspot speed rate nodes srcs pktssend *)
-  (10, HOTDEST,  0.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  1.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  2.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  4.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  6.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  8.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  12.0,  4,   1000,  40,  20);
-  (10, HOTDEST,  16.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  0.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  1.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  2.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  4.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  6.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  12.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  16.0,  4,   1000,  40,  20);
 ]
 
 let r6 = [
@@ -191,23 +239,18 @@ let r4 = [
 
 let r3 = [
   (* repeats hotspot speed rate nodes srcs pktssend *)
-  (10, HOTDEST,  8.0,  4,   50,  40,  20);
-  (10, HOTDEST,  8.0,  4,   100,  40,  20);
-  (10, HOTDEST,  8.0,  4,   200,  40,  20);
-  (10, HOTDEST,  8.0,  4,   400,  40,  20);
-  (10, HOTDEST,  8.0,  4,   600,  40,  20);
-  (10, HOTDEST,  8.0,  4,   800,  40,  20);
-  (10, HOTDEST,  8.0,  4,   1000,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   50,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   100,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   200,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   400,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   600,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   800,  40,  20);
+  (10, HOTSPOT,  8.0,  4,   1000,  40,  20);
 ]  
 
 let r7 = [
-  (* repeats hotspot speed rate nodes srcs pktssend *)
-  (10, UNIDIR,  0.0,  4,   1000,  40,  20);
-  (10, UNIDIR,  1.0,  4,   1000,  40,  20);
-  (10, UNIDIR,  2.0,  4,   1000,  40,  20);
-  (10, UNIDIR,  4.0,  4,   1000,  40,  20);
-  (10, UNIDIR,  8.0,  4,   1000,  40,  20);
-  (10, UNIDIR,  16.0,  4,   1000,  40,  20);
+(* repeats hotspot speed rate nodes srcs pktssend *)
+  (1, UNIDIR,  12.0,  4,   200,  10,  10);
 ]
 
 
@@ -286,31 +329,29 @@ let _ =
 
   Arg.parse [("-run" , argspec, "")] (fun s -> ()) "";
 
-
-
   if daemon then (
     Script_utils.detach_daemon !outfile;
     outfd := !Log.output_fd;
   );
-
- outfd_det := open_out !outfile_det ;
-
+  
+  outfd_det := open_out !outfile_det ;
+  
   List.iter (fun (repeats, trafficmat, speed, rate, nodes, sources,  pktssend) ->
     aodvtots :=  (0, 0, 0, 0, 0, 0, 0, 0);
     greptots :=  (0, 0, 0, 0, 0, 0, 0, 0);
-
+    
     incr run;
     Printf.fprintf !outfd "\n#---------------------------\n";
     Printf.fprintf !outfd "# Scenario %d parameters:\n" !run;
     Printf.fprintf !outfd "# %d Nodes, %d repeats\t\t\n" nodes repeats;
     Printf.fprintf !outfd "# Sources: %d, Traffic: %s\n" sources
-      (trafficmatrix_descr trafficmat);
+      (Config.string_of_tmat trafficmat);
     Printf.fprintf !outfd "# %d [pkt/s], %f [m/s] \n" rate speed ;
     Printf.fprintf !outfd_det "\n# ---------------------------\n";
     Printf.fprintf !outfd_det "# Scenario %d parameters:\n" !run;
     Printf.fprintf !outfd_det "# %d Nodes, %d repeats\t\t\n" nodes repeats;
     Printf.fprintf !outfd_det "# Sources: %d, Traffic: %s\n" sources
-      (trafficmatrix_descr trafficmat);
+      (Config.string_of_tmat trafficmat);
     Printf.fprintf !outfd_det "# %d [pkt/s], %f [m/s] \n" rate speed ;
     Printf.fprintf !outfd_det "# DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
     flush !outfd;
