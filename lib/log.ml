@@ -37,12 +37,12 @@ type log_level_t = LOG_DEBUG | LOG_INFO | LOG_NOTICE | LOG_WARNING | LOG_ERROR
 
 let string_of_loglevel l = 
   match l with 
-    | LOG_DEBUG -> "debug"
-    | LOG_INFO -> "info"
-    | LOG_NOTICE -> "notice"
+    | LOG_DEBUG -> "debug  "
+    | LOG_INFO -> "info   "
+    | LOG_NOTICE -> "notice "
     | LOG_WARNING -> "warning"
-    | LOG_ERROR -> "error"
-    | LOG_ALWAYS -> "always"
+    | LOG_ERROR -> "error  "
+    | LOG_ALWAYS -> "always "
 		       
 let loglevel_of_string s = 
   match s with 
@@ -109,7 +109,9 @@ object(s)
 
   method private log_level l msg =
     if l >= !current_log_level then (
-      output_string !ochan (sprintf "%f " (Time.get_time()));
+      output_string !ochan (sprintf "%f %s " 
+	(Time.get_time()) 
+	(string_of_loglevel l));
       output_string !ochan objdescr;
       output_string !ochan (Lazy.force msg);
       output_char !ochan '\n';
