@@ -56,7 +56,6 @@ object(s)
     incr rndseed
   )
 
-  method private backend_recv = backend#send_up
   method bps = bps
 
   method reset_stats = 

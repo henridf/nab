@@ -228,8 +228,10 @@ object
   method private backend_reset_stats : unit
   method private backend_stats : mac_queue_stats
   method private backend_xmit_complete : unit
+  method private backend_recv : L2pkt.t -> unit
   method xmit : L2pkt.t -> unit
   method virtual private frontend_xmit : L2pkt.t -> unit
+  method virtual private state : Mac.frontend_state
 end
 
 
