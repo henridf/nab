@@ -13,6 +13,10 @@ type topology = DISCRETE | CONTINUOUS
 val topology_of_string : string -> topology 
 val string_of_topology : topology -> string
 
+type action = COMPUTE_ROUTES | SHOW_ROUTES | SHOW_GRAD
+val action_of_string : string -> action
+val string_of_action : action -> string
+
 type meeting = {
   mutable t: int; 
   mutable p: coordf_t

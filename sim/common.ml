@@ -45,6 +45,21 @@ let string_of_topology t = (
     | CONTINUOUS -> "Continuous"
 )
 
+type action = COMPUTE_ROUTES | SHOW_ROUTES | SHOW_GRAD
+let action_of_string s = (
+  match s with
+    | "cr" | "croutes" | "computer" | "computeroutes" -> COMPUTE_ROUTES
+    | "sr" | "sroutes" | "showr" | "showroutes" -> SHOW_ROUTES
+    | "sg" | "sgrad" | "showg" | "showgrad" -> SHOW_GRAD
+    | other -> raise (Failure (Printf.sprintf "Unknown Action %s" other))
+)
+let string_of_action t = (
+  match t with
+    | COMPUTE_ROUTES -> "Compute Routes"
+    | SHOW_ROUTES -> "Show Routes"
+    | SHOW_GRAD -> "Show Gradient"
+)
+
 type meeting = {
   mutable t: int; 
   mutable p: coordf_t
