@@ -54,16 +54,16 @@ val size : 'a t -> int
 
 val iter : f:('a -> unit) -> 'a t -> unit
   (** Iterate over tree, presenting each node once to the provided function. 
-    Order is not specified. *)
+    Does nothing if the tree has size 0. Order is not specified. *)
 
 val iter2 : f:(parent:'a -> child:'a -> unit) -> 'a t -> unit
   (** Iterate over tree, presenting each node along with its parent to the
-    provided function. Order is not specified *)
-
+    provided function. Does nothing if the tree has size <= 1.
+    Order is not specified. *)
 
 val addnode : parent:'a -> node:'a -> 'a t -> 'a t 
   (** [NaryTree.addnode ~parent ~node tree] returns a new tree which is the
     result of adding [node] under [parent] in [tree]. Raise [Failure "addnode"] if
     [node] is already in [tree].*)
 
-
+val sprintf : f:('a -> string) -> 'a t -> string

@@ -81,3 +81,14 @@ let addnode ~parent ~node tree =
   in
   add_ tree 
 
+let sprintf ~f tree = 
+  match size tree with
+    | 0 -> "Tree is empty"
+    | 1 -> Printf.sprintf "Single node %s" (f (root tree))
+    | k -> print_string "number of nodes: "; print_int k; print_newline();
+	let buf = Buffer.create 50 in
+	let printnode ~parent ~child = 
+	  Buffer.add_string buf
+	    (Printf.sprintf "%s has parent %s\n" (f child) (f parent)) in
+	iter2 ~f:printnode tree;
+	Buffer.contents buf
