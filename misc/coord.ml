@@ -1,66 +1,50 @@
 open Misc
-type 'a coord_t = 'a array
+type 'a coord_t = ('a * 'a)
 type coordi_t = int coord_t
 type coordf_t = float coord_t
 
 
-let (+++) (c1:coordi_t) (c2:coordi_t) = Array.mapi (fun i v -> v + c2.(i)) c1
-let (+++.) (c1:coordf_t) (c2:coordf_t) = Array.mapi (fun i v -> v +. c2.(i)) c1
+let (+++) (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+let (+++.) (x1, y1) (x2, y2) = (x1 +. x2, y1 +. y2)
 
-let (---) (c1:coordi_t) (c2:coordi_t) = Array.mapi (fun i v -> v - c2.(i)) c1
-let (---.) c1 c2 = Array.mapi (fun i v -> v -. c2.(i)) c1
-
-let ( *** ) (c1:coordi_t) scalar = Array.mapi (fun i v -> v * scalar) c1
-let ( ***. ) (c1:coordf_t) scalar = Array.mapi (fun i v -> v *. scalar) c1
-
-let (///) (c1:coordi_t) scalar = Array.mapi (fun i v -> v / scalar) c1
-let (///.) (c1:coordf_t) scalar = Array.mapi (fun i v -> v /. scalar) c1
-
-let coordi2pair c = (c.(0), c.(1))
-let coordf2pair c = (c.(0), c.(1))
-
-let coord_i2f (c1:coordi_t) = Array.map (fun x -> i2f x) c1
-let coord_f2i (c1:coordf_t) = Array.map (fun x -> f2i x) c1
-let coord_round (c1:coordf_t) = Array.map (fun x -> round x) c1
-let coord_floor (c1:coordf_t) = Array.map (fun x -> floor x) c1
-
-let x c = c.(0) 
-let y c = c.(1)
+let (---) (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
+let (---.) (x1, y1) (x2, y2) = (x1 -. x2, y1 -. y2)
 
 
-let normi_sq (c:coordi_t) = 
-  let res = ref 0 in Array.iter (fun x -> res := !res + (powi ~num:x ~exp:2)) c; 
-  !res
+let ( *** ) (x, y) scalar = (x * scalar, y * scalar)
+let ( ***. ) (x, y) scalar = (x *. scalar, y *. scalar)
+
+let ( /// ) (x, y) scalar = (x / scalar, y / scalar)
+let ( ///. ) (x, y) scalar = (x /. scalar, y /. scalar)
+
+
+let coord_i2f (x, y) = (i2f x, i2f y)
+let coord_f2i (x, y) = (f2i x, f2i y)
+let coord_round (x, y) = (round x, round y)
+let coord_floor (x, y) = (floor x, floor y)
+
+let xx (x, y) = x
+let yy (x, y) = y
+
+
+let normi_sq (x, y) = 
+  (powi ~num:x ~exp:2) + (powi ~num:y ~exp:2)
     
-let normi (c:coordi_t) = 
+let normi c = 
   sqrt (i2f (normi_sq c))
 
-let disti_sq c1 c2 = (
-  let res = ref 0 in 
-  Array.iteri (
-    fun i x -> res := !res + (powi (x - c2.(i)) 2)
-  ) c1 ;
-  !res
-)
+let disti_sq  (x1, y1) (x2, y2) = 
+  (powi ~num:(x1 - x2) ~exp:2) + (powi ~num:(y1 - y2) ~exp:2)
 
 let disti c1 c2 = (
   sqrt (i2f (disti_sq c1 c2))
 )
 
-let norm_sq (c:coordf_t) = 
-  let res = ref 0.0 in Array.iter (fun x -> res := !res +. (x ** 2.0)) c; 
-  !res
+let norm_sq (x, y) =  (x ** 2.0) +. (y ** 2.0)
+let norm c = sqrt (norm_sq c)
 
-let norm (c:coordf_t) = 
-  sqrt (norm_sq c)
-
-let dist_sq c1 c2 = (
-  let res = ref 0.0 in 
-  Array.iteri (
-    fun i x -> res := !res +. ((x -. c2.(i)) ** 2.0)
-  ) c1 ;
-  !res
-)
+let dist_sq  (x1, y1) (x2, y2) = 
+  ((x1 -. x2) ** 2.0) +. ((y1 -. y2) ** 2.0)
 
 let dist c1 c2 = (
   sqrt  (dist_sq c1 c2)
@@ -72,21 +56,9 @@ let normalize p =
     | 0.0 -> p
     | norm -> p ///. norm
 
-let print p = (
-  Printf.printf "<"; 
-  Array.iter (fun x -> Printf.printf "%d  " x) p;
-  Printf.printf ">"; 
-  flush stdout
-)
+let print (x, y) = 
+  Printf.printf "<%d, %d>" x y
 
-let sprint p = (
-  Printf.sprintf "<" ^
-  (Array.fold_left (fun s x -> s ^ (Printf.sprintf "%d " x) ) "" p) ^
-  Printf.sprintf ">"; 
-)
+let sprint (x, y) =   Printf.sprintf "<%d, %d>" x y
 
-let sprintf p = (
-  Printf.sprintf "<" ^
-  (Array.fold_left (fun s x -> s ^ (Printf.sprintf "%.2f " x) ) "" p) ^
-  Printf.sprintf ">"; 
-)
+let sprintf (x, y) = Printf.sprintf  "<%.3f, %.3f>" x y

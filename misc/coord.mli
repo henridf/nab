@@ -1,9 +1,9 @@
-type 'a coord_t = 'a array
+type 'a coord_t = ('a * 'a)
 type coordi_t = int coord_t
 type coordf_t = float coord_t
 
-val x : 'a coord_t -> 'a
-val y : 'a coord_t -> 'a
+val xx : 'a coord_t -> 'a
+val yy : 'a coord_t -> 'a
 
 val ( +++ ) : coordi_t -> coordi_t -> coordi_t
 val ( --- ) : coordi_t -> coordi_t -> coordi_t
@@ -14,9 +14,6 @@ val ( +++. ) : coordf_t -> coordf_t -> coordf_t
 val ( ---. ) : coordf_t -> coordf_t -> coordf_t
 val ( ***. ) : coordf_t -> float -> coordf_t
 val ( ///. ) : coordf_t -> float -> coordf_t
-
-val coordi2pair : coordi_t -> (int * int)
-val coordf2pair : coordf_t -> (float * float)
 
 val coord_i2f : coordi_t -> coordf_t
 val coord_f2i : coordf_t -> coordi_t
