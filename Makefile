@@ -1,4 +1,3 @@
-include /usr/lib/ocaml/camlimages/Makefile.config
 #*************************************************************#
 # Choose whether to use the optimizing, profiling, or regular
 # compiler.
@@ -20,8 +19,11 @@ BIN_SUBDIR = bin
 LIB_SUBDIR = /usr/lib/ocaml
 CAMLIMAGES_SUBDIR = $(LIB_SUBDIR)/camlimages
 
+
 INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LLER_SUBDIR) -I $(CAMLIMAGES_SUBDIR) 
 
+
+LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
 
 SUBDIRS = \
 	$(MISC_SUBDIR) \
@@ -50,12 +52,17 @@ GFX_LIB = $(LIB_SUBDIR)/graphics$(CMA)
 UNIX_LIB = $(LIB_SUBDIR)/unix$(CMA)
 STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 
+CAMLIMAGES_LIBS = ci_core$(CMA) \
+		$(GFX_LIB) \
+		ci_graphics$(CMA) \
+		ci_png$(CMA)
+
 ##########################################
 # Files corresponding to different subdirs
 
 
 
-LER_OBJ_FILES = $(GFX_LIB) \
+LER_OBJ_FILES = $(CAMLIMAGES_LIB) \
 		$(MISC_OBJ_FILES) \
 		$(LER_SUBDIR)/ler_utils$(CMO) \
 		$(MISC_SUBDIR)/graph$(CMO) \
@@ -128,7 +135,7 @@ TEST_OBJ_FILES = \
 
 exp: bin/exp
 bin/exp:  $(LER_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(LER_OBJ_FILES) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(CAMLIMAGES_LIBS) $(LER_OBJ_FILES) -o $@ 
 
 bler:  $(BLER_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
