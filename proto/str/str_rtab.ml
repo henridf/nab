@@ -27,7 +27,9 @@ open Str_defaults
 module Str = Str_pkt
 
 
-module H = ExtHashtbl.Hashtbl
+module H = Hashtbl
+let hashlen h = H.fold (fun _ _ l -> l + 1) h 0
+
 
 type rtab_entry_t = {
   timestamp:Time.t; (* time at which this entry is added into our rtab *)
@@ -45,7 +47,7 @@ type rtab_entry_t = {
 	      *)
 }
 
-type metric_t = AODV | STR
+type metric_t = STR_AODV | STR_MAX | STR_EXP | STR_AGE
 
 
 type entryset = (int, rtab_entry_t) H.t
@@ -71,22 +73,35 @@ let aodv_metric age hops = max_float
   (* AODV without timeouts *)
      age *. max_diameter +. (float hops)
 *)
-let str_metric age hops = 
-  let speed = Mob_ctl.get_speed_mps 0
-  and range = (Param.get Params.radiorange) in
+
+let str_max_metric age hops = 
   (* STR *)
   let range = (Param.get Params.radiorange) in
-  let hops_cost hops =  (float hops) *. (range *. 0.7) in
+  let hops_cost hops =  (float hops) *. (0.7 *. range) in
+  if hops = 0 then 0.0 
+  else 
+  let speed = Mob_ctl.get_speed_mps 0
+  in (hops_cost hops) +. 1.4 *. speed *. age
+
+let str_exp_metric age hops = 
+  (* STR *)
+  let range = (Param.get Params.radiorange) in
+  let hops_cost hops =  (float hops) *. (range *. 0.2) in
   if hops = 0 then 0.0 
   else 
   let speed = Mob_ctl.get_speed_mps 0
   in (hops_cost hops) +. 2. *. speed *. age
 
+let str_age_metric age hops = 
+  if hops = 0 then 0.0 
+  else (age *. 20.)  +. (float hops)
+
 let binding_metric_ metric age hops = 
   match metric with 
-    | AODV -> aodv_metric age hops
-    | STR -> str_metric age hops
-
+    | STR_AODV -> aodv_metric age hops
+    | STR_MAX -> str_max_metric age hops
+    | STR_EXP -> str_exp_metric age hops
+    | STR_AGE -> str_age_metric age hops
   (*
 
   
@@ -108,7 +123,7 @@ let (><) entry1 entry2 =
 
 let cost_ ?(offset=0) metric entry = 
   let offset_cost = 
-    if offset >= 0 then
+    if offset > 0 then
       binding_metric_ metric 0.0 offset
     else 0.0 in
   offset_cost  +.
@@ -127,18 +142,27 @@ let get_entries_ rt dst =
 
 let best_invalid_entry_ rt metric ?(usable=false) ?(offset=0) ?(cost=max_float) dst =
   let best_so_far = ref (-1, cost) in
-  let f i entry = 
+  let f i entry = (
     if cost_ metric ~offset entry < snd !best_so_far &&
-      not usable || entry.last_used +. str_ACTIVE_ROUTE_TIMEOUT > Time.time()
+      (not usable || entry.last_used +. str_ACTIVE_ROUTE_TIMEOUT > Time.time())
     then 
-      best_so_far := i, cost_ metric entry in
+      best_so_far := i, cost_ metric ~offset entry 
+  )
+  in
+  
   try 
     let entries = H.find rt dst in
-      H.iter f entries;
-    if fst !best_so_far <> -1 then
+    H.iter f entries;
+    if fst !best_so_far <> -1 then 
       Some (H.find entries (fst !best_so_far))
     else None
   with Not_found -> None
+
+let purge_n_hop_entries rt metric dst = 
+  try
+    let entries = H.find rt dst in
+    H.iter (fun k e -> if e.hopcount > 1 then Hashtbl.remove entries k) entries
+  with Not_found -> ()
 
 let valid_ entry = 
   entry.valid && entry.last_used +. str_ACTIVE_ROUTE_TIMEOUT > Time.time()
@@ -172,6 +196,11 @@ let best_usable_invalid_entry rt metric dst =
   match best_invalid_entry_  rt metric ~usable:true dst with
     | Some e -> triple_of_entry_ e, e.nexthop
     | None -> Str_pkt.null_triple, (-1)
+
+let best_invalid_entry rt metric dst = 
+  match best_invalid_entry_  rt metric ~usable:false dst with
+    | Some e -> triple_of_entry_ e
+    | None -> Str_pkt.null_triple
 
 
 let sprint_entry_ i e = 
@@ -232,7 +261,7 @@ let check_ok_ entries =
     ) entries;
 
   H.iter (fun h e -> 
-    if e.hopcount < 0 || e.hopcount > str_NET_DIAMETER then (
+    if e.hopcount < 0 then (
       Log.log#log_error (lazy 
 	(Printf.sprintf "check_d failed. key: %d, hc %d" h e.hopcount));
       check_d := false);
@@ -267,7 +296,7 @@ let add_entry rt ~valid ~dst ~ent ~nh  =
       nexthop=nh;
       valid=valid} in
     let entries = get_entries_ rt dst in
-    match H.length entries with 
+    match hashlen entries with 
       | 0 -> 
 	  let new_entries = new_entryset_() in
 	  H.add new_entries ent.Str.hc new_entry;
@@ -332,15 +361,19 @@ let using_entry rt dst ent =
       found := true
     ) in
   H.iter f entries;
-  if not !found then failwith "Str_rtab.using_entry"
-	
+  if not !found then (
+    (* to get a stack trace if not compiled with -noassert*)
+    assert(false);
+    failwith "Str_rtab.using_entry"
+  )
 
 let better_invalid_route rt metric ?(offset=false) hdr dst = 
   let ent = hdr.Str.i_ent in
   let offset = if offset then hdr.Str.orig_hc else 0 in
   match best_invalid_entry_ rt metric dst with
     | Some entry  -> 
-	if ent = Str_pkt.null_triple ||
+	if cost_ ~offset metric entry < max_float && 
+	  ent = Str_pkt.null_triple ||
 	  cost_ ~offset metric entry <  binding_metric_ metric ent.Str.age ent.Str.hc then
 	  triple_of_entry_ entry
 	else

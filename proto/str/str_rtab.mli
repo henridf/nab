@@ -35,7 +35,7 @@ open Common
 type t
   (** The type of STR routing tables. *)
 
-type metric_t = AODV | STR
+type metric_t = STR_AODV | STR_MAX | STR_EXP | STR_AGE
 
 val create : int -> t
 
@@ -65,7 +65,7 @@ val hopcount_opt : t -> nodeid_t -> int option
 
 *)
 
-
+val purge_n_hop_entries : t -> metric_t -> Common.nodeid_t -> unit
 val cost : metric_t -> Str_pkt.triple_t -> float 
   (** Returns the binding metric_t cost of the age, distance pair. *)
 
@@ -84,6 +84,7 @@ val invalidate_nexthop : t -> nodeid_t -> unit
 
 val best_valid_entry : t -> nodeid_t -> Str_pkt.triple_t * nodeid_t
 val best_usable_invalid_entry : t -> metric_t -> nodeid_t -> Str_pkt.triple_t * nodeid_t
+val best_invalid_entry : t -> metric_t -> nodeid_t -> Str_pkt.triple_t 
 
 val better_valid_route : t -> ?offset:bool -> Str_pkt.str_hdr -> nodeid_t -> 
   (Str_pkt.triple_t * Common.nodeid_t) 
