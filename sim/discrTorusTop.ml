@@ -9,7 +9,7 @@ open Coord
 open Graph
 open Common
 
-class discrTorusTop : Topology.topology = 
+class discrTorusTop : World.world = 
   object(s)
 
   val mutable graph = Graph.make_wrap_lattice_ ~dim:2 ~side:4
@@ -98,7 +98,8 @@ class discrTorusTop : Topology.topology =
 	  )
     )
 
-  method update_pos ~index ~oldpos ~newpos = (
+  method update_pos ~node ~oldpos ~newpos = (
+    let index = node#id in
       assert (List.mem index (Graph.getinfo_ graph (coord_f2i oldpos)));
       Graph.setinfo_ graph (coord_f2i oldpos) (list_without (Graph.getinfo_ graph (coord_f2i oldpos)) index);
       Graph.appendinfo_ graph (coord_f2i newpos) index;
