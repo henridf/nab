@@ -77,7 +77,7 @@ object(s)
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/GREP_Agent");
+    objdescr <- (owner#objdescr ^  "/GREP_Agent ");
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()
@@ -493,7 +493,6 @@ object(s)
     Grep_hooks.recv_data();
      s#log_info (lazy (sprintf "Received app pkt from src %d"
 	  (L3pkt.l3src ~l3pkt)));
-    
   )
 
   (*
@@ -519,48 +518,48 @@ object(s)
   method private app_send l4pkt ~dst = (
     s#log_info (lazy (sprintf "Received app pkt with dst %d"
       dst));
-      let l3hdr = 
-	L3pkt.make_l3hdr
-	  ~srcid:owner#id
-	  ~dstid:dst
-	  ~ext:(L3pkt.make_grep_l3hdr_ext
-	    ~flags:L3pkt.GREP_DATA
-	    ~ssn:seqno
-	    ~shc:0
-	    ()
-	  )
+    let l3hdr = 
+      L3pkt.make_l3hdr
+	~srcid:owner#id
+	~dstid:dst
+	~ext:(L3pkt.make_grep_l3hdr_ext
+	  ~flags:L3pkt.GREP_DATA
+	  ~ssn:seqno
+	  ~shc:0
 	  ()
-      in
-      let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
-      if (s#packets_waiting ~dst) then (
-	s#buffer_packet ~l3pkt
-      ) else (
-	try 
-	  s#send_out ~l3pkt
-	with 
-	  | Send_Out_Failure -> 
-	      begin
-		s#log_notice 
-		  (lazy (sprintf 
-		    "Originating DATA pkt to dst %d failed, buffering."
-		    dst));
+	)
+	()
+    in
+    let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
+    if (s#packets_waiting ~dst) then (
+      s#buffer_packet ~l3pkt
+    ) else (
+      try 
+	s#send_out ~l3pkt
+      with 
+	| Send_Out_Failure -> 
+	    begin
+	      s#log_notice 
+		(lazy (sprintf 
+		  "Originating DATA pkt to dst %d failed, buffering."
+		  dst));
 
-		let dst = (L3pkt.l3dst ~l3pkt) in
-		(* important to buffer packet first because send_rreq checks for
-		   this *)
-		s#buffer_packet ~l3pkt;
-		let (dseqno,dhopcount) = 
-		  begin match (Rtab.seqno ~rt:rtab ~dst) with
-		    | None -> (0, max_int)
-		    | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
-		in
-		s#send_rreq 
-		  ~ttl:_ERS_START_TTL 
-		  ~dst 
-		  ~dseqno
-		  ~dhopcount;
-	      end
-      )
+	      let dst = (L3pkt.l3dst ~l3pkt) in
+	      (* important to buffer packet first because send_rreq checks for
+		 this *)
+	      s#buffer_packet ~l3pkt;
+	      let (dseqno,dhopcount) = 
+		begin match (Rtab.seqno ~rt:rtab ~dst) with
+		  | None -> (0, max_int)
+		  | Some s -> (s, o2v (Rtab.hopcount ~rt:rtab ~dst)) end
+	      in
+	      s#send_rreq 
+		~ttl:_ERS_START_TTL 
+		~dst 
+		~dseqno
+		~dhopcount;
+	    end
+    )
   )
 
 

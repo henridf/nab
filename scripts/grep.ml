@@ -12,7 +12,7 @@ let agent_string t = (
 )
 let run = ref 0
 
-let node_degree = 8
+let node_degree = 12
 let rrange = 100.
 let size nodes = 
   sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
@@ -108,6 +108,7 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
 )
 
 
+
 let runs = [
 (* speed routing rate nodes srcs pktsrecv *)
   (* 400 nodes *)
@@ -127,10 +128,12 @@ let runs = [
 
 (*
 let runs = [
-  (4.0, GREP, 10, 400, 1, 3200);
-  (4.0, AODV, 10, 400, 1, 3200)
+(* speed routing rate nodes srcs pktsrecv *)
+  (2.0, GREP, 1, 100, 1, 100);
+  (2.0, AODV, 1, 100, 1, 100)
 ]
 *)
+
 
 let _ = 
  
@@ -155,13 +158,10 @@ let _ =
   print_summary !res_summary
   
 
-
-
-
-
 (*
 used for long sessions
   (* 100 nodes *)
+  (* speed routing rate nodes srcs pktsrecv *)
   (0.0, GREP, 8, 100, 10, 32000);
   (0.0, AODV, 8, 100, 10, 32000);
   (1.0, GREP, 8, 100, 10, 32000);
