@@ -53,7 +53,7 @@ object(s)
 
   method reset_stats = super#reset_stats
 
-  method recv ?snr  ~l2pkt () = (
+  method recv ?snr ~l2pkt () = (
 
     let dst = l2dst l2pkt in
 
@@ -67,48 +67,38 @@ object(s)
     begin match dst with
       | d when (d = l2_bcast_addr) ->  s#log_debug (lazy
 	  (sprintf "Start RX, l2src %d, l2dst broadcast" (l2src l2pkt)));
-	  s#accept_ l2pkt;
-
       | d when (d = myid) ->  s#log_debug  (lazy
 	  (sprintf "Start RX, l2src %d, l2dst %d" (l2src l2pkt) d));
-	  s#accept_ l2pkt;
+      | d -> assert(false); 
+    end;
 
-      | d -> s#log_debug  (lazy
-	  (sprintf "Start RX, l2src %d, l2dst %d (not for us)" (l2src l2pkt) d));
-    end
+    super#send_up l2pkt;
   )
 
-  (* Called when we receive a packet which we keep 
-     (either unicast to us, or broadcast). *)
-  method private accept_ l2pkt = (
-    
-    (* Compute delay to receive whole packet. Remember that recv() below is
-       called at the very beginning of the packet reception, so we shouldn't
-       hand this packet to upper layers until the whole thing has arrived. *)
-    let t = Time.get_time() +. 
-      Mac_base.xmit_time bps l2pkt in
-    
-
-    (* After the above delay, we will call send_up on our super class, which deals
-       with pushing the packet into our node's protocol stack. *)
-    let recv_event() =  super#send_up l2pkt in
-    
-    (Sched.s())#sched_at ~f:recv_event ~t:(Scheduler.Time t)	  
-  )
-
-  method xmit l2pkt = (
-
-    let l2dst = (L2pkt.l2dst l2pkt) in
+  method xmit l2pkt = 
+    let l2dst = L2pkt.l2dst l2pkt in
+    let neighbors = (World.w())#neighbors myid in
     if l2dst = L2pkt.l2_bcast_addr ||
-      ((World.w())#are_neighbors myid l2dst)
-    then (
-      s#log_debug (lazy (sprintf "TX packet to %d" l2dst));
-      FastEther.emit ~stack ~nid:myid l2pkt;
-      pktsTX <- pktsTX + 1;
-      bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
+      (List.mem l2dst neighbors) then (
+
+	s#log_debug (lazy (sprintf "TX packet to %d" l2dst));
+	pktsTX <- pktsTX + 1;
+      bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
+
+    let t = Mac_base.xmit_time bps l2pkt 
+    and mypos = ((World.w())#nodepos myid) in
+
+    List.iter (fun id -> 
+      if id <> myid && (l2dst = L2pkt.l2_bcast_addr || l2dst = id) then (
+	let n = (Nodes.node(id)) in
+	let recvtime = t +. (propdelay mypos ((World.w())#nodepos myid)) in
+	let recv_event() = 
+	  (n#mac ~stack ())#recv ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in
+	(Sched.s())#sched_in ~f:recv_event ~t
+      )
+    ) neighbors
     ) else s#unicast_failure l2pkt
 
-  )
 
   method other_stats = ()
 
