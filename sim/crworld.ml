@@ -189,7 +189,7 @@ object(s)
        then update the node and neighbor node objects *)
     
     let (newx, newy) = s#pos_in_grid_ newpos in
-
+    
     let oldpos = (s#nodepos nid) in
     node_positions_.(nid) <- newpos;
 
@@ -197,13 +197,16 @@ object(s)
     
     if (oldx, oldy) <> (newx, newy) then (
       (* only update grid_of_nodes if node moved to another slot *)
-      
+
       grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
+
       assert (List.mem nid (grid_of_nodes_.(oldx).(oldy)));
       grid_of_nodes_.(oldx).(oldy) <- list_without
 	grid_of_nodes_.(oldx).(oldy) nid;      
+
     );
     s#update_node_neighbors_ nid;
+
 
     if (Common.get_time() > 10.0) then
       if Random.int 100 = 1 then

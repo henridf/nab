@@ -9,9 +9,9 @@ let setup () = (
   (* Set global parameters. For these simulations, we want to have a unit node
      density, over a square lattice, so the lattice size should be the square
      root of the # of nodes *)
-  Param.set Params.nodes 1600; 
-  Param.set Params.x_size 40.0; 
-  Param.set Params.y_size 40.0;
+  Param.set Params.nodes 25; 
+  Param.set Params.x_size 5.0; 
+  Param.set Params.y_size 5.0;
 
   (* Radio range (this should not change) *)
   Param.set Params.rrange ( 1. +. epsilon_float);
@@ -72,6 +72,7 @@ let _ =
 
   (* Attach a discrete randomwalk mobility process to each node *)
   Mob_ctl.make_discrete_randomwalk_mobs();
+  Mob_ctl.start_all();
 
   (* Compute the average # of neighbors per node. Given unit node density,
      this should be close to 5 (4 neighboring nodes + self) 
@@ -90,7 +91,7 @@ let _ =
      This will give the periodic_hello_agents time to each broadcast one hello packet
      (since they each broadcast every second)
   *)
-  (Gsched.sched())#run_for ~duration:1.01;
+  (Gsched.sched())#run_for ~duration:10.01;
 
   (* Recompute the encounter ratio. It should be non-zero now that nodes have
      made one hello broadcast. *)

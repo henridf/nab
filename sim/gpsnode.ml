@@ -31,7 +31,9 @@ object(s)
     List.iter 
       (fun mhook -> mhook newpos (s :> gpsnode) )
       mob_mhooks;
-    (Gworld.world())#movenode ~nid:id ~newpos
+
+    (Gworld.world())#movenode ~nid:id ~newpos;
+
 
   )
 
