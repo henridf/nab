@@ -49,6 +49,7 @@ module Imperative(X : Ordered) = struct
     let n = h.size in
     assert (n > 0);
     let n' = 2 * n in
+    Log.log#log_notice (lazy (Printf.sprintf "Resizing to %d" n'));
     let d = h.data in
     let d' = Array.create n' d.(0) in
     Array.blit d 0 d' 0 n;
