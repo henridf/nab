@@ -96,7 +96,8 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/nodeDB$(CMO) \
 		$(MWS_DIR)/rtab$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
-		$(MWS_DIR)/magic_bler_agent$(CMO) \
+		$(MWS_DIR)/grep_hooks$(CMO) \
+		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
