@@ -168,3 +168,6 @@ val clear_all_entries : t -> unit
   (** Set all entries back to 'empty' state (ie, state when a routing table
     is initially created). *)
 
+val have_active_route : t -> bool
+  (** Returns [true] if there is any valid route in the routing table, ie if
+    we are part of an active route. *)

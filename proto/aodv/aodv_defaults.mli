@@ -31,7 +31,7 @@
 *)
 
 val aodv_ACTIVE_ROUTE_TIMEOUT : float 
-val aodv_ALLOWED_HELLO_LOSS : int
+val aodv_ALLOWED_HELLO_LOSS : float
 val aodv_K : int
 val aodv_HELLO_INTERVAL : float
 val aodv_DELETE_PERIOD : float 

@@ -1,6 +1,3 @@
-(*still to do : 
-  hello messages
-*)
 (*
  *
  *  NAB - Network in a Box
@@ -37,23 +34,7 @@
   implemented.
 *)
 
-(* xxx/RFC Questions:
-   6.7 : "if needed", create a route entry to previous w/o valid seqno.
-
-   will need to remove and clean up Mac_send_failure. do this in // with
-   rethinking llacks design.
-
-   do a stats thing a bit like for MACS. need to think if there is a common,
-   basic stats  or not.
-
-   ers_uids cannot be an array, nor can pktqs
-
-*)
-
-
 (* tests:
-   get a mode make a rreq for an inexistant node, check that rreq grows and
-   there is beb and MAX_RREQ_LIMITS is respected.
    throw RREQ_RATELIMIT + 1 app packets to a node with no routes and check
    that they don't all go out at once.
 
@@ -61,11 +42,49 @@
    packets don't happen (would indicate a loooop)
  *)
 
-open Aodv_grep_common
+
 open Aodv_pkt
 open Aodv_defaults
 open Printf
 open Misc
+
+module Aodv_stats = struct 
+  type stats = {
+    mutable total_xmit : int; 
+    mutable data_xmit : int; 
+    mutable data_orig : int; 
+    mutable data_recv : int; 
+    mutable hello_xmit : int;
+    mutable rreq_xmit : int; 
+    mutable rreq_init : int; 
+    mutable rreq_orig : int; 
+    mutable rerr_xmit : int; 
+    mutable rerr_orig : int; 
+    mutable rrep_xmit : int; 
+    mutable rrep_orig : int; 
+    mutable data_drop_overflow : int; 
+    mutable data_drop_rerr : int; 
+  }
+
+let create_stats() = {
+  total_xmit = 0; 
+  data_xmit = 0; 
+  data_orig = 0; 
+  data_recv = 0;
+  hello_xmit = 0;
+  rreq_xmit = 0; 
+  rreq_init = 0; 
+  rreq_orig = 0; 
+  rerr_xmit = 0; 
+  rerr_orig = 0; 
+  rrep_xmit = 0; 
+  rrep_orig = 0; 
+  data_drop_overflow = 0; 
+  data_drop_rerr = 0; 
+}
+
+end
+
 
 let agents_array_ = 
   Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
@@ -74,10 +93,16 @@ let make_l3aodv aodvhdr ~src ~dst =
   L3pkt.make_l3pkt 
     ~l3hdr:(L3pkt.make_l3hdr ~src ~dst ~ext:(`AODV_HDR aodvhdr) ()) ~l4pkt:`EMPTY
 
+
+module S = Aodv_stats
+  (* locally rename module Aodv_stats as 'S' to make things more compact each
+     time we refer to a stats field. *)
+
 class aodv_agent ?(stack=0) ?(localrepair=true) ?(dstonly=false) theowner  = 
 object(s)
 
-  inherit Rt_agent_base.base ~stack theowner 
+
+  inherit [S.stats] Rt_agent_base.base ~stack theowner 
 
   (* 
    *  Instance Variables. 
@@ -91,13 +116,13 @@ object(s)
 
   val default_rreq_flags = {g=true; d=dstonly; u=false}
 
-  val rt = Aodv_rtab.create (Param.get Params.nodes)
+  val rt = Aodv_rtab.create 100
     (* our routing table *)
 
   val pktqs : (Common.nodeid_t, L3pkt.t Queue.t) Hashtbl.t = 
     Hashtbl.create aodv_PKTQUEUE_SIZE
 
-  val ers_uids = Array.create (Param.get Params.nodes) 0
+  val ers_uids = Hashtbl.create 100
     (* see send_rreq for explanation on this *)
 
   val mutable rreq_id = 0
@@ -112,12 +137,14 @@ object(s)
        originated, in order to enforce that we emit no more than
        RREQ_RATELIMIT requests per second (rfc 6.3). *)
 
+  val mutable stats = S.create_stats()
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
     Hashtbl.replace agents_array_.(stack) theowner#id (s :> aodv_agent);
     s#incr_seqno();
-    (Sched.s())#sched_in ~f:s#clean_rreq_cache ~t:(aodv_PATH_DISCOVERY_TIME +. 1.);
+    (Sched.s())#sched_in ~f:s#clean_data_structures
+    ~t:(aodv_PATH_DISCOVERY_TIME +. 1.);
   )
 
   (* 
@@ -126,19 +153,61 @@ object(s)
 
   method myid = myid
 
+  method private send_hello() = (
+    let now = Time.time() in
+    let next_t =  
+      if now -. last_bcast_time < aodv_HELLO_INTERVAL then 
+	(last_bcast_time +. aodv_HELLO_INTERVAL) 
+      else (now +. aodv_HELLO_INTERVAL)  in
+    
+    if Aodv_rtab.have_active_route rt then (
+      let rrep = make_rrep_hdr ~hc:0 ~dst:myid ~dst_sn:myseqno ~orig:myid
+	~lifetime:(aodv_ALLOWED_HELLO_LOSS *. aodv_HELLO_INTERVAL) () in
+      let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst:L3pkt.l3_bcast_addr
+	~ttl:1 ~ext:(`AODV_HDR rrep) () in
+      let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
+      s#log_debug (lazy "Sending HELLO"); 
+
+      s#send_out l3pkt;
+    );
+
+    (Sched.s())#sched_in ~f:s#send_hello ~t:next_t;
+  )
+      
+
+    (* if part of active route AND
+       time elapsed since last broadcast > aodv_HELLO_INTERVAL then
+       send_hello;
+       resched in HELLO_INTERVAL;
+       else
+       resched in time_since_last_broadcast + hello_interval *)
+       
+
+
+
   method private incr_seqno() = myseqno <- myseqno + 1
 
-(* Periodically go through rreq cache and remove rreqs which are too old to be
-   of any use, to avoid that it fills up and gets to O(N) size. *)
-  method private clean_rreq_cache() = (
+  (* Periodically go through rreq cache and remove rreqs which are too old to be
+     of any use, to avoid that it fills up and gets to O(N) size. 
+     Similarly, clean up ers_uid cache.
+*)
+  method private clean_data_structures() = (
     let oldest_acceptable = (Time.time()) -. aodv_PATH_DISCOVERY_TIME in
     let check key time = 
       if time < oldest_acceptable then (
 	Hashtbl.remove rreq_cache key;
 	assert (Hashtbl.find_all rreq_cache key = [])
-      )  in
+      ) in
     Hashtbl.iter check rreq_cache;
-    (Sched.s())#sched_in ~f:s#clean_rreq_cache ~t:aodv_PATH_DISCOVERY_TIME;
+    
+    let check dst ers = 
+      if not (Aodv_rtab.repairing rt dst) then (
+	Hashtbl.remove ers_uids dst;
+	assert (Hashtbl.find_all ers_uids dst = [])
+      ) in
+    Hashtbl.iter check ers_uids;
+
+    (Sched.s())#sched_in ~f:s#clean_data_structures ~t:aodv_PATH_DISCOVERY_TIME;
   )
 
   method private packets_waiting ~dst = 
@@ -153,7 +222,7 @@ object(s)
 
 
   method private send_waiting_packets ~dst () = 
-    try 
+    if Aodv_rtab.valid rt dst then try 
       let pktqueue = Hashtbl.find pktqs dst in
       begin try 
 	while true do
@@ -161,22 +230,23 @@ object(s)
 	  s#log_info 
 	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
 	      (L3pkt.l3src l3pkt) dst));
-	  if Aodv_rtab.valid rt dst then
-	    Aodv_rtab.set_lifetime rt dst aodv_ACTIVE_ROUTE_TIMEOUT;
-	      s#send_out l3pkt;
-
-	  s#send_out l3pkt
+	  
+	  Aodv_rtab.set_lifetime rt dst aodv_ACTIVE_ROUTE_TIMEOUT;
+	  s#send_out l3pkt;
 	done
       with Queue.Empty -> Hashtbl.remove pktqs dst 
       end;
     with Not_found -> ()
-
+      
   method private after_send_any_buffered_pkts dst = 
     (Sched.s())#sched_at ~f:(s#send_waiting_packets ~dst) ~t:Scheduler.ASAP
 
   method private drop_buffered_packets ~dst = 
-    Hashtbl.remove pktqs dst
-
+    try 
+      let q = Hashtbl.find pktqs dst in
+      stats.S.data_drop_rerr <- stats.S.data_drop_rerr + Queue.length q;
+      Hashtbl.remove pktqs dst
+    with Not_found -> ()
 
   (* DATA packets are buffered when they fail on send, 
      or if there are already buffered packets for that destination *)
@@ -192,7 +262,7 @@ object(s)
 	    Hashtbl.add pktqs dst q
 	end
       | false -> 
-	  Grep_hooks.drop_data();
+	  stats.S.data_drop_overflow <- stats.S.data_drop_overflow + 1;
 	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" dst));
   )
 
@@ -208,27 +278,23 @@ object(s)
       | DATA -> s#process_data_pkt l3pkt sender;
       | RREQ rreq -> s#process_rreq_pkt src (L3pkt.l3ttl l3pkt) rreq
       | RREP rrep -> s#process_rrep_pkt src rrep ;
-      | RERR rerr -> s#process_rerr_pkt src rerr ;
+      | RERR rerr -> s#process_rerr_pkt src (L3pkt.l3ttl l3pkt) rerr ;
       | RREP_ACK -> raise Misc.Not_Implemented;
     end
   ) 
 
-  method mac_recv_l3pkt _  = ()
 
   (* Entry point for incoming packets. *)
-  method mac_recv_l2pkt l2pkt = (
-    
-    (* xxx/rfc not sure what to do with l2src. 
-       Ie, check if we have a route to that src and if so update lifetime? *)
-    s#recv_l3pkt_ ~l3pkt:(L2pkt.l3pkt l2pkt) ~sender:(L2pkt.l2src l2pkt)
-  )
+  method recv_pkt_mac ~l2src ~l2dst l3pkt = 
+    s#recv_l3pkt_ ~l3pkt ~sender:l2src
+
 
 
   (* return true if we can answer this rreq, as per rfc 6.6 *)
   method private can_reply rreq = 
     if rreq.rreq_dst = myid  then true else
       match Aodv_rtab.seqno rt rreq.rreq_dst, rreq.rreq_flags.d with 
-	| Some sn, true -> 
+	| Some sn, false -> 
 	    Aodv_rtab.valid rt rreq.rreq_dst 
 	    && (sn >=  rreq.rreq_dst_sn || rreq.rreq_flags.u)
 	| _ -> false
@@ -240,6 +306,7 @@ object(s)
 	Some nh -> 
 	  let rrep = Aodv_pkt.make_rrep_hdr ~hc ~dst ~dst_sn ~orig ~lifetime () in
 	  let l3pkt = make_l3aodv rrep ~src:myid ~dst:nh in
+	  stats.S.rrep_orig <- stats.S.rrep_orig + 1;
 	  s#send_out l3pkt
       | None -> 
 	  s#log_error (lazy "aodv_agent.send_rrep"); 
@@ -248,11 +315,26 @@ object(s)
 
   (* called when we have a route request which we can reply to. *)
   method private reply_rreq rreq = (
+    s#log_info 
+    (lazy (Printf.sprintf "Originating RREP for dst %d to originator %d"
+      rreq.rreq_dst rreq.rreq_orig));
     
-    (* Possibly increment our seqno if we are the dst of the rreq (6.6.1) *)
-    if rreq.rreq_dst = myid && rreq.rreq_dst_sn = myseqno + 1 then
-      s#incr_seqno();
+    (* There is a contradiction in the rfc regarding own seqno handling when
+       we answer a RREQ:
+       "If the generating node is the destination itself, it MUST increment
+       its own sequence number by one if the sequence number in the RREQ
+       packet is equal to that incremented value." (6.6.1)
 
+       "Immediately before a destination node originates a RREP in
+       response to a RREQ, it MUST update its own sequence number to the
+       maximum of its current sequence number and the destination
+       sequence number in the RREQ packet." (6.1)
+
+       We do the latter.*)
+
+    if rreq.rreq_dst = myid then
+      myseqno <- max myseqno rreq.rreq_dst_sn;
+    
     (* hopcount, dest sn, and lifetime fields in rrep are set differently
        depending if we are the destination of the rreq or not (6.6.1, 6.6.2) *)
     let hop_count, dst_sn, lifetime = 
@@ -278,10 +360,14 @@ object(s)
       lifetime;
 
     (* send out grat rrep if appropriate *)
-    if rreq.rreq_dst <> myid && rreq.rreq_flags.g then
+    if rreq.rreq_dst <> myid && rreq.rreq_flags.g then (
+      s#log_info 
+      (lazy (Printf.sprintf "Originating GRAT RREP for dst %d to originator %d"
+	rreq.rreq_dst rreq.rreq_orig));
       let grat_lifetime = Aodv_rtab.lifetime rt rreq.rreq_orig in
       s#send_rrep ~hc:hop_count ~dst:rreq.rreq_orig ~dst_sn:rreq.rreq_orig_sn
 	~orig:rreq.rreq_dst grat_lifetime
+    )
   )
 
 
@@ -311,11 +397,14 @@ object(s)
       (* 3. Otherwise, continue RREQ processing. 
 	 First, create/update reverse path route to originator.*)
       Aodv_rtab.add_entry_rreq rt rreq src;
+      (match Aodv_rtab.nexthop_maybe rt rreq.rreq_orig with
+	  None -> failwith "adding entry for rreq_orig did nothing"
+	| Some a -> ());
+      
       s#after_send_any_buffered_pkts rreq.rreq_orig;
 	
       if s#can_reply rreq then s#reply_rreq rreq
       else if ttl > 0 then
-	(* xxx check IP spec about ttl - do we emit a packet with ttl 0?*)
 	(* Update rreq fields as per rfc 6.5 and rebroadcast. *)
 	let seqno = match Aodv_rtab.seqno rt rreq.rreq_dst with
 	  | Some s -> max s rreq.rreq_dst_sn
@@ -337,9 +426,6 @@ object(s)
      - Increment seqno for dst (NOP if we had no entry for dst)
      - Increase lifetime of route (NOP if we had no entry for dst)
      - Unicast rerr to source, will only have one invalid destination
-     
-     xxx not really clear from RFC if we should take precursor list into account
-     in this situation. assume we don't.
   *)
   method private no_nexthop_rerr ~dst ~sender = (
 
@@ -370,7 +456,7 @@ object(s)
 	      (* invalid, and we originated packet, so do rreq unless one
 		 is already ongoing for this dst. *)
 	      s#buffer_packet ~l3pkt; 
-	      if (not (Aodv_rtab.repairing rt dst)) then s#orig_rreq dst;
+	      if (not (Aodv_rtab.repairing rt dst)) then s#init_rreq dst;
 	  | false, false ->
 	      (* some weirdo forwarded us a packet for an unkown dest. *)
 	      s#no_nexthop_rerr ~dst ~sender
@@ -382,22 +468,29 @@ object(s)
     )
 
     
-  method private orig_rreq dst = (
+  method private init_rreq dst = (
     s#incr_seqno();
-    
-    ers_uids.(dst) <- Random.int max_int; (* explained in send_rreq *)
+    stats.S.rreq_init <-  stats.S.rreq_init + 1;
+
+    let ers_uid = Random.int max_int in (* explained in send_rreq *)
+    Hashtbl.replace ers_uids dst ers_uid;
+
     Aodv_rtab.repair_start rt dst;
     s#log_info (lazy (sprintf "Originating RREQ for dst %d" dst));
     let start_ttl = match Aodv_rtab.hopcount_maybe rt dst with 
       | Some hc -> aodv_TTL_INCREMENT + hc
       | None -> aodv_TTL_START in
-    s#send_rreq ~local:false ~radius:start_ttl ~dst ~ers_uid:ers_uids.(dst) ()
+    s#send_rreq ~local:false ~radius:start_ttl ~dst ~ers_uid ()
   )
 
   (* Originate local repair as per rfc 6.12 *)
-  method private orig_rreq_localrepair ~dst ~src = (
+  method private init_rreq_localrepair ~dst ~src = (
     s#incr_seqno();
-    ers_uids.(dst) <- Random.int max_int; (* explained in send_rreq *)
+    stats.S.rreq_init <-  stats.S.rreq_init + 1;
+
+    let ers_uid = Random.int max_int in (* explained in send_rreq *)
+    Hashtbl.replace ers_uids dst ers_uid;
+
     Aodv_rtab.repair_start rt dst;
     s#log_info (lazy (sprintf "Originating RREQ for dst %d (local repair)" dst));
 
@@ -405,10 +498,13 @@ object(s)
     and bw_hops = Opt.default 0 (Aodv_rtab.hopcount_maybe rt src) in
     let start_ttl =  (max aodv_MIN_REPAIR_TTL bw_hops/2) + aodv_LOCAL_ADD_TTL in
     
-    s#send_rreq ~local:true ~radius:start_ttl ~dst ~ers_uid:ers_uids.(dst) ()
+    s#send_rreq ~local:true ~radius:start_ttl ~dst ~ers_uid ()
   )
 
-  method private do_local_repair dst = raise Misc.Not_Implemented
+  method private do_local_repair dst = 
+    match Aodv_rtab.hopcount_maybe rt dst with 
+      | Some hc -> hc < aodv_MAX_REPAIR_TTL
+      | None -> false
 
     
 (* Originate a route error, when forwarding a data packet failed (either
@@ -451,7 +547,9 @@ object(s)
     
       List.iter update_dst unreachables;
 
-    if unreachables_with_prec <> [] then (* at least 1 unreachable node has precursor *)
+    if unreachables_with_prec <> [] then ( 
+      (* at least 1 unreachable node has precursor *)
+
       let new_rerr = 
 	Aodv_pkt.make_rerr_hdr ~flags:{nd=nd} 
 	  (List.combine unreachables_with_prec ur_wp_seqnos) in
@@ -459,31 +557,48 @@ object(s)
       (* If only 1 precursors for all unreachable nodes, RERR is
 	 unicast, else RERR is broadcast. *)
       let dst = if Aodv_rtab.have_many_precursors rt unreachables_with_prec then
-	L3pkt.l3_bcast_addr 
+	L3pkt.l3_bcast_addr
       else List.hd (Aodv_rtab.precursors rt
- 	(List.find (Aodv_rtab.has_precursors rt) unreachables_with_prec)) in
+ 	(List.find (Aodv_rtab.has_precursors rt) unreachables_with_prec))  in
+      let ttl = if dst = L3pkt.l3_bcast_addr then 1 else 255 in
 
-      (* xxx if unicast, shouldn't we take ttl of incoming RERR - 1 ? *)
       let l3hdr = 
-	L3pkt.make_l3hdr ~src:myid ~dst ~ttl:1 ~ext:(`AODV_HDR new_rerr) () in
+	L3pkt.make_l3hdr ~src:myid ~dst ~ttl ~ext:(`AODV_HDR new_rerr) () in
       let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
+      
+      stats.S.rerr_orig <- stats.S.rerr_orig + 1;
       s#send_out l3pkt
     )
 
-
+  )
 
 
   (* Callback from MAC layer when a unicast packet can not be delivered
      (for those MAC layers which support link-layer acknowledgements). *)
-  method packet_fw_failure l3pkt (nexthop : Common.nodeid_t) = 
+  method mac_callback l3pkt (nexthop : Common.nodeid_t) = 
+    stats.S.total_xmit <- stats.S.total_xmit - 1;
     begin match L3pkt.aodv_hdr l3pkt with
       | DATA ->     
-	  let dst = L3pkt.l3dst l3pkt in
-	  if s#do_local_repair dst then  
-	    s#orig_rreq_localrepair ~dst ~src:(L3pkt.l3dst l3pkt)
-	  else 
+	  stats.S.data_xmit <- stats.S.data_xmit - 1;
+	  let src, dst = L3pkt.l3src l3pkt, L3pkt.l3dst l3pkt in
+	  List.iter (Aodv_rtab.invalidate rt) 
+	    (Aodv_rtab.dests_thru_hop rt nexthop);
+
+	  if src = myid then (
+	    s#buffer_packet ~l3pkt; 
+	    if (not (Aodv_rtab.repairing rt dst)) then 
+	      s#init_rreq dst;
+	  ) else if s#do_local_repair dst then (
+	    s#buffer_packet ~l3pkt; 
+	    if (not (Aodv_rtab.repairing rt dst)) then
+	      s#init_rreq_localrepair ~dst ~src:(L3pkt.l3dst l3pkt)
+	  ) else 
 	    s#orig_rerr false dst 
-      | RREP _ | RREP_ACK | RERR _ | RREQ _ -> ()
+
+      | RREP _ -> stats.S.rrep_xmit <- stats.S.rrep_xmit - 1;
+      | RERR _ -> stats.S.rerr_xmit <- stats.S.rerr_xmit - 1;
+      | RREQ _ -> stats.S.rreq_xmit <- stats.S.rreq_xmit - 1;
+      | RREP_ACK -> ()
     end
     
   method private make_l3_rreq_pkt ~radius ~dst = (
@@ -508,6 +623,11 @@ object(s)
     Queue.length rreq_times < aodv_RREQ_RATELIMIT ||
     Queue.peek rreq_times < Time.time() -. 1. 
 
+
+  method private ers_uid dst uid = 
+    try uid = Hashtbl.find ers_uids dst
+    with Not_found -> false
+
   method private send_rreq ?(local=false) ?(beb=0) ~radius ~dst ~ers_uid () = (
     (* Note: ers_uid is a per-destination route request ID which is unique
        across a whole RREQ ERS (unlike rreq_id which is incremented each time
@@ -524,19 +644,19 @@ object(s)
        unique across a whole RREQ ERS. 
     *)
     
-    rreq_id <- rreq_id + 1;
-
     if beb lsr aodv_RREQ_RETRIES = 1 then (
       s#log_info (lazy (sprintf "Reached RREQ_RETRIES for dst %d, abandoning" dst));
       s#drop_buffered_packets ~dst;
       Aodv_rtab.repair_end rt dst
-    ) else if ers_uids.(dst) = ers_uid && (Aodv_rtab.repairing rt dst) &&
-      s#rreq_ratelimit_ok then (
+    ) else if s#ers_uid dst ers_uid && (Aodv_rtab.repairing rt dst) then
+      if s#rreq_ratelimit_ok then (
 	
 	(* If we are done repairing this route (maybe a rreq from that node
 	   arrived in the meantime) then we would not emit a new RREQ.*)
 	s#log_info (lazy (sprintf 
 	  "ERS RREQ pkt for dst %d with radius %d" dst radius));
+	
+	rreq_id <- rreq_id + 1;
 	
 	let l3pkt = s#make_l3_rreq_pkt ~radius ~dst in
 	
@@ -550,7 +670,7 @@ object(s)
 	let timeout, next_beb = 
 	  match beb with 
 	    | 0 -> aodv_RING_TRAVERSAL_TIME radius,
-	      if next_radius = aodv_NET_DIAMETER then 2 else 0
+	      if radius = aodv_NET_DIAMETER then 2 else 0
 	    | n -> ((float n) *. aodv_RING_TRAVERSAL_TIME radius, n * 2) in
 		
 	(* Setup event when this rreq times out. *)
@@ -568,13 +688,18 @@ object(s)
 	      s#send_rreq ~beb:next_beb ~radius:next_radius ~dst ~ers_uid ()
 	in
 
+	stats.S.rreq_orig <- stats.S.rreq_orig + 1;
 	(* Schedule the event *)
 	(Sched.s())#sched_in ~f:evt ~t:timeout;
-	(* Send out rreq packet *)
+
+	(* Add to cache and sent out packet. *)
+	Hashtbl.replace rreq_cache (myid, rreq_id) (Time.time());
 	s#send_out l3pkt;
       ) else (
 	(* we cannot send the RREQ immediately, because if so we would not be
 	   respecting RREQ_RATELIMIT. So, we will try again in a little bit.*)
+	s#log_info (lazy (sprintf 
+	  "Delaying RREQ to %d by 0.2 due to rreq ratelimiting" dst));
 	let evt() = s#send_rreq ~local ~beb ~radius ~dst ~ers_uid ()
 	in (Sched.s())#sched_in ~f:evt ~t:0.2;
       )
@@ -599,18 +724,22 @@ object(s)
        above, and have a next hop. *)
     if updated && myid <> rrep.rrep_orig then 
       match Aodv_rtab.nexthop_maybe rt rrep.rrep_orig with
-	| None -> ()
+	| None -> s#log_info 
+	    (lazy "Cannot forward RREP because no next hop to originator")
 	| Some nh ->
 	    Aodv_rtab.add_precursor rt ~dst:rrep.rrep_dst ~pre:nh;
-	    (* According to 6.7 update below should be done but seems odd and 
+	    (* xxx According to 6.7 update below should be done but seems odd and 
 	       inconsistent with what we do for other onehop routes we've created
 	       Aodv_rtab.add_precursor rt ~dst:src ~pre:nh; *)
-
-	    (* xxx ttl should be taken from l3pkt of incoming rrep and
-	       decremented. *)
+	    
 	    let new_rrep = Aodv_pkt.incr_rrep_hopcount rrep in
 	    let l3pkt = make_l3aodv ~src:myid ~dst:nh (Aodv_pkt.RREP new_rrep) in
 	    s#send_out l3pkt
+    else 
+      if not updated then s#log_info (lazy 
+	"Cannot forward RREP because did not update route to destination.")
+
+      
   )
 
 
@@ -624,7 +753,7 @@ object(s)
      (it is possible to treat both cases jointly because the only difference
      is that we increment dst seqno in case 2.
   *)
-  method private process_rerr_pkt src rerr = (
+  method private process_rerr_pkt src ttl rerr = (
     assert (List.length rerr.unreach >= 1);
 
     (* Follows the steps from rfc 6.11 *)
@@ -672,13 +801,14 @@ object(s)
 	L3pkt.l3_bcast_addr 
       else List.hd (Aodv_rtab.precursors rt
  	(List.find (Aodv_rtab.has_precursors rt) n_ur_nodes)) in
+      let ttl = if dst = L3pkt.l3_bcast_addr then 1 else ttl - 1 in
 
-      (* xxx if unicast, shouldn't we take ttl of incoming RERR - 1 ? *)
-      let l3hdr = 
-	L3pkt.make_l3hdr ~src:myid ~dst ~ttl:1 ~ext:(`AODV_HDR new_rerr) () in
-      let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
-      s#send_out l3pkt
-    )
+      if ttl >= 0 then 
+	let l3hdr = 
+	  L3pkt.make_l3hdr ~src:myid ~dst ~ttl:1 ~ext:(`AODV_HDR new_rerr) () in
+	let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt:`EMPTY in
+	s#send_out l3pkt
+  )
 
 
   method private send_out l3pkt = (
@@ -690,17 +820,25 @@ object(s)
 
     (* a few sanity checks *)
     begin match aodv_hdr with
-      | RREQ rreq -> assert (dst = L3pkt.l3_bcast_addr); assert(rreq.rreq_dst <> myid);
+      | RREQ rreq -> assert (dst = L3pkt.l3_bcast_addr); 
+	  assert(rreq.rreq_dst <> myid);
       | RERR rerr -> assert (List.length rerr.unreach > 0)
       | DATA | RREP_ACK | RREP _ -> ()
     end;
 
+    stats.S.total_xmit <- stats.S.total_xmit + 1;
+
     (* for control packets, next hop is equal to src of IP (L3) header. 
        for data packets, next hop is read off of routing table. *)
     match aodv_hdr with 
-      | DATA -> s#mac_send_pkt l3pkt (Aodv_rtab.nexthop rt dst) 
-      | RREP _ -> s#mac_send_pkt l3pkt dst 
+      | DATA -> 
+	  stats.S.data_xmit <- stats.S.data_xmit + 1;
+	  s#mac_send_pkt l3pkt (Aodv_rtab.nexthop rt dst) 
+      | RREP _ -> 
+	  stats.S.rrep_xmit <- stats.S.rrep_xmit + 1;
+	  s#mac_send_pkt l3pkt dst 
       | RREQ _ -> 
+	  stats.S.rreq_xmit <- stats.S.rreq_xmit + 1;
 	  assert (Queue.length rreq_times <= aodv_RREQ_RATELIMIT);
 	  Queue.push (Time.time()) rreq_times;
 	  if Queue.length rreq_times > aodv_RREQ_RATELIMIT then 
@@ -708,6 +846,7 @@ object(s)
 	  last_bcast_time <- Time.time(); 
 	  s#mac_bcast_pkt l3pkt
       | RERR _ -> 
+	  stats.S.rerr_xmit <- stats.S.rerr_xmit + 1;
 	  if dst = L3pkt.l3_bcast_addr then (
 	    last_bcast_time <- Time.time(); 
 	    s#mac_bcast_pkt l3pkt
@@ -720,18 +859,21 @@ object(s)
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
   method private hand_upper_layer ~l3pkt = (
-    Grep_hooks.recv_data();
+    stats.S.data_recv <- stats.S.data_recv + 1;
     s#log_info (lazy (sprintf "Received app pkt from src %d" (L3pkt.l3src l3pkt)));
   )
 
   
-  method private app_recv_l4pkt (l4pkt : L4pkt.t) dst = (
+  method private recv_pkt_app (l4pkt : L4pkt.t) dst = (
     assert (dst <> myid);
-    Grep_hooks.orig_data();
+    stats.S.data_orig <- stats.S.data_orig - 1;
 
     s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
-    let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst () in 
+    let l3hdr = L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`AODV_HDR DATA) () in 
     let l3pkt = (L3pkt.make_l3pkt ~l3hdr ~l4pkt) in
     s#process_data_pkt l3pkt myid;
   )
+
+  method stats = stats
+
 end

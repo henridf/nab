@@ -70,7 +70,7 @@ let repairing rt dst =
 let create size = Hashtbl.create size
 
 let have_entry rt dst = 
-  try  snd (Hashtbl.find rt dst) <> None with Not_found -> false
+  try snd (Hashtbl.find rt dst) <> None with Not_found -> false
 
 let get_entry_opt rt dst = 
   try snd (Hashtbl.find rt dst) with Not_found -> None
@@ -98,10 +98,10 @@ let update_timeout_valid rt dst =
   match get_entry_opt rt dst with
     | None -> ()
     | Some e -> let time = Time.time() in
-      match e.valid, e.lifetime < time with
+      match e.valid, e.lifetime > time with
 	  _, true -> ()
 	| true, false -> 
-	    if e.lifetime +. aodv_DELETE_PERIOD < time then 
+	    if e.lifetime +. aodv_DELETE_PERIOD > time then 
 	      replace_entry rt dst 
 		{e with valid=false; lifetime=e.lifetime +. aodv_DELETE_PERIOD}
 	    else remove_entry rt dst
@@ -132,7 +132,8 @@ let lifetime rt dst =
   update_timeout_valid rt dst;
   match get_entry_opt rt dst with
     | None -> 0.0
-    | Some e -> e.lifetime -. (Time.time()) 
+    | Some e -> (assert (e.lifetime -. (Time.time()) > 0.0));
+	e.lifetime -. (Time.time()) 
 
   
 let set_lifetime rt dst time = 
@@ -192,29 +193,29 @@ let add_entry_rrep rt rrep sender =
 let add_entry_rreq rt rreq sender = 
   update_timeout_valid rt rreq.rreq_orig;
   let new_seqno = 
-    match get_entry_opt rt rreq.rreq_orig with
+    (match get_entry_opt rt rreq.rreq_orig with
       |	None -> rreq.rreq_orig_sn
       | Some e -> let old_seqno = seqno rt rreq.rreq_orig in
 	if old_seqno = None then rreq.rreq_orig_sn 
-	else max rreq.rreq_orig_sn (Opt.get old_seqno) in
-    let minimalLT = 
-      2.0 *. aodv_NET_TRAVERSAL_TIME
-      -. 2.0 *. (float rreq.rreq_hopcount) *. aodv_NODE_TRAVERSAL_TIME
-    and currentLT = lifetime rt rreq.rreq_orig in
-    let new_lifetime = Time.time() +. (max minimalLT currentLT) in
+	else max rreq.rreq_orig_sn (Opt.get old_seqno)) in
+  let minimalLT = 
+    2.0 *. aodv_NET_TRAVERSAL_TIME
+    -. 2.0 *. (float rreq.rreq_hopcount) *. aodv_NODE_TRAVERSAL_TIME
+  and currentLT = lifetime rt rreq.rreq_orig in
+  let new_lifetime = Time.time() +. (max minimalLT currentLT) in
+  
+  replace_entry rt rreq.rreq_orig 
+    {nexthop=sender; 
+    hopcount=rreq.rreq_hopcount;
+    seqno=Some new_seqno; 
+    lifetime=new_lifetime;
+    valid=true;
+    precursors=[]
+    }
     
-    replace_entry rt rreq.rreq_orig 
-      {nexthop=sender; 
-      hopcount=rreq.rreq_hopcount;
-      seqno=Some new_seqno; 
-      lifetime=new_lifetime;
-      valid=true;
-      precursors=[]
-      }
-
 
 let dests_thru_hop rt nexthop = 
-    (** [dests_thru_hop rtab nexthop] returns the list (dest, seqno) pairs for
+  (** [dests_thru_hop rtab nexthop] returns the list (dest, seqno) pairs for
     all dests for which whom [rtab] contains a valid entry, with next hop
     equal to [nexthop]. *)
   let f dst (_, e) l = 
@@ -300,7 +301,8 @@ let valid rt dst =
 
 let clear_entry rt dst = Hashtbl.remove rt dst
   
-
 let clear_all_entries rt  = Hashtbl.clear rt
-  
 
+
+let have_active_route rt = 
+  Hashtbl.fold (fun dst _ b -> b || valid rt dst) rt false

@@ -27,7 +27,7 @@
 open Misc
 
 let aodv_ACTIVE_ROUTE_TIMEOUT =   3. (* Seconds *)
-let aodv_ALLOWED_HELLO_LOSS =     2
+let aodv_ALLOWED_HELLO_LOSS =     2.
 let aodv_K =                      5
 let aodv_HELLO_INTERVAL =         1. (* Seconds *)
 let aodv_DELETE_PERIOD =          (float aodv_K) *. (max aodv_ACTIVE_ROUTE_TIMEOUT aodv_HELLO_INTERVAL)
@@ -35,7 +35,7 @@ let aodv_LOCAL_ADD_TTL =          2
 let aodv_MY_ROUTE_TIMEOUT =       2. *. aodv_ACTIVE_ROUTE_TIMEOUT
 let aodv_NET_DIAMETER =           35
 let aodv_MAX_REPAIR_TTL =         int (0.3 *. (float aodv_NET_DIAMETER))
-let aodv_NODE_TRAVERSAL_TIME =    40. (* Milliseconds *)
+let aodv_NODE_TRAVERSAL_TIME =    0.04 (* 40 ms *)
 let aodv_NEXT_HOP_WAIT =          aodv_NODE_TRAVERSAL_TIME +. 10.
 let aodv_NET_TRAVERSAL_TIME =     2. *. aodv_NODE_TRAVERSAL_TIME *. (float aodv_NET_DIAMETER)
 let aodv_PATH_DISCOVERY_TIME =    2. *. aodv_NET_TRAVERSAL_TIME
