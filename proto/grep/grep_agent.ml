@@ -103,7 +103,7 @@ object(s)
     (* see #init_rreq for explanation on this *)
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_agent";
     Hashtbl.replace agents_array_.(stack) theowner#id (s :> grep_agent);
     s#incr_seqno()
   )

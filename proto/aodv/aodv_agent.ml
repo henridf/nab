@@ -135,7 +135,7 @@ object(s)
 
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
     Hashtbl.replace agents_array_.(stack) theowner#id (s :> aodv_agent);
     s#incr_seqno()
   )
