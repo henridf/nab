@@ -482,7 +482,7 @@ object(s)
       in
       let next_ttl = next_rreq_ttl ttl in
       let next_rreq_timeout = 
-	((i2f next_ttl) *. (hop_traversal_time())) in
+	((i2f (2 * next_ttl)) *. (hop_traversal_time())) in
       let next_rreq_event() = 
 	(s#send_rreq 
 	  ~ttl:next_ttl
