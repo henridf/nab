@@ -144,7 +144,7 @@ object(s)
       (fun mhook -> mhook l2pkt s)
       pktout_mhooks.(stack);
     
-    (s#mac ~stack ())#xmit ~l2pkt
+    (s#mac ~stack ())#xmit l2pkt
   )
 
   method mac_bcast_pkt ?(stack=0) l3pkt = (
@@ -156,7 +156,7 @@ object(s)
     List.iter 
     (fun mhook -> mhook l2pkt s )
       pktout_mhooks.(stack);
-    (s#mac ~stack ())#xmit ~l2pkt;
+    (s#mac ~stack ())#xmit l2pkt;
   )
 
   method set_trafficsource ~gen ~dst = 

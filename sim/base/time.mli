@@ -23,11 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 (** Handling of time.
   @author Henri Dubois-Ferriere.
 *)

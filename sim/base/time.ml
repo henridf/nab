@@ -22,7 +22,6 @@
 
 (* $Id$ *)
 
-
 type time_t = float
 type t = time_t
 type dtime_t = int

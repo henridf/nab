@@ -61,7 +61,6 @@ object(s)
       | None -> granularity <- Param.get (Params.mob_gran)
     end;
     incr rndseed
-    
   ) 
 
   method start = (
