@@ -43,6 +43,12 @@ object
     (* Broadcast packet to all neighbors. Should raise Mac_Bcast_Failure if
        node has no neighbors *)
 
+  method add_new_ngbr_hook : hook:(node_t -> unit) -> unit
+    (* Any agent (routing, application, etc) on this node who might
+       wants to know when nodes enter the neighborhood should register through
+       this hook. 
+    *)
+
   method add_recv_pkt_hook : hook:(Packet.l3packet_t -> unit) -> unit
     (* Any agent (routing, application, etc) on this node who might
        receive packets should register through this hook. 
