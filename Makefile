@@ -29,10 +29,12 @@ SUBDIRS = \
 DEPEND = .depend
 
 DEPENDS = \
-	$(LER_SUBDIR)/*.ml	$(LER_SUBDIR)/*.mli	\
-	$(BLER_SUBDIR)/*.ml	$(BLER_SUBDIR)/*.mli	\
-	$(MISC_SUBDIR)/*.ml	$(MISC_SUBDIR)/*.mli	\
-	$(TEST_SUBDIR)test/*.ml	$(TEST_SUBDIR)test/*.mli
+	$(LER_SUBDIR)/*.ml \
+	$(LER_SUBDIR)/*.mli \
+	$(BLER_SUBDIR)/*.ml \
+	$(BLER_SUBDIR)/*.mli \
+	$(MISC_SUBDIR)/*.ml \
+	$(MISC_SUBDIR)/*.mli
 
 
 ############
@@ -47,14 +49,17 @@ STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 
 
 
-LER_OBJ_FILES = $(LER_SUBDIR)/ler$(CMO) \
-	$(MISC_OBJ_FILES)
+LER_OBJ_FILES = $(MISC_OBJ_FILES) \
+	$(LER_SUBDIR)/ler$(CMO)
+
 LER_MAIN_FILE = $(LER_SUBDIR)/ler_main$(CMO)
 
 
-BLER_OBJ_FILES = $(BLER_SUBDIR)/bler$(CMO) \
+BLER_OBJ_FILES = $(GFX_LIB) \
+	$(MISC_OBJ_FILES) \
 	$(BLER_SUBDIR)/ler_graphics$(CMO) \
-	$(MISC_OBJ_FILES)
+	$(BLER_SUBDIR)/bler$(CMO)
+
 BLER_MAIN_FILE = $(BLER_SUBDIR)/bler_main$(CMO) 
 
 
@@ -68,8 +73,10 @@ DOPLOTS_OBJ_FILES = \
 DOPLOTS_MAIN_FILE = $(MISC_SUBDIR)/doplots$(CMO) 
 
 
-MISC_OBJ_FILES = $(MISC_SUBDIR)/misc$(CMO)
+MISC_OBJ_FILES = $(MISC_SUBDIR)/misc$(CMO) 
 
+GRAPH_OBJ_FILES = $(MISC_SUBDIR)/graph$(CMO)
+GRAPH_MAIN_FILE = $(MISC_SUBDIR)/graph_main$(CMO)
 
 TEST_OBJ_FILES = \
 	$(TEST_SUBDIR)/testUtils$(CMO)
@@ -92,11 +99,16 @@ exp:  $(LER_MAIN_FILE)
 bler: $(BLER_MAIN_FILE)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) $(BLER_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
-doplots:  $(MISC_SUBDIR)/doplots$(CMO)
+doplots: $(DOPLOTS_MAIN_FILE)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(DOPLOTS_OBJ_FILES) $(DOPLOTS_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
+
+graph-test: $(GRAPH_MAIN_FILE)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GRAPH_OBJ_FILES) $(GRAPH_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
 proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
+
+all: bler exp doplots graph-test
 
 CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo a.out); done
 
