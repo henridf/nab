@@ -123,6 +123,9 @@ let sprint_stats s =
     s.rrep_drop_nohop);
   Buffer.contents b
 
+let null_stats = 
+  create_stats()
+
 
 end
 
@@ -130,6 +133,7 @@ type persist_t = {
   localrepair:bool;
   dstonly:bool;
   seqno:int;
+  stats: Aodv_stats.stats;
   rt:Aodv_rtab.t
 }
 
@@ -196,6 +200,9 @@ object(s)
    *)
 
   method myid = myid
+
+  method rtab() = rt
+
 
   method private make_l3aodv ?(ttl=L3pkt.default_ttl) ?(l4pkt=`EMPTY) ~dst aodvhdr = 
   L3pkt.make_l3pkt 
@@ -920,6 +927,7 @@ object(s)
   method stats = stats
 
   method read_state s = 
+    stats <- s.stats;
     myseqno <- s.seqno;
     rt <- s.rt
     
@@ -927,6 +935,7 @@ object(s)
   localrepair=localrepair;
   dstonly=dstonly;
   seqno=myseqno;
+stats=stats;
   rt=rt
   }
 

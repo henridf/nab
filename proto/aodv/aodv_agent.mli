@@ -78,7 +78,11 @@ module Aodv_stats : sig
   val sprint_stats : stats -> string
     (** Print a stats record into a nice string. *)
 
-
+  val null_stats : stats
+    (** A [stats] object with all values set to 0 (ie, the state in
+      which a new agent comes up. 
+      Can be handy in tests, etc. *)
+    
 end
 
 val total_stats : ?stack:int -> unit -> Aodv_stats.stats
@@ -90,6 +94,7 @@ type persist_t = {
   localrepair:bool;
   dstonly:bool;
   seqno:int;
+  stats:Aodv_stats.stats;
   rt:Aodv_rtab.t
 }
 
@@ -98,10 +103,20 @@ object
 
   inherit Rt_agent.t 
 
+  method rtab : unit -> Aodv_rtab.t
+    (** Routing table is only exposed so that tests can look at it. *)
+
   method stats : Aodv_stats.stats
+    (** Return [stats] object for this AODV agent. *)
+
   method read_state : persist_t -> unit
+    (** Support for persistency (should not be used directly). *)
+
   method dump_state : unit -> persist_t
+    (** Support for persistency (should not be used directly). *)
 
 end
 
 module Persist : Persist.t 
+  (** Aodv agents can be saved and restored as per the {!Persist.t}
+    interface. *)
