@@ -101,10 +101,3 @@ end
 
 
 
-(**/**)
-(* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using
-   Gui_hooks.* from here *)
-val x_mtr_to_pix : float -> int
-
-val pos_pix_to_mtr : Coord.coordi_t -> Coord.coordf_t
-val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t

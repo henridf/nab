@@ -5,30 +5,6 @@ open Misc
 module Random = Random.State 
 let rndseed = ref 0
 
-(* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using
-   Gui_hooks.* from here *)
-let x_pix_size() = Param.get Params.x_pix_size
-let y_pix_size() = Param.get Params.y_pix_size
-
-let x_mtr() = Param.get Params.x_size
-and y_mtr() = Param.get Params.y_size
-
-
-let x_mtr_to_pix x = f2i ((i2f (x_pix_size())) *. (x /. x_mtr()))
-let y_mtr_to_pix y = f2i ((i2f (y_pix_size())) *. (y /. y_mtr()))
-
-let x_pix_to_mtr x = (x_mtr()) *. ((i2f x) /. (i2f (x_pix_size())))
-let y_pix_to_mtr y = (y_mtr()) *. ((i2f y) /. (i2f (y_pix_size())))
-
-let pos_mtr_to_pix pos = 
-  (x_mtr_to_pix (Coord.xx pos), y_mtr_to_pix (Coord.yy pos))
-
-let pos_pix_to_mtr pos = 
-  (x_pix_to_mtr (Coord.xx pos), y_pix_to_mtr (Coord.yy pos))
-
-
-
-
 class virtual mobility 
   (owner:#Simplenode.simplenode) 
   ?gran
@@ -264,9 +240,7 @@ let closest_epfl_node pos = (
   Graph.iteri_
     (fun i -> 
       let thisdist = 
-	(World.w())#dist_coords 
-	(pos_pix_to_mtr (Read_coords.box_centeri i))
-	pos 
+	(World.w())#dist_coords (Read_coords.box_centeri i) pos 
       in
       if thisdist < !d then (
 	d := thisdist;
@@ -305,9 +279,7 @@ object(s)
 
     current_graph_pos_ <- closest_epfl_node ((World.w())#nodepos owner#id);
     graph_hops_ <- 
-    List.map (fun i -> 
-      pos_pix_to_mtr ( Read_coords.box_centeri i)
-    ) 
+    List.map (fun i -> Read_coords.box_centeri i) 
       ((Graph.routei_dij_ (Read_coords.g()) current_graph_pos_ graphtarget_) @
       [graphtarget_]);
 
