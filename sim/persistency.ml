@@ -3,6 +3,7 @@
 (*                                  *)
 
 open Printf
+open Mods
 
 (*
   the global simulator state is written to file as:
@@ -27,13 +28,12 @@ open Printf
 
 type state_hdr_t = {
   node_cnt:int;
-  ntargets:int;
   time:Common.time_t
 }
 
-type sim_state_t = (Simplenode.node_state_t array * NodeDB.nodeDB_state_t array)
+type sim_state_t = Simplenode.node_state_t array
   
-let save_state  ~out_chan ~ntargets = (
+let save_node_state ?(gpsnodes=false) oc = (
   let node_cnt = (Param.get Params.nodes) in
   let descr = sprintf "mws datafile\n Parameters:\n nodes: %d\n time: %f\n" 
     node_cnt 
@@ -41,31 +41,37 @@ let save_state  ~out_chan ~ntargets = (
   in
   let state_hdr = {
     node_cnt=node_cnt;
-    ntargets=ntargets;
     time=(Common.get_time())
   }
   in
+
   let (node_states:sim_state_t) = 
-    (Nodes.gpsmap (fun n -> n#dump_state), 
-    Array.map (fun agent -> agent#db#dump_state) !(Ease_agent.agents_array))
-  in
+    if gpsnodes then
+     Nodes.gpsmap (fun n -> n#dump_state)
+    else
+      Nodes.map (fun n -> n#dump_state)
+  in 
 
-  Marshal.to_channel out_chan descr [];
-  Marshal.to_channel out_chan state_hdr [];
-  Marshal.to_channel out_chan node_states [];
+  Marshal.to_channel oc descr [];
+  Marshal.to_channel oc state_hdr [];
+  Marshal.to_channel oc node_states [];
 
-  Log.log#log_info (lazy "Simulation state saved.");
+  Log.log#log_notice (lazy "Saving node state..");
 
-  close_out out_chan
+  close_out oc
 )
 
 
-let read_state ~in_chan  = 
+let read_node_state ?(gpsnodes=false) ic  = 
 (
   (* get bits from channel *)
-  let str = (Marshal.from_channel in_chan : string) in
-  let hdr = (Marshal.from_channel in_chan : state_hdr_t) in
-  let ((node_states, db_states):sim_state_t) = (Marshal.from_channel in_chan : sim_state_t) in
+  let str = (Marshal.from_channel ic : string) in
+  let hdr = (Marshal.from_channel ic : state_hdr_t) in
+  Log.log#log_notice (lazy 
+      (sprintf "Restoring node state..."));
+
+  let (node_states:sim_state_t) = 
+    (Marshal.from_channel ic : sim_state_t) in
   
   if (hdr.node_cnt <> Array.length node_states) then 
     raise (Failure 
@@ -80,25 +86,62 @@ let read_state ~in_chan  =
 
   Log.log#log_notice (lazy "Simulation state read in:");
   Log.log#log_notice (lazy (sprintf "\t Nodes: %d" hdr.node_cnt));
-  Log.log#log_notice (lazy (sprintf "\t Ntargets: %d" hdr.ntargets));
   Log.log#log_notice (lazy (sprintf "\t Time: %f" hdr.time));
 
-
+  if gpsnodes then (
   (* make node objects out of restored node states *)
-  Nodes.set_gpsnodes
-    (Array.mapi
-      (fun i nodestate -> 
-	(new Gpsnode.gpsnode
-	~pos_init:nodestate
-	  i)
-      ) node_states);
-  Ease_agent.set_agents
-    (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent n));
-  
-  Array.iteri (fun i agent -> agent#db#load_state db_states.(i)) !(Ease_agent.agents_array);
-  
-  (* set up initial node position in internal structures of World.object *)
-  Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos );
+    Nodes.set_gpsnodes
+      (Array.mapi
+	(fun i nodestate -> 
+	  (new Gpsnode.gpsnode ~pos_init:nodestate i)
+	) node_states);
+    
+    (* set up initial node position in internal structures of World.object *)
+    Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos );
+  ) 
+  else (
+    (* No state to restore in the node objects themselves. 
+    Script_utils.make_nodes ~with_positions:false ();*)
+
+    (* set up initial node position in internal structures of World.object *)
+    Nodes.iteri (fun nid _ -> 
+      (World.w())#movenode ~nid ~newpos:node_states.(nid));
+
+  );
   assert ((World.w())#neighbors_consistent);
 )
+
+let save_grep_agents oc = 
+  let states = 
+    Array.map !Grep_agent.agents_array 
+    (fun agent -> agent#get_state ())
+  in Marshal.to_channel oc states [];
+  Log.log#log_notice (lazy "Saving grep_agents state..")
+
+
+let read_grep_agents ?(stack=0) ic = 
+  let state_arr = (Marshal.from_channel ic : Grep_agent.grep_state_t array) in
+  Log.log#log_notice (lazy 
+      (sprintf "Restoring grep_agents..."));
+  if Array.length state_arr  <> (Param.get Params.nodes) then (
+    Log.log#log_error (lazy 
+      (sprintf "Read in array of %d grep_agents, but there are %d nodes!!!"
+	(Array.length state_arr)
+	(Param.get Params.nodes)));
+    exit (-1);
+  );
+  
+  Grep_agent.set_agents
+    (Nodes.map (fun n -> new Grep_agent.grep_agent n));
+  Array.iteri !Grep_agent.agents_array
+    (fun i n -> n#set_state state_arr.(i));
+  
+  Nodes.iter (fun n -> n#remove_rt_agent ~stack ());
+
+  Nodes.iteri (fun i n -> 
+    n#install_rt_agent ~stack (!Grep_agent.agents_array.(i) :> Rt_agent.t));
+
+
+
+
 
