@@ -1,7 +1,8 @@
-open Misc
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
 
-let _LINK_RANGE = 250.0
-let one_meter = (1.0 /. _LINK_RANGE ) 
+open Misc
 
 let (world_:World.world_t option ref) = ref None 
 let world () = try o2v !world_ with
