@@ -51,7 +51,13 @@ object(s)
       | ALAP -> raise (Failure "sched#sched_handler_at: ALAP not implemented\n")
       | Time t -> (
 	  if (t <= Common.get_time()) then 
-	    raise (Failure "sched#sched_handler_at: attempt to schedule an event in the past");
+	    raise 
+	      (Failure 
+		("sched#sched_handler_at: attempt to schedule an event in the"
+		^
+		(Printf.sprintf "past at time %f, current time is %f"
+		  t (Common.time())))
+	      );
 	  s#sched_event_at {handler=handler; time=t};
 
 (*	  s#log_debug (lazy (sprintf "scheduling event at %.8f" t));
