@@ -31,66 +31,14 @@ let agents_array = ref ([||]: ease_agent_t array)
 let set_agents arr = agents_array := arr
 let agent i = !agents_array.(i)
 
-(* right now this mhook does not distinguish betwen src-dst pairs, it takes
-   anything and tries to construct the route.
-   Later, it should take src and dst as parameters, and script would create a
-   closured mhook with appropriate src and dsts.
-   This would allow having multiple route constructions ongoing and mhooks
-   demuxing between them apropriately.
-*)
+let proportion_met_nodes ~targets  = 
+  let total_encounters = 
+    Array.fold_left (fun encs agent -> (agent#db#num_encounters) + encs) 0 !agents_array
+  in
+  (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
 
-(*
-let magic_bler_route_mhook routeref l2pkt (node:Node.node_t) = (
 
-  let l3dst = (Packet.get_l3hdr l2pkt.l3pkt).dst 
-  and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in
-  
-  match l2pkt.l2hdr.l2src <> node#id with
-    | true -> 	(* Packet arriving at a node *)
 
-	if  node#id = l3dst then  (* Packet arriving at dst. *)
-	  	    
-	  routeref := Route.add_hop !routeref {
-	    Route.hop=node#id;
-	    Route.anchor=node#id;
-	    Route.anchor_age=0.0;
-	    Route.searchcost=0.0
-	  }
-
-	else  (* Packet arriving at intermediate node *)
-	  routeref := Route.add_hop !routeref {
-	    Route.hop=node#id;
-	    Route.anchor=node#id;
-(*	    Route.anchor_age=0.0;*)
-	    Route.anchor_age=(node#db)#encounter_age ~nid:l3dst;
-	    Route.searchcost=0.0 (* will be filled in when the packet
-				    leaves this intermediate node below *)
-	  }
-  
-    | false ->  (* Packet leaving some node *)
-
-	if  node#id = l3src then  (* Packet leaving src *)
-	  	    
-	  routeref := Route.add_hop !routeref {
-	    Route.hop=node#id;
-	    Route.anchor=node#id;
-	    Route.anchor_age=(node#db)#encounter_age ~nid:l3dst;
-	    Route.searchcost=0.0
-	  }
-
-	else    (* Packet leaving intermediate node. *)
-
-	  (* now we know the next hop, we can figure out the search cost *)
-	  let next_hop = 
-	    match l2pkt.l2hdr.l2dst with
-	      | L2_DST d -> d
-	      | L2_BCAST -> 
-		  raise (Failure "Bler_agent.bler_route_mhook: didn't expect to see a L2_BCAST")
-	  in
-	  (Route.last_hop !routeref).Route.searchcost <- 
-	  (((Gworld.world())#dist_nodeids next_hop node#id) ** 2.0)
-)
-*)
 
 
 class ease_agent owner = 
@@ -114,8 +62,6 @@ object(s)
     owner#add_new_ngbr_hook ~hook:s#add_neighbor
   )
 
-  method mac_recv_hook l3pkt = ()
-(*    s#recv_ease_pkt_ ~pkt:l3pkt *)
 
    method add_neighbor n = (
      if n#id < ntargets then (
@@ -123,117 +69,153 @@ object(s)
      )
    )
 
+  method mac_recv_hook l3pkt = 
+    s#recv_ease_pkt_ l3pkt 
 
-  method app_send (l4pld:Packet.l4pld_t) ~dst = (
-    let enc_age = (
+  method private our_enc_age dst = 
       match db#last_encounter ~nid:dst with
 	| None -> max_float
 	| Some enc ->  Common.enc_age enc
-    ) in
 
+  method app_send (l4pld:Packet.l4pld_t) ~dst = (
     s#recv_ease_pkt_ 
-      (Packet.make_ease_l3pkt 
-	~srcid:owner#id 
-	~dstid:dst 
-	~anchor:owner#pos
-	~enc_age
-      )
-
+    (Packet.make_ease_l3pkt 
+      ~srcid:owner#id 
+      ~dstid:dst 
+      ~anchor_pos:owner#pos
+      ~enc_age:(s#our_enc_age dst)
+    )
   )
-
 
   method private closest_toward_anchor anchor_pos = (
 
       match (anchor_pos = owner#pos) with
-	| true -> owner#id (* we are the anchor (probably we are the src) *)
+	| true -> 
+	    owner#id; (* we are the anchor (probably we are the src) *)
 	| false ->
 	    
 	    let d_here_to_anchor = (Gworld.world())#dist_coords owner#pos anchor_pos in
 	    
 	    let f node = 
 	      if (Gworld.world())#dist_coords node#pos anchor_pos < d_here_to_anchor then true 
-	      else if 
-		(Gworld.world())#dist_coords node#pos owner#pos > d_here_to_anchor  
-	      then raise Misc.Break
 	      else false
 	    in
-	    
-	    let closestopt = 
-		begin
-		  try 
-		    (Gworld.world())#find_closest ~pos:owner#pos ~f
-		  with 
-		    | Misc.Break -> Some owner#id 
-		    | o -> raise o
-		end	    
-	    in 
-	    if closestopt = None then raise (Misc.Impossible_Case
-	      "Ease_agent.recv_ease_pkt_");
-	    Misc.o2v closestopt;
-	    (*	    if closest = None then raise (Misc.Impossible_Case "Ease_agent.recv_ease_pkt_");
-		    Misc.o2v closest*)
+	    match ((Gworld.world())#find_closest ~pos:owner#pos ~f)
+	    with 
+	      | None -> owner#id
+	      | Some n when (
+		  ((Gworld.world())#dist_coords (Nodes.node n)#pos anchor_pos) >
+		  d_here_to_anchor)
+		  ->
+		  owner#id
+	      | Some n -> n
   )
-  method private recv_ease_pkt_ pkt = (
-    s#log_info (sprintf "%d received pkt with src %d, dst %d"
-      owner#id (pkt.l3hdr.src) (pkt.l3hdr.dst));
 
+  method private have_better_anchor dst cur_enc_age = 
+    (s#our_enc_age dst) < cur_enc_age
+    
+  method private find_next_anchor dst cur_enc_age = (
+    (* when did we see dst ? *)
+    let our_enc_age = s#our_enc_age dst in
+    
+
+    if our_enc_age < cur_enc_age then (
+      s#log_debug "Need new anchor, found one locally\n";
+      let anchor = (Misc.o2v (db#last_encounter ~nid:dst)).Common.p in
+      (0.0, anchor, our_enc_age)
+    ) else (
+      s#log_debug "Need new anchor, looking remotely\n";
+      (* who's seen dst more recently than pkt.l3hdr.enc_age ? *)
+      let msngr =  
+	Misc.o2v (
+	  (Gworld.world())#find_closest 
+	  (* the inequality has to be sharp to ensure that we make. But if
+	     we are right next to the destination, it could be that our last
+	     encounter was 'now', in which case the destination won't
+	     satisfy the inequality, hence the first test *)
+	  owner#pos 
+	  (fun n -> 
+	    (n#id = dst)
+	    ||
+	    !agents_array.(n#id)#db#encounter_age ~nid:dst < cur_enc_age)
+	)
+      in
+      if (msngr = dst) then 
+	(((Gworld.world())#dist_coords owner#pos (Nodes.node dst)#pos), 
+	(Nodes.node dst)#pos, 
+	0.0) 
+      else
+	let enc = 
+	  Misc.o2v (
+	    !agents_array.(msngr)#db#last_encounter
+	    ~nid:dst 
+	  )
+	in
+	let d_to_messenger = 
+	  (Gworld.world())#dist_coords owner#pos (Nodes.node msngr)#pos in
+	(d_to_messenger, enc.Common.p, Common.enc_age enc)
+    )
+  )
+
+
+
+  method private we_are_closest_to_anchor anchor_pos = 
+    (s#closest_toward_anchor anchor_pos) = owner#id;
+
+
+  method private geo_fw_pkt_ pkt = (
     (* find next closest node toward anchor *)
     let closest_id = s#closest_toward_anchor pkt.l3hdr.anchor_pos in
     
-    if closest_id != owner#id then
+    if closest_id = owner#id then 
+      s#recv_ease_pkt_ pkt
+    else (   
       (* geographically forward toward anchor  *)
-      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id
-    else (  (* we are closest node to anchor. next anchor search  *)
+      s#log_debug (sprintf "Forwarding geographically to %d" closest_id);
+      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id;
+    )
+  )
 
-      match  owner#id = pkt.l3hdr.dst with
-	  
-	| true -> (* We are destination. *)
-	    s#log_debug (sprintf "packet has arrived");
 
-	| false ->  (* We are src or intermediate hop *)
-
-	    s#log_debug (sprintf "We are first or intermediate hop");
+  method private recv_ease_pkt_ pkt = (
+    s#log_info 
+    (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
+      owner#id 
+      pkt.l3hdr.src 
+      pkt.l3hdr.dst
+      pkt.l3hdr.ease_enc_age
+      (Coord.sprintf pkt.l3hdr.anchor_pos)
+    );
+    
+    pkt.l3hdr.search_dist <- 0.0;
+    match  owner#id = pkt.l3hdr.dst with
+	
+      | true -> (* We are destination. *)
+	  s#log_debug (sprintf "packet has arrived");
+      | false -> (  
+	  let cur_enc_age = pkt.l3hdr.ease_enc_age in
+	  if (
+	    (* comment out the first condition to have ease instead of grease *)
+	    (s#have_better_anchor  pkt.l3hdr.dst cur_enc_age) ||
+	    (s#we_are_closest_to_anchor pkt.l3hdr.anchor_pos)) then (
+	    (* we are closest node to anchor. next anchor search  *)
+	    (* We are src or intermediate hop *)
+	    (*	    s#log_debug (sprintf "We are first or intermediate hop");*)
 	    
-	    (* when did we see dst ? *)
-	    let our_enc_age = (
-	      match db#last_encounter ~nid:pkt.l3hdr.dst with
-		| None -> max_float
-		| Some enc ->  Common.enc_age enc
-	    ) 
+	    let (d_to_msnger, next_anchor, next_enc_age) = 
+	      s#find_next_anchor pkt.l3hdr.dst cur_enc_age
 	    in
-	    let (next_anchor, next_enc_age) = 
-	      if our_enc_age < pkt.l3hdr.ease_enc_age then
-		let anchor = (Misc.o2v (db#last_encounter ~nid:pkt.l3hdr.dst)).Common.p in
-		(anchor, our_enc_age)
-	      else
-		(* who's seen dst more recently than pkt.l3hdr.enc_age ? *)
-		let closest_with_better_anchor =  
-		  Misc.o2v (
-		    (Gworld.world())#find_closest 
-		    (* the inequality has to be sharp to ensure that we make. But if
-		       we are right next to the destination, it could be that our last
-		       encounter was 'now', in which case the destination won't
-		       satisfy the inequality, hence the first test *)
-		    owner#pos 
-		    (fun n -> 
-		      n#id = pkt.l3hdr.dst  ||
-		      !agents_array.(n#id)#db#encounter_age ~nid:pkt.l3hdr.dst < our_enc_age)
-		  )
-		in
-		let enc = Misc.o2v (
-		  !agents_array.(closest_with_better_anchor)#db#last_encounter
-		  ~nid:pkt.l3hdr.dst 
-		)
-		in
-		(enc.Common.p, enc.Common.t)
-
-		in
 	    pkt.l3hdr.ease_enc_age <- next_enc_age;
 	    pkt.l3hdr.anchor_pos <- next_anchor;
 	    (* Send through our containing nodes' mac layer *)
-	    s#recv_ease_pkt_ pkt
-    )
+	    pkt.l3hdr.search_dist <- d_to_msnger;
+	  );
+	  s#geo_fw_pkt_ pkt
+	)
   )
+    
+    
+    
 
 
 end
