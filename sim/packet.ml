@@ -118,7 +118,8 @@ type l3hdr_t = {(* adjust l3hdr_size if this changes *)
   grep_sseqno : int;   (* seqno of the source at the time the source sent it *)
   mutable grep_shopcount: int; (* hops traversed since leaving the source *)
   mutable ease_enc_age: Common.time_t;
-  mutable anchor_pos: Coord.coordf_t
+  mutable anchor_pos: Coord.coordf_t;
+  mutable search_dist : float (* hack for mhook to read off of *)
 }
 
 
@@ -192,7 +193,8 @@ let make_l3hdr
   grep_sseqno=0;
   grep_shopcount=0;
   ease_enc_age=enc_age;
-  anchor_pos=anchor_pos
+  anchor_pos=anchor_pos;
+  search_dist=0.0;
 }
 
 let make_grep_l3hdr 
@@ -209,7 +211,8 @@ let make_grep_l3hdr
   grep_sseqno=sseqno;
   grep_shopcount=shopcount;
   ease_enc_age=0.0;
-  anchor_pos=(0., 0.)
+  anchor_pos=(0., 0.);
+  search_dist=0.0
 }
 
 let make_app_pkt ~l3hdr = {
@@ -227,8 +230,8 @@ let make_bler_l3pkt ~srcid ~dstid  = {
   l4pkt=BLER_PLD (ANCH_REQ (dstid, max_float))(*dst, current enc. age*)
 }
 
-let make_ease_l3pkt ~srcid ~dstid ~anchor ~enc_age = {
-  l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ~ptype:EASE ());
+let make_ease_l3pkt ~srcid ~dstid ~anchor_pos ~enc_age = {
+  l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ~ptype:EASE ~enc_age ~anchor_pos ());
   l4pkt=NONE
 }
 
