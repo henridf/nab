@@ -292,7 +292,8 @@ object(s)
       | Packet.GREP_RADV -> s#process_radv_pkt ~l3pkt:l3pkt ~sender:sender;
       | Packet.GREP_RREP -> s#process_rrep_pkt ~l3pkt:l3pkt ~sender:sender;
       | Packet.GREP_RERR -> s#process_rerr_pkt ~l3pkt:l3pkt ~sender:sender;
-      | Packet.NOT_GREP -> raise (Failure "Aodv_agent.recv_l2pkt_hook");
+      | Packet.NOT_GREP | Packet.EASE 
+	  -> raise (Failure "Aodv_agent.recv_l2pkt_hook");
     end
   ) 
 
@@ -648,8 +649,8 @@ object(s)
     incr_shopcount_pkt ~l3pkt:l3pkt;
     assert (Packet.get_l3shopcount ~l3pkt:l3pkt > 0);
     begin match (Packet.get_l3grepflags ~l3pkt:l3pkt) with
-      | Packet.NOT_GREP -> 
-	  raise (Failure "Aodv_agent.send_out")
+      | Packet.NOT_GREP | Packet.EASE 
+	  ->  raise (Failure "Aodv_agent.send_out")
       | Packet.GREP_RADV 
       | Packet.GREP_RREQ -> 
 	  assert (dst = Packet._L3_BCAST_ADDR);

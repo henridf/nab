@@ -258,7 +258,8 @@ object(s)
       | Packet.GREP_RREQ -> s#process_rreq_pkt ~l3pkt:l3pkt ~fresh:pkt_fresh
       | Packet.GREP_RADV -> s#process_radv_pkt ~l3pkt:l3pkt ~sender:sender;
       | Packet.GREP_RREP -> s#process_rrep_pkt ~l3pkt:l3pkt ~sender:sender;
-      | Packet.NOT_GREP -> raise (Failure "Grep_agent.recv_l2pkt_hook");
+      | Packet.NOT_GREP | Packet.EASE 
+	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
       | Packet.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
     end
   ) 
@@ -514,7 +515,7 @@ object(s)
     incr_shopcount_pkt ~l3pkt:l3pkt;
     begin match (Packet.get_l3grepflags ~l3pkt:l3pkt) with
 
-      | Packet.NOT_GREP -> 
+      | Packet.NOT_GREP | Packet.EASE ->
 	  raise (Failure "Grep_agent.send_out")
       | Packet.GREP_RERR ->
 	  raise (Misc.Impossible_Case "Grep_agent.send_out")
