@@ -50,11 +50,10 @@ DOC_TARGET_DIR = doc
 BIN_DIR = bin
 
 GTK_DIR = $(LIB_DIR)/lablgtk
-GNUPLOT_DIR = ../contrib/gnuplot
 CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
 INCLUDE_SRC = $(foreach dir,$(DIRS), -I $(dir))
-INCLUDE_LIBS = -I $(GTK_DIR) -I $(GNUPLOT_DIR)
+INCLUDE_LIBS = -I $(GTK_DIR)
 INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(MWS_SCRIPT_DIR) -I $(GUI_DATA_DIR)
 
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
@@ -92,7 +91,6 @@ endif
 # Libraries
 
 GFX_LIB = $(LIB_DIR)/graphics$(CMA)
-GNUPLOT_LIB = $(GNUPLOT_DIR)/gnuplot$(CMA)
 UNIX_LIB = $(LIB_DIR)/unix$(CMA)
 STR_LIB = $(LIB_DIR)/str$(CMA)
 THREADS_LIB = $(LIB_DIR)/threads/threads$(CMA)
@@ -124,7 +122,6 @@ DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
 
 MWS_OBJS = $(GFX_LIB) \
 		$(STR_LIB) \
-		$(GNUPLOT_LIB) \
 		$(MWS_LIB_OBJS) \
 		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
