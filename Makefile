@@ -11,6 +11,7 @@ endif
 
 
 OCAMLDOC = ocamldoc.opt
+OCAMLDEP = ocamldep.opt
 
 LIB_DIR = $(shell ocamlc -where)
 
@@ -272,7 +273,7 @@ eclean:
 
 
 .depend:
-	ocamldep $(INCLUDE_SRC) $(DEPENDS) > $(DEPEND)
+	$(OCAMLDEP) $(INCLUDE_SRC) $(DEPENDS) > $(DEPEND)
 
 depend: .depend
 
