@@ -99,6 +99,17 @@ object
     method private backend_reset_stats : unit
     method private backend_stats : 'stats
     method private backend_recv : L2pkt.t -> unit
+    method private backend_xmit_complete : unit
+
+
+    method private unicast_failure : L2pkt.t -> unit
+    (** A MAC implementation may call this method on the base class when it
+      a unicast transmission fails. If and when a MAC layer detects a unicast
+      transmission failure depends on the type of MAC. For example, a MACAW
+      mac would call [unicast_failure] when the RTS/CTS/DATA/ACK cycle
+      fails. Or a MACA mac, which does not have ACKs, will never call
+      [unicast_failure]. *)
+
 end
 
 type frontend_state = 
@@ -113,6 +124,13 @@ object
   method private frontend_reset_stats : unit
   method private frontend_stats : 'stats
   method private frontend_xmit : L2pkt.t -> unit
+    (** This method is called on the frontend by the backend with a packet
+      which is to be sent straight out over the air. 
+      A typical frontend behavior is that the packet is silently dropped if
+      the frontend is already busy receiving or transmitting. Frontends which
+      have different behaviors should document them clearly.
+    *)
+
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method bps : float
 

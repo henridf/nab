@@ -45,10 +45,10 @@ class nullmac_q ?(stack=0) ~bps owner  =
   let myid = owner#id in
 object(s)
   inherit Log.inheritable_loggable
-  inherit Mac_base.cb_null_frontend ~stack ~bps owner as frontend
+  inherit Mac_base.null_frontend ~stack ~bps owner as frontend
   inherit Mac_base.queue_backend ~stack ~bps owner as backend
 
-  val rnd = Random.State.make [|!rndseed|] 
+  val rnd = Random.State.make [|!rndseed|]
 
   initializer (
     s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/nullmac_q";

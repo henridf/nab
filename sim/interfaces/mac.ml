@@ -49,6 +49,7 @@ object
     method private backend_reset_stats : unit
     method private backend_stats : 'stats
     method private backend_recv : L2pkt.t -> unit
+    method private backend_xmit_complete : unit
     method private unicast_failure : L2pkt.t -> unit
 end
 

@@ -89,6 +89,7 @@ object(s)
 
   method virtual private backend_reset_stats : unit
   method virtual private backend_stats : 'stats
+  method virtual private backend_xmit_complete : unit
 
 end
 
@@ -134,6 +135,8 @@ object(s)
   inherit ['mac_queue_stats] backend ~stack ~bps owner as super
 
   method private backend_reset_stats  = Pkt_queue.reset_stats pktq
+
+  method virtual private state : Mac.frontend_state
 
   method private backend_stats = { nDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped} 
   method private backend_recv l2pkt = 
@@ -200,11 +203,14 @@ object
        should be called from the recv method of the frontend. *)
 end
 
-class virtual null_frontend ?(stack=0)  ~(bps:float)
-  (owner:#Node.node) =
+class virtual null_frontend ?(stack=0) ~(bps:float) (owner:#Node.node) =
   let myid = owner#id in
+
 object(s)
-  inherit [unit] frontend ~stack ~bps owner
+  inherit [unit] frontend ~stack ~bps owner as null_frontend
+  val mutable state = Mac.Idle
+
+  method private state = state
 
   method private frontend_reset_stats = 
     bitsTX <- 0;
@@ -213,29 +219,6 @@ object(s)
     pktsTX <- 0
       
   method private frontend_stats = ()
-    
-  method private frontend_xmit l2pkt = 
-    pktsTX <- pktsTX + 1;
-    bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
-    SimpleEther.emit ~stack ~nid:myid l2pkt;
-    
-
-  method recv ?(snr=1.0) ~l2pkt () = 
-    let recv_event() = s#backend_recv l2pkt in
-    
-    pktsRX <- pktsRX + 1;
-    bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
-    (Sched.s())#sched_in ~f:recv_event ~t:(xmit_time bps l2pkt)
-    
-
-end
-
-class virtual cb_null_frontend ?(stack=0) ~(bps:float) (owner:#Node.node) =
-object(s)
-  inherit null_frontend ~stack ~bps owner as null_frontend
-  val mutable state = Mac.Idle
-
-  method private state = state
 
   method private frontend_xmit l2pkt = 
     if state = Mac.Idle then (
@@ -245,7 +228,10 @@ object(s)
 	s#backend_xmit_complete
       ) in
       state <- Mac.Tx;
-      null_frontend#frontend_xmit l2pkt;
+      pktsTX <- pktsTX + 1;
+      bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
+      SimpleEther.emit ~stack ~nid:myid l2pkt;
+
       let t = xmit_time bps l2pkt in
       (Sched.s())#sched_in ~t ~f:xmit_done_event
     )

@@ -48,8 +48,7 @@ class contentionmac ?(stack=0) ~bps owner  =
 object(s)
   inherit Log.inheritable_loggable
   inherit Contention_frontend.contention_frontend ~stack ~bps owner as frontend
-  inherit Mac_base.null_backend ~stack ~bps owner as backend
-
+  inherit Mac_base.queue_backend ~stack ~bps owner as backend
 
   val rnd = Random.State.make [|!rndseed|] 
 
@@ -83,6 +82,8 @@ object(s)
     let delay = Random.State.float rnd jitter in
     (Sched.s())#sched_in ~f:(fun () -> frontend#frontend_xmit l2pkt) ~t:delay;
     s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
+
+
 
   method other_stats = frontend#frontend_stats
 

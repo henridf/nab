@@ -244,8 +244,12 @@ object(s)
 	  *)
   )
 
-  method xmit l2pkt = s#pktin_l3 l2pkt
-
+  method private backend_xmit_complete = ()
+    
+  method xmit l2pkt = 
+    s#pktin_l3 l2pkt; 
+    failwith "backend_xmit_complete must be scheduled for after transmission" 
+      
   method private backend_stats = 
     let module C = Contention_frontend in 
     {

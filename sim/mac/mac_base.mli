@@ -99,16 +99,17 @@ object
   method virtual other_stats : 'stats
     
   method private unicast_failure : L2pkt.t -> unit
-    (** A MAC implementation may call this method on the base class when it
-      a unicast transmission fails. If and when a MAC layer detects a unicast
-      transmission failure depends on the type of MAC. For example, a MACAW
-      mac would call [unicast_failure] when the RTS/CTS/DATA/ACK cycle
-      fails. Or a MACA mac, which does not have ACKs, will never call
-      [unicast_failure]. *)
-    
-  (** Methods documented in {!Mac.t}. *)
+    (** Method documented in {!Mac.backend_t}. *)
+
   method virtual recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
+    (** To be implemented by the inheriting class (method documented in {!Mac.frontend_t}). *)
+    
   method virtual xmit : L2pkt.t -> unit
+    (** To be implemented by the inheriting class (method documented in {!Mac.frontend_t}). *)
+
+
+  (** Methods documented in {!Mac.t}. *)
+    
   method basic_stats : Mac.basic_stats
   method reset_stats : unit
   method bps : float
@@ -154,10 +155,11 @@ object
       {!Mac.basic_stats} and any additional stats. *)
 
   method virtual recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
+    (** To be implemented by the inheriting class (method documented in {!Mac.frontend_t}). *)
+
 
   method virtual private frontend_xmit : L2pkt.t -> unit
-    (** This method is called on the frontend by the backed with a packet
-      which is to be sent straight out over the air. *)
+    (** To be implemented by the inheriting class (method documented in {!Mac.frontend_t}). *)
 
   method virtual private backend_recv : L2pkt.t -> unit
     (** The frontend should call this method with an incoming packet which has
@@ -190,13 +192,20 @@ object
   method private send_up : L2pkt.t -> unit
 
   method virtual xmit : L2pkt.t -> unit
-    (** Documented in {!Mac.t}. *)
+    (** To be implemented by the inheriting class (method documented in {!Mac.t}). *)
 
   method private unicast_failure : L2pkt.t -> unit
     (** Documented in {!Mac_base.base}. *)
 
   method virtual private backend_reset_stats : unit
+    (** To be implemented by the inheriting class (method documented in {!Mac.backend_t}). *)
+
   method virtual private backend_stats : 'stats
+    (** To be implemented by the inheriting class (method documented in {!Mac.backend_t}). *)
+
+  method virtual private backend_xmit_complete : unit
+    (** To be implemented by the inheriting class (method documented in {!Mac.backend_t}). *)
+
 end
 
 
@@ -212,6 +221,8 @@ object
   method private backend_reset_stats : unit
   method private backend_stats : unit
   method virtual private frontend_xmit : L2pkt.t -> unit
+    (** To be implemented by the frontend class which is mixed in with this
+      backend (method documented in {!Mac.frontend_t}). *)
 end
 
 
@@ -224,34 +235,25 @@ type mac_queue_stats =
 *)
 class virtual queue_backend : ?stack:int -> bps:float -> #Node.node ->
 object
-  inherit ['mac_queue_stats] backend
-  method private backend_reset_stats : unit
-  method private backend_stats : mac_queue_stats
-  method private backend_xmit_complete : unit
-  method private backend_recv : L2pkt.t -> unit
-  method xmit : L2pkt.t -> unit
+  inherit [mac_queue_stats] backend
+  inherit [mac_queue_stats] Mac.backend_t
+
   method virtual private frontend_xmit : L2pkt.t -> unit
+    (** To be implemented by the frontend class which is mixed in with this
+      backend (method documented in {!Mac.frontend_t}). *)
+
   method virtual private state : Mac.frontend_state
+    (** To be implemented by the frontend class which is mixed in with this
+      backend (method documented in {!Mac.frontend_t}). *)
 end
 
 
-(** A Null frontend, which can be inherited from by MAC layers with no frontend
-  logic, ie MAC layers which do no carrier sensing and do not model
+(** A Null frontend, which can be inherited from by MAC layers with no
+  frontend logic, ie MAC layers which do no carrier sensing and do not model
   collisions. (for example see {!MACA_simple.maca_mac}). 
 
-  All this one does is to apply transmission delay.
-
-*)
-class virtual null_frontend : ?stack:int -> bps:float -> #Node.node ->
-object
-  inherit [unit] frontend
-  method private frontend_reset_stats : unit
-  method private frontend_stats : unit
-  method private frontend_xmit : L2pkt.t -> unit
-  method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
-end
-
-(** A Null frontend, with additional features:
+  All this one does is 
+  - apply transmission delay.
   - provides a 'state' method to indicate current status of the frontend
   (idle, receiving, transmitting).
   - silently drops packets that it gets for transmission from the backend, if
@@ -259,12 +261,17 @@ end
   - does not receive packets if already receiving or transmitting.
   - provides a callback to the backend when a packet transmission is complete.
 *)
-class virtual cb_null_frontend : ?stack:int -> bps:float -> #Node.node ->
+class virtual null_frontend : ?stack:int -> bps:float -> #Node.node ->
 object
-  inherit null_frontend
+  inherit [unit] frontend
+  inherit [unit] Mac.frontend_t
+
   method virtual private backend_xmit_complete : unit
-  method private state : Mac.frontend_state
+    (** To be implemented by backend class which is mixed in with this
+      frontend (method documented in {!Mac.backend_t}). *)
+
 end
+
 
 (** {1 Functions for manipulating {!Mac.basic_stats} .} *) 
 
