@@ -176,6 +176,9 @@ let ease_route_valid route ~src ~dst= (
   let loop_free() = (
     List.fold_left  
     ~f:(fun stat h ->
+(*
+      print_endline (Misc.i2s (List.length (List.filter (fun k -> k.hop = h.hop) route)));
+      print_endline (Misc.i2s h.hop) ;*)
       ((List.length (List.filter (fun k -> k.hop = h.hop) route)) = 1) && stat)
     ~init:true 
     route
@@ -191,10 +194,10 @@ let ease_route_valid route ~src ~dst= (
   searchcost()
   &&
   anchor_age_decreasing()
+(*  &&
+  anchor_age_changes_with_anchor()
   &&
-(*  anchor_age_changes_with_anchor()
-  &&*)
-  loop_free()
+  loop_free()*)
 )
 
 	  
@@ -220,12 +223,33 @@ let search_cost route =
     ~init:0.0 
     route
 
-let sprint route = (
+let sprint_hops f route = (
   String.concat 
   ("\n")
   (List.map
     (fun x -> Printf.sprintf "hop:%s" 
-      (Coord.sprintf x.hop) )
+      (f x.hop) )
     route)
-)  
-  
+) 
+
+let sprintf_hopsonly route = sprint_hops Coord.sprintf route
+let sprinti_hopsonly route = sprint_hops Coord.sprint route
+let sprintnid_hopsonly route = sprint_hops Misc.i2s route
+
+
+let sprintnid route = (
+  let printhop {hop=h; info=iopt} = 
+    let (info : Coord.coordf_t ease_info_t) = Opt.get iopt in
+    Printf.sprintf "%s %s %s %s" 
+      (Misc.padto (Misc.i2s h) 5)
+      (Misc.padto (Coord.sprintf info.anchor) 20)
+      (Printf.sprintf "%.3f  " info.anchor_age)
+      (Printf.sprintf "%.3f  " info.searchcost)
+  in
+
+  String.concat 
+  ("\n")
+  ("Hop   Anchor               Age     Cost\n"::
+    (List.map printhop route))
+)
+

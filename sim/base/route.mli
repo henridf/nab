@@ -68,8 +68,8 @@ type 'a hops_only_route_t = ('a, unit) t
     (** A route type for routes with no protocol-specific information. *)
 
 
-type 'a ease_info_t = 
-    {anchor: 'a; 
+type 'anchor ease_info_t = 
+    {anchor: 'anchor; 
     anchor_age: Time.time_t; 
     searchcost: float}
     (**
@@ -83,7 +83,7 @@ type 'a ease_info_t =
       different than the previous hop.
     *)
     
-type ('a, 'b) ease_route_t = ('a, 'b ease_info_t) t
+type ('hop, 'anchor) ease_route_t = ('hop, 'anchor ease_info_t) t
     (** A EASE/GREASE route, using [ease_info_t] for additional info. 
       Note this type is still polymorphic in ['a], to allow representing the
       hops either as node ids or as geographical positions (useful in a GUI).*)
@@ -96,7 +96,7 @@ type grep_info_t = Flood.t
 
 
 type 'a grep_route_t = ('a, grep_info_t) t
-
+    (** The type of GREP routes. *)
 
 
 
@@ -114,7 +114,7 @@ val last_hop : ('a, 'b) t -> ('a, 'b) hop_t
 val length : ('a, 'b) t -> int
 
 
-val ease_route_valid : ('a, 'b) ease_route_t -> src:'a -> dst:'a -> bool
+val ease_route_valid : ('hop, 'anchor) ease_route_t -> src:'hop -> dst:'hop -> bool
   (* generic checks:
      - length >= 1
      - searchcost >= 0
@@ -135,5 +135,12 @@ val eucl_length : dist_f:(Coord.coordf_t -> Coord.coordf_t -> float) ->
 
 val i2c : (Common.nodeid_t, 'b) t -> (Coord.coordf_t, 'b) t
 
-val sprint : (Coord.coordf_t, 'b) t -> string  
 
+(** Functions for printing various types of routes into strings. *)
+
+
+val sprintf_hopsonly : (Coord.coordf_t, 'b) t -> string  
+val sprinti_hopsonly : (Coord.coordi_t, 'b) t -> string  
+val sprintnid_hopsonly : (Common.nodeid_t, 'b) t -> string  
+
+val sprintnid : (Common.nodeid_t, Coord.coordf_t) ease_route_t -> string  
