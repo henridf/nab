@@ -8,6 +8,9 @@ open GMain
 let run_id = ref None
 let t = ref (Common.get_time())
 
+let rt = ref None (* keep a copy of last route around so expose_event can
+		     redraw it *)
+
 let start_stop_btn = ref None
 let start_stop_tab:GPack.table option ref = ref None
 let ss_btn() = o2v !start_stop_btn
@@ -15,20 +18,33 @@ let ss_tab() = o2v !start_stop_tab
 let choose_route_btn = ref None
 let rt_btn() = o2v !choose_route_btn
 
+let show_nodes = ref true
+
 
 let run() = (
-
-	t := (Common.get_time());
-	let continue() = ((Common.get_time()) < !t +. 1.0) in
-	(Gsched.sched())#run_until~continue;
-	Gui_ops.draw_all_nodes(); 
+  Gui_gtk.set_expose_event_cb (fun _ -> true);
+  
+  t := (Common.get_time());
+  let continue() = ((Common.get_time()) < !t +. 1.0) in
+  (Gsched.sched())#run_until~continue;
+  if !show_nodes  then  Gui_ops.draw_all_nodes(); 
 (*	Gui_ops.draw_all_routes(); 
 	Gui_ops.draw_all_boxes(); *)
-	Gui_gtk.draw();
-	true
+  Gui_gtk.draw ~clear:true ();
+  true
 )
   
 
+
+let refresh ?(clear=false) ()  = (
+  if !show_nodes  then  Gui_ops.draw_all_nodes(); 
+  Gui_gtk.draw ~clear ();
+  if (!rt <> None) then
+    Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route (o2v !rt));
+false
+)
+
+let refresh_cb _ = refresh ()
 
 let stop() = (
   Gui_gtk.txt_msg "Nodes are frozen ";
@@ -45,11 +61,13 @@ let stop() = (
   (Gsched.sched())#run(); 
 
   Timeout.remove (o2v !run_id);
-  run_id := None
+  run_id := None;
+  Gui_gtk.set_expose_event_cb refresh_cb
 )
 
 let start() = (
 
+  rt := None;
   Gui_gtk.txt_msg "Nodes are moving ";
   Mob.start_all();
   ignore(run());
@@ -79,7 +97,7 @@ let set_src x y = (
   let srcnode = Gui_hooks.closest_node_at (x, y)
   in
 
-  let routeref = ref (Route.create()) in
+  let routeref = (ref (Route.create())) in
   Gui_hooks.route_done := false;
   let in_mhook = Gui_hooks.ease_route_pktin_mhook routeref in
   let out_mhook = Gui_hooks.ease_route_pktout_mhook routeref in
@@ -97,7 +115,7 @@ let set_src x y = (
   (*  ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
     srcnode)#pos);*)
   Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route !routeref);
-  
+  rt := Some !routeref;
 )
 
 
@@ -132,11 +150,9 @@ let choose_node () = (
 )
 	
   
-  
-  
 let create_buttons() = (
 
-  let ss_tab = (GPack.table ~rows:1 ~columns:2 ~homogeneous:false 
+  let ss_tab = (GPack.table ~rows:1 ~columns:3 ~homogeneous:false 
     ~row_spacings:3 ~col_spacings:3 ~border_width:10
     ~packing:(Gui_gtk.packer()) ()) in
 
@@ -152,6 +168,20 @@ let create_buttons() = (
   ss_tab#attach (rt_btn())#coerce ~left:1 ~top:0 ~right:2 ~bottom:1
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 
+  let box1 = GPack.vbox  () in
+  ss_tab#attach box1#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
+    ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+  let box2 = GPack.hbox ~spacing: 10 ~border_width: 10
+    ~packing: box1#pack () in
+  
+  let show_nodes_btn = (GButton.check_button ~label:("Hide nodes")
+    ~packing: box2#add ()) in
+
+  ignore (show_nodes_btn#connect#released 
+    ~callback:(fun _ -> 
+      show_nodes := not !show_nodes;
+      ignore (refresh ~clear:true ()) ;
+    ));
 
 
   )    

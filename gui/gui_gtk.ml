@@ -46,29 +46,32 @@ let copy_pixmap x y = (
   ~height:res   (pixmap()) 
 )
 
-let draw() = (
+let draw ~clear () = (
   Array.iteri (
     fun x column ->
       Array.iteri (
 	fun y funs -> (
-	  copy_pixmap (x*res) (y*res);
+	  if (clear) then (
+	    copy_pixmap (x*res) (y*res);
+	  );
 	  List.iter (fun f -> f()) funs;
-	  draw_array.(x).(y) <- [(fun () -> ()) ];
+	    draw_array.(x).(y) <- [(fun () -> ()) ];
+
 	)
       )  column
   ) draw_array 
 )
+  
+  
+  
 
-
-let clear() = (
-
-  draw();
-
-
+let expose_cb_id = ref None 
+let set_expose_event_cb f = (
+  if !expose_cb_id <> None then
+    (fix())#misc#disconnect (o2v !expose_cb_id);
+  
+  expose_cb_id := (Some ((fix())#event#connect#expose f))
 )
-
-
-
 
 let init () = (
   wnd := Some (GWindow.window ~show:true ());
@@ -111,12 +114,15 @@ let txt_msg msg = (
   (txt())#set_text msg
 )
 
-let draw_segs s = (
+let draw_segments_buf ?(col=cl_fg) s = (
 
 
   List.iter 
   (fun (p1, p2) ->
-	let f() = (drawing())#segments s
+	let f() = 
+	    (drawing())#set_foreground col;
+	    (drawing())#segments s;
+	    (drawing())#set_foreground cl_fg;    
 	in
 	let (g1x, g1y) = p1 /// res
 	and (g2x, g2y) = p2 /// res
@@ -133,33 +139,30 @@ let draw_segs s = (
 
 (* pixcenter in gtk pixels *)
 
-let draw_cross (x, y) = 
+let draw_cross ?(col=cl_fg) (x, y) = 
   let pixwid = 3 in
-  draw_segs 
+  draw_segments_buf ~col
     [
       (x, y - pixwid), (x, y + pixwid);
       (x - pixwid, y), (x + pixwid, y)
     ]
 
 
-let draw_segments l = 
-  draw_segs l
+let draw_segments ?(col=cl_fg) l = (
+  (drawing())#set_foreground col;
+  (drawing())#segments l;
+  (drawing())#set_foreground cl_fg;    
+)
 
-let draw_node hilite pos = (
-  if hilite then 
-()
-(*    (drawing())#set_foreground cl_hilite*)
- else 
-   (drawing())#set_foreground cl_fg;    
-  
-  
-  draw_cross pos;
 
+
+let draw_node ?(col=cl_fg) pos = (
+  draw_cross ~col pos;
 )
 
 
 let draw_nodes pos_list =  
-  List.iter (fun p -> draw_node false p) pos_list
+  List.iter (fun p -> draw_node p) pos_list
 
 let draw_circle ~centr ~radius = 
   (drawing())#arc

@@ -10,6 +10,7 @@ val packer :
   GObj.widget -> 
   unit
 
+val set_expose_event_cb : (GdkEvent.Expose.t -> bool) -> unit
 
 (* use this function to set up a call back for 
    button_press event in the main vbox (bitmap) *)
@@ -23,10 +24,12 @@ val remove_button_press_cb :  GtkSignal.id -> unit
 val txt_msg : string  -> unit
 
 val draw : 
-  unit -> unit
+  clear:bool 
+  -> unit 
+  -> unit
 
 val draw_node :  
-  bool ->          (* if true then node is "hilited" *)
+  ?col:GDraw.color ->          
   Coord.coordi_t -> 
   unit
 
@@ -35,6 +38,7 @@ val draw_nodes :
   -> unit
 
 val draw_segments : 
+  ?col:GDraw.color ->          
   (Coord.coordi_t * Coord.coordi_t)  list 
   -> unit
 
