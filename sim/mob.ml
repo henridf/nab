@@ -100,7 +100,7 @@ object(s)
 	 one in granulatiry / speed_mps seconds.
       *)
       let move_event() = s#move in
-      (Gsched.sched())#sched_in ~handler:move_event ~t:(granularity /. speed_mps)
+      (Gsched.sched())#sched_in ~f:move_event ~t:(granularity /. speed_mps)
     )
   )
 

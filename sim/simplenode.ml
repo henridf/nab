@@ -139,7 +139,7 @@ object(s: #Node.node_t)
       pktout_mhooks;
 
     let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
-    (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime);
+    (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime);
   )
 
   method mac_send_pkt ~l3pkt ~dstid = (
@@ -179,7 +179,7 @@ object(s: #Node.node_t)
       +. Mws_utils.propdelay pos n#pos in
       let recv_event() = 
 	n#mac_recv_pkt ~l2pkt:(Packet.clone_l2pkt ~l2pkt:l2pkt) in
-      (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
+      (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
     ) neighbors
   )
 
@@ -189,7 +189,7 @@ object(s: #Node.node_t)
     let time_to_next_pkt = 1.0 /. (i2f pkts_per_sec) in
     let next_pkt_event() = 
       s#trafficsource ~dstid:dstid ~pkts_per_sec:pkts_per_sec     in
-    (Gsched.sched())#sched_in ~handler:next_pkt_event ~t:time_to_next_pkt
+    (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       
 
   method originate_app_pkt ~dstid = 

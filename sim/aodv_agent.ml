@@ -533,7 +533,7 @@ object(s)
 
 
 	if next_rreq_ttl < ((Param.get Params.nodes)/10) then
-	  (Gsched.sched())#sched_in ~handler:next_rreq_event ~t:next_rreq_timeout;
+	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
       with
 	| Simplenode.Mac_Bcast_Failure -> 
 	    s#log_error "bcast failure"

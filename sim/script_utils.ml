@@ -145,7 +145,7 @@ let hop_col_color ~hop ~routelength = (
 
 let grep_one_route ~src ~dst = (
   let pkt_reception() = (Nodes.node(src))#originate_app_pkt dst in
-  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
   (Gsched.sched())#run();
 )
 
@@ -162,7 +162,7 @@ let gui_grep_one_route() = (
   let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
 
   let pkt_reception() = (Nodes.node(srcid))#trafficsource dstid 10 in
-  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
   (Gsched.sched())#run();
 
   (Nodes.node(133))#move ((Gworld.world())#random_pos);
@@ -177,7 +177,7 @@ let gui_grep_one_route() = (
   let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
 
   let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
-  (Gsched.sched())#sched_at ~handler:pkt_reception ~t:(Sched.ASAP);
+  (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
   (Gsched.sched())#run();
 )
 

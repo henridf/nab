@@ -4,7 +4,7 @@
 
 open Printf
 
-type handler_t = (unit -> unit)
+type handler_t = Stop | Handler of (unit -> unit)
 type sched_time_t = | ASAP (* schedule as soon as possible *)
 		    | ALAP (* schedule as late as possible *)
 		    | Time of Common.time_t  (* schedule at given time *)
@@ -13,11 +13,6 @@ type event_t = {
   handler:handler_t;
   time:Common.time_t;
 }
-
-type eventlist_entry_t = 
-  | Event of event_t
-  | Stop of event_t          (* Inserted by stop_ methods *)
-
 
 class type virtual scheduler_t = 
 object 
@@ -37,25 +32,21 @@ object
 
   method objdescr : string
 
-  method sched_in : handler:handler_t -> t:Common.time_t -> unit
-  method sched_at : handler:handler_t -> t:sched_time_t -> unit
-  method virtual private sched_event_at : ev:eventlist_entry_t -> unit
+  method sched_in : f:(unit -> unit) -> t:Common.time_t -> unit
+  method sched_at : f:(unit -> unit) -> t:sched_time_t -> unit
+  method virtual private sched_event_at : ev:event_t -> unit
 
   method stop_in :  t:Common.time_t -> unit
   method stop_at :  t:sched_time_t -> unit
 
 
 
-  method virtual private next_event : eventlist_entry_t option 
+  method virtual private next_event : event_t option 
 end
 
-let event_time ev = 
-  match ev with 
-    | Event e -> e.time
-    | Stop s -> s.time
 
-let compare ev1 ev2 = 
-  (event_time ev1) < (event_time ev2) 
+let compare ev1 ev2 = ev1.time < ev2.time
+
   
 class virtual sched  = 
 
@@ -63,62 +54,56 @@ object(s)
 
   inherit Log.loggable
 
-  method virtual private next_event : eventlist_entry_t option 
+  method virtual private next_event : event_t option 
 
-  method virtual private sched_event_at : ev:eventlist_entry_t -> unit
+  method virtual private sched_event_at : ev:event_t -> unit
 
   initializer (
     objdescr <- "/sched/list"
   ) 
     
     
-  method stop_at ~t = 
-    let str = ref "" in (
-      
-      match t with 
-	| ASAP -> 
-	    s#sched_event_at (Stop {handler=(fun () -> ()); time=Common.get_time()});
-	| ALAP -> raise (Failure "schedList.sched: ALAP not implemented\n")
-	| Time t -> (
-	    assert (t > Common.get_time());
-	    s#sched_event_at (Stop {handler=(fun () -> ()); time=t});
-	  );
-    );
+  method stop_at ~t =  s#sched_handler_at  ~handler:Stop ~t
     
-  method stop_in ~t =  s#stop_at  (Time (t +. Common.get_time()))
+  method stop_in ~t =  s#stop_at  ~t:(Time (t +. Common.get_time()))
 
-  method sched_at ~handler ~t = (
+  method private sched_handler_at ~handler ~t = (
     let str = ref "" in (
 
       match t with 
 	| ASAP -> 
-	    s#sched_event_at (Event {handler=handler; time=Common.get_time()});
+	    s#sched_event_at {handler=handler; time=Common.get_time()};
 	| ALAP -> raise (Failure "schedList.sched_at: ALAP not implemented\n")
 	| Time t -> (
 	    if (t <= Common.get_time()) then 
 	      raise (Failure "schedList.sched_at: attempt to schedule an event in the past");
-	    s#sched_event_at (Event {handler=handler; time=t});
+	    s#sched_event_at {handler=handler; time=t};
 	  );
     );
 (*    s#log_debug (sprintf "scheduling event at %s" !str);*)
   )
+
+  method sched_at ~f ~t = s#sched_handler_at ~handler:(Handler f) ~t
     
-  method sched_in ~handler ~t = s#sched_at handler (Time (t +. Common.get_time()))
+  method sched_in ~f ~t = s#sched_at ~f ~t:(Time (t +. Common.get_time()))
 
   method run_until ~continue = (
     try 
       while (true) do 
 	match s#next_event with
 	  | None -> raise Misc.Break
-	  | Some (Stop s) -> 
-	      Common.set_time (s.time);
-	      raise Misc.Break
-	  | Some (Event ev) -> (
-	      Common.set_time (ev.time);
-	      ev.handler();
-	      if (not (continue())) then 
-		raise Misc.Break;
-	    )
+	  | Some ev -> 
+	      begin
+		Common.set_time (ev.time);
+		match ev.handler with
+		  | Stop -> 
+		      raise Misc.Break
+		  | Handler h -> (
+		      h();
+		      if (not (continue())) then 
+			raise Misc.Break;
+		    )
+	      end;
       done;
       
     with
@@ -152,10 +137,10 @@ end
 
 module Compare =
 struct
-  type t = eventlist_entry_t
+  type t = event_t
   let compare ev1 ev2 = 
-    if  (event_time ev1) > (event_time ev2)  then -1 else 1
-
+    if  ev1.time > ev2.time  then -1 else 1
+      
 end
 module EventHeap = Heap.Imperative (Compare)
 
