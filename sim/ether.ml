@@ -3,11 +3,6 @@
 (*                                  *)
 
 
-(** 
-  Ether: The shared medium onto which nodes transmit. 
-  So far, we have a simple model with no propagation effects.
-*)
-
 open Misc 
 
 
@@ -20,13 +15,10 @@ let xmitdelay ~bytes = (i2f (bytes * 8)) /. bits_per_sec
 module type Ether_t = 
 sig
   val emit : nid:Common.nodeid_t -> l2pkt:L2pkt.l2packet_t -> unit
-    (** A node's MAC calls this to emit bits into the air. The Ether module
-      then takes care of sending them, with appropriate propagation delay and SNR,
-      to nodes within range. *)
 end
 
 
-module Ether : Ether_t = 
+module SimpleEther : Ether_t = 
 struct 
   let emit ~nid ~l2pkt = 
     let neighbors = (Gworld.world())#neighbors nid in
