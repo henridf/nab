@@ -42,8 +42,11 @@ object
 
   method neighbors_consistent : bool
 
-  method find_closest : src:Node.node_t -> f:(Node.node_t -> bool) -> nodeid_t
-    (* returns the closest node to src which satisfies the boolean f *)
+  method find_closest : pos:Coord.coordf_t -> f:(Node.node_t -> bool) ->
+    Common.nodeid_t option
+    (* returns the closest node to pos which satisfies the boolean f, or None 
+       if f never satisfied.
+    *)
 
   method project_2d : Coord.coordf_t -> Coord.coordf_t 
     (* return position projected to a unit square *)
@@ -56,11 +59,14 @@ object
     (* A topology-specific function which should put a point back within the
        boundaries of the world, if it has stepped outside, and should return
        the point intact if it has not.
-       For example this might be wrapping in a torus, or bouncing on
-       reflective borders, etc *)
+       For example this might be implemented as wrapping in a torus, or
+       bouncing on reflective borders, etc 
+       This allows a mobility process computing a next position to be unaware
+       of the topology limits. *)
+    
 
-  method get_nodes_at : Coord.coordf_t -> int list 
-    (* returns nodes at given position which is projected to unit square *)
+  method get_node_at : unitpos:Coord.coordf_t -> Common.nodeid_t 
+    (* returns closest node to unit-scaled position *)
 
   method sprint_info : unit -> string
 end
