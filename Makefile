@@ -146,10 +146,10 @@ MWS_OBJS = $(GFX_LIB) \
 		$(MWS_PKT_DIR)/l3pkt$(CMO) \
 		$(MWS_PKT_DIR)/l2pkt$(CMO) \
 		$(MWS_LIB_DIR)/log$(CMO) \
+		$(MWS_BASE_DIR)/world$(CMO) \
 		$(MWS_BASE_DIR)/params$(CMO) \
 		$(MWS_LIB_CONTRIB_DIR)/heap$(CMO) \
 		$(MWS_BASE_DIR)/sched$(CMO) \
-		$(MWS_BASE_DIR)/world$(CMO) \
 		$(MWS_BASE_DIR)/nodes$(CMO) \
 		$(MWS_BASE_DIR)/route$(CMO) \
 		$(MWS_BASE_DIR)/flood$(CMO) \
