@@ -23,7 +23,7 @@ open Graph
 class crworld ~x ~y ~rrange : World.world_t = 
 object(s)
 
-  val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 [])
+  val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 ([]:Common.nodeid_t list))
   val mutable node_positions_ =  [|(0., 0.)|]
 
   val mutable ngbrs = 
