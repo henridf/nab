@@ -27,10 +27,7 @@ struct
   
   exception Itin_size_not_set
   
-
-  type place_t = None | Place of int
-
-  type t =  {cbuf: place_t CircBuf.circbuf_t; (* head points to last written entry *)
+  type t =  {cbuf: int CircBuf.circbuf_t; (* head points to last written entry *)
 	     graphsize: int; (* number of nodes in the graph over which this itinerary goes *)
 	     arr: int array; (* mapping of place to 'time' (from counter) visited. max_int if never visited *)
 	     mutable counter: int
@@ -38,11 +35,6 @@ struct
 
   let last_visit_of_place__ = ref (Array.make 0 max_int) (* to avoid allocating each time in unroll_ *)
     
-  let p2i__ = function 
-      None -> raise (Invalid_argument "Itinerary.p2i__: Cannot convert None to int")
-    | Place i -> i
-
-
   let make_ ~itinsize ~graphsize = {cbuf=CircBuf.make_ itinsize ;
 				      graphsize=graphsize;
 				      arr=Array.make graphsize (max_int);
@@ -53,7 +45,7 @@ struct
   let maxlength_ itin = CircBuf.maxlength_ itin.cbuf
 
   let addplace_ itin place = (
-    CircBuf.push_ itin.cbuf (Place place);
+    CircBuf.push_ itin.cbuf place;
     itin.arr.(place) <- itin.counter;
 			       
     if (itin.counter == max_int - 1) then 
@@ -64,18 +56,14 @@ struct
 
 
 	
-  let getplace__ itin offset = 
+  let get_ itin offset = 
     try CircBuf.get_ itin.cbuf offset with 
-	Invalid_argument "Circbuf.get_ : No value at this index" -> None
-      | Invalid_argument "Circbuf.get_ : Out-of-bounds" -> raise (Invalid_argument "Itinerary.getplace__ : Out-of-bounds")
+	Invalid_argument "Circbuf.get_ : No value at this index" -> raise (Invalid_argument "Itinerary.get_ : No value at this index")
+      | Invalid_argument "Circbuf.get_ : Out-of-bounds" -> raise (Invalid_argument "Itinerary.get_ : Out-of-bounds")
 
 
 
-  let get_ itin offset = (
-      let res = getplace__ itin offset in
-	if res = None then raise (Failure "Itinerary.get_ : No value at this offset");
-	p2i__ res;
-    )
+
 
   let hops_to_place_ itin place = (
     if itin.arr.(place) == max_int then 
@@ -93,13 +81,11 @@ struct
   let splice__ ~leftitin ~rightitin p = (
     assert (leftitin.graphsize = rightitin.graphsize);
 
-    if (p = None) then rightitin else (
-
-    let l1 = hops_to_place_ leftitin (p2i__ p) in
-    let l2 = (maxlength_ rightitin) - (hops_to_place_ rightitin (p2i__ p)) in
+    let l1 = hops_to_place_ leftitin p in
+    let l2 = (maxlength_ rightitin) - (hops_to_place_ rightitin p) in
     let newitin = make_ ~itinsize:(l1 + l2)  ~graphsize:leftitin.graphsize in
 
-      for i = (maxlength_ rightitin) - 1 downto (hops_to_place_ rightitin (p2i__ p)) do
+      for i = (maxlength_ rightitin) - 1 downto (hops_to_place_ rightitin p) do
 	addplace_ newitin (get_ rightitin i)
       done;
 
@@ -108,13 +94,12 @@ struct
       done;
 
       newitin;
-    )
   )
 
   let shorten_ it1 it2 = (
     assert (it1.graphsize = it2.graphsize);
 
-    if ((getplace__ it1 (maxlength_ it1 - 1)) <> (getplace__ it2 (maxlength_ it2 - 1))) then 
+    if ((get_ it1 (maxlength_ it1 - 1)) <> (get_ it2 (maxlength_ it2 - 1))) then 
       failwith "Itinerary.shorten_ : Incompatible itineraries have different end points";
     
     (* xxx/canoptimize could compare lengths and iterate over shortest of two itineraries *)
@@ -128,14 +113,16 @@ struct
 	    and h2 = hops_to_place_ it2 p in
 	      if (h2 - h1) > !opt_gain then (
 		opt_gain := h2 - h1;
-		opt_place := (Place p)
+		opt_place := Some p
 	      )
 	  ) with
 	      Failure "Itinerary.hops_to_place_ : place has never been visited" 
 	    | Failure "Itinerary.hops_to_place_ : place visited, but out of itinerary" -> ();
 	  end
       done;
-      splice__ it1 it2 !opt_place
+      match !opt_place with
+	  None -> it2
+	| Some integer -> splice__ it1 it2 integer
   )
 
   let unroll_ itin = (
@@ -151,7 +138,7 @@ struct
     (* xxx/slow since we always will iterate over whole list *)
     CircBuf.iteri_ (fun i place -> 
 		      try (
-			if (!last_visit_of_place__.(p2i__ place) = max_int) then !last_visit_of_place__.(p2i__ place) <- i;
+			if (!last_visit_of_place__.(place) = max_int) then !last_visit_of_place__.(place) <- i;
 		      ) with Invalid_argument "Array.get" -> 
 			raise (Invalid_argument "Itinerary.unroll_: itin contained place that was bigger than graphsize")
 		   ) itin.cbuf; 
@@ -164,7 +151,7 @@ struct
       (* recursion over t:int offset going backward in time *)
 
       let place = LinkedArray.get_ larr t in
-      let most_recent_visit = !last_visit_of_place__.(p2i__ place) in
+      let most_recent_visit = !last_visit_of_place__.(place) in
       let shortcut_right = if (t = LinkedArray.length_ larr - 1) then LinkedArray.None_tail else LinkedArray.Ngbr (t + 1) 
       and shortcut_left = (LinkedArray.Ngbr most_recent_visit) in
 
@@ -190,7 +177,7 @@ struct
       let newcb = CircBuf.fromarray_ (LinkedArray.toarray_ larr) in
       let unroll_len = CircBuf.length_ itin.cbuf in
       let newarr = Array.make itin.graphsize max_int in
-	CircBuf.iteri_ (fun i place ->  newarr.(p2i__ place) <- unroll_len - i - 1) newcb;
+	CircBuf.iteri_ (fun i place ->  newarr.(place) <- unroll_len - i - 1) newcb;
 
       (* xxx/slow 2 allocations here. Could make a CircBuf.fromlinkedarray that skips one alloc *)
       {cbuf=newcb;
@@ -201,7 +188,7 @@ struct
 			    
   let print_ itin l = (
     for i = 0 to l - 1 do
-      Printf.printf "%d " (p2i__ (getplace__ itin i))
+      Printf.printf "%d " (get_ itin i)
     done;
     Printf.printf "\n"; flush stdout
   )
@@ -232,8 +219,9 @@ struct
 	  ignore (get_ itin i); 
 	  assert false;
 	) with 
-	    Failure "Itinerary.get_ : No value at this offset" -> ();
+	    Invalid_argument "Itinerary.get_ : No value at this index" -> ();
       done;
+
       
       (* 3-2-1-0 *)
       for i = 0 to 2 do
@@ -266,7 +254,7 @@ struct
       for i = 0 to 3 do
 	assert ((get_ itin i) =  3)
       done;
-      
+
       
       test_unrolling 4 [|3; 2; 1; 0|] [|3; 2; 1; 0|];
       test_unrolling 6 [|3; 2; 1; 0|] [|3; 2; 1; 0|];
@@ -339,7 +327,7 @@ struct
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
 	for i = 0 to 3 do
-	  assert ((splice__ itin itin2 (Place i)) = itin)
+	  assert ((splice__ itin itin2 i) = itin)
 	done;
       end;
       
@@ -347,25 +335,25 @@ struct
     let itin = make_itin 4 [|3; 2; 3; 2|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
-	assert ((splice__ itin itin2 (Place 2)) = itin2);
-	assert ((splice__ itin itin2 (Place 3)) = itin2);
+	assert ((splice__ itin itin2  2) = itin2);
+	assert ((splice__ itin itin2  3) = itin2);
       end;
 
-    (* splice 0-0-0-0 with 3-2-1-0 at Place 0 -> 0*)
+    (* splice 0-0-0-0 with 3-2-1-0 at 0 -> 0*)
     let itin = make_itin 4 [|0; 0; 0; 0;|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
-	let newitin = splice__ itin itin2 (Place 0) in
+	let newitin = splice__ itin itin2  0 in
 	  assert ((maxlength_ newitin) = 1);
 	  assert ((get_ newitin 0) =  0);
 	  assert ((hops_to_place_ newitin  0) = 0) ;
       end;
       
-    (* splice 1-3-0 with 3-2-1-0 at Place 0 -> 1-3-0*)
+    (* splice 1-3-0 with 3-2-1-0 at  0 -> 1-3-0*)
     let itin = make_itin 4 [|1; 3; 0|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
       begin
-	let newitin = splice__ itin itin2 (Place 0) in
+	let newitin = splice__ itin itin2  0 in
 	  assert ((maxlength_ newitin) = 3);
 	  assert ((get_ newitin 0) = 1);
 	  assert ((hops_to_place_ newitin  1) = 0) ;
