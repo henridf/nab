@@ -25,9 +25,6 @@
 
 
 
-
-
-
 (** Traffic Generators. 
   @author Henri Dubois-Ferriere.
 *)
@@ -36,6 +33,18 @@ val make_cbr : ?num_pkts:int -> rate:float -> unit -> Trafficgen.t
   (** Returns a traffic generator which originates packets, at a fixed rate
     of [rate] packets/second. If [num_pkts] is provided, traffic generator will stop
     after [num_pkts], otherwise generates packets indefinitely. *)
+
+val make_cbr_uniform_jitter : ?num_pkts:int -> interval:float -> jitter:float
+  -> unit -> Trafficgen.t
+  (** Returns a traffic generator which originates one packets, in every
+    interval of duration [interval] seconds.
+    Within an interval, the exact packet origination time is not
+    deterministic; it is chosen according to a uniform distribution centered
+    around [-jitter, jitter] ( [jitter] <= [interval]).
+    
+    If [num_pkts] is provided, traffic generator will stop
+    after [num_pkts], otherwise generates packets indefinitely. *)
+
 
 val make_poisson :  ?num_pkts:int -> lambda:float -> unit -> Trafficgen.t 
   (** Returns a traffic generator which will originate num_pkts, spaced

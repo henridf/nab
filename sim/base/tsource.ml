@@ -24,12 +24,7 @@
 
 
 
-
-
-
-
 open Misc
-
 
 let rndgen = Random.State.copy (Random.get_state())
 
@@ -40,14 +35,29 @@ let make_finite_trafficsource f num_pkts =
     in
     f_
 
-
 let make_cbr ?num_pkts ~rate () = 
   let time_to_next_pkt() = 1.0 /. rate in
   match num_pkts with 
     | None -> fun () -> Some (time_to_next_pkt())
     | Some n -> make_finite_trafficsource time_to_next_pkt n
   
-    
+let make_cbr_uniform_jitter  ?num_pkts ~interval ~jitter ()= 
+  if jitter > interval then
+    failwith "Tsource.make_cbr_uniform_jitter: jitter must be smaller than interval";
+  let time_to_next_pkt() = 
+    let next_period = Time.time() /. (floor (Time.time() /. interval)) in
+    let next_pkt_time = 
+      (* do max because if this is called when Time.time() < jitter, we could
+	 end up with a negative time. *)
+      max 
+	0.
+	(next_period +.  (Random.float (2. *. jitter)) -. jitter)
+    in
+    next_pkt_time -. Time.time() 
+  in
+ match num_pkts with 
+    | None -> fun () -> Some (time_to_next_pkt())
+    | Some n -> make_finite_trafficsource time_to_next_pkt n
     
 let make_poisson ?num_pkts ~lambda () =
   let time_to_next_pkt() = 
