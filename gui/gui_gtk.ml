@@ -177,6 +177,12 @@ let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
   ) s
 )
 
+let draw_segments ?(col=cl_fg) l = (
+  (drawing())#set_foreground col;
+  (drawing())#segments l;
+  (drawing())#set_foreground cl_fg;    
+)
+
 let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (
   let (pixwid, thick) = if target then (4, 2) else (2, 1) in
   let segs = if diag then 
@@ -193,11 +199,7 @@ let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (
    draw_segments_buf ~col ~thick segs
 )  
 
-let draw_segments ?(col=cl_fg) l = (
-  (drawing())#set_foreground col;
-  (drawing())#segments l;
-  (drawing())#set_foreground cl_fg;    
-)
+
 
 let draw_node ?(col=cl_fg) ?(target=false) pos = (
   draw_cross ~col ~target pos;

@@ -20,7 +20,7 @@ let rt_btn() = o2v !choose_route_btn
 let show_nodes = ref true
 let show_route_lines = ref true
 let show_route_anchors = ref true
-let show_route_disks = ref true
+let show_route = ref true
 let show_connectivity = ref false
 let show_tree = ref true
 
@@ -37,56 +37,39 @@ let draw_nodes () =
   
 
 
-let refresh ?(clear=false) ()  = (
-  if !show_nodes  then  draw_nodes(); 
-  if !show_connectivity  then  Gui_ops.draw_connectivity(); 
-  
+let refresh ?(clear=true) ()  = (
   Gui_gtk.draw ~clear ();
-  if (!rt <> None) then
-    Gui_ops.draw_ease_route 
-      ~lines:!show_route_lines
-      ~anchors:false
-      ~disks:false
-      ~portion:1.0
-      (Mwsconv.nodeid_2_pix_route (o2v !rt));
-  false
+  if !show_nodes  then  draw_nodes(); 
+  if !show_connectivity  then  Gui_ops.draw_connectivity();
+
+  if !show_route && (!rt <> None) then
+    Gui_ops.draw_grep_route 
+      (Mwsconv.route_nodeid_to_pix (o2v !rt));
 )
 
-let refresh_cb _ = refresh ()
-
-
-
-let display_cb () = 
-  if !show_nodes  then  draw_nodes(); 
-  Gui_gtk.draw ~clear:true ()
 
 let running = ref false
 let start_stop () = (
   (* if we are in the middle of choosing a node, should we cancel all state? *)
-
+  
   match !running with
     | true -> 
-	(* calling function is responsible for ensuring that !run_id <> None , ie
-	   that we are indeed running *)
-	Mob_ctl.stop_all();
-	
-	(* this call is to "purge" all mobility events that might be still in the
-	   scheduler. normally this should be done by the mob itself when we stop it,
-	   but this is pending the ability to cancel events in the scheduler (see
-	   general_todo.txt) *)
-	
-	(Gsched.sched())#run(); 
+	Gui_gtk.txt_msg "Nodes are frozen ";
 	Gui_ctl.stop();
 	running := not !running;
+	refresh ();
     | false -> 
-	Gui_ctl.startmws ~mws_tick:1. ~rt_tick_ms:500 ~display_cb ;
+	Gui_gtk.txt_msg "Nodes are moving ";
+	Gui_ctl.startmws ~mws_tick:1. ~rt_tick_ms:1000 ~display_cb:refresh;
 	running := not !running;
-
 )
 
 
 let get_route () = (
 
+  Mob_ctl.stop_all();
+
+  (Gsched.sched())#run(); 
   let routeref = (ref (Route.create())) in
   Gui_hooks.route_done := false;
   let in_mhook = Gui_hooks.grep_route_pktin_mhook routeref in
@@ -101,14 +84,18 @@ let get_route () = (
     Gui_hooks.route_done = ref false;
   );
   
+(*
   Gui_ops.draw_ease_route 
     ~lines:true
     ~anchors:false
     ~disks:false
     ~portion:1000.
     (Mwsconv.nodeid_2_pix_route !routeref);
-  
+*)
+
   rt := Some !routeref;
+  refresh();
+  Mob_ctl.start_all();
 )
 
 let choose_node () = (
@@ -156,10 +143,9 @@ let create_buttons_grep() = (
   
 
   let checkboxlist = [
-    ("Hide nodes", show_nodes, 0, 0);
-    ("Hide Anchors", show_route_anchors, 1, 0);
-    ("Hide Directions", show_route_lines, 2, 0);
-    ("Hide Disks", show_route_disks, 3, 0);
+    ("Nodes", show_nodes, 0, 0);
+    ("Connectivity", show_connectivity, 1, 0);
+    ("Route", show_route, 2, 0);
   ] in
   
   List.iter (fun (txt, boolref, left, top) ->
@@ -171,7 +157,7 @@ let create_buttons_grep() = (
     ignore (btn#connect#released 
       ~callback:(fun _ -> 
 	boolref := not !boolref;
-	ignore (refresh ~clear:true ()) ;
+	refresh () ;
       )
     )) checkboxlist;
 
@@ -187,9 +173,9 @@ let create_buttons_grep() = (
       route_portion := 
       if       adj#value > 990.0 then 1.0 else
       adj#value/.1000.;
-      if (!rt <> None) then ignore (refresh() ~clear:true);
+      if (!rt <> None) then refresh ();
     ));
-  Gui_gtk.set_expose_event_cb refresh_cb
+  Gui_gtk.set_expose_event_cb (fun _ -> refresh(); false)
   )
 
 
