@@ -5,6 +5,7 @@
 open Printf
 open Misc
 open Script_utils
+open Grep_common
 
 let daemon = false
 let outfile = ref (Unix.getcwd())
@@ -16,75 +17,13 @@ let outfd_det = ref Pervasives.stderr
 let avg_degree = 12
 let rrange = 100.
 
-type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
-type agent_type = AODV | GREP
 
 
-module Config = 
-struct
-  let agent_of_string = function
-    | "aodv" | "AODV" -> AODV
-    | "grep" | "GREP" -> GREP
-    | _ -> raise (Failure "Invalid format for agent type")
-
-  let agent = Param.stringcreate
-    ~name:"agent"
-    ~cmdline:true
-    ~default:"aodv"
-    ~doc:"Routing protocol"
-    ~checker:(fun s -> ignore (agent_of_string s))
-    ()
-
-  let string_of_tmat tmat = 
-    match tmat with 
-      | HOTSPOT -> "hotspot "
-      | BIDIR  -> "bidirectional"
-      | UNIDIR -> "unidirectional"
-
-  let tmat_of_string tmat = 
-    match (String.lowercase tmat) with 
-      | "hotspot" | "hot" -> HOTSPOT
-      | "bidirectional" | "bi" | "bidir" -> BIDIR  
-      | "unidirectional" | "uni" | "unidir" -> UNIDIR  
-      | _ -> raise (Failure "Invalid format for traffic type")
-
-  let tmat = 
-    Param.stringcreate  ~name:"tmat" ~default:"Hotspot" 
-      ~cmdline:true
-      ~doc:"Traffic Type" ~checker:(fun s -> ignore (tmat_of_string s))
-      ()
-
-  let sources = 
-    Param.intcreate  ~name:"sources" ~default:1
-      ~cmdline:true
-      ~doc:"Number of sources"  ()
-      
-  let run = Param.intcreate ~name:"run" ~default:1
-    ~cmdline:true
-    ~doc:"Run number" ()
-
-  let packet_rate = 
-    Param.floatcreate ~name:"rate" ~default:4.
-      ~cmdline:true
-      ~doc:"Orig rate [pkt/s]"  ()
-
-  let speed = 
-    Param.floatcreate ~name:"speed" 
-      ~cmdline:true
-      ~doc:"Node Speed [m/s]"  ()
-
-  let pktssend = 
-    Param.intcreate ~name:"pktssend" 
-      ~cmdline:true
-      ~doc:"Packets originated"  ()
-
-    
-end
   
 let do_one_run ()  = (
 
   let agenttype = Config.agent_of_string (Param.get Config.agent)
-  and sources = (Param.get Config.sources)
+  and sources = (Param.get Config.sources) 
   and speed = (Param.get Config.speed)
   and pkts_to_send = (Param.get Config.pktssend)
   in
@@ -105,39 +44,17 @@ let do_one_run ()  = (
   end;
 
   (* Attach a random waypoint mobility process to each node *)
-  Mob_ctl.make_waypoint_mobs();
+  Mob_ctl.make_waypoint_mobs ~gran:((Param.get Params.rrange) /. 10.) ();
   Mob_ctl.set_speed_mps speed;
   Mob_ctl.start_all();
 
   Grep_hooks.set_sources sources;
   Grep_hooks.set_stop_thresh (pkts_to_send * sources);
 
-  Nodes.iter (fun n ->
-    if (n#id < sources) then (
-      let dst = 
-	match Config.tmat_of_string (Param.get Config.tmat) with
-	  | HOTSPOT -> ((Param.get Params.nodes)  - 1 )
-	  | UNIDIR -> (((Param.get Params.nodes)  - 1 ) - n#id)
-	  | BIDIR -> (sources - n#id)
-      in
-      if (dst <> n#id) then (
-	(* in case we have n nodes, n sources, then the n/2'th node would have
-	   itself as destination*)
-	let pkt_reception() = 
-	  n#set_trafficsource 
-	    ~gen:(Tsource.make_cbr
-	      ~pkts_per_sec:(Param.get Config.packet_rate)
-	      ()
-	    )
-	    ~dst 
-	in
+  Grep_common.install_tsources();
 
-	(Gsched.sched())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
-      )
-    )
-  );
   
-  (Gsched.sched())#run();
+  (Gsched.sched())#run_for 200.;
   
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in
