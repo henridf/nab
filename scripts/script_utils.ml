@@ -194,12 +194,6 @@ let max_neighbors_per_node() =
   in
   max
 
-let wait_for_any_keypress() = (
-  Printf.printf "Press any key to continue...\n" ; 
-  flush stdout;
-  ignore (Graphics.read_key())
-)
-
   
 let print_header () = (
   Printf.printf "\n";

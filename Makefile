@@ -49,15 +49,11 @@ DOC_TARGET_DIR = doc
 BIN_DIR = bin
 
 GTK_DIR = $(LIB_DIR)/lablgtk
-CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
 INCLUDE_SRC = $(foreach dir,$(DIRS), -I $(dir))
 INCLUDE_LIBS = -I $(GTK_DIR)
 INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(SIM_SCRIPT_DIR) -I $(GUI_DATA_DIR)
 
-INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
-
-LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
 THFLAGS = -thread
 
 
@@ -97,7 +93,6 @@ endif
 ############
 # Libraries
 
-GFX_LIB = $(LIB_DIR)/graphics$(CMA)
 UNIX_LIB = $(LIB_DIR)/unix$(CMA)
 STR_LIB = $(LIB_DIR)/str$(CMA)
 THREADS_LIB = $(LIB_DIR)/threads/threads$(CMA)
@@ -111,10 +106,6 @@ GTK_INIT_OBJS = $(GTK_DIR)/gtkInit$(CMO)
 GTK_TH_STUFF = $(GTK_TH_LIBS)  $(GTK_TH_OBJS)
 GTK_STUFF =  $(GTK_LIBS) $(GTK_INIT_OBJS)
 
-CAMLIMAGES_LIBS = ci_core$(CMA) \
-		$(GFX_LIB) \
-		ci_graphics$(CMA) \
-		ci_png$(CMA)
 
 
 
@@ -129,8 +120,7 @@ DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
 # Files corresponding to different subdirs
 
 
-SIM_OBJS = $(GFX_LIB) \
-		$(STR_LIB) \
+SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_LIB_OBJS) \
 		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
@@ -279,8 +269,6 @@ camlgtk: bin/camlgtk
 bin/camlgtk: 
 	$(MLTOP) $(INCLUDE) -o $@  $(GTK_STUFF)
 
-ocamlgfx: 
-	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
 
 ocamlstr: 
 	ocamlmktop -o bin/ocamlstr $(STR_LIB) 
