@@ -22,8 +22,9 @@ type log_level_t =
       
 
 val set_log_level : level:log_level_t -> unit
+
 val strset_log_level : string -> unit
-  (** Two functions to set the log level. *)
+  (** Set the log level via a string (for example provided as cmdline argument). *)
   
 (** This class provides a bunch of straightforward logging methods, and is
   designed to be inherited anywhere. Methods are private so that inheriting
