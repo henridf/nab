@@ -1,3 +1,7 @@
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
+
 type rtab_t
 
 

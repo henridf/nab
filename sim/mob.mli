@@ -2,7 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Mobility generators and related stuff. *)
+(** Mobility generators and related stuff. 
+  @author Henri Dubois-Ferriere.
+*)
 
 
 

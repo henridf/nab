@@ -2,7 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Functions for controlling mobility processes *)
+(** Functions for controlling mobility processes.
+  @author Henri Dubois-Ferriere.
+ *)
 
 val make_waypoint_mobs : unit -> unit
   (** Create {!Mob.mobility} objects that implement a waypoint mobility

@@ -3,7 +3,9 @@
 (*                                  *)
 
 (** Data structures for representing globally routes and floods (for
-  monitoring or gui purposes). *)
+  monitoring or gui purposes). 
+  @author Henri Dubois-Ferriere.
+*)
 
 open Common
 

@@ -2,7 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** Discrete and continuous coordinates *)
+(** Discrete and continuous coordinates.
+  @author Henri Dubois-Ferriere.
+ *)
 
 
 
