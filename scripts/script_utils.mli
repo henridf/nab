@@ -19,11 +19,23 @@ val init_sched : unit -> unit
     default. *)
 
 val init_lazy_world : unit -> unit
-  (** Instantiate a {!Crworld.crworld_lazy} global world object.
+  (** Instantiate a {!Crworld.crworld_lazy} global world object with
+    reflecting boundaries.
+    Number of nodes {!Params.nodes} should be set before calling this *)
+
+val init_lazy_taurus_world : unit -> unit
+  (** Instantiate a {!Crworld.crworld_lazy} global world object with wrapping
+    boundaries (taurus topology).
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val init_greedy_world : unit -> unit
-  (** Instantiate a {!Crworld.crworld_greedy} global world object.
+  (** Instantiate a {!Crworld.crworld_greedy} global world object with
+    reflecting boundaries.
+    Number of nodes {!Params.nodes} should be set before calling this *)
+  
+val init_greedy_taurus_world : unit -> unit
+  (** Instantiate a {!Crworld.crworld_greedy} global world object with
+    wrapping boundaries (taurus topology).
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val init_epfl_world : unit -> unit

@@ -32,6 +32,12 @@ let init_greedy_world() =
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange))
 
+let init_greedy_taurus_world() = 
+  World.set_greedy_world (new Crworld.greedy_taurus_world
+    ~x:(Param.get Params.x_size)
+    ~y:(Param.get Params.y_size)
+    ~rrange:(Param.get Params.rrange))
+
 let init_epfl_world() = (
   if (Param.get Params.x_size) <> 800. ||
     (Param.get Params.y_size) <> 600. then
@@ -44,6 +50,13 @@ let init_epfl_world() = (
 
 let init_lazy_world() = 
   World.set_lazy_world (new Crworld.lazy_reflecting_world
+    ~x:(Param.get Params.x_size)
+    ~y:(Param.get Params.y_size)
+    ~rrange:(Param.get Params.rrange)
+)
+
+let init_lazy_taurus_world() = 
+  World.set_lazy_world (new Crworld.lazy_taurus_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange)
