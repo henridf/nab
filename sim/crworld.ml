@@ -94,7 +94,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
     method private slow_compute_neighbors_ nid = (
       let neighbors = ref [] in
       Nodes.iteri 
-	(fun cand_id -> if s#are_neighbors nid cand_id  then 
+	(fun cand_id _ -> if s#are_neighbors nid cand_id  then 
 	  neighbors := (cand_id)::!neighbors);
       !neighbors;
     )
@@ -389,7 +389,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
       let radius_sq = radius ** 2.0 in
       let center = node_positions_.(nid) in
       let l = ref [] in
-      Nodes.iteri (fun cand_id -> if s#dist_coords center node_positions_.(cand_id) <= radius then l := (cand_id)::!l);
+      Nodes.iteri (fun cand_id _ -> if s#dist_coords center node_positions_.(cand_id) <= radius then l := (cand_id)::!l);
       !l
     )
 
@@ -401,7 +401,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
       (* Create a graph object reflecting current connectivity *)
       let g = (Graph.make_ 0 (Param.get Params.nodes) Graph.Directed) in
       Nodes.iter (fun n -> Graph.add_node_ g n#id);
-      Nodes.iteri (fun i -> 
+      Nodes.iteri (fun i _ -> 
 	List.iter (fun ngbr -> Graph.add_edge_ g i ngbr (s#dist_nodeids i ngbr)) 
 	(s#neighbors i));
       (* Iterate over all src-dst pairs and check if there is a route *)
