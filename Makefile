@@ -9,7 +9,7 @@ else
 	include  mk/ocaml.mk	
 endif
 
-CAML_BIN_DIR	= /home/henridf/local/bin
+CAML_BIN_DIR	= $(dir $(shell which ocamlc))
 
 OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc.opt
 OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
@@ -173,9 +173,7 @@ SIM_OBJS = $(GFX_LIB) \
 		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
 		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_base$(CMO) \
-		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
 		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
-		$(PROTO_DIFF_DIR)/diff_agent$(CMO) \
 		$(PROTO_LER_DIR)/ease_agent$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
@@ -196,10 +194,11 @@ GUI_OBJS = $(SIM_OBJS) \
 		$(GUI_DATA_DIR)/epfl$(CMO) \
 		$(GUI_DATA_DIR)/blank$(CMO) \
 		$(GUI_DIR)/params_gui$(CMO) \
-		$(GUI_DIR)/mwsconv$(CMO) \
+		$(GUI_DIR)/gui_conv$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
 		$(GUI_DIR)/gui_ctl$(CMO) \
+		$(GUI_DIR)/gui_ease_diffusion$(CMO) \
 		$(GUI_DIR)/gui_grep$(CMO) 
 
 MODULE_OBJS = \
@@ -227,9 +226,8 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-alltargets: nab nabgrep grepviz nab-top nabviz nabvor nabviz-top
-allopttargets: nab nabgrep grepviz nabviz nabvor
-
+alltargets: nab nabgrep grepviz nab-top nabviz nabviz-top
+allopttargets: nab nabgrep grepviz nabviz 
 
 nab: bin/nab
 bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
@@ -243,10 +241,6 @@ bin/nabgrep: $(SIM_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
-
-nabvor: bin/nabvor
-bin/nabvor:  $(SIM_OBJS) scripts/voronoi_common$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(SIM_OBJS) scripts/voronoi_common$(CMO) $(SIM_SCRIPT) -o $@ 
 
 nab-top: bin/nab-top
 bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)
