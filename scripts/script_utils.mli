@@ -43,34 +43,34 @@ val init_sched : unit -> unit
 val init_lazy_world : unit -> unit
   (** Instantiate a {!Crworld.world_lazy} global world object with
     reflecting boundaries.
-    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
     set before calling this. *)
 
 
 val init_lazy_taurus_world : unit -> unit
   (** Instantiate a {!Crworld.world_lazy} global world object with wrapping
     boundaries (taurus topology).
-    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
     set before calling this. *)
 
 
 val init_greedy_world : unit -> unit
   (** Instantiate a {!Crworld.world_greedy} global world object with
     reflecting boundaries.
-    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
     set before calling this. *)
 
   
 val init_greedy_taurus_world : unit -> unit
   (** Instantiate a {!Crworld.world_greedy} global world object with
     wrapping boundaries (taurus topology).
-    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
     set before calling this. *)
   
 
 val init_epfl_world : unit -> unit
   (** Instantiate a {!Crworld.epflworld} global world object.
-    Number of nodes {!Params.nodes} and radio range {!Params.rrange} should be
+    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
     set before calling this. *)
 
 

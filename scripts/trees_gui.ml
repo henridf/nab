@@ -154,7 +154,7 @@ let do_one_run() = (
 let () = 
 
   Param.set Params.nodes 100;
-  Param.set Params.rrange 8.0;
+  Param.set Params.radiorange 8.0;
   Param.set Params.x_size (size ~avg_degree:14 ());
   Param.set Params.y_size (size ~avg_degree:14 ());
     

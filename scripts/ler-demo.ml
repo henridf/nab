@@ -49,7 +49,7 @@ let set_defaults() = (
   Param.set Params.mac "cheatmac";
 
   (* Set the transmission range (range within which nodes are neighbors). *)
-  Param.set Params.rrange ( 1. +. epsilon_float);
+  Param.set Params.radiorange ( 1. +. epsilon_float);
 
   (* Set the number of targets in each nodes last-encounter table. *)
   Param.set Params.ntargets 1;
