@@ -17,6 +17,7 @@ let do_one_run ~duration ~sinks ~difftype ~mactype ~nth_top =
 let _ = 
 
 
+(*
   begin try Sys.remove tmpfile with _ -> () end;
 
   List.iter 
@@ -40,9 +41,9 @@ let _ =
 
 
   ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
+*)
 
 
-(*
   let chop = Filename.chop_extension in
 
   ignore (Sys.command (Printf.sprintf 
@@ -51,12 +52,18 @@ let _ =
   ignore (Sys.command (Printf.sprintf 
     "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks data | sort -n  > vor-dat.txt"
     resfile));
+  ignore (Sys.command (Printf.sprintf 
+    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks total | sort -n  > vor-tot.txt"
+    resfile));
   
   ignore (Sys.command (Printf.sprintf 
     "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks interest | sort -n  > opp-int.txt"
     resfile));
   ignore (Sys.command (Printf.sprintf 
     "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks data | sort -n  > opp-dat.txt"
+    resfile));
+  ignore (Sys.command (Printf.sprintf 
+    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks total | sort -n  > opp-tot.txt"
     resfile));
   
   
@@ -66,10 +73,11 @@ let _ =
   ignore (Sys.command (Printf.sprintf 
     "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks data | sort -n  > ess-dat.txt"
     resfile));
+  ignore (Sys.command (Printf.sprintf 
+    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks total | sort -n  > ess-tot.txt"
+    resfile));
   
 
 
 
 
-
-*)
