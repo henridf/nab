@@ -29,29 +29,36 @@
 
 
 val init : unit -> unit
+  (** This initialization function must be called at startup, before calling
+    any of nab gui API functions. *)
 
-(* use this function to pack things into the hbox *)
 val hpacker : 
   unit -> 
   GObj.widget -> 
   unit
+  (** Use this function to pack any widget created by your application into
+    the horizontal box. *)
 
 val vpacker : 
   unit -> 
   GObj.widget -> 
   unit
+  (** Use this function to pack any widget created by your application into
+    the vertical box. *)
 
 val set_expose_event_cb : (GdkEvent.Expose.t -> bool) -> unit
+  (** Use this to provide a callback function that will be called by NAB each
+    time the GUI window needs to be redrawn. *)
 
 
 val install_button_press_cb :  
   (GdkEvent.Button.t -> bool) ->   
   GtkSignal.id
-(** Use this function to set up a call back for 
-   button_press event in the main vbox (bitmap) *)
-
+  (** Use this function to set up a callback for 
+    button_press event in the main drawing area (bitmap). *)
 
 val remove_button_press_cb :  GtkSignal.id -> unit
+  (** Use this function to undo [install_button_press_cb]. *)
 
 val txt_msg : string  -> unit
   (** Display a text message in msg area. *)
