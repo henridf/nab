@@ -21,8 +21,9 @@ CAML_DIR = /usr/lib/ocaml
 GTK_DIR = $(CAML_DIR)/lablgtk
 CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
 
-INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GTK_DIR) -I $(GUI_DIR)
-
+INCLUDE_LIBS = -I $(GTK_DIR)
+INCLUDE_SRC = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR)
+INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC)
 
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR) 
 
@@ -80,6 +81,8 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 
 MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_OBJ_FILES) \
+		$(MISC_DIR)/graph$(CMO) \
+		$(GUI_DIR)/read_coords$(CMO) \
 		$(MWS_DIR)/mws_utils$(CMO) \
 		$(MISC_DIR)/param$(CMO) \
 		$(MISC_DIR)/linkedlist$(CMO) \
@@ -101,6 +104,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
 		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
+		$(MWS_DIR)/ease_agent$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
 		$(MWS_DIR)/crsearch$(CMO) \
@@ -112,14 +116,11 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 
 
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
-		$(MISC_DIR)/graph$(CMO) \
-		$(GUI_DIR)/read_coords$(CMO) \
 		$(GUI_DIR)/gui_gtk$(CMO) \
-		$(GUI_DIR)/gui_ctl$(CMO) \
 		$(GUI_DIR)/gui_pos$(CMO) \
 		$(GUI_DIR)/gui_hooks$(CMO) \
-		$(GUI_DIR)/gui_ops$(CMO)
-
+		$(GUI_DIR)/gui_ops$(CMO) \
+		$(GUI_DIR)/gui_ctl$(CMO) 
 
 MODULE_OBJ_FILES = \
 	$(MISC_DIR)/graph$(CMO) \
@@ -159,13 +160,18 @@ bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT)
 	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
-bin/mwstop: $(MWS_OBJ_FILES)
-	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES) -o $@
+bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT)
+	$(MLTOP) $(INCLUDE)  $(MWS_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@
 
 gui: bin/gui
-bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT)
+bin/gui: $(GUI_OBJ_FILES)  $(MWS_SCRIPT_DIR)/$(SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
-	$(GUI_OBJ_FILES) $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
+	$(GUI_OBJ_FILES)   $(MWS_SCRIPT_DIR)/$(SCRIPT) -o $@ 
+
+guitop: bin/guitop
+bin/guitop: $(GUI_OBJ_FILES) 
+	$(MLTOP) $(INCLUDE) $(GTK_STUFF) \
+	$(GUI_OBJ_FILES)  -o $@ 
 
 
 camlgtk-th: bin/camlgtk-th
@@ -195,6 +201,6 @@ eclean:
 	rm -f .*~
 
 depend:
-	ocamldep $(INCLUDE) $(DEPENDS) > $(DEPEND)
+	ocamldep $(INCLUDE_SRC) $(DEPENDS) > $(DEPEND)
 
 include $(DEPEND)
