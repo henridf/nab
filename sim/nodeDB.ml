@@ -4,38 +4,46 @@
 
 let initial_hash_size = 1000
 
-type nodeDB_state_t = Common.enc_t option array 
+type enc_t = {
+ t: Common.time_t; 
+ p: Coord.coordf_t
+}
 
-class type nodeDB_t = 
-object 
-  method add_encounter : nid:Common.nodeid_t -> enc:Common.enc_t -> unit
-  method last_encounter : nid:Common.nodeid_t -> Common.enc_t option
-  method encounter_age : nid:Common.nodeid_t -> Common.time_t 
-  method num_encounters : int
-  method dump_state :   nodeDB_state_t
-  method load_state : nodeDB_state_t -> unit
-end
+type le_tab_state_t = enc_t option array 
 
+let enc ~time ~place = {t = time; p = place}
+let enc_age  m = (Common.get_time ()) -. m.t
 
-class nodeDB ~ntargets : nodeDB_t = 
-object(s: #nodeDB_t)
+class le_tab ~ntargets = 
+object(s)
 
   val enc_arr = Array.make ntargets None
 
-  method add_encounter ~nid:nid ~enc:enc = 
+  method add_encounter ~nid ~pos = 
     try 
-      enc_arr.(nid) <- Some enc
+      let present_time = Common.get_time() in
+      enc_arr.(nid) <- Some {t = present_time; p = pos}
     with _ -> raise (Failure "NodeDB.add_encounter : nid not in bounds")
 
-  method last_encounter ~nid = 
+  method le ~nid = 
     try 
       enc_arr.(nid) 
     with _ -> raise (Failure "NodeDB.last_encounter : nid not in bounds")
     
-  method encounter_age ~nid = 
-    match s#last_encounter ~nid:nid with
+  method le_time ~nid = 
+    match s#le ~nid:nid with
+	None -> None
+      | Some enc -> Some enc.t
+
+  method le_pos ~nid = 
+    match s#le ~nid:nid with
+	None -> None
+      | Some enc -> Some enc.p
+
+  method le_age ~nid = 
+    match s#le ~nid:nid with
 	None -> max_float
-      | Some encounter -> Common.enc_age encounter
+      | Some encounter -> enc_age encounter
 
   method num_encounters = 
     Array.fold_right
@@ -48,7 +56,10 @@ object(s: #nodeDB_t)
       (fun i encopt -> 
 	match encopt with
 	  | None -> ()
-	  | Some enc -> s#add_encounter ~nid:i ~enc:enc
+	  | Some enc -> 
+	      try enc_arr.(i) <- Some enc
+	      with _ -> raise (Failure "NodeDB.load_state : nid not in bounds")
+
       ) dbstate
 end
 
