@@ -74,3 +74,5 @@ val make_argspeclist : unit -> (string * Myarg.spec * string) list
     to call Arg.parse with. *)
  
 val dumpconfig : unit -> (string * string) list
+  (** Returns a list of (keyword, value) pairs corresponding to the values of
+    all created params which had cmdline set.*)
