@@ -10,11 +10,6 @@ open Printf
 
 
 
-let log s = (
-  fprintf stderr "%s\n" s; 
-  flush stderr
-)
-
 type log_level_t = LOG_DEBUG | LOG_INFO | LOG_NOTICE | LOG_WARNING | LOG_ERROR
 		   | LOG_ALWAYS
 
@@ -62,11 +57,9 @@ object(s)
 
   method private log_level ~msg:msg ~level:l =
     if l >= !current_log_level then (
-(*      prerr_string (string_of_float (Common.get_time());*)
       prerr_string (sprintf "%f " (Common.get_time()));
       prerr_string objdescr;
-      prerr_endline (msg)
-(*      prerr_endline (Lazy.force msg)*)
+      prerr_endline (Lazy.force msg)
     )
 
   method private log msg = s#log_level ~level:LOG_INFO ~msg:msg
