@@ -94,9 +94,9 @@ struct
 	ArrayLabels.blit ~src:cbuf.buf ~src_pos:0 ~dst:arr ~dst_pos:(maxlength_ cbuf - cbuf.head) ~len:cbuf.head;
       );
       Array.map (fun x -> match x with 
-		     None -> raise Impossible_Case
-		   | Some v -> v
-		) arr
+	  None -> raise (Impossible_Case "Circbuf.toarray_")
+	| Some v -> v
+      ) arr
   )
 
   let fromarray_ arr = {buf = Array.map (fun x -> Some x) arr; 

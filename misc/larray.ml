@@ -110,7 +110,7 @@ struct
 	  larr.arr.(larr.head) <- {larr.arr.(larr.head) with next = None_tail};
 	  larr.tail <- larr.head
 	    
-      | _ -> raise Impossible_Case 
+      | _ -> raise (Impossible_Case "Larray.connect_")
 
   )
 
