@@ -220,6 +220,7 @@ MWS_LIB_OBJS = 	 $(MWS_LIB_DIR)/mods$(CMO) \
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
 alltargets: mws mwsgrep grepviz mws-top mwsviz mwsvor mwsviz-top
+allopttargets: mws mwsgrep grepviz mwsviz mwsvor
 
 
 mws: bin/mws
