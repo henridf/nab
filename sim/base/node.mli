@@ -102,11 +102,20 @@ object ('a)
       type are hidden. 
     *)
     
-  method remove_rt_agent : ?stack:int -> unit -> unit
+(*  method remove_rt_agent : ?stack:int -> unit -> unit
     (** Remove {!Rt_agent.t} from given [stack] (stack 0 if not specified). *)
 
-  method remove_stack : ?stack:int -> unit -> unit
-    (** Remove entire protocol stack [stack] (stack 0 if not specified). *)
+    this is error prone: an rt_agent may have events scheduled which could
+    interfere with the simulation (e.g, sending a hello message).
+
+    so, disabled until i decide on a solution to this. 
+
+
+    method remove_stack : ?stack:int -> unit -> unit
+  (** Remove entire protocol stack [stack] (stack 0 if not specified). *)
+
+
+*)
 
 
   (** Sending/receiving packets. *)
