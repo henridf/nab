@@ -62,22 +62,22 @@ module Aodv_stats = struct
     mutable data_drop_rerr : int; 
   }
 
-let create_stats() = {
-  total_xmit = 0; 
-  data_xmit = 0; 
-  data_orig = 0; 
-  data_recv = 0;
-  hello_xmit = 0;
-  rreq_xmit = 0; 
-  rreq_init = 0; 
-  rreq_orig = 0; 
-  rerr_xmit = 0; 
-  rerr_orig = 0; 
-  rrep_xmit = 0; 
-  rrep_orig = 0; 
-  data_drop_overflow = 0; 
-  data_drop_rerr = 0; 
-}
+  let create_stats() = {
+    total_xmit = 0; 
+    data_xmit = 0; 
+    data_orig = 0; 
+    data_recv = 0;
+    hello_xmit = 0;
+    rreq_xmit = 0; 
+    rreq_init = 0; 
+    rreq_orig = 0; 
+    rerr_xmit = 0; 
+    rerr_orig = 0; 
+    rrep_xmit = 0; 
+    rrep_orig = 0; 
+    data_drop_overflow = 0; 
+    data_drop_rerr = 0; 
+  }
 
 end
 
@@ -132,7 +132,7 @@ object(s)
   val mutable stats = S.create_stats()
 
   initializer (
-    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
+    s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/aodv";
     Hashtbl.replace agents_array_.(stack) theowner#id (s :> aodv_agent);
     s#incr_seqno();
     (Sched.s())#sched_in ~f:s#clean_data_structures

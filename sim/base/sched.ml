@@ -83,8 +83,7 @@ object(s)
        hashtable, where bool is true if the event has been cancelled, false
        otherwise.*)
        
-  initializer 
-    Pervasives.at_exit (fun () -> s#dump_stats)
+
 
 
   method virtual private next_event : event_t option 
@@ -234,8 +233,12 @@ class schedList : Scheduler.t =
 object(s)
   inherit sched 
 
+
+
+
   initializer 
-    s#set_objdescr "/sched/list"
+    s#set_objdescr "/sched/list";
+    Pervasives.at_exit (fun () -> s#dump_stats)
 
   val ll = Linkedlist.create()
 
@@ -263,7 +266,8 @@ object(s)
   inherit sched
 
   initializer 
-    s#set_objdescr "/sched/heap"
+    s#set_objdescr "/sched/heap";
+    Pervasives.at_exit (fun () -> s#dump_stats)
 
   val heap = EventHeap.create 2048
 
