@@ -72,6 +72,7 @@ LER_OBJ_FILES = $(GFX_LIB) \
 		$(UBASE_OBJ_FILES) \
 		$(MISC_SUBDIR)/graph$(CMO) \
 		$(MISC_SUBDIR)/param$(CMO) \
+		$(MISC_SUBDIR)/data$(CMO) \
 		$(LER_SUBDIR)/common$(CMO) \
 		$(LER_SUBDIR)/route$(CMO) \
 		$(MISC_SUBDIR)/ler_graphics$(CMO) \
@@ -81,7 +82,7 @@ LER_OBJ_FILES = $(GFX_LIB) \
 		$(LER_SUBDIR)/lat2d_top$(CMO) \
 		$(LER_SUBDIR)/cont2d_top$(CMO) \
 		$(LER_SUBDIR)/abf$(CMO) \
-		$(LER_SUBDIR)/newler_main$(CMO)
+		$(LER_SUBDIR)/main$(CMO)
 
 DATAGEN_OBJ_FILES = $(MISC_OBJ_FILES) \
 		    $(GFX_LIB) \
