@@ -64,6 +64,10 @@ let is_finite x =
   let cx = classify_float x in
   cx <> FP_infinite && cx <> FP_nan
 
+let minus flt = 0. -. flt
+
+let expo ~rand ~lambda = minus (log (1. -. rand))/.lambda
+  (** Turn a uniform [0,1] r.v into an exponential RV of mean 1/lambda *)
 
 (**  Lists *)
 
