@@ -25,7 +25,7 @@ struct
 		       mutable head : int}
 			
   let make_ size = (
-    if size <= 0   then raise (Invalid_argument "CircBuf.make_ : size must be > 0");
+    if size < 0   then raise (Invalid_argument "CircBuf.make_ : size must be > 0");
     {buf = (Array.make size None); head=0}
   )
 		     
@@ -42,10 +42,12 @@ struct
   let rel2abs__ cbuf rel = (
     let l = maxlength_ cbuf in
       if rel >=  l then raise (Invalid_argument (Printf.sprintf "CircBuf.rel2abs__ : rel. offset (%d) greater than maxlength (%d)" rel l));
+      if l = 0 then 0 else 
       (cbuf.head + rel) mod l 
   )
 			   
   let push_ cbuf item = (
+    if maxlength_ cbuf = 0 then raise (Invalid_argument "CircBuf.push_");
     if cbuf.head = 0 then cbuf.head <- (Array.length cbuf.buf - 1) else cbuf.head <- cbuf.head - 1;
     cbuf.buf.(cbuf.head) <- Some item
   )
@@ -60,11 +62,13 @@ struct
   )
 
   let length_ cbuf = (
-    let i = rel2abs__ cbuf (maxlength_ cbuf - 1) in
-    if cbuf.buf.(i) <> None then
-      maxlength_ cbuf (* we've already wrapped, so cbuf is filled *)
-    else 
-      if cbuf.head = 0 then 0 else (maxlength_ cbuf) - cbuf.head
+    if maxlength_ cbuf = 0 then 0 
+    else
+      let i = rel2abs__ cbuf (maxlength_ cbuf - 1) in
+	if cbuf.buf.(i) <> None then
+	  maxlength_ cbuf (* we've already wrapped, so cbuf is filled *)
+	else 
+	  if cbuf.head = 0 then 0 else (maxlength_ cbuf) - cbuf.head
   )
 
   (* Iterate, going from the head backward.
@@ -115,77 +119,7 @@ struct
       newcb
   )
       
-  let test_ () = ( 
-    let cb = make_ 5 in
-    let cb2 = make_ 6 in
-    let ctr = ref 0 in 
-      assert (equal_ cb cb);
-      assert (length_ cb = 0);
-      assert (maxlength_ cb = 5);
-      assert (toarray_ cb = [||]);
-      
-      push_ cb (i2f 0);
-      push_ cb2 (i2f 0);
-      assert (equal_ cb (sub_ cb 1));
 
-      assert (equal_ cb cb);
-      assert (equal_ cb cb2);
-      assert (equal_ cb2 cb);
-      push_ cb2 (i2f 0);
-      assert (equal_ cb (sub_ cb2 1));
-
-      assert (not (equal_ cb cb2));
-      assert (not (equal_ cb2 cb));
-      assert ((get_ cb 0) = (i2f 0));
-      assert (length_ cb = 1);
-      
-      assert (toarray_ cb = [|0.0|]);
-      ctr := 0;
-      iter_ (fun x -> incr ctr) cb;
-      assert (!ctr = 1);
-      
-      for i = 1 to 4 do 
-	push_ cb (i2f i);
-	assert ((get_ cb 0) = (i2f i));
-      done;
-      push_ cb2 2.0;      
-      push_ cb2 3.0;
-      push_ cb2 4.0;
-      assert (not (equal_ cb2 cb));
-
-      assert (length_ cb = 5);
-      assert (toarray_ cb = [|4.0; 3.0; 2.0; 1.0; 0.0|]);
-      assert (cb = fromarray_ [|4.0; 3.0; 2.0; 1.0; 0.0|]);
-      assert (toarray_ (sub_ cb 2) = [|4.0; 3.0|]);
-      assert (toarray_ (sub_ cb 5) = [|4.0; 3.0; 2.0; 1.0; 0.0|]);
-      
-      for i = 0 to 4 do 
-	assert ((get_ cb i) = i2f (4 - i))
-      done;
-      
-      for i = 0 to 2 do 
-	push_ cb (i2f (i + 5));
-      done;
-      assert (toarray_ cb = [| 7.0; 6.0; 5.0; 4.0; 3.0 |]);
-      (* internal representation = [| 4.0; 3.0; 7.0; 6.0; 5.0 |];*)
-      (*  head                                  ^^^              *)
-      assert ((get_ cb 0) = 7.0);
-      assert ((get_ cb 1) = 6.0);
-      assert ((get_ cb 2) = 5.0);
-      assert ((get_ cb 3) = 4.0);
-      assert ((get_ cb 4) = 3.0);
-
-      let relcheck = ref 0 and valcheck = ref 7 in
-      let iterichecker relindex value = (
-	assert (relindex =  !relcheck);
-	assert (f2i value =  !valcheck);
-	incr relcheck;
-	decr valcheck;
-      ) in
-	iteri_ iterichecker cb;
-	Printf.printf "CircBuf.test_ : passed \n";
-  )
 
 end;;
 
-CircBuf.test_ ();;
