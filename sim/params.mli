@@ -1,3 +1,11 @@
+(* *** ********* *)
+(* LER Simulator *)
+(* *** ********* *)
+
+(* Globally accessible parameters.                                       *)
+(* These parameters have not (yet?) been examined to figure out if they  *)
+(* really need to be globally acessible.                                 *)
+
 val gui : bool Param.t
 val dowarmup : bool Param.t
 val dorouting : bool Param.t
