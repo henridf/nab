@@ -29,7 +29,7 @@ and grep_rreq_payload_t = {
   mutable dhopcount : int;
 } 
 
-type l4pkt_t = 
+type t = 
     [ `NONE
     | `APP_PKT
     | `HELLO_PKT of hello_payload_t
@@ -45,4 +45,4 @@ val clone_l4pkt : l4pkt:'a -> 'a
 
 (** {2 Application Layer (L4) Packet Manipulators} *)
 
-val l4pkt_size : l4pkt:l4pkt_t -> int
+val l4pkt_size : l4pkt:t -> int

@@ -97,7 +97,7 @@ let l3hdr_size ~l3hdr =
 	
 type t = {
   l3hdr : l3hdr_t;
-  l4pkt : l4pkt_t
+  l4pkt : L4pkt.t
 }
 
 let l4pkt ~(l3pkt:t) = l3pkt.l4pkt

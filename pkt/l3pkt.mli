@@ -95,7 +95,7 @@ val make_ease_l3hdr_ext :
   l3hdr_ext_t
 
 val make_app_pkt : l3hdr:l3hdr_t -> t
-val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:l4pkt_t -> t
+val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:L4pkt.t -> t
 
 val make_bler_l3pkt :
   srcid:Common.nodeid_t -> dstid:Common.nodeid_t -> t
@@ -105,7 +105,7 @@ val make_ease_l3pkt :
   dstid:Common.nodeid_t ->
   anchor_pos:Coord.coordf_t -> 
   enc_age:Common.time_t -> 
-  l4pkt:l4pkt_t ->
+  l4pkt:L4pkt.t ->
   t
 
 val make_dsdv_l3pkt :
@@ -115,7 +115,7 @@ val make_dsdv_l3pkt :
 
 (** {2 Network Layer (L3) Packet Deconstructors} *)
 
-val l4pkt : l3pkt:t -> l4pkt_t
+val l4pkt : l3pkt:t -> L4pkt.t
 val l3hdr : l3pkt:t -> l3hdr_t
 val l3src : l3pkt:t -> Common.nodeid_t
 val l3dst : l3pkt:t -> Common.nodeid_t

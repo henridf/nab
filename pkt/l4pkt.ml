@@ -59,7 +59,7 @@ let make_grep_rreq_payload ~rreq_dst ~dseqno ~dhopcount = {
   dhopcount=dhopcount
 }
 
-type l4pkt_t = 
+type t = 
     (* if any l4 payload becomes mutable, need to 
        change clone_l4pkt below *)
     [ `NONE
