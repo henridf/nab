@@ -40,6 +40,8 @@ open Printf
 
 let i2f i = float_of_int i
 let f2i f = int_of_float f
+let int = int_of_float
+let char = char_of_int
 
 let s2i s = int_of_string s
 let s2f s = float_of_string s
