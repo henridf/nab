@@ -1,6 +1,6 @@
-(* *** ********* *)
-(* LER Simulator *)
-(* *** ********* *)
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
 
 (* Simple list-based representation of a LER route. *)
 
@@ -8,9 +8,24 @@
 open Common
 open Printf
 
-type 'a hop = {hop:'a; anchor:'a; anchor_age: Common.time_t ; mutable searchcost:float}
+type ('a, 'b) hop_t = {hop:'a; mutable info:'b option}
 
-type 'a t = 'a hop list
+type 'a ease_info_t = {
+  anchor: 'a; 
+  anchor_age: Common.time_t; 
+  searchcost: float}
+
+type grep_info_t = Flood.t
+
+
+
+type ('a, 'b) t = ('a, 'b) hop_t list
+
+type 'a ease_route_t = ('a, 'a ease_info_t) t
+type 'a grep_route_t = ('a, grep_info_t) t
+type 'a hops_only_route_t = ('a, unit) t
+
+
 
 let create () = []
 
@@ -27,18 +42,15 @@ let last_hop path = Misc.listlast path
 let length path = List.length path
 
 
-let i2c routei = (
+let i2c route = (
   List.map 
-    (fun x -> 
-      {hop=(Gworld.world())#nodepos x.hop;
-      anchor=(Gworld.world())#nodepos x.anchor;
-      anchor_age=x.anchor_age;
-      searchcost=x.searchcost}) 
-    routei
+  (fun h -> 
+    {h with hop=(Gworld.world())#nodepos h.hop})
+    route
 )
 
-
-let route_valid route ~src ~dst= (
+(*
+let ease_route_valid route ~src ~dst= (
 
   let length() =  (
     ((length route >= 1) || raise (Failure "length not >= 1"))
@@ -62,16 +74,16 @@ let route_valid route ~src ~dst= (
       match (front, back) with 
 	| ([], hopb::rb) -> (
 	    (* first hop: anchor search can be 0 or not, correct either way *)
-	    if hopb.searchcost < 0.0 then (
+	    if hopb.info.searchcost < 0.0 then (
 	      false 
 	    )
 	    else 
 	      advance [hopb] rb 
 	  )
 	| (hopf::rf, hopb::rb) -> (
-	    (hopb.searchcost >= 0.0)
+	    (hopb.info.searchcost >= 0.0)
 	    &&
-	    (if (hopb.searchcost > 0.0) then hopb.anchor <> hopf.anchor else true)
+	    (if (hopb.info.searchcost > 0.0) then hopb.info.anchor <> hopf.info.anchor else true)
 	    &&
 	    advance (hopb::hopf::rf) rb
 	  )
@@ -89,10 +101,10 @@ let route_valid route ~src ~dst= (
       match r with 
 	| [] -> true
 	| hop::nexthops -> (
-	    if hop.anchor_age > last_age then 
+	    if hop.info.anchor_age > last_age then 
 	      false 
 	    else
-	      advance nexthops hop.anchor_age
+	      advance nexthops hop.info.anchor_age
 	  )
     )  in 
     advance route max_float)
@@ -105,12 +117,12 @@ let route_valid route ~src ~dst= (
       match (front, back) with 
 	| ([], hopb::rb) -> (
 	    (* first hop *)
-	    (hopb.anchor_age <= max_float )
+	    (hopb.info.anchor_age <= max_float )
 	    &&
 	    advance [hopb] rb 
 	  )
 	| (hopf::rf, hopb::rb) -> (
-	    (if (hopb.anchor_age <> hopf.anchor_age) then hopb.anchor <> hopf.anchor else true)
+	    (if (hopb.info.anchor_age <> hopf.info.anchor_age) then hopb.info.anchor <> hopf.info.anchor else true)
 	    &&
 	    advance (hopb::hopf::rf) rb
 	  )
@@ -144,7 +156,7 @@ let route_valid route ~src ~dst= (
   anchor_age_changes_with_anchor()
   &&
   loop_free()
-)
+)*)
 	  
 let eucl_length ~dist_f route = (
   let rec recurse_ r len = 
@@ -156,18 +168,16 @@ let eucl_length ~dist_f route = (
 recurse_ route 0.0
 )
 
+(*
 let anchor_cost route = 
-  List.fold_left (fun cost hop -> cost +. (hop.searchcost)) 0.0 route
-
+  List.fold_left (fun cost hop -> cost +. (hop.info.searchcost)) 0.0 route
+*)
 let sprint route = (
   String.concat 
   ("\n")
   (List.map
-    (fun x -> Printf.sprintf "hop:%s \tanchor:%s \tage:%s \tcost:%f" 
-      (Coord.sprintf x.hop) 
-      (Coord.sprintf x.anchor)
-      (sprintf "%2f" x.anchor_age)
-      x.searchcost)
+    (fun x -> Printf.sprintf "hop:%s" 
+      (Coord.sprintf x.hop) )
     route)
 )  
   
