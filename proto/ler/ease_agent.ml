@@ -35,18 +35,19 @@
 open Printf
 
 
-
-let agents_array_ = [||]
-let set_agents ?(stack=0) arr = agents_array_.(stack) <- arr
+let agents_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 let agents ?(stack=0) () = agents_array_.(stack)
-let agent ?(stack=0) i = agents_array_.(stack).(i)
+let agent ?(stack=0) i = 
+  Hashtbl.find agents_array_.(stack) i
+
 
 
 let proportion_met_nodes ?(stack=0) () = 
   let targets = Param.get Params.ntargets in
   let total_encounters = 
-    Array.fold_left (fun encs agent -> (agent#le_tab#num_encounters) + encs) 0
-      (agents ~stack ())
+    Hashtbl.fold (fun nid agent encs -> (agent#le_tab#num_encounters) + encs) 
+      (agents ~stack ()) 0
   in
   (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
 
@@ -75,7 +76,7 @@ object(s)
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/Ease_Agent";
 
-    agents_array_.(stack).(theowner#id) <- (s :> ease_agent);
+    Hashtbl.replace agents_array_.(stack) theowner#id (s :> ease_agent);
 
     (* Here we ask the global world object to inform us each time a node enters
        our neighborhood, by calling our method add_neighbor.

@@ -108,7 +108,8 @@ class type aodv_agent_t =
 exception Send_Out_Failure
 
 
-let agents_array_ = ([||]:aodv_agent_t array array )
+let agents_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 
 
 class aodv_agent ?(stack=0) theowner : aodv_agent_t = 
@@ -127,7 +128,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/AODV_Agent";
-    agents_array_.(stack).(theowner#id) <- (s :> aodv_agent);
+    Hashtbl.replace agents_array_.(stack) theowner#id (s :> aodv_agent);
     s#incr_seqno()
   )
 

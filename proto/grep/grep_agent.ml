@@ -194,10 +194,11 @@ class type grep_agent_t =
 exception Send_Out_Failure
 
 
-let agents_array_ =  ([||]:grep_agent_t array array )
-let set_agents ?(stack=0) arr = agents_array_.(stack) <- arr
+let agents_array_ = 
+  Array.init Simplenode.max_nstacks (fun _ -> Hashtbl.create (Param.get Params.nodes))
 let agents ?(stack=0) () = agents_array_.(stack)
-let agent ?(stack=0) i = agents_array_.(stack).(i)
+let agent ?(stack=0) i = 
+  Hashtbl.find agents_array_.(stack) i
 
 
 class grep_agent ?(stack=0) theowner : grep_agent_t = 
@@ -217,7 +218,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable) "/GREP_Agent";
-    agents_array_.(stack).(theowner#id) <- (s :> grep_agent);
+    Hashtbl.replace agents_array_.(stack) theowner#id (s :> grep_agent);
     s#incr_seqno()
   )
 

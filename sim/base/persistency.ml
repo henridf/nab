@@ -142,32 +142,33 @@ let read_node_state ?(gpsnodes=false) ic  =
 )
 
 let save_grep_agents ?(stack=0) oc = 
+  let agents = 
+    List.sort ~cmp:(fun a b -> compare a#myid b#myid)
+    (Misc.listofhash (Grep_agent.agents ~stack ()) )
+  in
   let states = 
-    Array.map (Grep_agent.agents ~stack ())
-    (fun agent -> agent#get_state ())
+    List.map agents
+    ~f:(fun agent -> agent#get_state ())
   in Marshal.to_channel oc states [];
   Log.log#log_notice (lazy "Saving grep_agents state..")
 
 
 let read_grep_agents ?(stack=0) ic = 
-  let state_arr = (Marshal.from_channel ic : Grep_agent.grep_state_t array) in
-  Log.log#log_notice (lazy 
+  let state_list = (Marshal.from_channel ic : Grep_agent.grep_state_t list) in
+  Log.log#log_notice (lazy
       (sprintf "Restoring grep_agents..."));
-  if Array.length state_arr  <> (Param.get Params.nodes) then (
-    Log.log#log_error (lazy 
-      (sprintf "Read in array of %d grep_agents, but there are %d nodes!!!"
-	(Array.length state_arr)
+  if List.length state_list  <> (Param.get Params.nodes) then (
+    Log.log#log_error (lazy
+      (sprintf "Read in list of %d grep_agents, but there are %d nodes!!!"
+	(List.length state_list)
 	(Param.get Params.nodes)));
     exit (-1);
   );
   
-  Grep_agent.set_agents
-    (Nodes.map (fun n -> new Grep_agent.grep_agent ~stack n));
-  Array.iteri (Grep_agent.agents ~stack ())
-    (fun i n -> n#set_state state_arr.(i));
-  
-  Nodes.iter (fun n -> n#remove_rt_agent ~stack ());
+  Nodes.iter (fun n -> ignore (new Grep_agent.grep_agent ~stack n));
+  List.iteri ~f:(fun state i -> (Grep_agent.agent ~stack i)#set_state state) state_list;
 
+  Nodes.iter (fun n -> n#remove_rt_agent ~stack ());
   Nodes.iteri (fun i n -> 
     n#install_rt_agent ~stack ((Grep_agent.agent ~stack i) :> Rt_agent.t));
 
