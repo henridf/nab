@@ -20,7 +20,7 @@
  *
  *)
 
-(* $Header *)
+(* $Header$ *)
 
 
 (** Various iterators to perform actions on all node objects. 

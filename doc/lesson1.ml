@@ -20,7 +20,7 @@
  *
  *)
 
-(* $Header *)
+(* $Header$ *)
 
 
 let nodes = 800
