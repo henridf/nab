@@ -44,6 +44,7 @@ open Aodv_defaults
 open Printf
 open Misc
 
+
 module Aodv_stats = struct 
   type stats = {
     mutable total_xmit : int; 
@@ -58,6 +59,7 @@ module Aodv_stats = struct
     mutable rerr_orig : int; 
     mutable rrep_xmit : int; 
     mutable rrep_orig : int; 
+    mutable rrep_drop_nohop : int; 
     mutable data_drop_overflow : int; 
     mutable data_drop_rerr : int; 
   }
@@ -75,16 +77,56 @@ module Aodv_stats = struct
     rerr_orig = 0; 
     rrep_xmit = 0; 
     rrep_orig = 0; 
+    rrep_drop_nohop = 0;
     data_drop_overflow = 0; 
     data_drop_rerr = 0; 
   }
 
+let add s1 s2 = {
+  total_xmit = s1.total_xmit + s2.total_xmit; 
+  data_xmit = s1.data_xmit + s2.data_xmit; 
+  data_orig = s1.data_orig + s2.data_orig; 
+  data_recv = s1.data_recv + s2.data_recv;
+  hello_xmit = s1.hello_xmit + s2.hello_xmit;
+  rreq_xmit = s1.rreq_xmit + s2.rreq_xmit; 
+  rreq_init = s1.rreq_init + s2.rreq_init; 
+  rerr_xmit = s1.rerr_xmit + s2.rerr_xmit; 
+  rerr_orig = s1.rerr_orig + s2.rerr_orig; 
+  rreq_orig = s1.rreq_orig + s2.rreq_orig; 
+  rrep_xmit = s1.rrep_xmit + s2.rrep_xmit; 
+  rrep_orig = s1.rrep_orig + s2.rrep_orig; 
+  rrep_drop_nohop = s1.rrep_drop_nohop + s2.rrep_drop_nohop;
+  data_drop_overflow = s1.data_drop_overflow + s2.data_drop_overflow; 
+  data_drop_rerr = s1.data_drop_rerr + s2.data_drop_rerr; 
+}
+
+let sprint_stats s = 
+  let b = Buffer.create 64 in
+  let p = Printf.sprintf in 
+  Buffer.add_string b "-- Basic Stats:\n";
+  Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
+  Buffer.add_string b (p "   Delivery ratio: %f (Data orig: %d, Data recv: %d) \n"
+    ((float s.data_recv) /. (float s.data_orig )) s.data_orig s.data_recv);
+  Buffer.add_string b (p "   Packet xmits per packet delivered: %.2f\n" 
+    ((float s.total_xmit) /. (float s.data_recv)));
+
+
+  Buffer.add_string b "-- Packet Transmission Breakdown:\n";
+  Buffer.add_string b (p "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
+    s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
+
+  Buffer.add_string b "-- Protocol Phases:\n";
+  Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d\n"
+    s.rreq_init s.rreq_orig s.rrep_orig);
+  Buffer.add_string b (p "   RREP dropped because no hop to originator: %d\n"
+    s.rrep_drop_nohop);
+  Buffer.contents b
+
+
 end
 
-
-let agents_array_ = 
-  Array.init Simplenode.max_nstacks 
-    (fun _ -> Hashtbl.create (Param.get Params.nodes))
+let agents_array_  =  Array.init Simplenode.max_nstacks 
+  (fun _ -> Hashtbl.create (Param.get Params.nodes))
 
 module S = Aodv_stats
   (* locally rename module Aodv_stats as 'S' to make things more compact each
@@ -371,6 +413,9 @@ object(s)
     s#log_info (lazy (sprintf "Received RREQ pkt (originator %d), dst %d"
 	rreq.rreq_orig rreq.rreq_dst));
 
+    (* 0. Increment hopcount on packet. *)
+    let rreq = {rreq with rreq_hopcount = rreq.rreq_hopcount + 1} in
+
     (* 1. Update route to previous hop.*)
     Aodv_rtab.add_entry_neighbor rt src;
     s#after_send_any_buffered_pkts src;
@@ -403,11 +448,10 @@ object(s)
 	let seqno = match Aodv_rtab.seqno rt rreq.rreq_dst with
 	  | Some s -> max s rreq.rreq_dst_sn
 	  | None -> rreq.rreq_dst_sn in
-	let new_rreq = RREQ {rreq with 
-	  rreq_hopcount = rreq.rreq_hopcount + 1; 
+	let rreq = RREQ {rreq with 
 	  rreq_dst_sn = seqno} in
 	let l3pkt = s#make_l3aodv 
-	  ~dst:L3pkt.l3_bcast_addr ~ttl:(ttl - 1) new_rreq in
+	  ~dst:L3pkt.l3_bcast_addr ~ttl:(ttl - 1) rreq in
 
 	s#send_out l3pkt
     )
@@ -455,15 +499,14 @@ object(s)
 	      s#no_nexthop_rerr ~dst ~sender
 	  | true, _ -> 
 	      (* route is valid, so we can fw data packet. *)
-	      L3pkt.decr_l3ttl l3pkt;
-	      if (L3pkt.l3ttl l3pkt < 0) then (
+	      if (L3pkt.l3ttl l3pkt <= 0) then (
 		s#log_error (lazy "DATA packet TTL went to 0. looop???");
 		failwith "DATA packet TTL went to 0. looop???";
 		(* exception can be removed later, only in beta testing to
 		   make SURE i notice any such cases *)
 	      ) else (
 		Aodv_rtab.set_lifetime rt dst aodv_ACTIVE_ROUTE_TIMEOUT;
-		s#send_out l3pkt;
+		s#send_out (L3pkt.decr_l3ttl l3pkt);
 	      )
     )
 
@@ -720,7 +763,8 @@ object(s)
     if updated && myid <> rrep.rrep_orig then (
       match Aodv_rtab.nexthop_opt rt rrep.rrep_orig with
 	| None -> s#log_error 
-	    (lazy "Cannot forward RREP because no next hop to originator")
+	    (lazy "Cannot forward RREP because no next hop to originator");
+	    stats.S.rrep_drop_nohop <- stats.S.rrep_drop_nohop + 1
 	| Some nh -> 
 	    if ttl > 0 then (
 	      Aodv_rtab.add_precursor rt ~dst:rrep.rrep_dst ~pre:nh;
@@ -856,7 +900,7 @@ object(s)
 
   
   method private recv_pkt_app (l4pkt : L4pkt.t) dst = (
-    stats.S.data_orig <- stats.S.data_orig - 1;
+    stats.S.data_orig <- stats.S.data_orig + 1;
     s#log_info (lazy (sprintf "Originating app pkt with dst %d" dst));
     let l3pkt = (s#make_l3aodv ~dst DATA) in
     if dst = myid then
@@ -869,19 +913,9 @@ object(s)
 
 end
 
-open S
-let sprint_stats s = 
-  let b = Buffer.create 64 in
-  let p = Printf.sprintf in 
-  Buffer.add_string b "-- Basic Stats:\n";
-  Buffer.add_string b (p "   Total xmits: %d\n" s.total_xmit);
-  Buffer.add_string b (p "   Data orig: %d, Data recv: %d, Delivery ratio: %f\n"
-    s.data_orig s.data_recv ((float s.data_recv) /. (float s.data_orig )));
+let total_stats ?(stack=0) () = 
+  Hashtbl.fold 
+    (fun id agent tot -> S.add tot agent#stats)
+    agents_array_.(stack)
+    (S.create_stats())
 
-  Buffer.add_string b "-- Packet Transmission Breakdown:\n";
-  Buffer.add_string b (p "   HELLOs: %d, DATA: %d, RREQ: %d, RREP: %d\n"
-    s.hello_xmit s.data_xmit s.rreq_xmit s.rrep_xmit);
-
-  Buffer.add_string b "-- Protocol Phases:\n";
-  Buffer.add_string b (p "   RREQ Init: %d, RREQ Orig: %d, RREP Orig %d"
-    s.rreq_init s.rreq_orig s.rrep_orig)
