@@ -1,8 +1,8 @@
-(* *** ********* *)
-(* LER Simulator *)
-(* *** ********* *)
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
 
-(* Continuous topology with reflective boundaries                                      *)
+(* Continuous topology with reflective boundaries *)
 
 open Coord
 open Misc
@@ -12,44 +12,28 @@ open Common
 (* This class duplicates code from  contTaurusTop.ml, keep in mind when 
    changing things *)
 
-class contRefTop : Topology.topology = 
+class crworld : World.world_t = 
 object(s)
 
   val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 [])
     
   val mutable gridsize_ =  1.0 (* in practice an int, but stored as float to avoid many i2f's*)
   val mutable center_ =  [|0.5; 0.5|]
-  val mutable waypoint_targets_ = (Array.make 1 [|0.0; 0.0|])
 
   initializer (
     let g = round (sqrt (i2f (Param.get Params.nodes))) in
     gridsize_ <- g;
     center_ <- [|g /. 2.0; g /. 2.0|];
     grid_of_nodes_ <- (Array.make_matrix (f2i g) (f2i g) []);
-    waypoint_targets_ <- (
-      let w = ref (Array.make (Param.get Params.nodes) ([|0.0; 0.0|]:coordf_t)) in
-      Array.iteri (
-	fun i nothing  -> 
-	  !w.(i) <- [|Random.float g; Random.float g|]
-      ) !w;
-      !w
-    )
+
   )
 
   method private pos_in_grid_ pos = coord_f2i (coord_floor pos)
 
-  (* return an initial pos for node i *)
-  method initial_pos i = (
+  method random_pos  = (
     let pos = [|Random.float gridsize_; Random.float gridsize_|] in
     let (x, y) = ((s#pos_in_grid_ pos).(0), (s#pos_in_grid_ pos).(1)) in
     pos
-  )
-
-  (* set position internally *)
-  method place_node i pos = (
-    let (x, y) = ((s#pos_in_grid_ pos).(0), (s#pos_in_grid_ pos).(1)) in
-    assert (not (List.mem i grid_of_nodes_.(x).(y)));
-    grid_of_nodes_.(x).(y) <- i::grid_of_nodes_.(x).(y);
   )
 
   method private reflect_ pos = (
@@ -66,56 +50,137 @@ object(s)
     [|!newx; !newy|];
   )
 
-  method dist a b = sqrt (Coord.dist_sq a b)
-  method zero_hop_neigbors pos1 pos2 = (coord_round pos1) = (coord_round pos2)
-
-
-
-  method private waypoint_move_ data ~index  =  (
+  method dist_coords a b = sqrt (Coord.dist_sq a b)
+  method dist_nodes n1 n2 = s#dist_coords n1#pos n2#pos
+  method dist_nodeids id1 id2 = s#dist_coords (Nodes.node(id1))#pos (Nodes.node(id2))#pos
+  method neighbors n1 n2 = (s#dist_coords n1#pos n2#pos) <= 1.0
     
-    let target = waypoint_targets_.(index) in
-    let pos = data.pos.(index) in
-    if (s#dist target pos) <= 1.0 then 
-      (* arrived at target *)
-      begin
-	waypoint_targets_.(index) <- [|Random.float gridsize_; Random.float gridsize_|];
-	target
-      end
-    else 
-      begin
-	let direction = normalize (target ---. pos) in
-	pos +++. direction;
-      end
-  )
-    
-  method next_position data ~index ~mob = (
-    match mob with
-      | RANDOMWALK -> 
-	  s#reflect_ (
-	    data.pos.(index) +++. ([|Random.float 2.0; Random.float 2.0|] ---. [|1.0; 1.0|])
-	  )
-      | WAYPOINT -> s#waypoint_move_ data ~index:index
+
+  method private compute_neighbors node = (
+    let neighbors = ref NodeSet.empty in
+    Nodes.iter 
+      (fun a_node -> if s#neighbors node a_node  then 
+	neighbors := NodeSet.add a_node#id !neighbors);
+    !neighbors
   )
 
-  method update_pos ~index ~oldpos ~newpos = (
-    let (oldx, oldy) = ((s#pos_in_grid_ oldpos).(0), (s#pos_in_grid_ oldpos).(1)) in
+  method private neighbors_consistent = (
+    let consistent = ref true in
+
+    (* Check that neighbors are commutative *)
+    let commutative() = (
+      Nodes.iter 
+      (fun n -> 
+	NodeSet.iter 
+	(fun n_id -> consistent := !consistent && 
+	  ((Nodes.node(n_id))#is_neighbor n))
+	n#neighbors
+      );
+      !consistent
+    ) || raise (Failure "Neighbors not commutative")
+    in
+
+    (* Check that all nodes have the correct neigbhors *)
+    let correct_neighbors() = (
+    Nodes.iter
+      (fun n -> consistent := !consistent && 
+	(Common.NodeSet.equal n#neighbors (s#compute_neighbors n)));
+      !consistent
+    ) || raise (Failure "Neighbors not correct")
+    in
+    commutative()
+    &&
+    correct_neighbors()
+  )
+    
+  method update_pos ~node ~oldpos_opt = (
+    (* 
+       For all neighbors, do a lose_neighbor on the neighbor and on this node.
+       Then, compute new neigbors, and add them to this node and to the neighbors.
+    *) 
+    
+    let index = node#id in
+    let newpos = node#pos in
+
     let (newx, newy) = ((s#pos_in_grid_ newpos).(0), (s#pos_in_grid_ newpos).(1)) in
-    assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
-    grid_of_nodes_.(oldx).(oldy) <- list_without grid_of_nodes_.(oldx).(oldy) index;      
     grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
+
+    match oldpos_opt with
+      | None -> ()
+      | Some oldpos -> (
+	  let (oldx, oldy) = ((s#pos_in_grid_ oldpos).(0), (s#pos_in_grid_ oldpos).(1)) in
+	  assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
+	  grid_of_nodes_.(oldx).(oldy) <- list_without grid_of_nodes_.(oldx).(oldy) index;      
+	);
+
+    s#update_node_neighbors_ node;
+    assert (s#neighbors_consistent);
   )
     
-  method get_nodes_within_radius data ~node ~radius = (
+
+  method private update_node_neighbors_ node = (
+
+    let old_neighbors = node#neighbors in
+    let new_neighbors = s#compute_neighbors node in
+    (* figure out which nodes have entered or exited neighborhood *)
+    let changed_neighbors = NodeSet.diff old_neighbors new_neighbors in
+
+    NodeSet.iter 
+      (fun i -> 
+	if node#is_neighbor (Nodes.node i) then (
+	  (* these ones left *)
+	  node#lose_neighbor (Nodes.node i);
+	  (Nodes.node i)#lose_neighbor node
+	) else (
+	  (* these ones entered *)
+	  node#add_neighbor (Nodes.node i);
+	  (Nodes.node i)#add_neighbor node
+	)
+      ) changed_neighbors
+  )
+
+(*
+  method update_node_neighbors node = (
+    let n = Array.length data.db 
+    and ntargets = Array.length data.db.(0) in
+    
+    (* we do not exploit the fact that the 'meeting' is symetric (if A meets B, B meets A)*)
+    
+    let _update_db node neighbor = 
+      data.db.(node).(neighbor) <- meeting (get_time())  data.pos.(neighbor) in
+    
+    for i = 0 to n - 1 do
+      for j = 0 to ntargets - 1 do
+	if (s#zero_hop_neighbors data.pos.(i) data.pos.(j)) then
+	  _update_db i j;
+      done;
+    done;
+  )
+*)
+
+  method find_closest ~src ~f = (
+    let (closest_id, closest_dist) = (ref 0, ref max_float) in
+    Nodes.iter 
+      (fun n -> 
+	match f n with
+	  | true ->
+	      if (s#dist_coords src#pos n#pos) < !closest_dist then (
+		closest_id := n#id;
+		closest_dist := (s#dist_coords src#pos n#pos)
+	      )
+	  | false -> ()
+      );
+    !closest_id
+  )
+
+  method get_nodes_within_radius  ~node ~radius = (
     
     let radius_sq = radius ** 2.0 in
-    let center = data.pos.(node) in
+    let center = node#pos in
     let l = ref [] in
-    Array.iteri (fun node pos -> if s#dist center pos <= radius then l := node::!l) data.pos;
+    Nodes.iter (fun node -> if s#dist_coords center node#pos <= radius then l := (node#id)::!l) ;
     !l
   ) 
-
-  (* for now, route in continuous domain is direct path *)
-  method route data ~src ~dst = [data.pos.(src)]
 
   method scale_unit f = f /. gridsize_
 
