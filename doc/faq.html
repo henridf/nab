@@ -1,0 +1,57 @@
+<html> 
+<head>
+<title>NAB FAQ</title>
+<link href="emns.css" 
+type=text/css 
+rel=stylesheet>
+
+</head>
+<body BGCOLOR ="#FFFFFF"> 
+<h1>NAB FAQ</h1>
+<p>
+
+<p>
+<a href="#0">Why another network simulator?</a><br>
+<a href="#1">Why write it in ocaml?</a><br>
+<a href="#2">What are the long-term plans for NAB?</a><br>
+<a href="#3">What are the short-term plans for NAB?</a>
+
+<p>
+
+<h2><a name="0">Why another network simulator?</a></h2>
+
+<code>Nab</Code> was born out of its authors' inability to simulate large (as
+in 10000s of nodes) ad hoc networks, as well as a frustration in dealing with
+the complexity and opacity of other simulators, which made implementing new
+functionality a length and bug-ridden task.
+
+<h2><a name="1">Why write it in ocaml?</a></h2>
+
+Ocaml is a high-level, yet highly efficient programming language. It supports
+both object-oriented and functional programming styles. Ocaml has a number of
+attributes which make it very well-suited to writing a network simulator: 
+<ul>
+<li><a href="http://www.bagley.org/~doug/shootout/craps.shtml">Speed, speed, speed.</a>.
+<li>An interactive toplevel, offering the advantages typically associated with
+a scripting language (interactively develop scripts, examine simulator
+state). This makes things <b>much</b> simpler than integrating a scripting
+language into a non-scripted language (say c++ and otcl), since everything
+remains in one language domain, with no bindings to write, type conversions, etc.
+<li>A replay debugger.
+<li>Support for high-level, structured data types. For example a data type representing
+an AODV route discovery (sequence of hops + possible route repair
+floods) can be defined in a few lines.
+</ul>
+
+<h2><a name="2">What are the long-term plans for NAB?</a></h2>
+Long-term plans often don't survive the short term, so we'll avoid answering
+that one (but yes, we do have a few ideas..).
+
+<h2><a name="3">What are the short-term plans for NAB?</a></h2>
+In the very near future (ie, early May) we will release an update with a
+802.11b-like MAC layer implemented, some propagation models, and a completed
+implementation of a torus topology.
+
+
+
+</html>
