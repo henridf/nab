@@ -51,8 +51,8 @@ object
   method project_2d : Coord.coordf_t -> Coord.coordf_t 
     (* return position projected to a unit square *)
 
-  method scale_unit : float -> float 
-    (* return coordinate scaled to [0;1] interval. 
+(*  method scale_unit : float -> float 
+    return coordinate scaled to [0;1] interval. 
        can be used for example for drawing search disks *)
 
   method boundarize : Coord.coordf_t -> Coord.coordf_t
@@ -68,7 +68,6 @@ object
   method get_node_at : unitpos:Coord.coordf_t -> Common.nodeid_t 
     (* returns closest node to unit-scaled position *)
 
-  method sprint_info : unit -> string
 end
   
 
