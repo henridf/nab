@@ -36,7 +36,7 @@ let g () = o2v !gr
 let box_centeri i = 
   let pts = Graph.getinfoi_ (g()) i in
   match pts with 
-    | x1::y1::x2::y2::x3::y3::x4::y4::[] -> 
+    | x1::y1::_x2::_y2::x3::y3::_x4::_y4::[] -> 
 	(((Coord.i2f (x1, y1)) +++. (Coord.i2f (x3, y3))) ///. 2.)
    | _ -> raise (Misc.Impossible_Case "Read_coords.box_center")
 
@@ -46,8 +46,6 @@ let box_center n =
 
 
 let make_graph() = (
-
-  let re = Str.regexp "[ \t]+" in
 
   gr := Some (Graph.make_ "" (List.length Epflcoords.l_mtr) Graph.Directed);
 

@@ -31,7 +31,7 @@ type t = {
 }
 
 
-let hdr_size pkt =  _SEQNO_SIZE
+let hdr_size _ =  _SEQNO_SIZE
 
 let clone simple_pkt = {simple_pkt with seqno=simple_pkt.seqno}
 

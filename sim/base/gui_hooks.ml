@@ -91,7 +91,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
   let l3dst = L3pkt.l3dst l3pkt
-  and l3src = L3pkt.l3src l3pkt 
+
   and l2src = (L2pkt.l2src l2pkt) in
 
   if (l2src = node#id) then failwith "Gui_hooks.grep_route_pktin_mhook";

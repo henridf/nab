@@ -54,7 +54,7 @@ object(s)
   (* This is called from the underlying MAC each time we receive a packet, with
      the full l2packet provided. We don't care about the l2 portion, so this
      is a null method. *)
-  method mac_recv_l2pkt l2pkt = ()
+  method mac_recv_l2pkt _l2pkt = ()
 
 
   (* This is called from the underlying MAC each time we receive a packet, with

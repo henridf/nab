@@ -42,7 +42,7 @@ type t = {
   rdst : Common.nodeid_t; (* Route request destination : RREQ *)
 }
 
-let hdr_size pkt = (* too lazy to differentiat btw types right now, so
+let hdr_size _ = (* too lazy to differentiat btw types right now, so
 			     just putting the 'average' size *)
       1  (* grep_flags *)
       + (2 * _SEQNO_SIZE)  (* ssn, dsn *)

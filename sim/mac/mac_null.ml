@@ -54,7 +54,7 @@ object(s)
 
   method reset_stats = super#reset_stats
 
-  method recv ?snr ~l2pkt () = (
+  method recv ?snr  ~l2pkt () = (
 
     let dst = l2dst ~pkt:l2pkt in
 

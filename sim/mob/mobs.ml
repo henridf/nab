@@ -121,7 +121,6 @@ object(s)
   method private change_dir_maybe = 
     if Time.get_time() > time_next_dir_change then  (
 
-      let rad = (Random.float rnd (2. *. pi)) -. pi in 
       dir_ <- s#new_direction;
 
       let lambda = 1. /. (speed_mps *. (Param.get Params.x_size)) in 

@@ -281,26 +281,16 @@ let draw_ease_route
 		  hop2.hop;
 		  Gui_gtk.draw_segments [(hop1.hop, hop2.hop)];
 		  let n = hop1.hop in
-		  let c1 = Coord.xx n  
-		  and c2 = Coord.yy n  in
 		  Gui_gtk.draw_node n;
-		  (*	      let segments = [(c1 - 3, c2), (c1 + 3, c2) ; (c1, c2 - 3), (c1, c2 + 3)] in
-			      Gui_gtk.draw_segments segments ;*)
 		  draw_route_ (hop2::r);
 		  
 	      )
 	      )
 
 	  | hop1::hop2::r -> (
-	      (*	  Graphics.set_color (color ~hop:!i ~routelength:len);
-			  Graphics.set_color (Graphics.rgb 0 0 0);*)
 	      Gui_gtk.draw_segments [(hop1.hop, hop2.hop)];
 	      let n = hop1.hop in
-	      let c1 = Coord.xx n  
-	      and c2 = Coord.yy n  in
 	      Gui_gtk.draw_node n;
-(*	      let segments = [(c1 - 3, c2), (c1 + 3, c2) ; (c1, c2 - 3), (c1, c2 + 3)] in
-	      Gui_gtk.draw_segments segments ;*)
 	      draw_route_ (hop2::r);
 	    )
 	  | hop1::r -> (
@@ -352,7 +342,6 @@ let validate_node_input s =
  with _ -> (false, 0)
 
 let dialog_pick_node ?default ~node_picked_cb () = 
-  let n = ref (-1) in
   let dialog =
       GWindow.window ~kind:`DIALOG ~border_width:10 ~title:"Node ID" () in
     let dvbx = GPack.box `VERTICAL ~packing:dialog#add () in

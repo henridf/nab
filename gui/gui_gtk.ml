@@ -108,7 +108,7 @@ let init () = (
 
 
 
-  let (pixmap_, bitmap) = Gdk.Pixmap.create_from_xpm_d
+  let (pixmap_, _) = Gdk.Pixmap.create_from_xpm_d
     ~data:(Param.get Params_gui.xpm_bg)
     ~window:(gdk_window())
     ()

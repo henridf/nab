@@ -186,7 +186,7 @@ let o2v = function
 (** Hashes *)
 
 let listofhash h = 
-  let f key data l = data::l in
+  let f _key data l = data::l in
   Hashtbl.fold f h []
 
 

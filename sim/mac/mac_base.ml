@@ -27,7 +27,7 @@
 open Misc
 
 class virtual ['stats] base ?(stack=0) ~bps owner = 
-object(s)
+object
 
   inherit Log.inheritable_loggable as log
 

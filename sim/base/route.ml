@@ -118,7 +118,7 @@ let ease_route_valid route ~src ~dst= (
 		  advance (hopb::hopf::rf) rb prev_anchor
 
 	  )
-	| (rf, []) -> 
+	| (_, []) -> 
 	    true
     ) in 
     advance [] route (Opt.get (List.hd route).info).anchor
@@ -204,7 +204,7 @@ let ease_route_valid route ~src ~dst= (
 let eucl_length ~dist_f route = (
   let rec recurse_ r len = 
     match r with 
-      | [dst] -> len
+      | [_] -> len
       | a::b::c -> recurse_ (b::c) (len +. (dist_f a.hop b.hop))
       | [] -> raise (Misc.Impossible_Case "Route.eucl_length")
   in

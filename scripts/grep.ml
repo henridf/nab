@@ -87,8 +87,6 @@ let do_one_run ()  = (
   
   (Sched.s())#run_for 200.;
   
-  let avgn = avg_neighbors_per_node() in
-
   (*  Printf.fprintf !outfd "# Avg neighbors per node is %f\n" avgn;*)
 
   let (agent, sp, dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = 

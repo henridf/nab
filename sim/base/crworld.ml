@@ -408,7 +408,6 @@ class virtual world_common ~x ~y ~rrange  = (
 
     method get_nodes_within_radius  ~nid ~radius = (
       
-      let radius_sq = radius ** 2.0 in
       let center = node_positions_.(nid) in
       let l = ref [] in
       Nodes.iteri (fun cand_id _ -> if s#dist_coords center node_positions_.(cand_id) <= radius then l := (cand_id)::!l);

@@ -36,7 +36,7 @@ type t = {
   mutable shc : int; (* Source hopcount: All *)
 }
 
-let hdr_size pkt = (* too lazy to differentiat btw types right now, so
+let hdr_size _ = (* too lazy to differentiat btw types right now, so
 			     just putting the 'average' size *)
   raise Misc.Not_Implemented
 

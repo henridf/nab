@@ -42,7 +42,7 @@ let agent ?(stack=0) i =
 let proportion_met_nodes ?(stack=0) () = 
   let targets = Param.get Params.ntargets in
   let total_encounters = 
-    Hashtbl.fold (fun nid agent encs -> (agent#le_tab#num_encounters) + encs) 
+    Hashtbl.fold (fun _nid agent encs -> (agent#le_tab#num_encounters) + encs) 
       (agents ~stack ()) 0
   in
   (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
@@ -101,7 +101,7 @@ object(s)
   (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
      packet to send. We build the L3 header and originate the packet into the
      EASE routing logic. *)
-  method app_recv_l4pkt (l4pkt:L4pkt.t) dst = (
+  method app_recv_l4pkt _l4pkt dst = (
 
     let ease_hdr = 
       Ease_pkt.make_ease_hdr
@@ -256,7 +256,6 @@ object(s)
   (* The core logic implementing EASE. *)
   method private recv_ease_pkt_ pkt = (
 
-    let l3hdr = L3pkt.l3hdr pkt in
     let dst = L3pkt.l3dst pkt in
     let ease_hdr = L3pkt.ease_hdr pkt in
 

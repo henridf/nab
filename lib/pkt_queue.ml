@@ -48,13 +48,13 @@ let push el (q, max, stats) =
     true
   )
 
-let pop (q, max, stats) = 
+let pop (q, _, stats) = 
   stats.outpkts <- stats.outpkts + 1;
   Queue.pop q
 
 
-let peek (q, max, stats) = Queue.peek q
-let clear ?(stats=true) (q, max, qstats) = 
+let peek (q, _, _) = Queue.peek q
+let clear ?(stats=true) (q, _, qstats) = 
   if stats then (
     qstats.dropped <- 0;
     qstats.inpkts <- 0;
@@ -62,11 +62,11 @@ let clear ?(stats=true) (q, max, qstats) =
   );
   Queue.clear q
 
-let copy (q, max, stats) = Queue.copy q
-let is_empty (q, max, stats) = Queue.is_empty q
-let length (q, max, stats) = Queue.length q
-let iter f (q, max, stats) = Queue.iter f q
-let fold f init (q, max, stats) = Queue.fold f init q
+let copy (q, _, _) = Queue.copy q
+let is_empty (q, _, _) = Queue.is_empty q
+let length (q, _, _) = Queue.length q
+let iter f (q, _, _) = Queue.iter f q
+let fold f init (q, _, _) = Queue.fold f init q
 
 let transfer _ _  = raise Misc.Not_Implemented
   (* because not clear if this is needed for pktqueues, and if so what to 

@@ -97,7 +97,7 @@ object(s)
 	
       let newpos = s#getnewpos granularity in 
       (World.w())#movenode ~nid:owner#id ~newpos:newpos;
-      s#log_debug (lazy (Printf.sprintf "moving to %s" (Coord.sprintf newpos)));
+(*      s#log_debug (lazy (Printf.sprintf "moving to %s" (Coord.sprintf newpos)));*)
       (*   (World.w())#movenode ~nid:owner#id ~newpos:newpos;*)
 
       let sncpy = !seqno in (* to avoid ref problem *)
