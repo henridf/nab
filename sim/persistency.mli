@@ -3,7 +3,7 @@
 (*                                  *)
 
 
-val save_state : node_cnt:int -> out_chan:out_channel -> ntargets:int -> unit
+val save_state : out_chan:out_channel -> ntargets:int -> unit
   (* dump current state to out_channel and closes out_channel *)
 
 val read_state : in_chan:in_channel -> unit

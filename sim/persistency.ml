@@ -31,9 +31,10 @@ type state_hdr_t = {
   time:Common.time_t
 }
 
-type sim_state_t = Node.node_state_t array (* size Nodes_cnt * Nodes_cnt *)
+type sim_state_t = (Node.node_state_t array * NodeDB.nodeDB_state_t array)
   
-let save_state ~node_cnt ~out_chan ~ntargets = (
+let save_state  ~out_chan ~ntargets = (
+  let node_cnt = (Param.get Params.nodes) in
   let descr = sprintf "mws datafile\n Parameters:\n nodes: %d\n time: %f\n" 
     node_cnt 
     (Common.get_time())
@@ -45,13 +46,10 @@ let save_state ~node_cnt ~out_chan ~ntargets = (
   }
   in
   let (node_states:sim_state_t) = 
-    Nodes.map (fun n -> n#dump_state)
+    (Nodes.map (fun n -> n#dump_state), 
+    Array.map (fun agent -> agent#db#dump_state) !(Ease_agent.agents_array))
   in
 
-  if (node_cnt <> Array.length node_states) then 
-    raise (Failure 
-      "Persistency.save_state: node_cnt was different than length of Nodes array");
-  
   Marshal.to_channel out_chan descr [];
   Marshal.to_channel out_chan state_hdr [];
   Marshal.to_channel out_chan node_states [];
@@ -63,21 +61,22 @@ let save_state ~node_cnt ~out_chan ~ntargets = (
 
 
 let read_state ~in_chan  = 
-  raise Misc.Not_Implemented
-(*
 (
   (* get bits from channel *)
   let str = (Marshal.from_channel in_chan : string) in
   let hdr = (Marshal.from_channel in_chan : state_hdr_t) in
-  let node_states = (Marshal.from_channel in_chan : sim_state_t) in
+  let ((node_states, db_states):sim_state_t) = (Marshal.from_channel in_chan : sim_state_t) in
   
   if (hdr.node_cnt <> Array.length node_states) then 
     raise (Failure 
       "Persistency.read_state: node_cnt was different than length of Nodes array");
   
+  if (hdr.node_cnt <> (Param.get Params.nodes)) then 
+    raise (Failure 
+      "Persistency.read_state: node_cnt was different than Params.nodes");
+  
   (* set globals *)
   Common.set_time hdr.time;
-  Param.set Params.nodes hdr.node_cnt;
 
   Log.log#log_notice "Simulation state read in:";
   Log.log#log_notice (sprintf "\t Nodes: %d" hdr.node_cnt);
@@ -89,22 +88,17 @@ let read_state ~in_chan  =
   Nodes.set_nodes
     (Array.mapi
       (fun i nodestate -> 
-	let db = (new NodeDB.nodeDB ~ntargets:hdr.ntargets) 
-	and nd = (new Simplenode.simplenode 
-	  ~pos_init:nodestate.Node.node_pos 
-	  ~id:i
-	  ~ntargets:hdr.ntargets
-	) 
-	in
-	db#load_state nodestate.Node.db_state;
-	nd#set_db db;
-	(* bler_agent will register with node *)
-	ignore (new Magic_bler_agent.magic_bler_agent nd);
-	nd
+	new Simplenode.simplenode 
+	~pos_init:nodestate.Node.node_pos 
+	~id:i
       ) node_states);
+  Ease_agent.set_agents
+    (Nodes.map (fun n -> new Ease_agent.ease_agent n));
+  
+  Array.iteri (fun i agent -> agent#db#load_state db_states.(i)) !(Ease_agent.agents_array);
   
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
   assert ((Gworld.world())#neighbors_consistent);
 )
-*)
+
