@@ -8,12 +8,12 @@
 
 val make_uniwaypoint_mobs : ?gran:float -> unit -> unit
   (** Create {!Mob.mobility} objects that implement a uniform waypoint mobility
-    model (see {Mob.uniwaypoint}). Optional gran indicates the mobility granularity. 
+    model (see {!Mob.uniwaypoint}). Optional gran indicates the mobility granularity. 
   *)
 
 val make_borderwaypoint_mobs : ?gran:float -> unit -> unit
   (** Create {!Mob.mobility} objects that implement a border waypoint mobility
-    model (see {Mob.borderwaypoint}). Optional gran indicates the mobility granularity. 
+    model (see {!Mob.borderwaypoint}). Optional gran indicates the mobility granularity. 
   *)
 
 val make_epfl_waypoint_mobs : unit -> unit
