@@ -30,7 +30,7 @@ object
       just encountered node [n] at position [pos]. *)
     
   method le : nid:Common.nodeid_t -> enc_t option
-    (** [le n] returns [Some enc], where enc is the {!enc_t}
+    (** [le n] returns [Some enc], where enc is an [enc_t]
       representing our last encounter with node [n], or returns [None] if we
       have never encountered [n].  *)
     

@@ -7,26 +7,26 @@
  *)
 
 val make_uniwaypoint_mobs : ?gran:float -> unit -> unit
-  (** Create {!Mobs.mobility} objects that implement a uniform waypoint mobility
+  (** Create {!Mob.t} objects that implement a uniform waypoint mobility
     model (see {!Mobs.uniwaypoint}). Optional gran indicates the mobility granularity. 
   *)
 
 val make_borderwaypoint_mobs : ?gran:float -> unit -> unit
-  (** Create {!Mobs.mobility} objects that implement a border waypoint mobility
+  (** Create {!Mob.t} objects that implement a border waypoint mobility
     model (see {!Mobs.borderwaypoint}). Optional gran indicates the mobility granularity. 
   *)
 
 val make_billiard_mobs : ?gran:float -> unit -> unit
-  (** Create {!Mobs.mobility} objects that implement a border waypoint mobility
+  (** Create {!Mob.t} objects that implement a border waypoint mobility
     model (see {!Mobs.billiard}). Optional gran indicates the mobility granularity. 
   *)
 
 val make_epfl_waypoint_mobs : unit -> unit
-  (** Create {!Mobs.mobility} objects that implement a waypoint mobility model
-    over epfl campus (uses {!Epflcoords.l}). *)
+  (** Create {!Mob.t} objects that implement a waypoint mobility model
+    over epfl campus, using graph representation of epfl campus (see file [gui/epflcoords.ml]). *)
 
 val make_discrete_randomwalk_mobs : unit -> unit
-  (** Create {!Mobs.mobility} objects that implement a discrete random walk 
+  (** Create {!Mob.t} objects that implement a discrete random walk 
     mobility model. *)
 
 val set_speed_mps : ?nidopt:Common.nodeid_t -> float -> unit

@@ -15,7 +15,7 @@ open Graph
 
 
 (** The base class from which {!Crworld.world_lazy} and
-  {!Cworld.world_greedy} inherit.
+  {!Crworld.world_greedy} inherit.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
@@ -421,7 +421,7 @@ class virtual world_common ~x ~y ~rrange  = (
   neighbor positions. In other words, a node's neighbors are only re-computed
   each time it moves. This is usually slower than the lazy approach of
   {!Crworld.world_lazy}, but is necessary if using the [add_new_ngbr_hook]
-  facility of {!Worldt.lazy_world_t}.
+  facility of {!Crworld.world_greedy}.
 
   @param x X size of World.in meters.
   @param y Y size in meters of World.
@@ -509,7 +509,7 @@ class virtual world_greedy  = (
   neighbor positions. In other words, a node's neighbors are only computed
   when needed (for example by when the [#neighbors] method is invoked).
   This is usually faster than the greedy approach of
-  {!Crworld.world_greedy}, but disallows using the [add_new_ngbr_hook]
+  {!Worldt.greedy_world_t}, but disallows using the [add_new_ngbr_hook]
   facility of {!Worldt.lazy_world_t}.
 
   @param x X size of World.in meters.

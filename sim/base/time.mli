@@ -17,5 +17,5 @@ val get_time : unit -> time_t
   (** Returns the present simulator time. *)
 
 val time: unit -> time_t
-  (** Identical to {!Sched.get_time}. *)
+  (** Identical to [get_time]. *)
 
