@@ -1,4 +1,0 @@
-- compile once with -principal-types
-- check if param is close to unison's one, if so must acknowledge
-- in-file documentation 
-  - document Params/Param, and the interplay with cmdline args
