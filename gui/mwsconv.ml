@@ -40,3 +40,14 @@ let mtr_2_pix_route r =
 	Route.anchor=(pos_mtr_to_pix h.Route.anchor)
 	}
     ) r
+
+let nodeid_2_pix_route r = 
+  List.map 
+    (fun h -> 
+      let nodepos = (Gworld.world())#nodepos h.Route.hop in
+      let anchorpos = (Gworld.world())#nodepos h.Route.anchor in
+      {h with
+	Route.hop=(pos_mtr_to_pix nodepos);
+	Route.anchor=(pos_mtr_to_pix anchorpos)
+	}
+    ) r

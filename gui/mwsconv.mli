@@ -19,8 +19,8 @@ val mtr_2_pix_route :
   Coord.coordf_t Route.t  ->
   Coord.coordi_t Route.t  
 
-val mtr_2_pix_route :
-  Coord.coordf_t Route.t  ->
+val nodeid_2_pix_route :
+  Common.nodeid_t Route.t  ->
   Coord.coordi_t Route.t  
 
 
