@@ -10,6 +10,9 @@ open Misc
 let avg_f (a: float array) = (Array.fold_left (+.) 0.0 a) /. (i2f (Array.length a))
 let avg_i (a: int array) = (i2f (Array.fold_left (+) 0 a)) /. (i2f (Array.length a))
 
+let avg_list_f (a: float list) = (List.fold_left (+.) 0.0 a) /. (i2f (List.length a))
+let avg_list_i (a: int list) = (i2f (List.fold_left (+) 0 a)) /. (i2f (List.length a))
+
 let var_f (a: float array) = 
   let avg = avg_f a in
     (Array.fold_left (fun s x -> s +. ((x -. avg) ** 2.0)) 0.0 a) /. (i2f (Array.length a))
@@ -27,8 +30,8 @@ let var_i (a: int array) =
 (** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
 type datapoint_f = {x : float ; data : float array}
-type stat_f = {avg : float; var : float; count : int}
-type bin_f = {center: float; stats : stat_f array}
+type stat_f = {avg : float; var : float}
+type bin_f = {center: float; count: int; stats : stat_f array}
 
 (* val binnify_f : datapoint_f array -> int -> bin_f array = <fun> *)
 let binnify_f (a: datapoint_f array) nbins = ( 
@@ -55,30 +58,33 @@ let binnify_f (a: datapoint_f array) nbins = (
 	bin 
     in
       Array.init nbins (fun bin -> 
-			   let stats = Array.make nmeasures {avg=0.0; var=0.0; count=0} in 
+			   let stats = Array.make nmeasures {avg=0.0; var=0.0} in 
 			     for i = 0 to nmeasures - 1 do
 			       stats.(i) <- {
 				 avg = avg_f (Array.map (fun l -> l.data.(i)) (nthbin bin));
 				 var = var_f (Array.map (fun l -> l.data.(i)) (nthbin bin)) ;
-				 count = (Array.length (nthbin bin))
 			       }
 			     done;
 			  {center =  (binwidth /. 2.0) +.  (binwidth *. (i2f bin)); 
+			   count = (Array.length (nthbin bin));
 			   stats = stats}
 		       )
 )
 
 (* val write_bins : bin_f array -> out_channel -> unit *)
 let write_bins bins out = (
-  Array.iter (fun {center=center; stats=stats} -> (
-		fprintf out  "%.2f " center;
-		Array.iter (fun {avg=avg; var=var; count=count} -> (
-			      fprintf out "%.2f " avg;
-			      fprintf out "%.2f " var;
-			      fprintf out  "%d  " count;
-			    )
-			   ) stats;
-		fprintf out "\n" ;
+  Array.iter (fun {center=center; count = count; stats=stats} -> (
+		if count > 0 then (
+		  fprintf out  "%.2f " center;
+		  Array.iter (fun {avg=avg; var=var} -> (
+				fprintf out "%.2f " avg;
+				fprintf out "%.2f " var
+			      );
+			     ) stats;
+		  fprintf out  "%d  " count;
+		  fprintf out "\n" ;
+		)
 	      )
 	     ) bins
 )
+			    
