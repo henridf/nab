@@ -53,7 +53,7 @@ object(s)
 	  s#sched_event_at {handler=handler; time=Common.get_time()};
       | ALAP -> raise (Failure "sched#sched_handler_at: ALAP not implemented\n")
       | Time t -> (
-	  if (t <= Common.get_time()) then 
+	  if (t < Common.get_time()) then 
 	    raise 
 	      (Failure 
 		("sched#sched_handler_at: attempt to schedule an event in the"
