@@ -50,37 +50,38 @@ STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 
 
 LER_OBJ_FILES = $(MISC_OBJ_FILES) \
-	$(LER_SUBDIR)/ler$(CMO)
+		$(LER_SUBDIR)/ler$(CMO) \
+		$(LER_SUBDIR)/ler_main$(CMO)
 
-LER_MAIN_FILE = $(LER_SUBDIR)/ler_main$(CMO)
 
 
 BLER_OBJ_FILES = $(GFX_LIB) \
-	$(MISC_OBJ_FILES) \
-	$(BLER_SUBDIR)/ler_graphics$(CMO) \
-	$(BLER_SUBDIR)/bler$(CMO)
+		$(MISC_OBJ_FILES) \
+		$(BLER_SUBDIR)/ler_graphics$(CMO) \
+		$(BLER_SUBDIR)/bler$(CMO) \
+		$(BLER_SUBDIR)/bler_main$(CMO) 
 
-BLER_MAIN_FILE = $(BLER_SUBDIR)/bler_main$(CMO) 
 
 
-PROOF_MAIN_FILE = $(LER_SUBDIR)/proof$(CMO)
+PROOF_OBJ_FILES = $(LER_SUBDIR)/proof$(CMO)
 
 DOPLOTS_OBJ_FILES = \
-	$(GFX_LIB) \
-	$(UNIX_LIB) \
-	$(STR_LIB) \
-	$(MISC_OBJ_FILES)
-DOPLOTS_MAIN_FILE = $(MISC_SUBDIR)/doplots$(CMO) 
+		$(GFX_LIB) \
+		$(UNIX_LIB) \
+		$(STR_LIB) \
+		$(MISC_OBJ_FILES) \
+		$(MISC_SUBDIR)/doplots$(CMO) 	
 
 
 MISC_OBJ_FILES = $(MISC_SUBDIR)/misc$(CMO) 
 
-GRAPH_OBJ_FILES = $(MISC_SUBDIR)/graph$(CMO)
-GRAPH_MAIN_FILE = $(MISC_SUBDIR)/graph_main$(CMO)
+GRAPH_OBJ_FILES = \
+		$(MISC_OBJ_FILES) \
+		$(MISC_SUBDIR)/graph$(CMO) \
+		$(MISC_SUBDIR)/graph_main$(CMO)
 
 TEST_OBJ_FILES = \
 	$(TEST_SUBDIR)/testUtils$(CMO)
-
 
 
 
@@ -93,20 +94,20 @@ TEST_OBJ_FILES = \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-exp:  $(LER_MAIN_FILE)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(LER_OBJ_FILES) $(LER_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
+exp:  $(LER_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(LER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
 
-bler: $(BLER_MAIN_FILE)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) $(BLER_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
+bler:  $(BLER_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)/$@ 
 
-doplots: $(DOPLOTS_MAIN_FILE)
+doplots: $(DOPLOTS_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(DOPLOTS_OBJ_FILES) $(DOPLOTS_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
 
-graph-test: $(GRAPH_MAIN_FILE)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GRAPH_OBJ_FILES) $(GRAPH_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
+graph-test: $(GRAPH_OBJ_FILES)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(GRAPH_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
 
 proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_MAIN_FILE) -o $(BIN_SUBDIR)/$@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_OBJ_FILES)  -o $(BIN_SUBDIR)/$@ 
 
 all: bler exp doplots graph-test
 
