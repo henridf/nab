@@ -34,3 +34,4 @@ open Coord
 
 type nodeid_t = int
 
+val nab_release : string

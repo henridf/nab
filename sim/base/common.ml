@@ -26,7 +26,7 @@
 
 open Printf
 
-
+let nab_release = "0.6pre"
 type nodeid_t = int
 
 

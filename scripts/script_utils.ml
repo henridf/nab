@@ -389,4 +389,4 @@ let size
 
 let _ = 
   if !Sys.interactive then 
-    print_endline "\n  Network in a Box (nab) version 0.1";
+    print_endline ("\n     Network in a Box (nab) version "^Common.nab_release);
