@@ -32,28 +32,30 @@ let init_world() =
     ~rrange:(Param.get Params.rrange)
 )
 
+let init_all() =   (
+  Sched.set_time 0.0;
+  init_sched(); 
+  init_world()
+)
 
-let make_simplenodes () = (
+let make_nodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
       (fun i -> 
 	(new Simplenode.simplenode i
-	)))
-)
-    
-let make_gpsnodes () = (
-  Nodes.set_gpsnodes [||]; (* in case this is being called a second time in the same script *)  
-  Nodes.set_gpsnodes 
-    (Array.init (Param.get Params.nodes)
-      (fun i -> 
-	(new Gpsnode.gpsnode i 
 	)));
 
   (* set up initial node position in internal structures of world object *)
-  Nodes.gpsiter (fun n -> (Gworld.world())#init_pos ~nid:n#id ~pos:n#pos);
+  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
   assert ((Gworld.world())#neighbors_consistent);
 )
+    
+let place_nodes_on_line () = 
+  let x_incr = (Param.get Params.x_size) /.  float (Param.get Params.nodes) in
+  Nodes.iteri (fun nid -> 
+    let newpos = ((float nid) *. x_incr, 0.0) in
+    (Gworld.world())#movenode ~nid ~newpos)
 
 let make_grease_nodes () = (
   let get_init_pos() = (Gworld.world())#random_pos 
@@ -85,40 +87,37 @@ let make_grease_nodes () = (
   
 
 let make_grep_nodes () = (
-  make_simplenodes();
+  make_nodes();
 
   (* create grep agents, who will hook to their owners *)
   Grep_agent.set_agents
     (Nodes.map (fun n -> new Grep_agent.grep_agent n));
-  
-  (* set up initial node position in internal structures of world object *)
-  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
-  assert ((Gworld.world())#neighbors_consistent);
 )
 
-let make_diff_nodes () = (
-  make_simplenodes();
-
+let make_diff_agents () = (
   (* create diff agents, who will hook to their owners *)
   Diff_agent.set_agents
     (Nodes.map (fun n -> new Diff_agent.diff_agent n));
-  
-  (* set up initial node position in internal structures of world object *)
-  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
-  assert ((Gworld.world())#neighbors_consistent);
 )
 
 let make_aodv_nodes () = (
-  make_simplenodes();
+  make_nodes();
 
   (* create aodv agents, who will hook to their owners *)
   Aodv_agent.set_agents
     (Nodes.map (fun n -> new Aodv_agent.aodv_agent n));
-
-  (* set up initial node position in internal structures of world object *)
-  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
-  assert ((Gworld.world())#neighbors_consistent);
 )
+
+
+let install_macs_ mac_factory = 
+  Nodes.iter (fun n -> n#install_mac (mac_factory n))
+
+let install_null_macs () = 
+  install_macs_ (fun n -> new Mac_null.nullmac n)
+
+let install_contention_macs () = 
+  install_macs_ (fun n -> new Mac_contention.contentionmac n)
+
 
 let proportion_met_nodes()  = 
   Ease_agent.proportion_met_nodes()
@@ -258,10 +257,18 @@ let print_header () = (
 
 let dumpconfig outchan = (
   let conf = Param.dumpconfig () in
+
+  let max_width = 
+    List.fold_left 
+      (fun w (name,_) -> 
+	if String.length name > w then String.length name else w)
+      0
+      conf
+  in
+
   List.iter (fun (name, value) ->
-    output_string outchan ((padto name 20)^value^"\n")
+    output_string outchan ((padto name (max_width + 4))^value^"\n")
   ) conf;
-  output_string outchan ((padto "RNG Seed" 20)^(string_of_int !Rnd_manager.seed)^"\n");
   flush outchan;
 )
     
@@ -281,11 +288,27 @@ let detach_daemon ~outfilename = (
     Unix.close Unix.stdin;
     Unix.close Unix.stdout;
     Unix.close Unix.stderr;
-    Log.output_fd := (open_out outfilename)
+    Log.ochan := (open_out outfilename)
     
 )
 
 
+(*
+  density = area / nodes
+  -> area = nodes * density (1)
+  
+  
+  rsurface = 3.14 * (rrange^2)
+  
+  degree = density * rsurface
+  -> density = rsurface/degree (2)
+  
+  
+  (1) and (2) :
+  area = nodes * rsurface / degree = nodes * (3.14 * (rrange^2)) / degree 
+  
+  side = sqrt(area)
+*)
 let size 
   ?(rrange=(Param.get Params.rrange))  
   ?(nodes=(Param.get  Params.nodes)) ~avg_degree () = 

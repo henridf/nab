@@ -2,7 +2,10 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** General utils and helpers for writing MWS scripts *)
+
+(** General utils and helpers for writing MWS scripts.
+  @author Henri Dubois-Ferriere. 
+*)
 
 
 (** Arguments *)
@@ -17,34 +20,47 @@ val init_sched : unit -> unit
 
 val init_world : unit -> unit
   (** Instantiate the global world object. 
-    Number of nodes (Params.nodes) should be set before calling this *)
+    Number of nodes {!Params.nodes} should be set before calling this *)
+
+val init_all : unit -> unit
+  (** Instantiates both the global world object and the global scheduler
+    object, and sets the time to 0.0 *)
 
 val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
   (** Returns the side of a square surface to get the required average node
     degree, given the number of nodes and radio range *)
     
-
-val make_gpsnodes : unit -> unit
-  (** Create gpsnodes, with no agents attached.
-    Number of nodes (Params.nodes) should be set before calling this *)
+val make_nodes : unit -> unit
+  (** Create {!Simplenode.simplenode} each with a grep agent.
+    Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_grep_nodes : unit -> unit 
-  (** Create simplenodes each with a grep agent.
-    Number of nodes (Params.nodes) should be set before calling this *)
+  (** Create {!Simplenode.simplenode} each with a grep agent.
+    Number of nodes {!Params.nodes} should be set before calling this *)
 
-val make_diff_nodes : unit -> unit 
-  (** XXX
-Create simplenodes each with a hacked grep agent.
-    Number of nodes (Params.nodes) should be set before calling this *)
+val make_diff_agents : unit -> unit 
+  (** Adds a diffusion agent to each node.
+    Nodes should be created before calling this.*)
 
 val make_aodv_nodes : unit -> unit 
-  (** Create simplenodes each with a aodv agent.
-    Number of nodes (Params.nodes) should be set before calling this *)
+  (** Create {!Simplenode.simplenode} each with a aodv agent.
+    Number of nodes {!Params.nodes} should be set before calling this *)
 
 val make_grease_nodes : unit -> unit 
-  (** Create gpsnodes each with a grep agent.
-    Number of nodes (Params.nodes) should be set before calling this *)
+  (** Create gpsnodes each with a EASE agent.
+    Number of nodes {!Params.nodes} should be set before calling this *)
 
+val place_nodes_on_line : unit -> unit
+  (** Places all nodes on a horizontal line, evenly spaced so as to use 
+    the whole width {!Params.x_size}*)
+
+val install_null_macs : unit -> unit
+  (** Installs a Nullmac Mac layer on each node.
+    Nodes should be created before calling this.*)
+
+val install_contention_macs : unit -> unit
+  (** Installs a Contentionmac Mac layer on each node.
+    Nodes should be created before calling this.*)
 
 
 
