@@ -95,6 +95,14 @@ val draw_circle :
   -> unit
   (** Draw a circle. *)
 
+val draw_filled_circle : 
+  centr:Coord.coordi_t -> 
+  radius:int ->
+  line_color:GDraw.color ->          
+  fill_color:GDraw.color           
+  -> unit
+  (** Draw a circle filled with the color specified by ~fill_color *)
+
 (**/**)
 val draw_segments_taur : 
   ?col:GDraw.color ->          

@@ -219,6 +219,29 @@ let draw_circle ~centr ~radius =
     ~height:(radius * 2) 
     ()
     
+
+
+let draw_filled_circle ~centr ~radius ~line_color ~fill_color = 
+
+  (drawing())#set_foreground fill_color;
+
+  (drawing())#arc
+    ~x:((fst centr) - radius ) 
+    ~y:((snd centr) - radius) 
+    ~width:(radius * 2)
+    ~height:(radius * 2) 
+    ~filled: true
+    ();
+
+    (drawing())#set_foreground line_color;
+    
+     (drawing())#arc
+    ~x:((fst centr) - radius ) 
+    ~y:((snd centr) - radius) 
+    ~width:(radius * 2)
+    ~height:(radius * 2) 
+    ~filled: false
+    ()   
 (*
 let _ = 
   let major, minor, minorminor = Main.version 
