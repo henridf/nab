@@ -6,23 +6,48 @@ open Coord
 open Misc
 open GMain
 
-let cl_fg = `NAME "blue" 
-let cl_bg = `BLACK
-
-
+(*let cl_fg = `NAME "blue" *)
+let cl_fg = `NAME "black"
+let cl_hilite = `NAME "red"
 
 let wnd = ref None 
 let gdk_wnd = ref None 
-let drw = ref None 
+let (drw : [ `window] GDraw.drawable option ref) = ref None 
+let pkr = ref (fun _ -> ())
 let window () = o2v !wnd 
 let gdk_window () = o2v !gdk_wnd 
 let drawing () = o2v !drw
+let packer() =  !pkr
+let fixed = ref None
+let fix() = o2v !fixed
+let txt_label = ref None
+let txt() = o2v !txt_label
 
-let q = Linkedlist.create() 
-
+let q = Queue.create() 
 let redraw _ = (
-  Printf.printf "Redrawing\n"; flush stdout;
-  Linkedlist.iter (fun f -> f()) q;
+  (drawing())#set_foreground (`RGB (max_int, 0, 0));
+(*  (drawing())#set_line_attributes ~width:10 ();
+
+   (drawing())#polygon ~filled:false
+    [ 10,100; 35,35; 100,10; 165,35; 190,100;
+      165,165; 100,190; 35,165; 10,100 ];
+*)
+
+(*
+n  if (not (Queue.is_empty q)) then (
+ let n1 = Queue.pop q in
+  (drawing())#set_line_attributes ~width:10 ();
+  (drawing())#set_foreground (`WHITE);
+  (drawing())#segments [n1];
+
+  );
+*)
+  let l = 
+   Queue.fold (fun l el -> el::l) [] q in
+  if (List.length l > 0) then (
+    (drawing())#set_line_attributes ~width:10 ();
+    (drawing())#segments l;
+  );
   true;
 )
 
@@ -35,29 +60,49 @@ let init () = (
   let _ = (window())#connect#destroy ~callback:Main.quit in
 
   
-  let fix = GPack.fixed ~width:1200 ~height:900 ~packing:((window())#add) () in
-  gdk_wnd := Some (fix#misc#realize (); fix#misc#window) ;
-  drw := Some (new GDraw.drawable (gdk_window()));
+  let vbox = GPack.vbox ~packing:(window())#add () in
+  pkr := vbox#add;
+  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:(vbox#add) ());
 
+  gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window) ;
+  drw := Some (new GDraw.drawable (gdk_window()));
   let (pixmap, bitmap) = Gdk.Pixmap.create_from_xpm
     ~file:"/home/henri/work/150th/epfl.xpm" 
     ~window:(gdk_window())
     ()
   in
-  Gdk.Window.set_back_pixmap fix#misc#window (`PIXMAP pixmap);
+  Gdk.Window.set_back_pixmap (fix())#misc#window (`PIXMAP pixmap);
   
-(*  ignore (fix#event#connect#expose ~callback:redraw);*)
+  txt_label := Some (GMisc.label ~text:"Go on!" ~packing:(packer()) ());
+  ignore ((window())#event#connect#expose ~callback:redraw);
 (*  ignore (Timeout.add ~ms:100 ~callback:redraw)*)
 
+)
+
+  
+let install_button_press_cb cb = (
+  (fix())#event#connect#button_press 
+    ~callback:cb
+)
+
+let remove_button_press_cb id = (
+  (fix())#misc#disconnect id
+)
+
+let txt_msg msg = (
+  (txt())#set_text msg
 )
 
 let draw_segs s = (
 (*  (window())#misc#draw None;
   (drawing())#misc#draw None;*)
-  Linkedlist.insert 
-    ~ll:q 
-    ~v:(fun _ ->   (drawing())#segments s) 
-    ~compare:(fun _ _ -> true);
+  (drawing())#segments s;
+
+(*
+  List.iter (fun seg -> 
+    Queue.push seg q ) s
+    ~v:(fun _ ->    *)
+
 
 )
 
@@ -71,27 +116,30 @@ let draw_cross (x, y) =
       (x - pixwid, y), (x + pixwid, y)
     ]
 
-let erase draw_action = (
-  (drawing())#set_foreground cl_bg;
-  draw_action();
-  (drawing())#set_foreground cl_fg;
-)
 
 let draw_segments l = 
   draw_segs l
 
-let draw_node pos = 
-  Linkedlist.insert 
-    ~ll:q 
-    ~v:(fun _ -> draw_cross pos) 
-    ~compare:(fun _ _ -> true)
-(*  draw_cross ~centerpix:pos*)
+let draw_node hilite pos = (
+  if hilite then 
+    (drawing())#set_foreground cl_hilite
+ else 
+   (drawing())#set_foreground cl_fg;    
+  
+  
+  draw_cross pos;
 
-let undraw_node ~mwspos = erase (fun _ -> draw_node mwspos)
+)
 
 
 let draw_nodes pos_list =  
-  
-  List.iter (fun p -> draw_node p) pos_list
+  List.iter (fun p -> draw_node false p) pos_list
 
-
+let draw_circle ~centr ~radius = 
+  (drawing())#arc
+  ~x:((fst centr) - radius ) 
+    ~y:((snd centr) - radius) 
+    ~width:(radius * 2)
+    ~height:(radius * 2) 
+    ()
+    
