@@ -81,6 +81,7 @@ object(s)
       ~dstid:dst 
       ~anchor_pos:owner#pos
       ~enc_age:(s#our_enc_age dst)
+      ~l4pkt
     )
   )
 
@@ -162,7 +163,6 @@ object(s)
 
   method private geo_fw_pkt_ pkt = (
     let dst = (L3pkt.l3dst pkt) in
-    let l3hdr = L3pkt.l3hdr pkt in
 
     (* this first case is necssary to avoid a possible infinite loop if we are at
        the same position as the destination, in which case the find_closest call

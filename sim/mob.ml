@@ -143,7 +143,7 @@ class uniwaypoint
   (owner:#Simplenode.simplenode) 
   ?gran
   () = 
-object(s)
+object
   inherit waypoint owner ?gran  ()
   method private new_waypoint() = (Gworld.world())#random_pos
 end
@@ -152,7 +152,7 @@ class borderwaypoint
   (owner:#Simplenode.simplenode)
   ?gran
   () =
-object(s)
+object
   inherit waypoint owner ?gran  ()
     
   method private new_waypoint() = 

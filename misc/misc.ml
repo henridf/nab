@@ -57,7 +57,7 @@ let facto n =
   let rec tailrec x n = 
     match x with
       | 0 -> n
-      | v -> tailrec (x - 1) (x * n)
+      | _ -> tailrec (x - 1) (x * n)
   in
   tailrec n 1
 
@@ -87,7 +87,7 @@ let list_without l el = List.filter (fun x -> x <> el) l
 let list_unique_elements l = 
   let hash = Hashtbl.create (List.length l) in
     List.iter (fun x -> Hashtbl.remove hash x; Hashtbl.add hash x "") l;
-    Hashtbl.fold (fun key value list -> key :: list ) hash []
+    Hashtbl.fold (fun key _ list -> key :: list ) hash []
 
 let list_count_element ~l ~el = List.length (List.filter (fun x -> x = el) l)
 let list_count_int ~l el:int = List.length (List.filter (fun (x:int) -> (x = el)) l)
@@ -150,11 +150,11 @@ let o2v = function
 
 let some = function
   | None -> false
-  | Some v -> true
+  | _ -> true
 
 let none = function
   | None -> true
-  | Some v -> false
+  | _ -> false
 
 (** Error Handling and Exceptions *)
 

@@ -25,8 +25,8 @@ let coord_f2n (x, y) = [|f2i x; f2i y|]
 let coord_round (x, y) = (round x, round y)
 let coord_floor (x, y) = (floor x, floor y)
 
-let xx (x, y) = x
-let yy (x, y) = y
+let xx (x, _) = x
+let yy (_, y) = y
 
 
 let normi_sq (x, y) = 

@@ -20,7 +20,7 @@ val draw_cross : coordf_t -> int -> unit
 
 (*val draw_route : color:bool -> route:Coord.coordf_t Route.t  -> unit
 val draw_route : color:(hop:int -> routelength:int -> Graphics.color) -> route:Coord.coordf_t Route.t  -> unit*)
-val hop_col_color : hop:int -> routelength:int -> Graphics.color
+val hop_col_color : hop:int -> Graphics.color
 
 val disc_draw_gradient : (coordf_t) array array -> unit
 val cont_draw_gradient : (coordf_t * coordf_t) array -> unit

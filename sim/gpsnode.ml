@@ -8,7 +8,7 @@ open Misc
 
 class gpsnode ~(pos_init:Coord.coordf_t) id   = 
 
-object(s)
+object
   
   inherit Simplenode.simplenode id
 

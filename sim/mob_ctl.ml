@@ -33,5 +33,5 @@ let make_epfl_waypoint_mobs() = (
 
 let start_node i = !mob_array.(i)#start
 let stop_node i = !mob_array.(i)#stop
-let start_all() = Array.iteri (fun i n -> start_node i) !mob_array
-let stop_all() = Array.iteri (fun i n -> stop_node i) !mob_array
+let start_all() = Array.iteri (fun i _ -> start_node i) !mob_array
+let stop_all() = Array.iteri (fun i _ -> stop_node i) !mob_array

@@ -76,9 +76,9 @@ let l4pkt_size ~l4pkt =
   match l4pkt with
     | `APP_PKT -> 1500
     | `NONE -> 0
-    | `HELLO_PKT p -> hello_payload_size
-    | `BLER_PKT p  -> raise Misc.Not_Implemented
-    | `DSDV_PKT p -> raise Misc.Not_Implemented
+    | `HELLO_PKT _ -> hello_payload_size
+    | `BLER_PKT _  -> raise Misc.Not_Implemented
+    | `DSDV_PKT _ -> raise Misc.Not_Implemented
     | `GREP_RADV_PKT 
       -> grep_adv_payload_size
 	

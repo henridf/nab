@@ -59,7 +59,7 @@ let do_one_run ()  = (
   (Gsched.sched())#run_for 200.;
   
   let avgn = avg_neighbors_per_node() in
-  let end_time = Common.get_time() in
+
   (*  Printf.fprintf !outfd "# Avg neighbors per node is %f\n" avgn;*)
 
   let (agent, sp, dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = 
@@ -101,7 +101,7 @@ let setup() =
   
   let s = Param.make_argspeclist () 
   in
-  Arg.parse s (fun s -> ()) "You messed up!"
+  Arg.parse s (fun _ -> ()) "You messed up!"
     
 
 let _ = 

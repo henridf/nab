@@ -252,20 +252,14 @@ let draw_cross point w = (
 )
 
 
-let hop_col_color ~hop ~routelength = (
+let hop_col_color ~hop  = (
   [| Graphics.black; Graphics.red;
   Graphics.blue |].(hop mod 3)
 )
 
-let hop_col_bw ~hop ~routelength = (
+let hop_col_bw =
 Graphics.rgb 0 0 0
 
-(*
-  let v = (256 / routelength) * hop in
-  Graphics.rgb v v v
-*)
-)
-  
 
 (*
 let draw_route ~color ~route = (

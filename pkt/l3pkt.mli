@@ -96,12 +96,18 @@ val make_ease_l3hdr_ext :
 
 val make_app_pkt : l3hdr:l3hdr_t -> l3packet_t
 val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:l4pkt_t -> l3packet_t
+
 val make_bler_l3pkt :
   srcid:Common.nodeid_t -> dstid:Common.nodeid_t -> l3packet_t
+
 val make_ease_l3pkt :
   srcid:Common.nodeid_t ->
   dstid:Common.nodeid_t ->
-  anchor_pos:Coord.coordf_t -> enc_age:Common.time_t -> l3packet_t
+  anchor_pos:Coord.coordf_t -> 
+  enc_age:Common.time_t -> 
+  l4pkt:l4pkt_t ->
+  l3packet_t
+
 val make_dsdv_l3pkt :
   srcid:Common.nodeid_t ->
   ttl:int ->

@@ -253,11 +253,11 @@ let make_bler_l3pkt ~srcid ~dstid  = {
   l4pkt=`BLER_PKT (ANCH_REQ (dstid, max_float))(*dst, current enc. age*)
 }
 
-let make_ease_l3pkt ~srcid ~dstid ~anchor_pos ~enc_age = (
+let make_ease_l3pkt ~srcid ~dstid ~anchor_pos ~enc_age ~l4pkt = (
   let ext = make_ease_l3hdr_ext ~enc_age ~anchor_pos in
   {
     l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ~ext ());
-    l4pkt=`NONE
+    l4pkt=l4pkt
   }
 )
   

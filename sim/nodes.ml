@@ -18,7 +18,7 @@ let iteri f = check(); for i = 0 to Array.length !nodes_array - 1 do  f i done
 
     
 let map f = check(); Array.map f !nodes_array
-let mapi f = check(); Array.mapi (fun i node -> f i) !nodes_array
+let mapi f = check(); Array.mapi (fun i _ -> f i) !nodes_array
 let fold f init = check(); Array.fold_right f !nodes_array init
 
 let node i = !nodes_array.(i)
@@ -32,7 +32,7 @@ let set_gpsnodes arr =
 
 let gpsiter f = Array.iter f !gpsnodes_array
 let gpsmap f = Array.map f !gpsnodes_array
-let gpsmapi f = Array.mapi (fun i node -> f i) !gpsnodes_array
+let gpsmapi f = Array.mapi (fun i _ -> f i) !gpsnodes_array
 let gpsfold f init = Array.fold_right f !gpsnodes_array init
 
 let gpsnode i = !gpsnodes_array.(i)

@@ -21,7 +21,7 @@ let speclist =
   ["-debug", Arg.String set_debug_level, "<level> Set debug level"]
 
 let parse_args() = (
-  Arg.parse speclist (fun s -> ()) "";
+  Arg.parse speclist (fun _ -> ()) "";
 )
 
 let init_sched() = Gsched.set_sched (new Sched.schedHeap)
@@ -193,7 +193,7 @@ let make_app_packet ~srcid ~dstid =
   
 
 
-let hop_col_color ~hop ~routelength = (
+let hop_col_color ~hop = (
   [| Graphics.black; Graphics.red;
   Graphics.blue |].(hop mod 3)
 )
@@ -284,7 +284,7 @@ let detach_daemon ~outfilename = (
     let pid =  Unix.fork () in
     if pid < 0 then failwith "Error in fork";
     if pid > 0 then exit 0;
-    let sid = Unix.setsid () in
+    let _ = Unix.setsid () in
     Unix.close Unix.stdin;
     Unix.close Unix.stdout;
     Unix.close Unix.stderr;

@@ -26,7 +26,7 @@ let make_graph() = (
 
 
   List.iter (fun line ->
-    let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") line) in
+    let arr = Array.of_list (Str.split re line) in
     let node = arr.(0) in
     Graph.add_node_ (g()) node;
     let info = Array.map 
@@ -38,7 +38,7 @@ let make_graph() = (
 
   List.iter (fun line ->
 
-    let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") line) in
+    let arr = Array.of_list (Str.split re line) in
     let node = arr.(0) in
     Array.iteri 
       (fun i ngbr -> 

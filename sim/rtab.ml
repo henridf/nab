@@ -35,10 +35,10 @@ let empty_grep_entry() = {
 }
 
 let create_aodv ~size = Array.init size 
-  (fun n -> empty_aodv_entry())
+  (fun _ -> empty_aodv_entry())
 
 let create_grep ~size = Array.init size 
-  (fun n -> empty_grep_entry())
+  (fun _ -> empty_grep_entry())
 
 let clear_entry ~rt ~dst = 
   match   rt.(dst).other with

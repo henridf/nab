@@ -10,9 +10,7 @@ let route_done = ref false
 let ease_route_pktin_mhook routeref l2pkt node = (
 
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3hdr = (L3pkt.l3hdr l3pkt) in
-  let l3dst = L3pkt.l3dst l3pkt
-  and l3src = L3pkt.l3src l3pkt in
+  let l3dst = L3pkt.l3dst l3pkt in
 
   match (L2pkt.l2src l2pkt) <> node#id with
     | _ -> 	(* Packet arriving at a node *)
@@ -38,9 +36,6 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 let ease_route_pktout_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3hdr = (L3pkt.l3hdr l3pkt) in
-  let l3dst = L3pkt.l3dst l3pkt 
-  and l3src = L3pkt.l3src l3pkt in
   
   match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
@@ -58,7 +53,7 @@ let ease_route_pktout_mhook routeref l2pkt node = (
 )
 
 
-let find_last_flood src route = 
+let find_last_flood route = 
   let n = ref None in
   for i = (List.length route) - 1 downto 0 do
     if (List.nth route i).Route.info <> None then
@@ -71,7 +66,6 @@ let find_last_flood src route =
 let grep_route_pktin_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3hdr = (L3pkt.l3hdr l3pkt) in
   let l3dst = L3pkt.l3dst l3pkt
   and l3src = L3pkt.l3src l3pkt 
   and l2src = (L2pkt.l2src l2pkt) in
@@ -90,7 +84,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 	)
     | L3pkt.GREP_RREQ  ->
 	assert (Route.length !routeref > 0);
-	let hopno = find_last_flood l3src !routeref in
+	let hopno = find_last_flood !routeref in
 	assert (hopno <> None);
 	let tree = o2v (Route.nth_hop !routeref (o2v hopno)).Route.info in
 	assert (NaryTree.belongs l2src tree);
@@ -108,9 +102,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 let grep_route_pktout_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let l3hdr = (L3pkt.l3hdr l3pkt) in
-  let l3dst = L3pkt.l3dst l3pkt 
-  and l3src = L3pkt.l3src l3pkt 
+  let l3src = L3pkt.l3src l3pkt 
   and l2src = (L2pkt.l2src l2pkt) in
   
   if (l2src <> node#id) then failwith "Gui_hooks.grep_route_pktout_mhook";
@@ -135,12 +127,12 @@ let grep_route_pktout_mhook routeref l2pkt node = (
 		Route.hop=node#id;
 		Route.info=Some (Flood.create l3src)
 	      }
-	    | n when ((Route.last_hop !routeref).Route.hop <> node#id) ->
+	    | _ when ((Route.last_hop !routeref).Route.hop <> node#id) ->
 	      routeref := Route.add_hop !routeref {
 		Route.hop=node#id;
 		Route.info=Some (Flood.create l3src)
 	      }
-	  | n when ((Route.last_hop !routeref).Route.hop = node#id) ->
+	  | _ when ((Route.last_hop !routeref).Route.hop = node#id) ->
 	      (* If RREQ initiator is already current last hop, this
 		 means that it either just sent a DATA (which failed, hence
 		 this RREQ), or that this is a new RREQ (because previous
