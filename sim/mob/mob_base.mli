@@ -55,6 +55,9 @@ object
   method set_speed_mps : float -> unit
     (** Set the speed in meters/sec. *)
     
+  method speed_mps : float
+    (** Return the speed in meters/sec. *)
+
   method start : unit
     (** Stop movement. Idempotent. *)
 

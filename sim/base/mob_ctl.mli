@@ -23,11 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 (** Functions for controlling mobility processes.
   @author Henri Dubois-Ferriere.
  *)
@@ -58,6 +53,9 @@ val make_discrete_randomwalk_mobs : unit -> unit
 val set_speed_mps : ?nidopt:Common.nodeid_t -> float -> unit
   (** Set mobility speed in meters/sec. If optional nodeid is given, only that
     node's speed is set, otherwise all nodes are set to the given value *)
+
+val get_speed_mps : Common.nodeid_t -> float
+  (** Returns the speed of given node. *)
 
 val start_node : Common.nodeid_t -> unit
   (** Starts mobility of given node. Idempotent. *)

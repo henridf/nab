@@ -37,7 +37,7 @@ let set_speed_mps ?nidopt speed =
     | Some nid ->
 	(!mob_array.(nid))#set_speed_mps speed
 
-      
+let get_speed_mps nid = (!mob_array.(nid))#speed_mps
 
 let make_uniwaypoint_mobs ?gran () = mob_array := 
   (Nodes.map (fun n -> new Mobs.uniwaypoint n ?gran ()))

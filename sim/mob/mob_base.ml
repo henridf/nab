@@ -81,6 +81,7 @@ object(s)
 
   method set_speed_mps speed = speed_mps <- speed
 
+  method speed_mps = speed_mps
     
   (* should move us by gran meters .
      not sure if this gran parameter makes sense in other mobs (like rw)
