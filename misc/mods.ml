@@ -11,6 +11,7 @@
        [] a) in
      Array.of_list (List.rev result)
 
-
-
+   let iter a b = Array.iter b a
+   let iteri a b = Array.iteri b a
+   let map a b = Array.map b a
   end
