@@ -27,13 +27,13 @@ struct
   type mytype = place_t LinkedArray.linkedArray_t
   type itinerary_t =  place_t CircBuf.circbuf_t (* head points to last written entry *)
 		       
-  let _graphsize = ref 8
-  let _last_visit_of_place = ref (Array.create !_graphsize max_int) (* to avoid allocating each time in unroll_itin_ *)
+  let graphsize__ = ref 8
+  let last_visit_of_place__ = ref (Array.create !graphsize__ max_int) (* to avoid allocating each time in unroll_itin_ *)
     
   let set_itin_size_ ~graphsize = (
     if (graphsize <= 0) then raise (Invalid_argument "Itinerary.set_itin_size_ : must be > 0");
-      _graphsize := graphsize;
-      _last_visit_of_place := Array.create graphsize max_int;
+      graphsize__ := graphsize;
+      last_visit_of_place__ := Array.create graphsize max_int;
   )
 
   let create_ size = CircBuf.create_ size None
@@ -57,25 +57,25 @@ struct
 
 
 				  
-  let p2i = function 
-      None -> raise (Invalid_argument "Itinerary.p2i: Cannot convert None to int")
+  let p2i__ = function 
+      None -> raise (Invalid_argument "Itinerary.p2i__: Cannot convert None to int")
     | Place i -> i
 	
     
-  let have_wrapped itin =  (get_ itin (length_ itin - 1)) <> None 
+  let have_wrapped__ itin =  (get_ itin (length_ itin - 1)) <> None 
 
   let unroll_itin_ itin = (
     
-    (* _last_visit_of_place.(n) = how long ago we last visited place n in the graph  (max_int if never visited)  *)
-    ArrayLabels.fill !_last_visit_of_place ~pos:0 ~len:!_graphsize  max_int;
+    (* last_visit_of_place__.(n) = how long ago we last visited place n in the graph  (max_int if never visited)  *)
+    ArrayLabels.fill !last_visit_of_place__ ~pos:0 ~len:!graphsize__  max_int;
     
-    if not (have_wrapped itin) then failwith "Itinerary.unroll_itin_: cannot unroll itinerary which is not full";
+    if not (have_wrapped__ itin) then failwith "Itinerary.unroll_itin_: cannot unroll itinerary which is not full";
     
     (* forward-walk list and keep time of first visit through place *)
     (* xxx/slow since we always will iterate over whole list *)
     CircBuf.iteri_ (fun i place -> 
 		      try (
-			if (!_last_visit_of_place.(p2i place) = max_int) then !_last_visit_of_place.(p2i place) <- i;
+			if (!last_visit_of_place__.(p2i__ place) = max_int) then !last_visit_of_place__.(p2i__ place) <- i;
 		      ) with Invalid_argument "Array.get" -> 
 			raise (Invalid_argument "Itinerary.unroll_itin_: itin contained place that was bigger than graphsize")
 		   ) itin; 
@@ -88,7 +88,7 @@ struct
       (* recursion over t:int offset going backward in time *)
 
       let place = LinkedArray.get_ larr t in
-      let most_recent_visit = !_last_visit_of_place.(p2i place) in
+      let most_recent_visit = !last_visit_of_place__.(p2i__ place) in
       let shortcut_right = if (t = LinkedArray.length_ larr - 1) then LinkedArray.None_tail else LinkedArray.Ngbr (t + 1) 
       and shortcut_left = (LinkedArray.Ngbr most_recent_visit) in
 
