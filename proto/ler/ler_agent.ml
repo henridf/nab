@@ -22,6 +22,12 @@
 
 (* $Id$ *)
 
+(* TODO: Improve georouting so that it looks for 
+   the *furthest* node within range that is closer to destination, and 
+   if no such node exists, then it looks for the closest node 
+   outside range that is closer to destination. This will avoid making
+   zillions of tiny hops.*)
+
 type ler_proto_t = EASE | GREASE | FRESH
 
 
@@ -100,7 +106,7 @@ object(s)
 
   (* This method is called each time a packet is received at the node. *)
   method mac_recv_l3pkt l3pkt = 
-    s#recv_ease_pkt_ l3pkt 
+    s#recv_ler_pkt_ l3pkt 
 
   (* This method is called each time a packet is received at the node. It
      provides us with the full L2 header, which we don't care for, so this is
@@ -112,8 +118,8 @@ object(s)
      EASE routing logic. *)
   method app_recv_l4pkt l4pkt dst = (
 
-    let ease_hdr = 
-      Ease_pkt.make_ease_hdr
+    let ler_hdr = 
+      Ler_pkt.make_ler_hdr
 	~anchor_pos:owner#pos
 	~enc_age:(le_tab#le_age dst)
     in	
@@ -121,13 +127,13 @@ object(s)
       L3pkt.make_l3hdr 
 	~srcid:myid 
 	~dstid:dst 
-	~ext:(`EASE_HDR ease_hdr)
+	~ext:(`LER_HDR ler_hdr)
 	() 
     in
     let l3pkt =
       L3pkt.make_l3pkt ~l3hdr ~l4pkt
     in
-    s#recv_ease_pkt_ l3pkt;
+    s#recv_ler_pkt_ l3pkt;
   )
 
 
@@ -250,8 +256,8 @@ object(s)
 
     else (
       (* find next closest node toward anchor *)
-      let ease_hdr = L3pkt.ease_hdr pkt in
-      let closest_id = s#closest_toward_anchor (Ease_pkt.anchor ease_hdr) in
+      let ler_hdr = L3pkt.ler_hdr pkt in
+      let closest_id = s#closest_toward_anchor (Ler_pkt.anchor ler_hdr) in
       
       if closest_id = myid then (
 	
@@ -259,7 +265,7 @@ object(s)
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
 	  (Coord.sprintf (Nodes.gpsnode dst)#pos)));
 	
-	s#recv_ease_pkt_ pkt
+	s#recv_ler_pkt_ pkt
       ) else (   
 	(* geographically forward toward anchor  *)
 	s#log_debug (lazy (sprintf "Forwarding geographically to %d" closest_id));
@@ -274,20 +280,20 @@ object(s)
     
 
   (* The core logic implementing EASE. *)
-  method private recv_ease_pkt_ pkt = (
+  method private recv_ler_pkt_ pkt = (
 
     let dst = L3pkt.l3dst pkt in
-    let ease_hdr = L3pkt.ease_hdr pkt in
+    let ler_hdr = L3pkt.ler_hdr pkt in
 
     s#log_info 
       (lazy (sprintf "received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
 	(L3pkt.l3src pkt)
 	(L3pkt.l3dst pkt)
- 	(Ease_pkt.enc_age ease_hdr)
-	(Coord.sprintf (Ease_pkt.anchor ease_hdr))
+ 	(Ler_pkt.enc_age ler_hdr)
+	(Coord.sprintf (Ler_pkt.anchor ler_hdr))
       ));
     
-    Ease_pkt.set_search_dist ease_hdr 0.0;
+    Ler_pkt.set_search_dist ler_hdr 0.0;
 
     match myid = dst with
 	
@@ -296,9 +302,9 @@ object(s)
 
       | false ->  (* We are src or intermediate hop *)
 
-	  let cur_enc_age = (Ease_pkt.enc_age ease_hdr) in
+	  let cur_enc_age = (Ler_pkt.enc_age ler_hdr) in
 	  if (
-	    s#we_are_closest_to_anchor (Ease_pkt.anchor ease_hdr) || 
+	    s#we_are_closest_to_anchor (Ler_pkt.anchor ler_hdr) || 
 	    grease && (* if false, short-circuit boolean evaluation means 
 			 that we don't do the test below, and hence don't
 			 consult our local encounter table. *)
@@ -315,14 +321,14 @@ object(s)
 	    let (d_to_msnger, next_anchor, next_enc_age, msngr) = 
 	      s#find_next_anchor dst cur_enc_age
 	    in
-	    Ease_pkt.set_enc_age ease_hdr next_enc_age;
+	    Ler_pkt.set_enc_age ler_hdr next_enc_age;
 
-	    Ease_pkt.set_search_dist ease_hdr d_to_msnger;
+	    Ler_pkt.set_search_dist ler_hdr d_to_msnger;
 
 	    if fresh then 
-	      Ease_pkt.set_anchor_pos ease_hdr ((World.w())#nodepos msngr)
+	      Ler_pkt.set_anchor_pos ler_hdr ((World.w())#nodepos msngr)
 	    else
-	      Ease_pkt.set_anchor_pos ease_hdr next_anchor;
+	      Ler_pkt.set_anchor_pos ler_hdr next_anchor;
 
 	  );
 

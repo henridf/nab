@@ -145,7 +145,7 @@ SIM_OBJS = $(GFX_LIB) \
 		$(SIM_BASE_DIR)/common$(CMO) \
 		$(SIM_PKT_DIR)/pkt_common$(CMO) \
 		$(SIM_PKT_DIR)/l4pkt$(CMO) \
-		$(PROTO_LER_DIR)/ease_pkt$(CMO) \
+		$(PROTO_LER_DIR)/ler_pkt$(CMO) \
 		$(PROTO_GREP_DIR)/grep_pkt$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
@@ -200,7 +200,7 @@ GUI_OBJS = $(SIM_OBJS) \
 		$(GUI_DIR)/gui_ops$(CMO) \
 		$(GUI_DIR)/gui_widgets$(CMO) \
 		$(GUI_DIR)/gui_ctl$(CMO) \
-		$(GUI_DIR)/gui_ease$(CMO) \
+		$(GUI_DIR)/gui_ler$(CMO) \
 		$(GUI_DIR)/gui_grep$(CMO) 
 
 MODULE_OBJS = \

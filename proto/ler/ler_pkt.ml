@@ -28,28 +28,31 @@
 
 
 
-(** EASE packet types and manipulators.
-  @author Henri Dubois-Ferriere.
-*)
-
-
 type t = {
   mutable enc_age : Time.time_t;
   mutable anchor_pos : Coord.coordf_t;
   mutable search_dist : float;
 }
 
-val make_ease_hdr : 
-  enc_age:Time.time_t -> 
-  anchor_pos:Coord.coordf_t -> 
-  t
+let make_ler_hdr
+  ~enc_age
+  ~anchor_pos
+  =  {
+    enc_age=enc_age;
+    anchor_pos=anchor_pos;
+    search_dist=0.0
+  }
+	
+let clone ler_pkt = {ler_pkt with enc_age=ler_pkt.enc_age}
+let anchor ler_hdr = ler_hdr.anchor_pos
+let enc_age ler_hdr = ler_hdr.enc_age
+let search_dist ler_hdr = ler_hdr.search_dist
 
-val anchor : t ->  Coord.coordf_t
-val enc_age : t ->  Time.time_t
-val search_dist : t ->  float
+let set_search_dist ler_hdr d = 
+  ler_hdr.search_dist <- d
 
-val set_search_dist : t -> float -> unit
-val set_enc_age : t -> Time.time_t -> unit
-val set_anchor_pos : t -> Coord.coordf_t -> unit
+let set_anchor_pos ler_hdr anch = 
+  ler_hdr.anchor_pos <- anch
 
-val clone : t -> t
+let set_enc_age ler_hdr age = 
+  ler_hdr.enc_age <- age

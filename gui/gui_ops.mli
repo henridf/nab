@@ -26,14 +26,14 @@
 (** High-level GUI drawing operations *)
 
 
-val draw_ease_route : 
+val draw_ler_route : 
   ?lines:bool ->
   ?anchors:bool ->
   ?disks:bool ->
   ?portion:float ->
-  (Coord.coordi_t, Coord.coordi_t) Route.ease_route_t
+  (Coord.coordi_t, Coord.coordi_t) Route.ler_route_t
   -> unit
-  (** Draw ease route. 
+  (** Draw LER route. 
     Optional arguments [lines] [anchors] [disks] specify respectively which
     information to represent. Default to [true].
     Optional argument [portion] (default 1.0) can indicate that only a first

@@ -46,7 +46,7 @@ let l3_bcast_addr = (* 255.255.255.255 *)
 
 type l3hdr_ext_t = 
     [ `NONE
-    | `EASE_HDR of Ease_pkt.t
+    | `LER_HDR of Ler_pkt.t
     | `GREP_HDR of Grep_pkt.t
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
@@ -55,7 +55,7 @@ type l3hdr_ext_t =
 
 let clone_l3hdr_ext = function
   | `NONE -> `NONE
-  | `EASE_HDR e -> `EASE_HDR (Ease_pkt.clone e)
+  | `LER_HDR e -> `LER_HDR (Ler_pkt.clone e)
   | `GREP_HDR e -> `GREP_HDR (Grep_pkt.clone e)
   | `AODV_HDR e -> `AODV_HDR (Aodv_pkt.clone e)
   | `DIFF_HDR e -> `DIFF_HDR (Diff_pkt.clone e)
@@ -81,7 +81,7 @@ let clone_l3hdr ~l3hdr = {l3hdr with src = l3hdr.src; ext=(clone_l3hdr_ext l3hdr
 
 let l3hdr_ext_size = function
   | `NONE -> 0
-  | `EASE_HDR _ -> 3 * _FLOAT_SIZE (* enc. age, pos *)
+  | `LER_HDR _ -> 3 * _FLOAT_SIZE (* enc. age, pos *)
   | `GREP_HDR hdr ->  Grep_pkt.hdr_size hdr 
   | `AODV_HDR hdr ->  Aodv_pkt.hdr_size hdr 
   | `DIFF_HDR hdr ->  Diff_pkt.hdr_size hdr 
@@ -121,11 +121,13 @@ let set_l3ttl ~ttl l3pkt = (l3hdr l3pkt).ttl <- ttl
 let decr_l3ttl l3pkt = 
   l3pkt.l3hdr.ttl <- l3pkt.l3hdr.ttl - 1
 
+let l3hdr_ext l3pkt = l3pkt.l3hdr.ext
 
-let ease_hdr l3pkt = 
+
+let ler_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
-    | `EASE_HDR e -> e
-    | _ -> raise (Failure "Packet.ease_hdr")
+    | `LER_HDR e -> e
+    | _ -> raise (Failure "Packet.ler_hdr")
 
 let grep_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
@@ -147,10 +149,10 @@ let simple_hdr l3pkt =
     | `SIMPLE_HDR e -> e
     | _ -> raise (Failure "Packet.simple_hdr")
 
-let get_ease_l3ext (l3hdr:l3hdr_t) = 
+let get_ler_l3ext (l3hdr:l3hdr_t) = 
   match l3hdr.ext with
-    | `EASE_HDR e -> e
-    | _ -> raise (Failure "Packet.get_ease_l3ext")
+    | `LER_HDR e -> e
+    | _ -> raise (Failure "Packet.get_ler_l3ext")
 
 
 let make_l3hdr 

@@ -71,12 +71,12 @@ let refresh ()  = (
   if !show_nodes  then  draw_nodes(); 
   if !show_connectivity  then  Gui_ops.draw_connectivity(); 
   
-  Gui_ops.draw_ease_route 
+  Gui_ops.draw_ler_route 
     ~lines:!show_route_lines
     ~anchors:!show_route_anchors
     ~disks:!show_route_disks
     ~portion:!route_portion
-    (Gui_conv.ease_route_nodeid_to_pix routes.(stack_of_proto()));
+    (Gui_conv.ler_route_nodeid_to_pix routes.(stack_of_proto()));
 )
 
 
@@ -115,9 +115,9 @@ let set_src nid = (
   for stack = 0 to nstacks - 1  do
 
     let in_mhook = 
-      Gui_hooks.ease_route_pktin_mhook ~num:!route_ctr r.(stack) in 
+      Gui_hooks.ler_route_pktin_mhook ~num:!route_ctr r.(stack) in 
     let out_mhook = 
-      Gui_hooks.ease_route_pktout_mhook ~num:!route_ctr r.(stack) in
+      Gui_hooks.ler_route_pktout_mhook ~num:!route_ctr r.(stack) in
 
     Nodes.gpsiter (fun n -> n#clear_pkt_mhooks ~stack ());
     Nodes.gpsiter (fun n -> n#add_pktin_mhook ~stack in_mhook);
@@ -139,7 +139,7 @@ let set_src nid = (
 
   Log.log#log_info  (lazy (Route.sprintnid routes.(stack_of_proto())));
 (*
-  ignore (Route.ease_route_valid !routeref 
+  ignore (Route.ler_route_valid !routeref 
     ~dst
     ~src:nid);
 *)

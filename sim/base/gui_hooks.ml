@@ -43,12 +43,12 @@ let check_route_num l2pkt num_opt =
 
 
 
-let ease_route_pktin_mhook ?num routeref l2pkt node = (
+let ler_route_pktin_mhook ?num routeref l2pkt node = (
 
   if check_route_num l2pkt num then 
     let l3pkt = (L2pkt.l3pkt l2pkt) in
     let l3dst = L3pkt.l3dst l3pkt in
-    let ease_hdr = L3pkt.ease_hdr l3pkt in
+    let ler_hdr = L3pkt.ler_hdr l3pkt in
     
     match (L2pkt.l2src l2pkt) <> node#id with
       | _ -> 	(* Packet arriving at a node *)
@@ -59,8 +59,8 @@ let ease_route_pktin_mhook ?num routeref l2pkt node = (
 	    routeref := Route.add_hop !routeref {
 	      Route.hop=node#id;
 	      Route.info=Some {
-		Route.anchor=(Ease_pkt.anchor ease_hdr);
-		Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
+		Route.anchor=(Ler_pkt.anchor ler_hdr);
+		Route.anchor_age=(Ler_pkt.enc_age ler_hdr);
 		Route.searchcost=0.0; (* hack see general_todo.txt *)
 	      }
 	    }
@@ -72,12 +72,12 @@ let ease_route_pktin_mhook ?num routeref l2pkt node = (
 	    
 )
 
-let ease_route_pktout_mhook ?num routeref l2pkt node = (
+let ler_route_pktout_mhook ?num routeref l2pkt node = (
   
   if check_route_num l2pkt num then 
 
   let l3pkt = (L2pkt.l3pkt l2pkt) in
-  let ease_hdr = L3pkt.ease_hdr l3pkt in
+  let ler_hdr = L3pkt.ler_hdr l3pkt in
   
   match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
@@ -87,9 +87,9 @@ let ease_route_pktout_mhook ?num routeref l2pkt node = (
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#id;
 	  Route.info=Some {
-	    Route.anchor=(Ease_pkt.anchor ease_hdr);
-	    Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
-	    Route.searchcost=(Ease_pkt.search_dist ease_hdr)
+	    Route.anchor=(Ler_pkt.anchor ler_hdr);
+	    Route.anchor_age=(Ler_pkt.enc_age ler_hdr);
+	    Route.searchcost=(Ler_pkt.search_dist ler_hdr)
 	  }
 	}
 )
@@ -105,17 +105,27 @@ let find_last_flood route =
   !n
 
 
-let grep_route_pktin_mhook routeref l2pkt node = (
+type u = [ Aodv_pkt.aodv_flags_t | Grep_pkt.grep_flags_t | `NONE]
+    
+let aodv_grep_flags l3pkt = 
+
+  match L3pkt.l3hdr_ext l3pkt with 
+    | `AODV_HDR h -> ((Aodv_pkt.flags h) :> u)
+    | `GREP_HDR h -> ((Grep_pkt.flags h) :> u)
+    | _ -> `NONE 
+
+
+let od_route_pktin_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
   let l3dst = L3pkt.l3dst l3pkt
 
   and l2src = (L2pkt.l2src l2pkt) in
 
-  if (l2src = node#id) then failwith "Gui_hooks.grep_route_pktin_mhook";
+  if (l2src = node#id) then failwith "Gui_hooks.od_route_pktin_mhook";
 
-  match Grep_pkt.flags (L3pkt.grep_hdr l3pkt) with
-    | Grep_pkt.GREP_DATA ->
+  match aodv_grep_flags l3pkt with
+    | `DATA ->
 	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving at node %d" node#id));	  
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  incr routes_done;
@@ -124,7 +134,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 	    Route.info=None
 	  }
 	)
-    | Grep_pkt.GREP_RREQ  ->
+    | `RREQ  ->
 	assert (Route.length !routeref > 0);
 	let hopno = find_last_flood !routeref in
 	assert (hopno <> None);
@@ -138,26 +148,29 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 	  with (Failure "addnode") -> tree
 	in
 	(Route.nth_hop !routeref (o2v hopno)).Route.info <- Some newtree
-    | Grep_pkt.GREP_RREP | Grep_pkt.GREP_RADV  -> () (* ignore RREP/RADV*)
+    | `RREP | `RADV | `RERR -> () (* ignore RREP/RADV/RERR*)
+    | `NONE -> Log.log#log_error 
+	(lazy 
+	  "Gui_hooks.od_route_pktin_mhook: unexpected packet type not aodv or grep")
 )
 
-let grep_route_pktout_mhook routeref l2pkt node = (
+let od_route_pktout_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
   let l3src = L3pkt.l3src l3pkt 
   and l2src = (L2pkt.l2src l2pkt) in
   
-  if (l2src <> node#id) then failwith "Gui_hooks.grep_route_pktout_mhook";
+  if (l2src <> node#id) then failwith "Gui_hooks.od_route_pktout_mhook";
   
-  match Grep_pkt.flags (L3pkt.grep_hdr l3pkt) with
-    | Grep_pkt.GREP_DATA ->
+  match aodv_grep_flags l3pkt with
+    | `DATA ->
 	(Log.log)#log_info (lazy (Printf.sprintf "Leaving node %d" node#id));	
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#id;
 	  Route.info=None
 	}
 	  
-    | Grep_pkt.GREP_RREQ when (l3src = l2src) ->	(* RREQ leaving initiator *)
+    | `RREQ when (l3src = l2src) ->	(* RREQ leaving initiator *)
 	begin	
 	  match Route.length !routeref with
 	      (* Add hop if this node is not yet on the route 
@@ -181,10 +194,13 @@ let grep_route_pktout_mhook routeref l2pkt node = (
 		 failed) with increase ttl. In either case, we should create a
 		 new flood structure, discarding the old one (if any). *)
 	      (Route.last_hop !routeref).Route.info <- Some (Flood.create l3src);
-	  | _ -> raise (Misc.Impossible_Case "Gui_hooks.grep_route_pktout_mhook");
+	  | _ -> raise (Misc.Impossible_Case "Gui_hooks.od_route_pktout_mhook");
 	end	      
 
-    | Grep_pkt.GREP_RREQ -> () (* RREQ at relay node *)
-    | Grep_pkt.GREP_RREP | Grep_pkt.GREP_RADV -> () (* ignore RREP/RADV*)
+    | `RREQ -> () (* RREQ at relay node *)
+    | `RREP | `RADV | `RERR -> () (* ignore RREP/RADV/RERR*)
+    | `NONE -> Log.log#log_error 
+	(lazy 
+	  "Gui_hooks.od_route_pktout_mhook: unexpected packet type not aodv or grep")
 )
 

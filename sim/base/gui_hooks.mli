@@ -25,27 +25,34 @@
 
 
 
-val ease_route_pktin_mhook : 
+(** Hooks for reconstructing FRESH, EASE, and GREASE routes when running
+  {!Ler_agent.ler_agent}. *)
+
+val ler_route_pktin_mhook : 
   ?num:int ->
-  (Common.nodeid_t, Coord.coordf_t) Route.ease_route_t ref ->
+  (Common.nodeid_t, Coord.coordf_t) Route.ler_route_t ref ->
   L2pkt.t ->
   Gpsnode.gpsnode -> 
   unit
   
-val ease_route_pktout_mhook : 
+val ler_route_pktout_mhook : 
   ?num:int ->
-  (Common.nodeid_t, Coord.coordf_t) Route.ease_route_t ref ->
+  (Common.nodeid_t, Coord.coordf_t) Route.ler_route_t ref ->
   L2pkt.t ->
   Gpsnode.gpsnode -> 
   unit
 
-val grep_route_pktin_mhook : 
+
+(** Hooks for reconstructing routes from on-demand protocols (suitable for
+  GREP, AODV). *)
+
+val od_route_pktin_mhook : 
   Common.nodeid_t Route.grep_route_t ref ->
   L2pkt.t ->
   Simplenode.simplenode -> 
   unit
 
-val grep_route_pktout_mhook : 
+val od_route_pktout_mhook : 
   Common.nodeid_t Route.grep_route_t ref ->
   L2pkt.t ->
   Simplenode.simplenode -> 
