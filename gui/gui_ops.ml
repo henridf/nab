@@ -105,6 +105,9 @@ let draw_tree ?(col=(`NAME "light grey")) tree =
 
 let draw_grep_route r = 
 
+  let colors = [| "LightSlateBlue"; "PaleGreen"; "OrangeRed"|] in
+  let colindex = ref (-1) in
+
   let rec draw_hops_ = function
     | [] -> ()
     | hop1::hop2::r -> 
@@ -120,11 +123,12 @@ let draw_grep_route r =
 	  match hop1.Route.info with
 	    | None -> ()
 	    | Some flood -> 
+		colindex := (!colindex + 1) mod (Array.length colors);
 		let pixtree = NaryTree.map flood 
 		  ~f:(fun nid -> Mwsconv.pos_mtr_to_pix
 		    ((Gworld.world())#nodepos nid))
 		in
-		draw_tree pixtree;
+		draw_tree ~col:(`NAME colors.(!colindex)) pixtree;
 		draw_node ~emphasize:true (NaryTree.root flood)
 	  end;		
 	  draw_trees_ (hop2::r);
