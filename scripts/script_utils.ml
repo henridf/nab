@@ -99,15 +99,23 @@ let install_macs_ ~stack mac_factory =
 let default_bps = 1e6
 
 let install_null_macs ?(stack=0) ?(bps=default_bps) () = 
-  let makemac node = ((new Mac_null.nullmac ~stack bps node) :> Mac.t) in
+  let makemac node = ((new Mac_null.nullmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
 let install_contention_macs ?(stack=0) ?(bps=default_bps) () = 
-  let makemac node = ((new Mac_contention.contentionmac ~stack bps node) :> Mac.t) in
+  let makemac node = ((new Mac_contention.contentionmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
 let install_cheat_macs ?(stack=0) ?(bps=default_bps) () = 
-  let makemac node = ((new Mac_cheat.cheatmac ~stack bps node) :> Mac.t) in
+  let makemac node = ((new Mac_cheat.cheatmac ~stack ~bps node) :> Mac.t) in
+  install_macs_ ~stack makemac
+
+let install_maca_simple_macs ?(stack=0) ?(bps=default_bps) () = 
+  let makemac node = ((new MACA_simple.maca_mac ~stack ~bps node) :> Mac.t) in
+  install_macs_ ~stack makemac
+
+let install_maca_contention_macs ?(stack=0) ?(bps=default_bps) () = 
+  let makemac node = ((new MACA_contention.maca_contentionmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
 let install_macs ?(stack=0) ?(bps=default_bps) () = 
@@ -115,7 +123,8 @@ let install_macs ?(stack=0) ?(bps=default_bps) () =
     | Mac.Nullmac -> install_null_macs ~stack ~bps ()
     | Mac.Contmac -> install_contention_macs ~stack ~bps ()
     | Mac.Cheatmac -> install_cheat_macs ~stack ~bps ()
-
+    | Mac.MACA_simple -> install_maca_simple_macs ~stack ~bps ()
+    | Mac.MACA_contention -> install_maca_contention_macs ~stack ~bps ()
 
 let make_naked_nodes ?(pos_aware=false) ?(with_positions=true) () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
@@ -151,6 +160,14 @@ let make_ler_agents ?(stack=0) proto = (
   Nodes.gpsiteri (fun nid n -> 
     let agent = new Ler_agent.ler_agent ~stack ~proto n in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
+)
+
+let make_str_nodes () = (
+  make_nodes();
+
+  Nodes.iteri (fun nid n -> 
+    let agent = new Str_agent.str_agent ~stack:0 n in
+    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 
 let make_aodv_nodes () = (
