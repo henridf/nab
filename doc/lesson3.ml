@@ -33,26 +33,15 @@ let radiorange = 12.0
 let avg_degree = 10
 let nstacks = 2
 
-
-(* We could simply define a float (as for radiorange above) - 
-   but by creating a Param object it becomes possible to set this value via
-   the command-line invocation. *)
-let encounter_ratio = Param.floatcreate  ~name:"warmup" 
-  ~cmdline:true 
-  ~default:0.5
-  ~doc:"encounter ratio" ()
-
-
-(* This is called at the very beginning to configure default parameters.
+(* Configure default parameters.
    For some parameters, like # nodes, these can also be provided on the
-   command line, and will override the defaults given here *)
-let set_defaults() = (
-
-(* Set size of window in pixels *)
+   command line, and will override the defaults given here during the call to 
+   Script_utils.parse_args() below.
+ *)
+let () = 
+  Param.set Params.nodes nodes; 
   Param.set Params.x_pix_size 900;
   Param.set Params.y_pix_size 900;
-
-  Param.set Params.nodes nodes; 
 
   (* Set the transmission range (range within which nodes are neighbors). *)
   Param.set Params.radiorange radiorange;
@@ -62,25 +51,34 @@ let set_defaults() = (
      nodes around. *)
   Param.set Params.mob_gran (radiorange /. 2.);
 
-  let size = Script_utils.size ~rrange:radiorange ~nodes ~avg_degree () in
+  (* Set the number of targets in each nodes last-encounter table. *)
+  Param.set Params.ntargets 1
 
+let encounter_ratio = 
+  (* We could simply define this as a float (as for radiorange above) - 
+     but by creating a Param object it becomes possible to set this value via
+     the command-line invocation. *)
+  Param.floatcreate  ~name:"warmup"  ~cmdline:true  ~default:0.5
+    ~doc:"encounter ratio" ()
+    
+
+let set_values() = (
+  (* Set the appropriate world size to have desired node degree, given the radio
+     range *)
+  let size = Script_utils.size ~rrange:radiorange  ~nodes:(Param.get Params.nodes) 
+    ~avg_degree () in
+  
   Param.set Params.x_size size;
   Param.set Params.y_size size;
-
-(* The geo-routing algorithm in the EASE agent used here sometimes needs to
-   send a packet to a node which is not a physical neighbor (similar to what
-   would happen with a delaunay triangulation), so we use the "cheatmac" -
-   other MACs implemenations do not allow this. *)
+  
+  (* The geo-routing algorithm in the EASE agent used here sometimes needs to
+     send a packet to a node which is not a physical neighbor (similar to what
+     would happen with a delaunay triangulation), so we use the "cheatmac" -
+     other MACs implemenations do not allow this. *)
   Param.set Params.mac "cheatmac";
-
-
-  (* Set the number of targets in each nodes last-encounter table. *)
-  Param.set Params.ntargets 1;
 )
 
-
 let setup () = (
-
 
   (* Instantiate global world object. This must be done *after* the
      params above have been set. *)
@@ -149,11 +147,11 @@ let warmup enc_ratio = (
 
 let main() = 
 
-  (* Setup defaults. *)
-  set_defaults();
-  
   (* Parse command-line arguments, inform user *)
   Script_utils.parse_args();
+
+  set_values();
+
   Script_utils.print_header();
   Param.printconfig stdout;
 
@@ -192,7 +190,6 @@ let main() =
 let () = 
   main();
   Gui_gtk.init ();
-  Log.set_log_level ~level:Log.LOG_DEBUG;
   Gui_ease_diffusion.create_buttons_ease();
   Main.main()
 
