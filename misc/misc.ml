@@ -148,6 +148,13 @@ let o2v = function
     None -> raise (Failure "Misc.o2v : None")
   | Some v -> v
 
+let some = function
+  | None -> false
+  | Some v -> true
+
+let none = function
+  | None -> true
+  | Some v -> false
 
 (** Error Handling and Exceptions *)
 
