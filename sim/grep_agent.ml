@@ -123,7 +123,7 @@ object(s)
 	  s#send_out ~l3pkt:pkt
 	with 
 	  | Send_Out_Failure -> 
-	      s#log_error 
+	      s#log_warning 
 	      (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
 		(L3pkt.l3src ~l3pkt:pkt) dst));
     done
@@ -321,7 +321,7 @@ object(s)
       let str = (Printf.sprintf "this:%d, nexthoph:%d, dst:%d, this_sn: %d, this_hc: %d, next_sn: %d, next_hc:
     %d" owner#id nexthop dst this_sn this_hc next_sn next_hc)
       in
-      s#log_error (lazy str);
+      s#log_warning (lazy str);
 (*      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" str))*)
 	
   )
