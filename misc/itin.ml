@@ -11,6 +11,7 @@ sig
   exception Itin_size_not_set
   type t   
   val make_ : itinsize:int -> graphsize:int -> t
+  val toarray_ : t -> int array   (* Array.(0) will be at the 'top' of itin (relative age 0) *)
   val length_ : t -> int
   val maxlength_ : t -> int
   val addplace_ : t -> int -> unit
@@ -18,6 +19,8 @@ sig
   val hops_to_place_ : t -> int -> int (* throws Failure if place not in itin *)
   val has_place_ : t -> int -> bool   
   val sub_ : t -> int -> t             (* sub itin up to place specified by int *)
+  val iter_ : (int -> unit) -> t -> unit         (* iterates from lowest to highest age *)
+  val iteri_ : (int -> int -> unit) -> t -> unit (* iterates from lowest to highest age *)
   val unroll_ : t -> t                 
   val reverse_ : t -> t
   val shorten_ : aux:t -> main:t -> t  
@@ -76,8 +79,10 @@ struct
       | Invalid_argument "Circbuf.get_ : Out-of-bounds" -> raise (Invalid_argument "Itinerary.get_ : Out-of-bounds")
 
 
+  let iter_ f itin = CircBuf.iter_ f itin.cbuf
+  let iteri_ f itin = CircBuf.iteri_ f itin.cbuf
 
-
+  let toarray_ itin = CircBuf.toarray_ itin.cbuf
 
   let hops_to_place_ itin place = (
     if itin.arr.(place) == max_int then 

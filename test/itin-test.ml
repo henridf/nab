@@ -2,23 +2,24 @@ open Misc
 open Larray
 open Circbuf
 open Itin
+open Printf
 
-  let test_ () = (
-
-    let graphsize = ref 5 in
-    let make_itin size input = (
-      let itin = Itinerary.make_ ~itinsize:size ~graphsize:!graphsize in 
-	array_rev_iter (fun x -> Itinerary.addplace_ itin  x) input; itin;
-    ) in
-      
-    let test_unrolling size input unrolled_check = (
-      let itin = make_itin size input in
-	let unrolled = Itinerary.unroll_ itin in
-	  assert (Itinerary.maxlength_ unrolled = Array.length unrolled_check);
-	  for i = 0 to Array.length unrolled_check - 1 do
-	    assert ((Itinerary.get_ unrolled i) = unrolled_check.(i));
-	    assert ((Itinerary.hops_to_place_ unrolled unrolled_check.(i)) == i);
-	  done;
+let test_ () = (
+  
+  let graphsize = ref 5 in
+  let make_itin size input = (
+    let itin = Itinerary.make_ ~itinsize:size ~graphsize:!graphsize in 
+      array_rev_iter (fun x -> Itinerary.addplace_ itin  x) input; itin;
+  ) in
+    
+  let test_unrolling size input unrolled_check = (
+    let itin = make_itin size input in
+    let unrolled = Itinerary.unroll_ itin in
+      assert (Itinerary.maxlength_ unrolled = Array.length unrolled_check);
+      for i = 0 to Array.length unrolled_check - 1 do
+	assert ((Itinerary.get_ unrolled i) = unrolled_check.(i));
+	assert ((Itinerary.hops_to_place_ unrolled unrolled_check.(i)) == i);
+      done;
     ) in
 
     (* semantic equality *)
@@ -305,9 +306,18 @@ open Itin
 		)
 		(make_itin 6 [|1; 2; 3; 4; 5; 2; 3; 4|])
 	     );
-  )
-		   
-		   
-		   
-  let _ = test_ ()
-		
+
+      (* Itinerary.iteri_ *)
+      let a = Array.make 5 0 in
+	Itinerary.iteri_ (fun i x -> a.(i) <- x) (make_itin 6 [|1; 2; 3; 4; 7|]);
+	assert (a = [|1; 2; 3; 4; 7|]);
+
+      (* Itinerary.toarray_ *)
+      assert (Itinerary.toarray_ (make_itin 6 [|1; 2; 3; 4; 7|]) = [|1; 2; 3; 4; 7|]);
+      assert (Itinerary.toarray_ (make_itin 6 [||]) = [||]);
+)
+		 
+		 
+		 
+let _ = test_ ()
+	    
