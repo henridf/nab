@@ -85,8 +85,14 @@ object
        the point intact if it has not.
        For example this might be implemented as wrapping in a torus, or
        bouncing on reflective borders, etc 
-       This allows a mobility process computing a next position to be unaware
-       of the topology limits. *)
+       This allows a mobility process computing a next position to be
+       decoupled from the type of topology (ie reflecting against versus
+       wrapping around on borders).
+
+       Note: for efficiency, some implementations of world may assume that the
+       is at most one world size outside of the boundaries - if this is not
+       the case, behavior will be undefined.
+*)
     
   method project_2d : Coord.coordf_t -> Coord.coordf_t 
     (* return position projected to a unit square *)
