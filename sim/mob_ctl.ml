@@ -19,6 +19,9 @@ let make_uniwaypoint_mobs ?gran () = mob_array :=
 let make_borderwaypoint_mobs ?gran () = mob_array := 
   (Nodes.map (fun n -> new Mob.borderwaypoint n ?gran ()))
 
+let make_billiard_mobs ?gran () = mob_array := 
+  (Nodes.map (fun n -> new Mob.billiard n ?gran ()))
+
 let make_discrete_randomwalk_mobs() = mob_array := 
   (Nodes.gpsmap (fun n -> new Mob.discreteRandomWalk n ()))
 

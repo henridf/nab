@@ -2,7 +2,8 @@ open Coord
 open Graph
 open Misc
 
-
+module Random = Random.State 
+let rndseed = ref 0
 
 (* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using
    Gui_hooks.* from here *)
@@ -42,6 +43,8 @@ object(s)
 			   we will load the scheduler with zillions of small
 			   movement events *)
 
+  val rnd = Random.make [|!rndseed|]
+
   val seqno = ref 1
     (* Monontonically increasing seqno used to disqualify a #move event that remains in the scheduler
        after #stop is called.  
@@ -49,11 +52,14 @@ object(s)
        scheduler)
     *)
 
-
   initializer (
-    match gran with 
+    
+    begin match gran with 
       | Some g -> granularity <- g
       | _ -> ()
+    end;
+    incr rndseed
+    
   ) 
 
   method start = (
@@ -94,8 +100,7 @@ object(s)
 
       let sncpy = !seqno in (* to avoid ref problem *)
       let move_event() = s#move sncpy in
-      (* mob is assumed to move us by granularity [meters], so we should schedule the next
-	 one in granularity / speed_mps seconds.   *)
+
       (Gsched.sched())#sched_in ~f:move_event ~t:(granularity /. speed_mps)
     )
   )
@@ -134,8 +139,6 @@ object(s)
        (pos +++. (direction ***. gran))
      )
    )
-
-
 end
 
 
@@ -156,15 +159,102 @@ object
   inherit waypoint owner ?gran  ()
     
   method private new_waypoint() = 
-    let x = Random.float (Param.get Params.x_size)
-    and y = Random.float (Param.get Params.y_size) 
+    let x = Random.float rnd (Param.get Params.x_size)
+    and y = Random.float rnd (Param.get Params.y_size) 
     in
-    match (Random.bool(), Random.bool()) with
+    match (Random.bool rnd , Random.bool rnd) with
       | true, true -> x, (Param.get Params.y_size)
       | true, false -> x, 0.0
       | false, true -> 0.0, y
       | false, false -> (Param.get Params.y_size), y
 	  
+end
+
+
+open Complex
+
+class billiard
+  (owner:#Simplenode.simplenode) 
+  ?gran
+  () = 
+object(s)
+  inherit mobility owner ?gran  ()
+
+  val mutable dir_ = {re=0.0; im=0.0}
+    (* normalized complex representing direction. *)
+
+  val mutable time_next_dir_change = Common.get_time()
+
+  initializer (
+    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/billiard";
+    dir_ <- s#new_direction
+  )
+
+  method private new_direction = 
+      let rad = (Random.float rnd (2. *. pi)) -. pi in 
+      polar 1.0 rad;
+
+  method private change_dir_maybe = 
+    if Common.get_time() > time_next_dir_change then  (
+
+      let rad = (Random.float rnd (2. *. pi)) -. pi in 
+      dir_ <- s#new_direction;
+
+      let lambda = 1. /. (speed_mps *. (Param.get Params.x_size)) in 
+      (* The inter-change time is an expo; mean is the time to traverse
+	 distance of network size. *)
+      let delta_next_change = Misc.expo ~rand:(Random.float rnd 1.0) ~lambda in
+      time_next_dir_change <- (Common.get_time()) +. delta_next_change
+    )
+
+
+
+  method getnewpos ~gran = (
+    s#change_dir_maybe;
+
+    
+    let oldpos = (Gworld.world())#nodepos owner#id in
+    if (((Gworld.world())#boundarize oldpos) <> oldpos) then (
+      Printf.printf "%s\n %s\n" (Coord.sprintf ((Gworld.world())#boundarize
+	oldpos)) (Coord.sprintf oldpos);
+      flush stdout;
+    );
+
+    assert (((Gworld.world())#boundarize oldpos) = oldpos);
+    
+    let newx, newy = (oldpos +++. ((dir_.re, dir_.im)) ***. gran) in
+    
+    let hit_east_border = newx <= 0.0
+    and hit_west_border = newx >= (Param.get Params.x_size)
+    and hit_south_border = newy <= 0.0
+    and hit_north_border = newy >= (Param.get Params.y_size) 
+    in
+
+    let newpos = 
+    if (hit_east_border || hit_west_border) &&
+      (hit_south_border || hit_north_border)
+    then 
+      begin              
+	dir_ <- {re=(minus dir_.re); im=(minus dir_.im)};
+	((newx, newy) +++. ((dir_.re, dir_.im)) ***. gran)
+      end
+    else if (hit_east_border || hit_west_border) then 
+      begin              
+	dir_ <- {dir_ with re=(minus dir_.re)};
+	((newx, newy) +++. ((dir_.re, dir_.im)) ***. gran)
+      end
+    else if (hit_north_border || hit_south_border) then  
+      begin
+	dir_ <- {dir_ with im=(minus dir_.im)};
+	((newx, newy) +++. ((dir_.re, dir_.im)) ***. gran)
+      end
+    else 
+      newx, newy
+    in
+    let p = 
+      ((Gworld.world())#boundarize newpos) in
+p
+  )
 end
 
 
@@ -210,7 +300,7 @@ object(s)
     let g = graphtarget_ in
     (* to make sure we pick a different one *)
     while (g = graphtarget_) do
-      graphtarget_ <-  Random.int 113;
+      graphtarget_ <-  Random.int rnd 113;
     done;
 
     current_graph_pos_ <- closest_epfl_node ((Gworld.world())#nodepos owner#id);
@@ -239,8 +329,6 @@ object(s)
       (pos +++. (direction ***. gran))
     )
   )
-
-
 end
 
 class discreteRandomWalk 
@@ -260,7 +348,7 @@ object
 	(-1., 0.); 
 	(0., 1.); 
 	(0., -1.)
-      |].(Random.int 4) in
+      |].(Random.int rnd 4) in
     let newx = ref (xx (pos +++. step)) 
     and newy = ref (yy (pos +++. step)) in
     Printf.printf "Mob.ml: newx %f newy %f\n" !newx !newy; flush stdout;      

@@ -16,6 +16,11 @@ val make_borderwaypoint_mobs : ?gran:float -> unit -> unit
     model (see {!Mob.borderwaypoint}). Optional gran indicates the mobility granularity. 
   *)
 
+val make_billiard_mobs : ?gran:float -> unit -> unit
+  (** Create {!Mob.mobility} objects that implement a border waypoint mobility
+    model (see {!Mob.billiard}). Optional gran indicates the mobility granularity. 
+  *)
+
 val make_epfl_waypoint_mobs : unit -> unit
   (** Create {!Mob.mobility} objects that implement a waypoint mobility model
     over epfl campus (uses {!Epflcoords.l}). *)
