@@ -12,13 +12,14 @@ endif
 
 MWS_DIR = mws
 MWS_SCRIPT_DIR = scripts
+MAN_DIR = man
 MISC_DIR = misc
 TEST_DIR = test
 BIN_DIR = bin
 CAML_DIR = /usr/lib/ocaml
 CAMLIMAGES_DIR = $(CAML_DIR)/camlimages
 
-INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR)
+INCLUDE = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(MAN_DIR)
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR) 
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
@@ -29,7 +30,8 @@ DIRS = \
 	$(MISC_DIR) \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
-	$(MWS_SCRIPT_DIR)
+	$(MWS_SCRIPT_DIR) \
+	$(MAN_DIR)
 
 
 DEPEND = .depend
