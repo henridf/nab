@@ -29,9 +29,9 @@ open Script_utils
 
 let dumpfile = Param.stringcreate ~name:"dumpfile" 
   ~cmdline:true
+  ~notpersist:true
   ~doc:"File to dump warmup state"
   ()
-  
 
 let sp = Printf.sprintf
 
@@ -45,7 +45,18 @@ let detach = Param.boolcreate
   
 let () = 
 
+  Script_utils.parse_args();
+  Arg.current := 0;
+
+  if not (Param.has_value dumpfile) then
+    failwith "need to set -dumpfile!!!";
+  
+  let dumpfile = Param.get dumpfile in
+  
   Warmup_utils.setup_or_restore();
-  if Param.get detach then 
-    Script_utils.detach_daemon();
-  Warmup_utils.maybe_warmup (Param.get dumpfile)
+  
+  if Param.get detach then begin
+    let logname = (Filename.chop_extension dumpfile)^".log" in
+    Script_utils.detach_daemon ~outfilename:logname ()end;
+
+  Warmup_utils.maybe_warmup dumpfile
