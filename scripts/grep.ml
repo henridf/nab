@@ -7,10 +7,12 @@ open Misc
 open Script_utils
 
 let daemon = true
-let outfile = "/home/henridf/work/caml/R4.txt"
+let outfile = ref "/home/henridf/work/caml/"
+let outfile_det = ref "/home/henridf/work/caml/"
 
 
 let outfd = ref Pervasives.stderr
+let outfd_det = ref Pervasives.stderr
 
 
 type agent_type = AODV | GREP
@@ -42,6 +44,9 @@ let size nodes =
   side = sqrt(area)
 *)
 
+      
+
+    
 let seed = ref 12
 let nextseed() = (
   seed := !seed + 14;
@@ -50,7 +55,9 @@ let nextseed() = (
 
 let res_summary = ref []
 
-let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed 
+type trafficmatrix = HOTDEST  | BIDIR | UNIDIR
+
+let do_one_run ~trafficmat ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_send = (
     if agenttype = GREP then 
       Random.init (nextseed())
@@ -83,10 +90,11 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 
   Nodes.iter (fun n ->
     if (n#id < sources) then (
-      let dst = if hotdest then 
-	((Param.get Params.nodes)  - 1 )
-      else 
-	(((Param.get Params.nodes)  - 1 ) - n#id)
+      let dst = 
+	match trafficmat with
+	  | HOTDEST -> ((Param.get Params.nodes)  - 1 )
+	  | UNIDIR -> (((Param.get Params.nodes)  - 1 ) - n#id)
+	  | BIDIR -> (sources - n#id)
       in
       if (dst <> n#id) then (
 	(* in case we have n nodes, n sources, then the n/2'th node would have
@@ -121,53 +129,73 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 )
 
 
+let runs = ref []
 
-
-(* R1: lcavpc23 Thursday noon (repeats 10 )
-let runs = [
+(* R1: lcavpc23 Thursday noon (repeats 10 )*)
+let r1 = [
   (*  repeats hotspot speed rate nodes srcs pktssend *)
-  (10, false,  0.0,  4,   1000,  10,  100);
-  (10, false,  1.0,  4,   1000,  10,  100);
-  (10, false,  2.0,  4,   1000,  10,  100);
-  (10, false,  4.0,  4,   1000,  10,  100);
-  (10, false,  8.0,  4,   1000,  10,  100);
-  (10, false,  16.0, 4,   1000,  10,  100);
-]*)
-
-
-(* R2
-let runs = [
-(* repeats hotspot speed rate nodes srcs pktssend *)
-   (10, false, 0.0,  8,   100,  40,  2400);
-   (10, false,  1.0,  8,   100,  40,  2400);
-   (10, false,  2.0,  8,   100,  40,  2400);
-   (10, false,  4.0,  8,   100,  40,  2400);
-   (10, false,  8.0,  8,   100,  40,  2400);
-   (10, false,  16.0,  8,   100,  40,  2400);
-]*)
-
-
-(* R3 on lcavpc23 Thursday noon (repeats 6 ) 
-let runs = [
-  (* repeats hotspot speed rate nodes srcs pktssend *)
-  (6, true,  0.0,  4,   1000,  20,  20);
-  (6, true,  1.0,  4,   1000,  20,  20);
-  (6, true,  2.0,  4,   1000,  20,  20);
-  (6, true,  4.0,  4,   1000,  20,  20);
-  (6, true,  8.0,  4,   1000,  20,  20);
-  (6, true,  16.0,  4,   1000,  20,  20);
-]*)
-
-(* R4*)
-let runs = [
-(* repeats hotspot speed rate nodes srcs pktssend *)
-   (10, true, 0.0,  8,   100,  40,  2400);
-   (10, true,  1.0,  8,   100,  40,  2400);
-   (10, true,  2.0,  8,   100,  40,  2400);
-   (10, true,  4.0,  8,   100,  40,  2400);
-   (10, true,  8.0,  8,   100,  40,  2400);
-   (10, true,  16.0,  8,   100,  40,  2400);
+  (10, UNIDIR,  0.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  1.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  2.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  4.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  6.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  8.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  12.0,  4,   1000,  40,  20);
+  (10, UNIDIR,  16.0, 4,   1000,  40,  20);
 ]
+
+let r5 = [
+  (* repeats hotspot speed rate nodes srcs pktssend *)
+  (10, HOTDEST,  0.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  1.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  2.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  4.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  6.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  8.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  12.0,  4,   1000,  40,  20);
+  (10, HOTDEST,  16.0,  4,   1000,  40,  20);
+]
+
+let r6 = [
+  (* repeats hotspot speed rate nodes srcs pktssend *)
+  (10, BIDIR,  0.0,  4,   1000,  40,  20);
+  (10, BIDIR,  1.0,  4,   1000,  40,  20);
+  (10, BIDIR,  2.0,  4,   1000,  40,  20);
+  (10, BIDIR,  4.0,  4,   1000,  40,  20);
+  (10, BIDIR,  6.0,  4,   1000,  40,  20);
+  (10, BIDIR,  8.0,  4,   1000,  40,  20);
+  (10, BIDIR,  12.0,  4,   1000,  40,  20);
+  (10, BIDIR,  16.0,  4,   1000,  40,  20);
+]  
+
+
+let r2 = [
+(* repeats hotspot speed rate nodes srcs pktssend *)
+  (10, UNIDIR,  0.0,  4,   1000,  1,  200);
+  (10, UNIDIR,  1.0,  4,   1000,  1,  200);
+  (10, UNIDIR,  4.0,  4,   1000,  1,  200);
+  (10, UNIDIR,  8.0,  4,   1000,  1,  200);
+]
+
+let r4 = [
+(* repeats hotspot speed rate nodes srcs pktssend *)
+  (10, BIDIR,  0.0,  4,   1000,  1,  200);
+  (10, BIDIR,  1.0,  4,   1000,  1,  200);
+  (10, BIDIR,  4.0,  4,   1000,  1,  200);
+  (10, BIDIR,  8.0,  4,   1000,  1,  200);
+]
+
+
+let r3 = [
+  (* repeats hotspot speed rate nodes srcs pktssend *)
+  (10, HOTDEST,  8.0,  4,   50,  40,  20);
+  (10, HOTDEST,  8.0,  4,   100,  40,  20);
+  (10, HOTDEST,  8.0,  4,   200,  40,  20);
+  (10, HOTDEST,  8.0,  4,   400,  40,  20);
+  (10, HOTDEST,  8.0,  4,   600,  40,  20);
+  (10, HOTDEST,  8.0,  4,   800,  40,  20);
+  (10, HOTDEST,  8.0,  4,   1000,  40,  20);
+]  
 
 
 let aodvtots = ref (0, 0, 0, 0, 0, 0, 0, 0)
@@ -194,8 +222,10 @@ let rec print_summary l =
       ((sp2, dorig2, ts2, dr2, ds2, rreps2, rreqs2, dd2, ddrerr2) as grep)
       ::
       rem ->
-	(*	  Printf.fprintf !outfd "%f\nTotal Sent: %d %d\nData Sent: %d %d\nRREPR Sent: %d %d\nRREQ Sent: %d %d\nDATA Recv %d %d\n" 
-		  sp  ts ts2 ds ds2 rreps rreps2 rreqs rreqs2 datar datar2;*)
+	Printf.fprintf !outfd_det "%d %d %d %d %d %d %d %d (AODV)\n" 
+	  dorig ts dr ds rreps rreqs dd ddrerr;
+	Printf.fprintf !outfd_det "%d %d %d %d %d %d %d %d (GREP)\n\n" 
+	  dorig2 ts2 dr2 ds2 rreps2 rreqs2 dd2 ddrerr2;
 	aodvtots := addtots !aodvtots aodv;
 	greptots := addtots !greptots grep;
 	print_summary rem;
@@ -203,25 +233,68 @@ let rec print_summary l =
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
 
 
+let argspec = Arg.Int 
+  (fun i -> 
+    match i with 
+	1 ->
+	  runs :=  r1;
+	  outfile := !outfile^"r1"^".txt";
+	  outfile_det := !outfile_det^"r1-det"^".txt";
+      | 2 ->     
+	  runs :=  r2;
+	  outfile := !outfile^"r2"^".txt";
+	  outfile_det := !outfile_det^"r2-det"^".txt";
+      | 3 ->     
+	  runs :=  r3;
+	  outfile := !outfile^"r3"^".txt";
+	  outfile_det := !outfile_det^"r3-det"^".txt";
+      | 4 ->     
+	  runs :=  r4;
+	  outfile := !outfile^"r4"^".txt";
+	  outfile_det := !outfile_det^"r4-det"^".txt";
+      | 5 ->     
+	  runs :=  r5;
+	  outfile := !outfile^"r5"^".txt";
+	  outfile_det := !outfile_det^"r5-det"^".txt";
+      | 6 ->     
+	  runs :=  r6;
+	  outfile := !outfile^"r6"^".txt";
+	  outfile_det := !outfile_det^"r6-det"^".txt";
+      | _ -> failwith "No such run"
+  )
+  
 let _ = 
+
+
+
+  Arg.parse [("-run" , argspec, "")] (fun s -> ()) "";
+
+
+
   if daemon then (
-    Script_utils.detach_daemon outfile;
+    Script_utils.detach_daemon !outfile;
     outfd := !Log.output_fd;
   );
 
-  List.iter (fun (repeats, hotspot, speed, rate, nodes, sources,  pktssend) ->
+ outfd_det := open_out !outfile_det ;
+
+  List.iter (fun (repeats, trafficmat, speed, rate, nodes, sources,  pktssend) ->
     aodvtots :=  (0, 0, 0, 0, 0, 0, 0, 0);
     greptots :=  (0, 0, 0, 0, 0, 0, 0, 0);
 
     incr run;
-    Printf.fprintf !outfd "\n";
-    Printf.fprintf !outfd "---------------------------\n";
-    Printf.fprintf !outfd "\n";
+    Printf.fprintf !outfd "\n---------------------------\n";
     Printf.fprintf !outfd "Scenario %d parameters:\n" !run;
     Printf.fprintf !outfd "%d Nodes, %d repeats\t\t\n" nodes repeats;
     Printf.fprintf !outfd "Sources: %d\t\t\n" sources;
     Printf.fprintf !outfd "%d [pkt/s], %f [m/s] \n" rate speed ;
-
+    Printf.fprintf !outfd_det "\n---------------------------\n";
+    Printf.fprintf !outfd_det "Scenario %d parameters:\n" !run;
+    Printf.fprintf !outfd_det "%d Nodes, %d repeats\t\t\n" nodes repeats;
+    Printf.fprintf !outfd_det "Sources: %d\t\t\n" sources;
+    Printf.fprintf !outfd_det "%d [pkt/s], %f [m/s] \n" rate speed ;
+    Printf.fprintf !outfd_det "DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
+    flush !outfd;
     Misc.repeat repeats (fun () -> 
       do_one_run 
 	~nodes:nodes
@@ -230,7 +303,7 @@ let _ =
 	~speed:speed
 	~sources:sources
 	~pkts_to_send:pktssend
-	~hotdest:hotspot;
+	~trafficmat;
 
       do_one_run 
 	~nodes:nodes
@@ -239,7 +312,7 @@ let _ =
 	~speed:speed
 	~sources:sources
 	~pkts_to_send:pktssend
-	~hotdest:false;
+	~trafficmat;
     );
 
     print_summary !res_summary;
@@ -267,7 +340,7 @@ let _ =
       (dd  / repeats)
       (ddrerr  / repeats); 
     res_summary := []
-  ) runs;
+  ) !runs;
   
 
 
