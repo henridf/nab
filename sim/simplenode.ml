@@ -50,11 +50,11 @@ object(s)
 
 
   method install_rt_agent ?(stack=0) (theagent : Rt_agent.t)  = 
-    assert(rt_agents.(stack) = None);
+    if (rt_agents.(stack) <> None) then 
+      failwith "Simplenode.install_rt_agent: agent already there!";
     rt_agents.(stack) <- Some theagent
 
   method remove_rt_agent ?(stack=0) () = 
-    assert(rt_agents.(stack) <> None);
     rt_agents.(stack) <- None
 
 
