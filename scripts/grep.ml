@@ -5,44 +5,26 @@
 open Printf
 open Misc
 open Script_utils
+open Experiment
 
 let daemon = false
-let outfile = ref (Unix.getcwd())
-let outfile_det = ref (Unix.getcwd())
+let outfile = ref ((Unix.getcwd())^"/tmp.txt")
+let outfile_det = ref ((Unix.getcwd())^"/tmp.txt")
 
 let outfd = ref Pervasives.stderr
 let outfd_det = ref Pervasives.stderr
 
 
 
-let node_degree = 12
+let avg_degree = 12
 let rrange = 100.
-let size nodes = 
-  sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
-    float (node_degree))
 
-(*
-  density = area / nodes
-  -> area = nodes * density (1)
-  
-  
-  rsurface = 3.14 * (rrange^2)
-  
-  degree = density * rsurface
-  -> density = rsurface/degree (2)
-  
-  
-  (1) and (2) :
-  area = nodes * rsurface / degree = nodes * (3.14 * (rrange^2)) / degree 
-  
-  side = sqrt(area)
-*)
+
 
       
 
     
 
-let res_summary = ref []
 
 type trafficmatrix = HOTSPOT  | BIDIR | UNIDIR
 type agent_type = AODV | GREP
@@ -97,7 +79,8 @@ struct
 
   let agent = Param.stringcreate
     ~name:"agent"
-    ~default:"hotspot"
+    ~default:"GREP"
+    ~cmdline:true
     ~doc:"Traffic Type"
     ~checker:(fun s -> ignore (agent_of_string s))
     ()
@@ -111,12 +94,14 @@ let do_one_run() = (
     and pkts_to_send = (Param.get Config.pktssend)
     in
 
-    if agenttype = GREP then Script_utils.change_seed();
+    if agenttype = GREP then Rnd_manager.change_seed();
 
-    Random.init !Script_utils.seed;
+    Random.init !Rnd_manager.seed;
 
-    Param.set Params.x_size (size (Param.get Params.nodes));
-    Param.set Params.y_size (size (Param.get Params.nodes));
+    Param.set Params.x_size 
+      (size ~rrange ~avg_degree	~nodes:(Param.get Params.nodes));
+    Param.set Params.y_size 
+      (size ~rrange ~avg_degree	~nodes:(Param.get Params.nodes));
     
     init_sched();
     init_world();
@@ -163,7 +148,7 @@ let do_one_run() = (
     let end_time = Common.get_time() in
     (*  Printf.fprintf !outfd "# Avg neighbors per node is %f\n" avgn;*)
 
-    res_summary := 
+
     (speed, 
     !Grep_hooks.data_pkts_orig,
     !Grep_hooks.total_pkts_sent,
@@ -173,13 +158,9 @@ let do_one_run() = (
     !Grep_hooks.rreq_pkts_sent,
     !Grep_hooks.data_pkts_drop,
     !Grep_hooks.data_pkts_drop_rerr
-    )::!res_summary  ;
-    
-    flush !outfd
+    );
   )
 
-
-let runs = ref []
 
 (* R1: lcavpc23 Thursday noon (repeats 10 )*)
 let r1 = [
@@ -253,6 +234,7 @@ let r7 = [
 ]
 
 
+let tots = ref (0, 0, 0, 0, 0, 0, 0, 0)
 let aodvtots = ref (0, 0, 0, 0, 0, 0, 0, 0)
 let greptots = ref (0, 0, 0, 0, 0, 0, 0, 0)
 
@@ -288,48 +270,13 @@ let rec print_summary l =
       | _ -> raise (Misc.Impossible_Case  "print_Summary")
 
 
-let argspec = Myarg.Int 
-  (fun i -> 
-    match i with 
-	1 ->
-	  runs :=  r1;
-	  outfile := !outfile^"/r1"^".txt";
-	  outfile_det := !outfile_det^"/r1-det"^".txt";
-      | 2 ->     
-	  runs :=  r2;
-	  outfile := !outfile^"/r2"^".txt";
-	  outfile_det := !outfile_det^"/r2-det"^".txt";
-      | 3 ->     
-	  runs :=  r3;
-	  outfile := !outfile^"/r3"^".txt";
-	  outfile_det := !outfile_det^"/r3-det"^".txt";
-      | 4 ->     
-	  runs :=  r4;
-	  outfile := !outfile^"/r4"^".txt";
-	  outfile_det := !outfile_det^"/r4-det"^".txt";
-      | 5 ->     
-	  runs :=  r5;
-	  outfile := !outfile^"/r5"^".txt";
-	  outfile_det := !outfile_det^"/r5-det"^".txt";
-      | 6 ->     
-	  runs :=  r6;
-	  outfile := !outfile^"/r6"^".txt";
-	  outfile_det := !outfile_det^"/r6-det"^".txt";
-      | 7 ->     
-	  runs :=  r7;
-	  outfile := !outfile^"/r7"^".txt";
-	  outfile_det := !outfile_det^"/r7-det"^".txt";
-      | _ -> failwith "No such run"
-  )
   
-let _ = 
+let () = 
 
 (* radio range stays constant; area size changes 
    (to have different connectivity) *)
   Param.set Params.rrange rrange;
   Log.set_log_level ~level:Log.LOG_WARNING;
-
-  Myarg.parse [("-run" , argspec, "")] (fun s -> ()) "";
 
   if daemon then (
     Script_utils.detach_daemon !outfile;
@@ -338,32 +285,42 @@ let _ =
   
 
   outfd_det := open_out !outfile_det;
+  let repeats = 1 in  
+  let runner() = (
+    tots :=  (0, 0, 0, 0, 0, 0, 0, 0);
+    Script_utils.dumpconfig stdout;
+    do_one_run ();
+  ) in
+  
+
+  let rcfg = 
+    "-nodes 200 -agent GREP -sources 10  -tmat Uni -rate 4 -agent GREP -pktssend 10" in
+  let scfg = {runconfig=rcfg; repeats=1} in
+  let ecfg = 
+    {series=scfg; variable_param="-speed"; param_values=[|"12"; "0"|]} in
+  let results = doexperiment ecfg runner  in
+  let plotline = get_plotline "totalsent" results 
+    (function    (sp, dorig2, ts2, dr2, ds2,  rreps2, rreqs2, dd2, ddrerr2) ->
+	  float ts2 )
+
+  in
+
+  exit 0;  
   
   List.iter (fun args ->
-    let repeats = 1 in
+
 
     aodvtots :=  (0, 0, 0, 0, 0, 0, 0, 0);
     greptots :=  (0, 0, 0, 0, 0, 0, 0, 0);
     
     let s = Param.make_argspeclist () in
     
-    
-
     let arr = Array.of_list (Str.split (Str.regexp "[ \t]+") args) in
     
     Myarg.parse_argv arr s (fun s -> ()) "You messed up!";
     
     Script_utils.dumpconfig stdout;
 
-    Misc.repeat repeats (fun () -> 
-      Param.set Config.agent "GREP";
-      do_one_run ();
-      Param.set Config.agent "AODV";
-      do_one_run ();
-    );
-
-    print_summary !res_summary;
-    
     Printf.fprintf !outfd "\n#Results:\n";
     let (dorig_a, ts_a, dr_a, ds_a, rreps_a, rreqs_a, dd_a, ddrerr_a) = !aodvtots in
     Printf.fprintf !outfd "# DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
@@ -408,7 +365,6 @@ let _ =
       (dd_g  / repeats)
       (ddrerr_g  / repeats); 
 
-    res_summary := []
   ) ["-nodes 200  -sources 10  -tmat Uni -rate 4 -speed 12 -pktssend 10"]
   
 

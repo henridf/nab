@@ -39,7 +39,7 @@ let check_all_routes () = (
     Printf.printf "New Source: %d\n" n#id; flush stdout;
     if n#id > (Param.get Params.ntargets) then (
 
-      n#originate_app_pkt ~dstid:0;
+      n#originate_app_pkt ~dst:0;
 
       (Gsched.sched())#run_until 
       ~continue:(fun () -> 
@@ -80,13 +80,10 @@ let do_one_run() = (
 
 
 
-(*  make_grease_nodes();*)
-  load_nodes();
+  make_grease_nodes();
+(*  load_nodes();*)
 
 (*  check_all_routes();*)
-
-  Gui_hooks.attach_mob_hooks();
-
 
   Mob_ctl.make_epfl_waypoint_mobs();
   Mob_ctl.start_all();
@@ -98,10 +95,6 @@ let do_one_run() = (
   move_nodes ~prop:0.5 ~targets:1;
  save_nodes();
 *)
-
-
-
-
 (*
   let routeref = ref (Route.create()) in
   let ease_mhook = Gui_hooks.ease_route_mhook routeref in
@@ -131,14 +124,13 @@ let _ =
   Read_coords.check_ngbrs();
   
   (*  Read_coords.check_conn();*)
-  Param.set Params.nodes 1000;
+  Param.set Params.nodes 100;
   Param.set Params.rrange 20.0;
   Param.set Params.x_size 800.0;
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();
   Log.set_log_level ~level:Log.LOG_DEBUG;
   Gui_ctl.create_buttons_ease();
-  Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();
   do_one_run();
 
