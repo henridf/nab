@@ -18,11 +18,9 @@ let choose_route_btn = ref None
 let rt_btn() = o2v !choose_route_btn
 
 let show_nodes = ref true
-let show_route_lines = ref true
-let show_route_anchors = ref true
-let show_route = ref true
 let show_connectivity = ref false
 let show_tree = ref true
+let text_entry = ref false  
 let src_ = ref 0
 let src() = !src_
 let dst = 0
@@ -32,7 +30,7 @@ let route_portion = ref 1.0
 
 let draw_nodes () = 
   Gui_ops.draw_all_nodes();
-  Gui_ops.draw_node ~emphasize:true (src());
+  Gui_ops.draw_node ~emphasize:true !src_;
   Gui_ops.draw_node ~emphasize:true dst
   
 
@@ -42,7 +40,7 @@ let refresh ?(clear=true) ()  = (
   if !show_nodes  then  draw_nodes(); 
   if !show_connectivity  then  Gui_ops.draw_connectivity();
 
-  if !show_route && (!rt <> None) then
+  if (!rt <> None) then
     Gui_ops.draw_grep_route 
       (Mwsconv.route_nodeid_to_pix (o2v !rt));
 )
@@ -55,21 +53,27 @@ let start_stop () = (
   match !running with
     | true -> 
 	Gui_gtk.txt_msg "Nodes are frozen ";
+	Mob_ctl.stop_all();
 	Gui_ctl.stop();
 	running := not !running;
 	refresh ();
     | false -> 
 	Gui_gtk.txt_msg "Nodes are moving ";
+	Mob_ctl.start_all();
+	rt := None;
 	Gui_ctl.startmws ~mws_tick:1. ~rt_tick_ms:1000 ~display_cb:refresh;
 	running := not !running;
 )
 
 
 let get_route nid = (
+  Grep_hooks.reset();
 
-  Mob_ctl.stop_all();
-  (Gsched.sched())#run(); 
+(*  (Gsched.sched())#run(); *)
   src_ := nid;
+  
+  Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" !src_ dst);
+
 
   let routeref = (ref (Route.create())) in
   Gui_hooks.route_done := false;
@@ -78,34 +82,33 @@ let get_route nid = (
   Nodes.iter (fun n -> n#clear_pkt_mhooks);
   Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
   Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
-  (Nodes.node (src()))#originate_app_pkt ~dst;
+  (Nodes.node (!src_))#originate_app_pkt ~dst;
 
   (Gsched.sched())#run_until 
   ~continue:(fun () -> 
     Gui_hooks.route_done = ref false;
   );
   
-(*
-  Gui_ops.draw_ease_route 
-    ~lines:true
-    ~anchors:false
-    ~disks:false
-    ~portion:1000.
-    (Mwsconv.nodeid_2_pix_route !routeref);
-*)
 
   rt := Some !routeref;
   refresh();
-  Mob_ctl.start_all();
+  Log.log#log_notice 
+    (lazy (Printf.sprintf "%d DATA xmits" !Grep_hooks.data_pkts_sent));
+(*  Mob_ctl.start_all();*)
 )
 
 let choose_node () = (
-  (* if nodes are moving around, stop'em *)
+  (* call Mob_ctl.stop_all always because node mobs might not be stopped even when
+     !running is false. *)
+  Mob_ctl.stop_all();
+  
   if !running then (
-    Gui_ctl.stop();
-    running := not !running;
+    start_stop();
   );
-  Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:get_route ()
+  if !text_entry then
+    Gui_ops.dialog_pick_node ~default:!src_ ~node_picked_cb:get_route ()
+  else
+    Gui_ops.user_pick_node ~msg:"Pick a node, dude" ~node_picked_cb:get_route ()
 )
   
 let create_buttons_common() = (
@@ -146,7 +149,7 @@ let create_buttons_grep() = (
   let checkboxlist = [
     ("Nodes", show_nodes, 0, 0);
     ("Connectivity", show_connectivity, 1, 0);
-    ("Route", show_route, 2, 0);
+    ("Text", text_entry, 2, 0);
   ] in
   
   List.iter (fun (txt, boolref, left, top) ->
