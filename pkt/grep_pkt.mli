@@ -27,19 +27,19 @@ val hdr_size : t -> int
 
 val clone : t -> t
 
-  val flags : t -> grep_flags_t
-  val ssn : t -> int
-  val shc : t -> int
-  val dsn : t -> int
-  val dhc : t -> int
-  val osrc : t -> Common.nodeid_t
-  val ohc : t -> int
-  val osn : t -> int
-  val rdst : t -> Common.nodeid_t
+val flags : t -> grep_flags_t
+val ssn : t -> int
+val shc : t -> int
+val dsn : t -> int
+val dhc : t -> int
+val osrc : t -> Common.nodeid_t
+val ohc : t -> int
+val osn : t -> int
+val rdst : t -> Common.nodeid_t
 
 
-  val incr_shc_pkt : t -> unit
-  val decr_shc_pkt : t -> unit
+val incr_shc_pkt : t -> unit
+val decr_shc_pkt : t -> unit
 
 val make_grep_hdr :
   ?dhc:int ->
@@ -52,4 +52,5 @@ val make_grep_hdr :
   ssn:int -> 
   shc:int -> 
   unit ->
-t
+  t
+
