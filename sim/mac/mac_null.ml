@@ -93,7 +93,7 @@ object(s)
 	let n = (Nodes.node(id)) in
 	let recvtime = t +. (propdelay mypos ((World.w())#nodepos myid)) in
 	let recv_event() = 
-	  (n#mac ~stack ())#recv ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in
+	  (n#mac ~stack ())#recv ~l2pkt () in
 	(Sched.s())#sched_in ~f:recv_event ~t
       )
     ) neighbors
