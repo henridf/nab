@@ -79,13 +79,13 @@ object
       @raise InvalidHandle if this handle was never issued.
     *)
 
-  method stop_at : t:sched_time_t -> unit
+  method stop_at : sched_time_t -> unit
     (** Schedule a "stop" event at time [t]. A stop event interrupts the
       scheduler, and control returns to the point where [run] (or [run_for],
       or [run_until], see below) was called.
       Future scheduled events remain in the scheduler. *)
 
-  method stop_in : t:float -> unit
+  method stop_in : float -> unit
     (** Schedule a "stop" event to run [t] simulated seconds from now. *)
 
   method run : unit -> unit

@@ -52,10 +52,10 @@ val clone_l2pkt : l2pkt:t -> t
 
 (** {2 L2 Packet Deconstructors} *)
 
-val l3pkt : l2pkt:t -> L3pkt.t
-val l2hdr : pkt:t -> l2hdr_t
-val l2src : pkt:t -> Common.nodeid_t
-val l2dst : pkt:t -> l2_dst_t
+val l3pkt : t -> L3pkt.t
+val l2hdr : t -> l2hdr_t
+val l2src : t -> Common.nodeid_t
+val l2dst : t -> l2_dst_t
 val string_of_l2dst : l2_dst_t -> string
 
 (** {2 Packet Sizes} *)

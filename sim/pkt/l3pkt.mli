@@ -87,16 +87,16 @@ val make_l3hdr :
   l3hdr_t
 
 
-val make_app_pkt : l3hdr:l3hdr_t -> t
+
 val make_l3pkt : l3hdr:l3hdr_t -> l4pkt:L4pkt.t -> t
 
 (** {2 Network Layer (L3) Packet Deconstructors} *)
 
-val l4pkt : l3pkt:t -> L4pkt.t
-val l3hdr : l3pkt:t -> l3hdr_t
-val l3src : l3pkt:t -> Common.nodeid_t
-val l3dst : l3pkt:t -> Common.nodeid_t
-val l3ttl : l3pkt:t -> int
+val l4pkt : t -> L4pkt.t
+val l3hdr : t -> l3hdr_t
+val l3src : t -> Common.nodeid_t
+val l3dst : t -> Common.nodeid_t
+val l3ttl : t -> int
 
 
 
@@ -109,10 +109,10 @@ val simple_hdr : t -> Simple_pkt.t
 
 (** {2 L3 Header Manipulators} *)
 
-val l3pkt_size : l3pkt:t -> int
-val clone_l3pkt : l3pkt:t -> t
+val l3pkt_size : t -> int
+val clone_l3pkt : t -> t
 
-val set_l3ttl : l3pkt:t -> ttl:int -> unit
-val decr_l3ttl : l3pkt:t -> unit
+val set_l3ttl : ttl:int -> t -> unit
+val decr_l3ttl : t -> unit
 
 

@@ -88,11 +88,11 @@ object(s)
 
   method virtual private next_event : event_t option 
 
-  method virtual private sched_event_at : ev:event_t -> unit
+  method virtual private sched_event_at : event_t -> unit
 
-  method stop_at ~t =  s#sched_handler_at  ~handler:Stop ~t ()
+  method stop_at t =  s#sched_handler_at  ~handler:Stop ~t ()
     
-  method stop_in ~t =  s#stop_at  ~t:(Time (t +. Time.get_time()))
+  method stop_in t =  s#stop_at  (Time (t +. Time.get_time()))
 
   method private sched_handler_at ?(handle=0) ~handler ~t () = (
     scheduleds <- scheduleds + 1;
@@ -236,7 +236,7 @@ object(s)
 
   method private next_event =  Linkedlist.pophead ~ll:ll 
     
-  method private sched_event_at ~ev = 
+  method private sched_event_at ev = 
     Linkedlist.insert ~ll:ll ~v:ev ~compare:compare
 
 end
@@ -268,7 +268,7 @@ object(s)
     else 
       Some (EventHeap.pop_maximum  heap)
     
-  method private sched_event_at ~ev = 
+  method private sched_event_at ev = 
     EventHeap.add  heap ev
 
 end

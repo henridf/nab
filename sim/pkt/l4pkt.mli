@@ -39,8 +39,8 @@ type hello_payload_t = Coord.coordf_t
 
 
 type t =
-    [ `NONE
-    | `APP_PKT
+    [ `EMPTY
+    | `APP_PKT of int
     | `HELLO_PKT of hello_payload_t
     ]
 

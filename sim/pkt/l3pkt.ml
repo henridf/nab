@@ -101,24 +101,24 @@ type t = {
   l4pkt : L4pkt.t
 }
 
-let l4pkt ~(l3pkt:t) = l3pkt.l4pkt
+let l4pkt l3pkt = l3pkt.l4pkt
 
-let l3pkt_size ~l3pkt = 
+let l3pkt_size l3pkt = 
   l3hdr_size ~l3hdr:l3pkt.l3hdr +
   l4pkt_size ~l4pkt:l3pkt.l4pkt
 
-let clone_l3pkt ~l3pkt = {
+let clone_l3pkt l3pkt = {
   l3hdr=clone_l3hdr ~l3hdr:l3pkt.l3hdr;
   l4pkt=clone_l4pkt ~l4pkt:l3pkt.l4pkt;
 }
 
-let l3hdr ~(l3pkt:t) = l3pkt.l3hdr
-let l3src ~(l3pkt:t) = (l3hdr l3pkt).src
-let l3dst ~(l3pkt:t) = (l3hdr l3pkt).dst
-let l3ttl ~(l3pkt:t) = (l3hdr l3pkt).ttl
-let set_l3ttl ~(l3pkt:t) ~ttl = (l3hdr l3pkt).ttl <- ttl
+let l3hdr l3pkt = l3pkt.l3hdr
+let l3src l3pkt = (l3hdr l3pkt).src
+let l3dst l3pkt = (l3hdr l3pkt).dst
+let l3ttl l3pkt = (l3hdr l3pkt).ttl
+let set_l3ttl ~ttl l3pkt = (l3hdr l3pkt).ttl <- ttl
 
-let decr_l3ttl ~(l3pkt:t) = 
+let decr_l3ttl l3pkt = 
   l3pkt.l3hdr.ttl <- l3pkt.l3hdr.ttl - 1
 
 
@@ -167,10 +167,7 @@ let make_l3hdr
   }
   
 
-let make_app_pkt ~l3hdr = {
-  l3hdr=l3hdr;
-  l4pkt=`APP_PKT
-}
+
 
 let make_l3pkt ~l3hdr ~l4pkt = {
   l3hdr=l3hdr;
