@@ -204,16 +204,17 @@ object
 	(1., 0.); 
 	(-1., 0.); 
 	(0., 1.); 
-	(-1., 0.)
+	(0., -1.)
       |].(Random.int 4) in
     let newx = ref (xx (pos +++. step)) 
     and newy = ref (yy (pos +++. step)) in
-    
+    Printf.printf "Mob.ml: newx %f newy %f\n" !newx !newy; flush stdout;      
+
     if (!newx = -1.) then newx := 0.;
     if (!newy = -1.) then newy := 0.;
     if (!newx = (Param.get Params.x_size)) then newx := ((Param.get
       Params.x_size) -. 1.);
-    if (!newy = (Param.get Params.y_size)) then newx := ((Param.get
+    if (!newy = (Param.get Params.y_size)) then newy := ((Param.get
       Params.y_size) -. 1.);
     (!newx, !newy)
 
