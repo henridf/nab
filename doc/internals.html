@@ -1,0 +1,160 @@
+<html> 
+<head>
+<title>NAB Internals Overview</title>
+<link href="emns.css" 
+type=text/css 
+rel=stylesheet>
+
+</head>
+<body BGCOLOR ="#FFFFFF"> 
+<h1> Overview of NAB Internals and APIs</h1>
+<p>
+
+The purpose of this page is to give a overview of NAB internals, and pointers
+to the relevant APIs that are used when developping additional NAB modules,
+such as a MAC layer, routing protocol, or visualization application. 
+The NAB source code is extensively commented, and html documentation can be
+generated using the ocamldoc tool (see <a
+href="../README">README</a> for instructions on building the html documentation). 
+<br><font size="-1">Note: This document is packaged with the <code>nab</code>
+distribution, and is also available <a href="http://nab.epfl.ch">here</a>. If you
+are browsing the version files which came in the <code>nab</code> tarball, it
+might be a good idea to check if a more recent version is available
+online. This file has revision $Revision$.</font>
+
+<p>
+1.  <a href="#1">Discrete events and the scheduler</a><br>
+2.  <a href="#2">World</a><br>
+3.  <a href="#3">Node</a><br>
+4.  <a href="#4">Packets </a><br>
+5.  <a href="#5">Routing agent</a><br>
+6.  <a href="#6">Mac layers</a><br>
+7.  <a href="#7">Mobility generators</a><br>
+8.  <a href="#8">Traffic generators</a><br>
+
+<p>
+
+
+<h2><a name="1">1. Scheduling discrete events</a></h2>
+
+A discrete event scheduler lies at the heart of NAB. 
+Basic functions (doc <a href="gen/Scheduler.t.html">here</a>) are to schedule an event at an absolute or relative time from
+the present time, schedule a <code>stop</code> event, and cancel already scheduled
+events. 
+Two scheduler implementations are provided. The first is list-based
+(doc <a href="gen/Sched.schedList.html">here</a>), and the second is heap-based 
+(doc <a href="gen/Sched.schedHeap.html">here</a>). The heap-based scheduler is more efficient and is recommended.
+
+<p>
+
+<h2><a name="2">2. A global view of the world</a></h2>
+
+A key object in NAB is the <code>world</code> object (doc <a href="gen/Worldt.html">here</a>), which
+maintains a global view of network state, in particular node positions and
+neighborhoods. <p>
+
+When running a simulation one can choose between a lazy
+(doc <a href="gen/Worldt.lazy_world_t.html">here</a>) and a greedy (doc <a href="gen/Worldt.greedy_world_t.html">here</a>). <br>
+The greedy world recomputes a node's neighborhood each time that node moves,
+whereas the lazy world only computes that neighborhood when it is required by
+some part of NAB. <br>The lazy approach is usually more efficient. In particular,
+if nodes are moving a lot, but few packets are being transmitted, then
+the greedy approach of continually recomputing all neighborhoods can have
+needlessly high overhead. Both approaches offer the same functionality, except
+that the greedy world allows to register a callback function to be invoked
+each time a node's neighborhood changes.
+
+<p>
+
+<h2><a name="3">3. Node objects, stacks, and hooks.</a></h2>
+
+The node object is encapsulates most of the state and constituent objects
+(routing agent, mac layer, traffic source) that are in a node. The basic node
+class is the <code>simplenode</code> (doc <a href="gen/Simplenode.simplenode.html">here</a>); one can also
+use the <code>gpsnode</code> (doc <a href="gen/Gpsnode.gpsnode.html">here</a>) which is is position-aware.
+<p>
+Each node has a unique identifier of type <code>Common.nodeid_t</code> (doc <a href="gen/Common.html">here</a>).
+The <code>Nodes</code> module maintains a reference to all nodes, and offers
+various node iterators and accessors.
+<p>
+XXX
+<p>
+Stacks are identified by an <code>int</code> (stack 0, stack 1, etc). In all
+functions and methods which take a stack parameter, this parameter is optional
+and defaults to 0. Therefore a one need never explicitly pass
+<code>stack</code> parameters in a simulation which only uses one stack.
+<p>
+Nodes also offer hooks for which are used to insert a function which is then
+called at specific events, ie when a packet enters or leaves a node. Hooks are
+a very flexible and general mechanism to extract packet-level information as a
+simulation runs; we refer to the NAB tutorial for simple examples of using
+hooks; more advanced hooks are in Gui_hooks.ml.
+
+<p>
+
+<h2><a name="4">4. Packets</a></h2>
+
+Packets are structured data types, represented using ocaml records. Compared
+to a 'byte array' representation, this has the advantage of efficent
+construction/deconstruction of packet fields, more concise code, and a strong
+type discipline which prevents many errors.
+<p>
+A layer 4 packet (doc <a href="gen/L4pkt.html">here</a>) contains an application-specific payload
+packet. <br>A layer 3 packet (doc <a href="gen/L3pkt.html">here</a>) contains a layer 3 header and a layer 4
+packet as a payload. A layer 3 header contains at the least a source and
+destination; it can also contain protocol-specific extensions. <br>Finally a layer
+2 packet (doc <a href="gen/L2pkt.html">here</a>) contains a layer 2 header and a layer 3 packet as payload.
+
+
+<p>
+
+<h2><a name="5">5. Routing agents</a></h2>
+
+A routing agent receives l4 packets from the application layer, and l2 packets
+from the mac layer. The notion of 'routing' here is used in a very loose
+sense: a routing agent might implement a standard unicast routing protocol, a
+topology control, or any other protocol which is somewhere between the MAC and
+application layers. The only requirement is that it conform to a simple
+interface (doc <a href="gen/Rt_agent.t.html">here</a>). 
+<p>
+Users implementing a new routing agent are encouraged to inherit from the
+<code>rt_agent_base</code> class (doc <a href="gen/Rt_agent_base.html">here</a>) in order to avoid dealing
+with all the details of parallel stack (de-)multiplexing.
+
+<p>
+
+
+<h2><a name="6">6. MAC layers</a></h2>
+
+A mac layer receives l3 packets from a routing agent and l2 packets from the
+ether. Mac layers export certain statistics and must conform to the
+<code>Mac.t</code> interface (doc <a href="gen/Mac.html">here</a>). Each MAC can also export additional
+relevant statistics.
+<p>
+Users implementing a new routing agent are encouraged to inherit from the
+<code>mac_base</code> class (doc <a href="gen/Mac_base.html">here</a>) in order to avoid dealing
+with all the details of parallel stack (de-)multiplexing.
+<p>
+NAB currently supports a null MAC layer (doc <a href="gen/Mac_null.html">here</a>), and a contention
+MAC layer (doc <a href="gen/Mac_contention.html">here</a>). A 802.11b-like MAC will be released by 
+May 2004.
+
+<p>
+
+<h2><a name="7">7. Mobility generators</a></h2>
+A mobility generator (doc <a href="gen/Mob.t.html">here</a>) is a class implementing a few simple methods
+to start/stop a node, set it's speed, and provide the next position to move
+to. 
+<p>
+A number of mobility generators (doc <a href="gen/Mobs.html">here</a>) are provided in NAB, including a
+random walk, random waypoint model, billiard model, and a constrained waypoint
+model (<code>epfl_waypoint</code>) which is a random waypoint constrained to
+move over a graph representing the EPFL campus.
+
+<p>
+
+<h2><a name="8">8. Traffic generators</a></h2>
+A traffic generator is a class conforming to a simple interface
+(doc <a href="gen/Trafficgen.html">here</a>). There are currently two available traffic generators: a
+constant bit-rate generator and a poisson generator (doc <a href="gen/Tsource.html">here</a>).
+</html>
