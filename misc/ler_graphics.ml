@@ -6,8 +6,8 @@
 
 open Misc
 open Itin
-open Lattice
 open Ler_utils
+open Coord
 open Printf
 
 
@@ -35,10 +35,10 @@ let unscale_y y =
   let yratio = float_of_int (Graphics.size_y ()) /. (i2f params.gridsize) in
   f2i (round (y /. yratio))
 
-let scale_pos p = (scale_x (i2f (x p)),  scale_y (i2f (y p)))
-let unscale_pos p = (unscale_x (i2f (x p)),  unscale_y (i2f (y p)))
-let scale_posf p = (scale_x  (x p),  scale_y  (y p))
-let unscale_posf p = (unscale_x  (x p),  unscale_y  (y p))
+let scale_pos p = [|scale_x (i2f (x p));  scale_y (i2f (y p))|]
+let unscale_pos p = [|unscale_x (i2f (x p));  unscale_y (i2f (y p))|]
+let scale_posf p = [|scale_x  (x p);  scale_y  (y p)|]
+let unscale_posf p = [|unscale_x  (x p);  unscale_y  (y p)|]
 
 let scale_points l = Array.map (fun p -> scale_pos p)  l
 let scale_pointsf l = Array.map (fun p -> scale_posf p)  l
@@ -46,7 +46,8 @@ let scale_pointsf l = Array.map (fun p -> scale_posf p)  l
 
 let draw_nodes a =   begin
   let _drawnode n = 
-    let (c1, c2) = scale_pos n  in
+    let c1 = x (scale_pos n)  
+    and c2 = y (scale_pos n)  in
     let segments = [|(c1 - 2, c2, c1 + 2, c2) ; (c1, c2 - 2, c1, c2 + 2)|] in
       Graphics.draw_segments segments 
   in
@@ -55,7 +56,8 @@ end
 
 let label_nodes a =   begin
   let _labelnode i n = 
-    let (c1, c2) = scale_pos n  in
+    let c1 = x (scale_pos n)  
+    and c2 = y (scale_pos n)  in
       Graphics.moveto  (c1 + 3) (c2 + 3);
       Graphics.draw_string (string_of_int i) 
   in
@@ -64,8 +66,9 @@ let label_nodes a =   begin
 end
  
 let label_node pos label = begin
-  let (xs, ys) = scale_pos pos in
-    Graphics.moveto (xs + 3) (ys + 3);
+    let c1 = x (scale_pos pos)  
+    and c2 = y (scale_pos pos)  in
+    Graphics.moveto (c1 + 3) (c2 + 3);
     Graphics.draw_string label
 end
 
@@ -75,7 +78,7 @@ let circle_nodes l radius = begin
 
   let sc_radius = scale_x radius in
   let scaled_points = scale_points l in
-    Array.iter (fun (x, y) -> Graphics.draw_circle x y sc_radius) scaled_points
+    Array.iter (fun p -> Graphics.draw_circle (x p) (y p) sc_radius) scaled_points
 end
 
     
@@ -103,31 +106,29 @@ let complement_segment seg = begin
   let px_ur = x1 +. lambda *. (x1 -. x2) in
     
     if (x1 = x2)  then begin
-      intersections := !intersections @ [(f2i x1, 0)];
-      intersections := !intersections @ [(f2i x1, params.gridsize)];
+      intersections := !intersections @ [[|f2i x1; 0|]];
+      intersections := !intersections @ [[|f2i x1; params.gridsize|]];
     end  
     else if (y1 = y2) then begin
-      intersections := !intersections @ [(0, f2i y1)];
-      intersections := !intersections @ [(params.gridsize, f2i y1)];
+      intersections := !intersections @ [[|0; f2i y1|]];
+      intersections := !intersections @ [[|params.gridsize; f2i y1|]];
     end 
     else begin
       (* 2nd & 4th inequalities are  sharp so that if our segment touches the corner (ie, at (0.0, 0.0))
 	 we don't count both points needlessly. Same for the 2nd py_ur inequality *)
       let on_border x = (x >= 0.0 && x <= (i2f params.gridsize)) in
       let on_border_sharp x = (x > 0.0 && x < (i2f params.gridsize)) in
-      if on_border px_ll then intersections := !intersections @ [(f2i px_ll, 0)];
-      if on_border_sharp py_ll then intersections := !intersections @ [(0, f2i py_ll)];
-      if on_border px_ur  then intersections := !intersections @ [(f2i px_ur, params.gridsize)];
-      if on_border_sharp py_ur then  intersections := !intersections @ [(params.gridsize, f2i py_ur)];
+      if on_border px_ll then intersections := !intersections @ [[|f2i px_ll; 0|]];
+      if on_border_sharp py_ll then intersections := !intersections @ [[|0; f2i py_ll|]];
+      if on_border px_ur  then intersections := !intersections @ [[|f2i px_ur; params.gridsize|]];
+      if on_border_sharp py_ur then  intersections := !intersections @ [[|params.gridsize; f2i py_ur|]];
     end;
 
-
-    List.iter (fun (x, y) -> printf "%d %d\n" x y) !intersections;
     assert (List.length !intersections = 2);
-    if (dist_sq (List.nth !intersections 0) (f2i x1, f2i y1)) < (dist_sq (List.nth !intersections 0) (f2i x2, f2i y2)) then 
-      [|(List.nth !intersections 0); (f2i x1, f2i y1); (f2i x2, f2i y2); (List.nth !intersections 1) |]
+    if (disti_sq (List.nth !intersections 0) [|f2i x1; f2i y1|]) < (disti_sq (List.nth !intersections 0) [|f2i x2; f2i y2|]) then 
+      [|(List.nth !intersections 0); [|f2i x1; f2i y1|]; [|f2i x2; f2i y2|]; (List.nth !intersections 1) |]
     else 
-      [| (List.nth !intersections 0); (f2i x2, f2i y2); (f2i x1, f2i y1); (List.nth !intersections 1) |]
+      [| (List.nth !intersections 0); [|f2i x2; f2i y2|]; [|f2i x1; f2i y1|]; (List.nth !intersections 1) |]
    
 end
 
@@ -144,7 +145,7 @@ let reflect_segment seg = begin
   let c_and_r node refnode = 
     Array.get (center_and_reflect_nodes (ref [|node|]) refnode) 0 in
   let p1 = Array.get seg 0 and p2 = Array.get seg 1 in
-  let d1 = dist_sq p1 p2 and d2 = dist_sq params.center  (c_and_r p1 p2) in
+  let d1 = disti_sq p1 p2 and d2 = disti_sq params.center  (c_and_r p1 p2) in
 
     if ( d1 <= d2 ) then
       seg
@@ -185,8 +186,8 @@ let draw_grid n = begin
   for i = 0 to n do
     begin
       let pt =  (i * params.gridsize) /  n in
-	ler_draw_segment [| (pt, 0); (pt, params.gridsize)|];
-	ler_draw_segment [| (0, pt); (params.gridsize, pt)|];
+	ler_draw_segment [| [|pt; 0|]; [|pt; params.gridsize|]|];
+	ler_draw_segment [| [|0; pt|]; [|params.gridsize; pt|]|];
     end
     done
 end
@@ -194,14 +195,14 @@ end
 let draw_gradient gradient_matrix = (
   for i = 0 to (params.gridsize - 1) do 
     for j = 0 to (params.gridsize - 1) do
-      ler_draw_segmentf [|pair_i2f (i, j) ; (pair_i2f  (i, j)) +++. ((gradient_matrix.(i).(j)) ///. 2.0)|]
+      ler_draw_segmentf [|coord_i2f [|i; j|] ; (coord_i2f  [|i; j|]) +++. ((gradient_matrix.(i).(j)) ///. 2.0)|]
     done;
   done;
 )
 
 let draw_cross point w = (
-  let quad_of_pairs (a, b) (c, d) = (a, b, c, d) in
-  let wx = (w, 0) and wy = (0, w) in
+  let quad_of_pairs p1 p2 = (x p1, y p1, x p2, y p2) in
+  let wx = [|w; 0|] and wy = [|0; w|] in
   let p = scale_pos point in
     Graphics.draw_segments [| (quad_of_pairs (p --- wx)  (p +++ wx)); 
 			      (quad_of_pairs (p --- wy)  (p +++ wy)); 
@@ -222,15 +223,6 @@ let animate_route route f = (
 
 let draw_route route  = animate_route route (fun x -> ())
 
-let animate_itin itin lattice f = 
-  let route = Array.map (
-    fun i ->
-      let tuple_as_array =  Lattice.node_ lattice i in
-	(tuple_as_array.(0), tuple_as_array.(1))
-  ) (Itinerary.toarray_ itin) in
-    animate_route route f
-
-let draw_itin itin lattice = animate_itin itin lattice (fun x -> ())
 
 (*
   let mouse_choose_node msg = (
