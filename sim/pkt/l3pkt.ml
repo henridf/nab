@@ -69,7 +69,7 @@ let clone_l3hdr_ext = function
 type l3hdr_t = {(* adjust l3hdr_size if this changes *)
   src : Common.nodeid_t;
   dst : Common.nodeid_t;
-  mutable ttl : int;
+  ttl : int;
   ext : l3hdr_ext_t
 }
 
