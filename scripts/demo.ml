@@ -24,28 +24,73 @@ let resched_me =
 let rec clock_tick() = (
   Gui_ops.draw_all_nodes(); 
   (Gsched.sched())#sched_in ~handler:clock_tick ~t:1.0;
+)
 
+
+let load_nodes() = (
+  let in_chan = open_in "/home/henri/newwork/caml/out.mld" in
+  Persistency.read_state ~in_chan;
+
+  Printf.printf "LOAD|| : Prop met: %f\n" (proportion_met_nodes 1);
+  Nodes.iter (fun n ->   
+    Printf.printf "LOAD||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
+  flush stdout;
+)
+
+let save_nodes() = (
+  Printf.printf "SAVE|| : Prop met: %f\n" (proportion_met_nodes 1);
+  Nodes.iter (fun n ->   
+    Printf.printf "SAVE||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
+  flush stdout;
+  let out_chan = open_out "/home/henri/newwork/caml/out.mld" in
+  Persistency.save_state ~out_chan ~ntargets:1
 )
 
 let do_one_run() = (
 
-  let mob = new Mob.waypoint in
-  Log.set_log_level ~level:Log.LOG_NOTICE;
+
+  Log.set_log_level ~level:Log.LOG_DEBUG;
   init_sched();
   init_world();
-  mob#initialize();
+
+
+
   make_grease_nodes();
-    
+
+
+(*  load_nodes();*)
   Gui_hooks.attach_mob_hooks();
 
-  Nodes.iter (fun n ->
-    n#set_speed_mps 10.0;
-    n#setmob mob#getnewpos;
-    n#selfmove;
-  );
+
+  Mob.make_epfl_mobs();
+  Mob.start_all();
+    
+
   
-  let start_time = Common.get_time() in
-  (Gsched.sched())#sched_in ~handler:clock_tick ~t:1.0;
+(*
+  move_nodes ~prop:0.4 ~targets:1;
+  
+
+ save_nodes();
+ *)
+
+
+
+
+(*
+  let routeref = ref (Route.create()) in
+  let ease_mhook = Gui_hooks.ease_route_mhook routeref in
+  Nodes.iter (fun n -> n#add_pktin_mhook ease_mhook);
+  Nodes.iter (fun n -> n#add_pktout_mhook ease_mhook);
+  
+
+ (Nodes.node 17)#originate_app_pkt ~dstid:0;
+  (Gsched.sched())#run();
+  Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));
+  Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route !routeref);
+*)
+(*  (Gsched.sched())#run_until (fun () -> (Common.get_time()) < start_time +. 100.0);
+  (Gsched.sched())#sched_in ~handler:clock_tick ~t:1.0;*)
 
 (*  (Gsched.sched())#stop_in 20.0;*)
 
@@ -56,18 +101,17 @@ let do_one_run() = (
   flush stderr
 )
 
-
-
 let _ = 
   Read_coords.make_graph();
-  Param.set Params.nodes 10;
+  Param.set Params.nodes 1;
   Param.set Params.rrange 250.0;
   Param.set Params.x_size 4000.0;
   Param.set Params.y_size 3000.0;
-
   Gui_gtk.init ();
   Gui_ctl.create_buttons();
   Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();
   do_one_run();
-  Main.main();    
+(*  (Gworld.world())#find_closest ~pos:(10.0, 10.0) ~f:(fun _ -> true);;    *)
+  Main.main();
+
