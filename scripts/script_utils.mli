@@ -31,51 +31,30 @@
 
 (** Arguments *)
 
-val parse_args : ?anon_fun:Arg.anon_fun -> unit -> unit
+val parse_args : 
+  ?extra_argspec:(Arg.key * Arg.spec * Arg.doc) list -> 
+  ?anon_fun:Arg.anon_fun -> unit -> unit
+  (** Parse arguments, according to all created Param ({!Param.t} objects
+    which are cmdline-settable.
+    
+    @extra_spec Additional command-line options to accept, empty by default.
+    See the Arg module of the ocaml standard lib for further documentation.
+    @anon_fun Function to call on anonymous arguments, none by default.
+    See the Arg module of the ocaml standard lib for further documentation.
+  *)
+
 val print_header : unit -> unit
 
 (** Setup/Initialization/Cleanup *) 
 
-val init_sched : unit -> unit
-  (** Instantiate the global scheduler object. Uses a Heap Scheduler by
-    default. *)
-
-val init_lazy_world : unit -> unit
-  (** Instantiate a {!Crworld.world_lazy} global world object with
-    reflecting boundaries.
+val init_world : unit -> unit
+  (** Instantiates the world object of type indicated by the world param
+    {!World.world}. 
     Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
     set before calling this. *)
-
-
-val init_lazy_taurus_world : unit -> unit
-  (** Instantiate a {!Crworld.world_lazy} global world object with wrapping
-    boundaries (taurus topology).
-    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
-    set before calling this. *)
-
-
-val init_greedy_world : unit -> unit
-  (** Instantiate a {!Crworld.world_greedy} global world object with
-    reflecting boundaries.
-    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
-    set before calling this. *)
-
-  
-val init_greedy_taurus_world : unit -> unit
-  (** Instantiate a {!Crworld.world_greedy} global world object with
-    wrapping boundaries (taurus topology).
-    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
-    set before calling this. *)
-  
-
-val init_epfl_world : unit -> unit
-  (** Instantiate a {!Crworld.epflworld} global world object.
-    Number of nodes {!Params.nodes} and radio range {!Params.radiorange} should be
-    set before calling this. *)
-
 
 val init_all : unit -> unit
-  (** Instantiates both the global world object (a lazy one) and the global
+  (** Instantiates the global world object, the global
     scheduler object, and sets the time to 0.0 *)
 
 val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
@@ -170,4 +149,9 @@ val detach_daemon :  outfilename:string -> unit
 
 val interactive_print_banner : string -> unit
 
+
+(**/**)
+val init_sched : unit -> unit
+  (** Instantiate the global scheduler object. Uses a Heap Scheduler by
+    default. *)
 

@@ -38,9 +38,9 @@ let set_debug_level s =
   Log.set_log_level level
 
 
-let parse_args ?(anon_fun=(fun _ -> ())) () = (
+let parse_args ?(extra_argspec=[]) ?(anon_fun=(fun _ -> ())) () = (
   let s = Param.argspeclist () in
-  Arg.parse s anon_fun "";
+  Arg.parse (s@extra_argspec) anon_fun "";
 )
 
 let init_sched() = Sched.set_sched (new Sched.schedHeap)
@@ -66,7 +66,7 @@ let init_epfl_world() = (
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.radiorange))
 )
-
+  
 let init_lazy_world() = 
   World.set_lazy_world (new Crworld.lazy_reflecting_world
     ~x:(Param.get Params.x_size)
@@ -81,10 +81,18 @@ let init_lazy_taurus_world() =
     ~rrange:(Param.get Params.radiorange)
 )
 
+let init_world() = 
+  match Param.get World.world with
+    | World.Greedy -> init_greedy_world()
+    | World.Lazy -> init_lazy_world()
+    | World.Lazy_taurus -> init_lazy_taurus_world()
+    | World.Greedy_taurus -> init_greedy_taurus_world()
+    | World.Epfl -> init_epfl_world()
+
 let init_all() =   (
   Time.set_time 0.0;
   init_sched(); 
-  init_lazy_world()
+  init_world()
 )
 
 let install_macs_ ~stack mac_factory = 
