@@ -78,8 +78,8 @@ val nexthop_invalid : t -> Common.nodeid_t -> Common.nodeid_t
     entry (valid or not).
      @raise Not_found if [rtab] contains no entry for [dst].*)
 
-val nexthop_maybe : t -> Common.nodeid_t -> Common.nodeid_t option
-  (** [nexthop_maybe rtab dest] returns None if [rtab] contains no routing
+val nexthop_opt : t -> Common.nodeid_t -> Common.nodeid_t option
+  (** [nexthop_opt rtab dest] returns None if [rtab] contains no routing
      entry for [dest], or if our routing entry is invalid. If [rtab] contains
      a valid entry [nid], the function call returns [Some nid]. *)
   
@@ -88,7 +88,7 @@ val hopcount : t -> Common.nodeid_t -> int
     [dst].
     @raise Not_found if [rtab] contains no routing entry for [dest] *)
   
-val hopcount_maybe : t -> Common.nodeid_t -> int option
+val hopcount_opt : t -> Common.nodeid_t -> int option
   (** [hopcount rtab dest] returns 
     - [Some hc] where [hc] is the hop count in the routing entry for [dst], if
     there is an entry

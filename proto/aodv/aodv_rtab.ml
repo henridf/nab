@@ -272,7 +272,7 @@ let nexthop_invalid rt dst =
     | Some e -> e.nexthop
   
 
-let nexthop_maybe rt dst = 
+let nexthop_opt rt dst = 
   update_timeout_valid rt dst;  
   match get_entry_opt rt dst with
     | None -> None
@@ -284,7 +284,7 @@ let hopcount rt dst =
     | None -> raise Not_found
     | Some e -> e.hopcount
   
-let hopcount_maybe rt dst = 
+let hopcount_opt rt dst = 
   update_timeout_valid rt dst;  
   match get_entry_opt rt dst with
     | None -> None
