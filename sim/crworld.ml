@@ -9,7 +9,7 @@ open Coord
 open Misc
 open Common
 open Printf
-
+open Graph
 
 
 (* x, y : size in meters of world.
@@ -43,7 +43,7 @@ object(s)
     (Array.make_matrix grid_size_x_ grid_size_y_ []);
     node_positions_ <- Array.make (Param.get Params.nodes) (0., 0.);
 
-    Log.log#log_notice (lazy 
+    Log.log#log_info (lazy 
       (sprintf "New CRWorld : size <%f,%f>, rrange %f, #nodes %d" 
       x y rrange (Param.get Params.nodes))
     );
@@ -187,6 +187,9 @@ object(s)
   method nodepos nid = node_positions_.(nid)
 
   method movenode ~nid ~newpos  = (
+    assert (not (xx newpos < 0.0) || xx newpos > Param.get Params.x_size ||
+    yy newpos < 0.0 || yy newpos > Param.get Params.y_size);
+
     (* update local data structures (grid_of_nodes) with new pos, 
        then update the node and neighbor node objects *)
     
@@ -463,6 +466,28 @@ object(s)
     let scaleup = (x_unit *. world_size_x_, y_unit *. world_size_y_) in
     let (x,y) = (s#pos_in_grid_ scaleup) in
     o2v (s#find_closest ~pos:scaleup ~f:(fun _ -> true))
+
+
+  method is_connected () = (
+    (* Create a graph object reflecting current connectivity *)
+    let g = (Graph.make_ 0 (Param.get Params.nodes) Graph.Directed) in
+    Nodes.iter (fun n -> Graph.add_node_ g n#id);
+    Nodes.iteri (fun i -> 
+      List.iter (fun ngbr -> Graph.add_edge_ g i ngbr (s#dist_nodeids i ngbr)) 
+      (s#neighbors i));
+    (* Iterate over all src-dst pairs and check if there is a route *)
+    try 
+      Graph.itern_ (fun src -> 
+	Graph.itern_ (fun dst -> 
+	  ignore (Graph.route_dij_ g src dst);
+	) g
+      ) g;
+
+      true
+    with 
+      | (Failure "No_route") -> false
+  )
+      
 
 
 end
