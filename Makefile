@@ -87,7 +87,7 @@ ifdef SCRIPT
     SIM_SCRIPT = $(SCRIPT)
   else
     SIM_SCRIPT = $(SIM_SCRIPT_DIR)/$(SCRIPT)
-    ifneq ($(wildcard $(SCRIPT)),$(SCRIPT))
+    ifneq ($(wildcard $(SIM_SCRIPT)),$(SIM_SCRIPT))
       $(error I cannot find $(SCRIPT))
     endif
     # doesn't exist
