@@ -49,25 +49,22 @@ let usage speclist errmsg =
   with Not_found -> eprintf "  --help display this list of options\n";
 ;;
 
-let current = ref 0;;
 
 let parse_argv argv speclist anonfun errmsg =
-  let initpos = !current in
+  let current = ref 0 in
   let stop error =
-    let progname =
-      if initpos < Array.length argv then argv.(initpos) else "(?)" in
     begin match error with
       | Unknown "-help" -> ()
       | Unknown "--help" -> ()
       | Unknown s ->
-          eprintf "%s: unknown option `%s'.\n" progname s
+          eprintf "unknown option `%s'.\n" s
       | Missing s ->
-          eprintf "%s: option `%s' needs an argument.\n" progname s
+          eprintf " option `%s' needs an argument.\n" s
       | Wrong (opt, arg, expected) ->
-          eprintf "%s: wrong argument `%s'; option `%s' expects %s.\n"
-                  progname arg opt expected
+          eprintf " wrong argument `%s'; option `%s' expects %s.\n"
+                   arg opt expected
       | Message s ->
-          eprintf "%s: %s.\n" progname s
+          eprintf "%s.\n" s
     end;
     usage speclist errmsg;
     if error = Unknown "-help" || error = Unknown "--help"
@@ -75,7 +72,6 @@ let parse_argv argv speclist anonfun errmsg =
     else exit 2
   in
   let l = Array.length argv in
-  incr current;
   while !current < l do
     let s = argv.(!current) in
     if String.length s >= 1 && String.get s 0 = '-' then begin

@@ -93,6 +93,3 @@ val usage : (string * spec * string) list -> string -> unit
     {!Arg.parse} prints in case of error.
     [speclist] and [usage_msg] are the same as for [Arg.parse]. *)
 
-val current : int ref
-(** Position (in {!Sys.argv}) of the argument being processed.  You can
-    change this value, e.g. to force {!Arg.parse} to skip some arguments.*)
