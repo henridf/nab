@@ -14,6 +14,10 @@
    no local repair. If we do, then it should at 1st order be ok since the
    reverse path will get setup when the DATA packet travels forward. 
 
+   Got a misc.o2v failure at:
+   let old_hopcount = o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst) in
+   (used to be outside if statement, check cvs from about Thu26Jun)
+
 *)
 
 (*                                  *)
@@ -510,7 +514,7 @@ object(s)
     ~(sender:Common.nodeid_t) = (
       
       let invalid_dst = (L3pkt.rdst ~l3pkt) in
-      let old_hopcount = o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst) in
+
 
       if ((L3pkt.l3dst ~l3pkt) != owner#id) then (
 	(* this invalidates entyr + kills waiting packets *)
@@ -520,7 +524,7 @@ object(s)
 	with 
 	  | Send_Out_Failure -> ()
       ) else (
-
+      let old_hopcount = o2v (Rtab.hopcount ~rt:rtab ~dst:invalid_dst) in
 	Rtab.invalidate ~rt:rtab ~dst:invalid_dst;
 	let (dseqno,dhopcount) = 
 	  (o2v (Rtab.seqno ~rt:rtab ~dst:invalid_dst), old_hopcount)
