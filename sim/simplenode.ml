@@ -138,16 +138,18 @@ object(s)
     let neighbors = (Gworld.world())#neighbors id in
 
     List.iter (fun nid -> 
+      if nid <> s#id then (
       let n = (Nodes.node(nid)) in
-    let recvtime = 
-      Common.get_time()
-      +. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt)
-      +. Mws_utils.propdelay 
-	((Gworld.world())#nodepos id) 
-	((Gworld.world())#nodepos nid) in
+      let recvtime = 
+	Common.get_time()
+	+. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt)
+	+. Mws_utils.propdelay 
+	  ((Gworld.world())#nodepos id) 
+	  ((Gworld.world())#nodepos nid) in
       let recv_event() = 
 	n#mac_recv_pkt ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) in
       (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
+      )
     ) neighbors
   )
 
