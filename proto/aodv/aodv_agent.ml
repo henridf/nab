@@ -23,6 +23,19 @@
 (* $Id$ *)
 
 
+(** A simple implementation of the AODV routing protocol.
+
+  This implementation is not yet a literal and exhaustive transcription of the
+  RFC, in particular the following functions have yet to be implemented:
+  - Features for dealing with unidirectional links (blacklists, 'A' option to
+  request a RREP-ACK) are not supported.
+  - Precursor lists.
+  - Actions after reboot.
+  - Section 6.10 of the RFC ("Maintaing Local Connectivity") is partially
+  implemented.
+*)
+
+
 
 (*
    in recv_l2pkt, we shouldn't update path to source if this is a data packet right??
@@ -142,13 +155,12 @@ object(s)
     assert(update);
   )
 
-  method private local_repair ~src ~dst = false
-(*
-    let fwhops = o2v (Rtab.hopcount ~rt ~dst)
-    and bwhops = o2v (Rtab.hopcount ~rt ~dst:src)
-    in 
-    if ((i2f fwhops) /. (i2f bwhops) < 0.5) then true else false
-*)
+  method private local_repair ~src ~dst = 
+  let fwhops = o2v (Rtab.hopcount ~rt ~dst)
+  and bwhops = o2v (Rtab.hopcount ~rt ~dst:src)
+  in 
+  if ((i2f fwhops) /. (i2f bwhops) < 0.5) then true else false
+
 
   method private packets_waiting ~dst = 
     not (Queue.is_empty pktqs.(dst))

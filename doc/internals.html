@@ -102,8 +102,12 @@ and defaults to 0. Therefore a one need never explicitly pass
 Nodes also offer hooks for which are used to insert a function which is then
 called at specific events, ie when a packet enters or leaves a node. Hooks are
 a very flexible and general mechanism to extract packet-level information as a
-simulation runs; we refer to the NAB tutorial for simple examples of using
-hooks; more advanced hooks are in Gui_hooks.ml.
+simulation runs, for example it is easy to implement ns-2 style traces by
+inserting simple hooks which output the appropriate strings when invoked. We
+refer to the NAB tutorial for simple examples of using hooks; more advanced
+hooks to reconstruct entire routes and floods are in proto/aodv/od_hooks.ml
+and proto/ler/ler_hooks.ml. 
+
 
 <p>
 

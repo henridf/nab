@@ -96,4 +96,4 @@ Note: interactive toplevels cannot be compiled to native code.
 
 If you have developed code (protocols, mac layers, mobility models, ..) 
 that you would like to see integrated into the nab distribution, 
-please contact henri.dubois-ferriere@epfl.ch.
+please contact henri.dubois-ferriere {AT} epfl.ch

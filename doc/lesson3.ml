@@ -41,8 +41,8 @@ let nstacks = 3
 let () = 
   Param.set Params.nodes nodes; (* number of nodes *)
 
-  Param.set Params.x_pix_size 900; (* size of gui window *)
-  Param.set Params.y_pix_size 900;
+  Param.set Params.x_pix_size 800; (* size of gui window *)
+  Param.set Params.y_pix_size 800;
 
   (* Set the transmission range (range within which nodes are neighbors). *)
   Param.set Params.radiorange radiorange;
@@ -126,7 +126,7 @@ let warmup enc_ratio = (
 
 
 
-let main() = 
+let main() = (
 
   (* Parse command-line arguments. *)
   Script_utils.parse_args();
@@ -145,14 +145,10 @@ let main() =
 
   (* Stop the mobility processes. *)
   Mob_ctl.stop_all();
-  
+)
+
 let () = 
   main();
   Gui_gtk.init ();
   Gui_ler.setup_easeviz_app();
   Main.main()
-
-
-
-
-
