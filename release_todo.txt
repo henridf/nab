@@ -1,0 +1,3 @@
+- look into whether to use OcamlMakefile or not
+- in-file documentation 
+  - document Params/Param, and the interplay with cmdline args

@@ -1,0 +1,102 @@
+-  mob.ml is tied in an ugly manner to pixels, epflcoords, etc, which obliges
+    things like:
+    + have epflcoords and readcoords in mws_object_files in makefile
+    + replicate pix/mtr conversion functions in mob.ml
+
+    need to break this somehow.
+    this will also allow putting the params.x/y_pix_size into mwsconv.ml,
+    where they belong
+
+- install ocaml-unused-var-warning.patch  (when moved to 3.07)
+- maybe have ways to customize logging (precision of time in left column), do
+   we write log_level or not, etc)
+- mhooks : when you replace an array of agents with new ones, the old ones
+  don't go away because they are still hooked in to their owners...
+  one possibility would be to have add_*_hook methods return a handle (for
+  example hooks are kept in a hash), and then a diff_Agent (or anyone else who
+  has a handle) can have a detach() method which kills all its hooks before
+  dying. 
+  
+- config: 
+  val make_cmdline_able : 'a t -> unit
+  val make_not_cmdline_able : 'a t -> unit
+
+- creating nodes in script_utils
+  there are going to be an increasing # of possible configurations, ie all 
+  possible combinations of agents, MACs, etc.
+  So instead of having one explicit function for each one (make_grease_nodes,
+  make_grep_nodes, etc), we should have a more generic way of doing it.
+
+  One possible solution:maybe a make_nodes(), then a make_*_agent which makes * type agents and adds
+  them, similarly for macs, etc. Then we have a # of make funs which is linear
+  in the # of different agents/macs/nodes rather than the comb. explosion of
+  all combinations.
+
+  Another possible solution: all these choosable things (which MAC, which
+  diffusion algo, which routing agent) are settable by Params. Then there is
+  only one "make_macs" which makes them based on what the Param value is.
+  
+- get rid of gpsnodes  
+- the hooking scheme for movenode and gps nodes is a bit weird. maybe should
+  forget about gpsnode subclass, and simply do an aggregation relationship,
+  having simplenode aggregate a 'gpsreceiver' object. 
+
+- a big question is coming back all the time about how/where to access
+  objects. For example, i make many hello_agents. Are these kept in an array
+  in the same file as the hello_Agent class? in the script file? this impacts
+  then routings like proportion_met_nodes(), etc..
+
+- time printing in sched should use log. but this made a headache for circular
+  dependency...
+
+- neighbors: right now, seems like a node has itself as a neighbor. is this
+  necessary? seems not. check well before changing...
+
+- clean up mobility :
+  granularity needs to be solidified. IF it is going to be used, then shoudl
+  be tweakable. Also how does it relate to say random walk processes. Do they
+  simply ignore it? Or do we distinguish between 'continuous' and 'discrete'
+  classes?
+
+  
+- think about order in which mhooks is invoked. it can matter, in the case
+  where agent code modifies packet. f. ex in ease_agent, if anchor changes in
+  last hop, then we get:
+  hop:<2865.353, 2561.326> 	anchor:<2970.990, 2469.370> 	age:8.000000 	cost:0.000000
+  hop:<2918.412, 2582.598> 	anchor:<2970.990, 2469.370> 	age:8.000000 	cost:0.000000
+  hop:<2989.889, 2587.548> 	anchor:<2970.990, 2469.370> 	age:8.000000 	cost:0.000000
+  hop:<2949.183, 2459.140> 	anchor:<2951.178, 2434.621> 	age:0.000000 	cost:24.599721
+  hop:<2951.178, 2434.621> 	anchor:<2951.178, 2434.621> 	age:0.000000 	cost:24.599721
+  Fatal error: exception Failure("Searchcost was non-zero without anchor change")
+
+- packets: better, but still somewhat unhappy with the type.
+  maybe the union of all possible packet types forms a tree, and packet is a
+  path through that tree (ie, a list of headers)?? might be better for typing.
+  might make all these recursive operations (like *_clone, *_size) easier
+
+  wishlist: 
+  expressive typing:
+  each packet type is fully 'expressed' in the type system, meaning that it
+  has its fields and only its own. For example, a grep l3hdr should not be the
+  same as an ease l3hdr
+  'automatic' cloning and sizing : ideally clone and size operations could be
+  recursively done on each packet type.
+
+  get rid of mutable fields? or if we keep them, have a failsafe way to control
+  cloning etc?
+
+- make redoes everythgin when OPT
+
+- generic radio ranges. right now this is hard-coded. 
+  what if nodes could vary their xmit power? what if we have diffent mac
+  layers coexisting (say bluetooth and 802.11)?
+  this will probably need quite some rethinking, because the whole notion of
+  neighbors (as implemented in crworld for example) might need to change.
+
+- ability to cancel events in scheduler. for example this would be useful in
+  the case of mob objects: they should keep the handle around, so they can
+  cancel it when stop() is called.
+  status: not done, because solution for heap would be ugly (keep a separate
+  list around of all events to be canceled, then check when running each
+  handler if it is in canceled list).
+  There might be some data structure which is better than a heap for this.  
