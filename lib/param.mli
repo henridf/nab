@@ -25,6 +25,7 @@
 
 
 (** Parameter handling. 
+  The external was partly inspired by unison's Prefs module.
   @author Henri Dubois-Ferriere.
 *)
 

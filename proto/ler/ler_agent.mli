@@ -63,9 +63,6 @@ object
   method set_le_tab : Le_tab.le_tab -> unit
 end
 
-
-val proportion_met_nodes : ?stack:int -> unit -> float
-
 val ntargets : int Param.t
   (** The number of nodes that can potentially be routed to as destinations.
     In small simulations, this should be equal to the number of nodes. 
@@ -73,3 +70,10 @@ val ntargets : int Param.t
     is kept small. For example, in EASE routing, the size of the
     Last-Encounter table depends on the number of targets value. *)
   
+val proportion_met_nodes : ?stack:int -> unit -> float
+  (** Computes the encounter ratio, ie the proportion of source-dst pairs that
+    have last-encounter entries for each other.
+    This takes into account the value of [ntargets].*)
+
+
+
