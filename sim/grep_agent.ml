@@ -310,11 +310,11 @@ object(s)
       (this_sn < next_sn) || 
       ((this_sn = next_sn) && (this_hc >= next_hc))
     ) then 
-      let s = (Printf.sprintf "this_sn: %d, this_hc: %d, next_sn: %d, next_hc:
-    %d" this_sn this_hc next_sn next_hc)
+      let str = (Printf.sprintf "this:%d, nexthoph:%d, dst:%d, this_sn: %d, this_hc: %d, next_sn: %d, next_hc:
+    %d" owner#id nexthop dst this_sn this_hc next_sn next_hc)
       in
-      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" s))
-	
+      s#log_error (lazy str);
+      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" str))
 	
   )
     
