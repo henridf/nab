@@ -53,7 +53,7 @@ let start() = (
   Gui_gtk.txt_msg "Nodes are moving ";
   Mob.start_all();
   ignore(run());
-  run_id := Some (Timeout.add ~ms:100 ~callback:run);
+  run_id := Some (Timeout.add ~ms:300 ~callback:run);
 )
 
 let start_stop () = (
