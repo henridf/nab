@@ -105,7 +105,7 @@ let () =
 
   let dst = 0 in
   for i = 0 to -1 do 
-    (Nodes.node dst)#originate_app_pkt (i + 2);
+    (Nodes.node dst)#originate_app_pkt ~l4pkt:`EMPTY ~dst:(i + 2);
 
   done;
 (*

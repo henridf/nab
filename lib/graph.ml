@@ -345,12 +345,12 @@ struct
   )      
 				   
   let route_dij_ g ~src ~dest = (
-    let routei = routei_dij_ g (index_ g src) (index_ g dest) in
+    let routei = routei_dij_ g ~src:(index_ g src) ~dest:(index_ g dest) in
       List.map (fun x -> node_ g x) routei
   )
 				  
-  let dist_ g ~src ~dest = List.length (route_dij_ g src dest)
-  let disti_ g ~src ~dest = List.length (routei_dij_ g src dest)
+  let dist_ g ~src ~dest = List.length (route_dij_ g ~src ~dest)
+  let disti_ g ~src ~dest = List.length (routei_dij_ g ~src ~dest)
     
   let lattice_dist_ g ~src ~dest = 
     let d = ref 0 in 
@@ -358,7 +358,7 @@ struct
     !d
 
   let lattice_disti_ g ~src ~dest = 
-    lattice_dist_ g (node_ g src) (node_ g dest)
+    lattice_dist_ g ~src:(node_ g src) ~dest:(node_ g dest)
 
   let nhop_neigborsi_ g ~index ~radius = (
     if not (containsi_ g index) then raise (Invalid_argument "Graph.nhop_neigborsi_: index does not exist");
@@ -521,7 +521,7 @@ struct
   let make_wrap_lattice_ ~dim ~side = (
 
     if (side <= 1) then raise (Failure "Cannot make lattice with side <=1, this will fool lattice_dim_ later on");
-    let size = (powi side dim) in
+    let size = (powi ~num:side ~exp:dim) in
     let g = make_ (Array.make dim 0) size Undirected in
       for i = 0 to size - 1 do
 	add_node_ g (coord_of_i_ ~side:side ~dim:dim ~index:i)
@@ -541,7 +541,7 @@ struct
 
     if (side <= 1) then raise (Failure "Cannot make lattice with side <=1, this will fool lattice_dim_ later on");
 
-    let size = (powi side dim) in
+    let size = (powi ~num:side ~exp:dim) in
     let g = make_ (Array.make dim 0) size Undirected in
       for i = 0 to size-1 do
 	add_node_ g (coord_of_i_ ~side:side ~dim:dim ~index:i)

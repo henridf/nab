@@ -85,7 +85,7 @@ let do_one_run ()  = (
   Grep_common.install_tsources();
 
   
-  (Sched.s())#run_for 200.;
+  (Sched.s())#run_for ~duration:200.;
   
   (*  Printf.fprintf !outfd "# Avg neighbors per node is %f\n" avgn;*)
 
@@ -134,7 +134,7 @@ let setup() =
 let _ = 
 
   if daemon then (
-    Script_utils.detach_daemon !outfile;
+    Script_utils.detach_daemon ~outfilename:!outfile;
     outfd := !Log.ochan;
   );
   setup();
