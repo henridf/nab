@@ -33,7 +33,16 @@ type event_t = {
   handler:handler_t;
   time:Common.time_t;}
 
-    
+let set_time t = (
+  (* check log level to avoid these ops when not necessary (this is going to
+     be called a lot *)
+  if !Log.current_log_level >= Log.LOG_INFO then (
+    if ((floor (t /. 10.0)) <> (floor ((Common.get_time()) /. 10.0))) then (
+      Log.log#log_info (lazy (sprintf "Time: %f\n" t));
+    );
+  );
+  Common.set_time t
+)    
 
 (** The interface that any scheduler implementation must conform to. *)
 class type virtual scheduler_t = 
@@ -123,7 +132,7 @@ object(s)
 	  | None -> raise Misc.Break
 	  | Some ev -> 
 	      begin
-		Common.set_time (ev.time);
+		set_time (ev.time);
 		match ev.handler with
 		  | Stop -> 
 		      raise Misc.Break

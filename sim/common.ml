@@ -94,14 +94,8 @@ type enc_t = {
     
 let time = ref 0.0
 
-let set_time t = (
-  if ((floor (t /. 10.0)) <> (floor (!time /. 10.0))) then (
-    Printf.printf  "Time: %f\n" t;
-    flush stdout;
-(*    Log.log#log_info (lazy (sprintf "Time: %f\n" t));*)
-  );
-  time := t
-)
+let set_time t = time := t
+
 let get_time () = !time
   
 let enc ~time ~place = {t = time; p = place}
