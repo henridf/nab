@@ -12,7 +12,7 @@ let gfx_open = ref false
 
 let init_gfx () = (
   if not !gfx_open then (
-    Graphics.open_graph " 750x750";
+    Graphics.open_graph " 600x600";
     gfx_open := true
   )
 )
@@ -39,11 +39,22 @@ let scale_points l = Array.map (fun p -> scale_pos p)  l
 
 
 let draw_nodes a =   begin
+
   let _drawnode n = 
+    if (Array.length a <=1000)then (
     let c1 = xx (scale_pos n)  
     and c2 = yy (scale_pos n)  in
-    let segments = [|(c1 - 2, c2, c1 + 2, c2) ; (c1, c2 - 2, c1, c2 + 2)|] in
+    let segments = [|(c1 - 1,  c2, c1 + 1, c2) ; (c1, c2 - 1, c1, c2 + 1)|] in
       Graphics.draw_segments segments 
+    ) else (
+    let c1 = xx (scale_pos n)  
+    and c2 = yy (scale_pos n)  in
+    let intensity = Random.int 120 in
+    Graphics.set_color (Graphics.rgb intensity intensity intensity);
+    let segments = [|(c1, c2, c1, c2) |] in
+      Graphics.draw_segments segments 
+    ) 
+      
   in
     Array.iter _drawnode a
 end
@@ -68,11 +79,12 @@ end
 
 let draw_and_label_nodes l = draw_nodes l; label_nodes l
 
-let circle_nodes l radius = begin
+let circle_nodes ?(fill=false) l radius = begin
+  let circle_f = if fill then Graphics.fill_circle else Graphics.draw_circle in
 
-  let sc_radius = scale_x radius in
+  let sc_radius = if fill then (scale_x radius) - 1 else (scale_x radius) in
   let scaled_points = scale_points l in
-    Array.iter (fun p -> Graphics.draw_circle (xx p) (yy p) sc_radius) scaled_points
+    Array.iter (fun p -> circle_f (xx p) (yy p) sc_radius) scaled_points
 end
 
     
@@ -203,16 +215,16 @@ let ler_draw_segments_reflect a =
       if (Array.length segments == 4) then ler_draw_segment ([|segments.(2); segments.(3)|]);
   done
 
-let draw_grid n = begin
-  for i = 0 to n do
-    begin
-      let pt =  (i2f i) *. ( (i2f n) /. (i2f (Graphics.size_x ())))  in
+ let draw_grid n = begin
+   for i = 0 to n do
+     begin
+      let pt =  (i2f i) /. (i2f n)  in
       ler_draw_segment [| (pt, 0.0); (pt, 1.0)|];
       ler_draw_segment [| (0.0, pt); (1.0, pt)|];
-    end
-  done
-end
-  
+     end
+   done
+ end
+
 let disc_draw_gradient gradient_matrix = (
   for i = 0 to (Array.length gradient_matrix - 1) do 
     for j = 0 to (Array.length gradient_matrix.(0) - 1) do 
@@ -234,30 +246,81 @@ let draw_cross point w = (
   let quad_of_pairs p1 p2 = (xx p1, yy p1, xx p2, yy p2) in
   let wx = (w, 0) and wy = (0, w) in
   let p = scale_pos point in
-    Graphics.draw_segments [| (quad_of_pairs (p --- wx)  (p +++ wx)); 
-			      (quad_of_pairs (p --- wy)  (p +++ wy)); 
+    Graphics.draw_segments [| (quad_of_pairs (p --- wx) (p +++ wx)); 
+			      (quad_of_pairs (p --- wy) (p +++ wy)); 
 			   |];
-
 )
 
- let draw_route route = (
-  let i = ref 0 in
-  let rec recurse_ route = (
-    let color_seq = [| Graphics.black; Graphics.red; Graphics.green;
-    Graphics.blue; Graphics.magenta |] in
 
-  match route with 
-    | [] -> ()
-    | hop1::hop2::r -> (
-	Graphics.set_color color_seq.(!i mod (Array.length color_seq));
-	circle_nodes [|hop1.Route.hop|] (hop1.Route.searchcost);
-	ler_draw_segments_reflect [|hop1.Route.hop; hop2.Route.hop|];
-	incr i;
-	recurse_ (hop2::r);
-      )
-    | hop1::r -> ()
+let hop_col_color ~hop ~routelength = (
+  [| Graphics.black; Graphics.red;
+  Graphics.blue |].(hop mod 3)
+)
+
+let hop_col_bw ~hop ~routelength = (
+Graphics.rgb 0 0 0
+
+(*
+  let v = (256 / routelength) * hop in
+  Graphics.rgb v v v
+*)
+)
+  
+
+let draw_route ~color ~route = (
+
+  let len =  Route.length route in
+  let rec draw_disks_ route = (
+
+    match route with 
+      | [] -> ()
+      | hop1::hop2::r -> (
+	  Graphics.set_color (Graphics.rgb 100 100 100);    
+	  circle_nodes ~fill:false [|hop1.Route.hop|] (hop1.Route.searchcost);
+	  draw_disks_ (hop2::r);
+	)
+      | hop1::r -> ()
+  ) in
+  let rec fill_disks_ route = (
+
+    match route with 
+      | [] -> ()
+      | hop1::hop2::r -> (
+	  Graphics.set_color (Graphics.rgb 230 230 230);    
+	  circle_nodes ~fill:true [|hop1.Route.hop|] (hop1.Route.searchcost);
+	  fill_disks_ (hop2::r);
+	)
+      | hop1::r -> ()
+  ) in
+
+  let rec draw_route_ route = (
+    
+    match route with 
+      | [] -> ()
+      | hop1::hop2::r -> (
+(*	  Graphics.set_color (color ~hop:!i ~routelength:len);*)
+	  Graphics.set_color (Graphics.rgb 0 0 0);
+	  ler_draw_segments_reflect [|hop1.Route.hop; hop2.Route.hop|];
+	    let n = hop1.Route.hop in
+	    let c1 = xx (scale_pos n)  
+	    and c2 = yy (scale_pos n)  in
+	    let segments = [|(c1 - 3, c2, c1 + 3, c2) ; (c1, c2 - 3, c1, c2 + 3)|] in
+	    Graphics.draw_segments segments ;
+	    draw_route_ (hop2::r);
+	)
+      | hop1::r -> ()
   )
-  in recurse_ route
+  in 
+  let src = Route.nth_hop route 0 in
+  let dst = Route.last_hop route in
+  let dist = (Gworld.world())#dist_coords src.Route.hop dst.Route.hop in
+  Graphics.set_color (Graphics.rgb 245 245 245);    
+  circle_nodes ~fill:true [|src.Route.hop|] dist;
+
+  draw_disks_ route;
+  fill_disks_ route;
+  draw_route_ route;
+  Graphics.set_color Graphics.black
 )
 
 
@@ -265,19 +328,8 @@ let draw_cross point w = (
 
 let mouse_choose_node get_nodes_at msg = (
   printf "%s \n" msg; flush Pervasives.stdout;
-
-  let rec try_till_chosen () = (
-    let s1 = Graphics.wait_next_event [Graphics.Button_down] in
-    let n = get_nodes_at (unscale_pos (s1.Graphics.mouse_x, s1.Graphics.mouse_y)) in
-      if n = [] then (
-	printf "sorry, no node here\n" ; flush stdout;
-	try_till_chosen ();
-      ) else (
-	label_node (unscale_pos (s1.Graphics.mouse_x, s1.Graphics.mouse_y)) (string_of_int (List.hd n));
-	List.hd n
-      ) 
-  ) in 
-    try_till_chosen ();
+  let s1 = Graphics.wait_next_event [Graphics.Button_down] in
+  get_nodes_at ~unitpos:(unscale_pos (s1.Graphics.mouse_x, s1.Graphics.mouse_y))
 )
 
 
