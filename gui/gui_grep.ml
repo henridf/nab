@@ -69,7 +69,7 @@ let start_stop () = (
 let get_route nid = (
   Grep_hooks.reset();
 
-(*  (Gsched.sched())#run(); *)
+(*  (Sched.s())#run(); *)
   src_ := nid;
   
   Gui_gtk.txt_msg (Printf.sprintf "Route from %d to %d" !src_ dst);
@@ -84,7 +84,7 @@ let get_route nid = (
   Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
   (Nodes.node (!src_))#originate_app_pkt ~dst;
 
-  (Gsched.sched())#run_until 
+  (Sched.s())#run_until 
   ~continue:(fun () -> 
     Gui_hooks.route_done = ref false;
   );

@@ -50,7 +50,7 @@ let run() = (
   
   t := (Common.get_time());
   let continue() = ((Common.get_time()) < !t +. 1.0) in
-  (Gsched.sched())#run_until~continue;
+  (Sched.s())#run_until~continue;
 
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 
   Gui_gtk.draw ~clear:true ();
@@ -92,7 +92,7 @@ let stop() = (
      but this is pending the ability to cancel events in the scheduler (see
      general_todo.txt) *)
 
-  (Gsched.sched())#run(); 
+  (Sched.s())#run(); 
 
   Timeout.remove (o2v !run_id);
   run_id := None;
@@ -140,15 +140,15 @@ let set_src x y = (
   Nodes.gpsiter (fun n -> n#add_pktout_mhook out_mhook);
   (Nodes.node srcnode)#originate_app_pkt ~dst:0;
 
-  (Gsched.sched())#run_until 
+  (Sched.s())#run_until 
   ~continue:(fun () -> 
     Gui_hooks.route_done = ref false;
   );
   
   Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
   ignore (Route.route_valid !routeref 
-    ~dst:((Gworld.world())#nodepos 0) 
-    ~src:((Gworld.world())#nodepos srcnode));
+    ~dst:((World.w())#nodepos 0) 
+    ~src:((World.w())#nodepos srcnode));
   Gui_ops.draw_route 
     ~lines:!show_route_lines
     ~anchors:!show_route_anchors
@@ -220,7 +220,7 @@ let set_tree_src x y = (
   make_tree_sink sink3;
   make_tree_sink sink4;
   make_tree_sink sink5;*)
-  (Gsched.sched())#run(); 
+  (Sched.s())#run(); 
 
   let tree1 = get_tree_sink 0 
   and tree2 = get_tree_sink sink2 
@@ -254,7 +254,7 @@ let set_tree_src x y = (
   Diff_agent.sinks := Array.to_list sinksarr;
   Array.iter (fun i -> make_tree_sink i) sinksarr;
 
-  (Gsched.sched())#run(); 
+  (Sched.s())#run(); 
 
   let treesarr = Array.map (fun i -> get_tree_sink i) sinksarr in
   let colors = [|

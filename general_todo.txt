@@ -1,6 +1,34 @@
+- think about file reorg.
+  maybe only core things (like sched, world, and base classes for mac, agent,
+  mob) go in mws. 
+  then would we have one 'agents' dir for all agents, and one 'mac' dir for
+  all macs, etc?
+
+  maybe better is to have the core dirs (like pkt/ mws/ ) be horizontal, in
+  that they cut across different functional aspects, but then there should be
+  'vertical' per-protocol directories? 'vertical' in the sens that a 'grep'
+  directory would contain grep agents, and also grep scripts?
+  but then this poses a problem for common scripts (to run tests against both)
+  or common code (like a base class for both aodv and grep).
+  need to think. 
+
+
+- multiple traffic sources to multiple destinations (mentioned in
+ simplenode.mli, but with XXX)
 - consider the use of named function parameters. maybe going overboard with
  the ~s right now. maybe not, but at least need to be consistent.
-- add copyright.
+ one criteria could be: 
+ + when there is no .mli, and there are not multiple args of same type, then no
+ need for ~ (properly naming the parameter is enough)
+ + when there is a .mli, same as above, except that if parameter is of a generic
+ type, (like int), then possible name the parameter.
+ One the other hand, if parameter is say a L3pkt.t, then naming it ~l3pkt does
+ not really help a lot.
+ + when there are multiple parameters with same type, then definitely ~ helps.
+
+- add copyright. not to heap, opt, and probably some others
+/bin/sed-4.07  -i -e 's/(\*                                  \*)//g' simplenode.mli 
+/bin/sed-4.07 -i  -e 's/(\* mws  multihop wireless simulator \*)//g' simplenode.mli 
 - (idea) in mods.ml, add stg like Module List = ListLabels, etc, for other
   labelled modules. Then need to modify code, for all list iterations we would
   then be able to put list before function for example.

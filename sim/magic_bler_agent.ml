@@ -69,7 +69,7 @@ let magic_bler_route_mhook routeref l2pkt (node:Simplenode.simplenode) = (
 		  raise (Failure "Bler_agent.bler_route_mhook: didn't expect to see a L2pkt.L2_BCAST")
 	  in
 	  (Route.last_hop !routeref).Route.searchcost <- 
-	  (((Gworld.world())#dist_nodeids next_hop node#id) ** 2.0)
+	  (((World.w())#dist_nodeids next_hop node#id) ** 2.0)
 )
 
 
@@ -89,7 +89,7 @@ object(s)
     objdescr <- (owner#objdescr ^  "/Bler_Agent");
     owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send
-    (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor
+    (World.w())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor
   )
 
    method add_neighbor nid = (
@@ -141,7 +141,7 @@ object(s)
 	  (* who's seen dst more recently than us? *)
 	  
 	  let next_hop =  
-	    (Gworld.world())#find_closest 
+	    (World.w())#find_closest 
 	    (* the inequality has to be sharp to ensure that we make. But if
 	       we are right next to the destination, it could be that our last
 	       encounter was 'now', in which case the destination won't

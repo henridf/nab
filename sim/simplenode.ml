@@ -110,7 +110,7 @@ object(s)
   )
 
   method mac_send_pkt ?(stack=0) ~dst l3pkt  = (
-    if not ((Gworld.world())#are_neighbors s#id dst) then (
+    if not ((World.w())#are_neighbors s#id dst) then (
 	s#log_notice (lazy (Printf.sprintf "mac_send_pkt: %d not a neighbor." dst));
 	raise Mac_Send_Failure
       ) else
@@ -138,7 +138,7 @@ object(s)
     match gen() with
       | Some time_to_next_pkt ->
 	  let next_pkt_event() = s#trafficsource gen dst in
-	  (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
+	  (Sched.s())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       | None -> ()
 	  
   method private trafficsource gen dst = 
@@ -147,7 +147,7 @@ object(s)
     match gen() with
       | Some time_to_next_pkt ->
 	  let next_pkt_event() = s#trafficsource gen dst in
-	  (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
+	  (Sched.s())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
       | None -> ()
       
   method originate_app_pkt ~dst = 
@@ -155,7 +155,7 @@ object(s)
       (Opt.may (fun agent -> agent#app_recv_l4pkt `APP_PKT dst))
       rt_agents 
 
-  method dump_state = (Gworld.world())#nodepos id
+  method dump_state = (World.w())#nodepos id
 
 
 end

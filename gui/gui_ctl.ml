@@ -31,7 +31,7 @@ let run mws_tick display_cb () = (
   t := (Common.get_time());
 
   let continue() = ((Common.get_time()) < !t +. mws_tick) in
-  (Gsched.sched())#run_until~continue;
+  (Sched.s())#run_until~continue;
 
   display_cb();
   true

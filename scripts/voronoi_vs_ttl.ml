@@ -17,20 +17,20 @@ let (///.) = (Coord.(///.))
 let sinks = ref ([||]:int array)
 let choose_sinks() = 
   sinks := Array.init (Param.get Config.nsinks ) id
-(*  (Gworld.world())#movenode ~nid:0 ~newpos:((0., (Pm.get Pms.y_size) /. 2.));
-  (Gworld.world())#movenode ~nid:1 ~newpos:((Pm.get Pms.x_size, (Pm.get Pms.y_size) /. 2.))*)
+(*  (World.w())#movenode ~nid:0 ~newpos:((0., (Pm.get Pms.y_size) /. 2.));
+  (World.w())#movenode ~nid:1 ~newpos:((Pm.get Pms.x_size, (Pm.get Pms.y_size) /. 2.))*)
 (*
   These two variants were for putting two sinks att opposite ends of nw , or
   or right next to each other (in order to see difference btw ttl and voronoi).
 
-  let s1 =  (Gworld.world())#find_closest ~pos:(0.0, 0.0) ~f:(const true)
-  and s2 =  (Gworld.world())#find_closest ~pos:(Pm.get Pms.x_size, Pm.get Pms.y_size) ~f:(const true)
+  let s1 =  (World.w())#find_closest ~pos:(0.0, 0.0) ~f:(const true)
+  and s2 =  (World.w())#find_closest ~pos:(Pm.get Pms.x_size, Pm.get Pms.y_size) ~f:(const true)
   in sinks := [|o2v s1; o2v s2|];
 
-  let s1 =  (Gworld.world())#find_closest 
+  let s1 =  (World.w())#find_closest 
     ~pos:((Pm.get Pms.x_size, Pm.get Pms.y_size) ///. 2.) 
     ~f:(const true) in
-  let s2 =  (Gworld.world())#find_closest 
+  let s2 =  (World.w())#find_closest 
     ~pos:((Pm.get Pms.x_size, Pm.get Pms.y_size) ///. 2.) 
     ~f:(fun n -> n <> (o2v s1))
   in sinks := [|o2v s1; o2v s2|];
@@ -58,7 +58,7 @@ let clear_rtabs_and_build_one_tree ~ttl = (
   clear_rtabs();
   let diffagent = !Diff_agent.agents_array.(s 0) in
   diffagent#subscribe ~one_shot:true ~ttl ();
-  (Gsched.sched())#run() ;
+  (Sched.s())#run() ;
 )
 
 (* Check if nw connected by making a global flood and verifying if all nodes
@@ -143,7 +143,7 @@ let print_stats () = (
 let subscribe_sinks() = 
   for i = 0 to Pm.get Config.nsinks - 1 do 
     (* spread out initial interest floods *)
-    (Gsched.sched())#sched_in  ~f:(!Diff_agent.agents_array.(s i)#subscribe ~one_shot:true
+    (Sched.s())#sched_in  ~f:(!Diff_agent.agents_array.(s i)#subscribe ~one_shot:true
       ) ~t:(((float i) *. 30.) +. 1.);
   done
 
@@ -155,7 +155,7 @@ let unsubscribe_sinks() =
   
 let send_one_round_interests() = 
   subscribe_sinks();
-  (Gsched.sched())#run()
+  (Sched.s())#run()
 
 let setup() = 
 
@@ -198,11 +198,11 @@ let ttl_trial () =
   install_hooks();  
 
   for i = 0 to Pm.get Config.nsinks - 1 do 
-    (Gsched.sched())#sched_in  
+    (Sched.s())#sched_in  
     ~f:(!Diff_agent.agents_array.(s i)#subscribe  ~one_shot:true  ~ttl:arr.(s i) ) 
       ~t:(((float i) *. 30.) +. 1.);
   done;
-  (Gsched.sched())#run()
+  (Sched.s())#run()
 
 
 

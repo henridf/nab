@@ -62,7 +62,7 @@ object(s)
        with pushing the packet into our node's protocol stack. *)
     let recv_event() =  super#send_up ~l2pkt in
     
-    (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time t)	  
+    (Sched.s())#sched_at ~f:recv_event ~t:(Sched.Time t)	  
   )
 
   method xmit ~l2pkt = (

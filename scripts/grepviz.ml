@@ -27,13 +27,21 @@ let do_one_run() = (
   Randoms.change_seed ~newseed:(Param.get Config.run) () ;
 
   Param.set Params.x_size 
-    (size ~rrange ~avg_degree	~nodes:(Param.get Params.nodes) ());
+    (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
   Param.set Params.y_size 
-    (size ~rrange ~avg_degree	~nodes:(Param.get Params.nodes) ());
-  
+    (size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
+
+(*
+  Param.set Params.x_size 800.;
+  Param.set Params.y_size 600.;
+*)
+
+
   init_sched();
+
+(*  init_epfl_world();*)
   init_lazy_world();
-  
+
   begin match agenttype with
     | AODV -> make_aodv_nodes()
     | GREP -> make_grep_nodes();
@@ -41,10 +49,14 @@ let do_one_run() = (
 	  !Grep_agent.agents_array
   end;
 
-  Mob_ctl.make_borderwaypoint_mobs ~gran:(rrange /. 10.) ();
+(*  Mob_ctl.make_epfl_waypoint_mobs();*)
+  Mob_ctl.make_billiard_mobs ~gran:(rrange /. 10.) ();
   Mob_ctl.set_speed_mps speed;
   Mob_ctl.start_all();
+
   print_degree();
+
+
 )
 
 let () = 
@@ -62,8 +74,8 @@ let () =
   Gui_grep.create_buttons_grep();
 
   do_one_run();
-  (Gsched.sched())#run_for ~duration:200.;
-  exit 0;
+(*  (Sched.s())#run_for ~duration:1600.;*)
+
 
   let dst = 0 in
   for i = 0 to -1 do 

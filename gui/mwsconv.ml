@@ -31,7 +31,7 @@ let pos_pix_to_mtr pos =
 
 let closest_node_at pix_pos = 
   let pos = pos_pix_to_mtr pix_pos in
-    (o2v ((Gworld.world())#find_closest ~pos ~f:(fun _ -> true)))
+    (o2v ((World.w())#find_closest ~pos ~f:(fun _ -> true)))
 
 let route_mtr_to_pix r = 
   List.map 
@@ -41,7 +41,7 @@ let route_mtr_to_pix r =
 let route_nodeid_to_pix r = 
   List.map 
     (fun h -> 
-      let nodepos = (Gworld.world())#nodepos h.hop in
+      let nodepos = (World.w())#nodepos h.hop in
       {h with hop=(pos_mtr_to_pix nodepos)}
     ) r
 
@@ -61,12 +61,12 @@ let ease_route_mtr_to_pix r =
 let ease_route_nodeid_to_pix r = 
   List.map 
     (fun h -> 
-      let nodepos = (Gworld.world())#nodepos h.hop in
+      let nodepos = (World.w())#nodepos h.hop in
       let info = 
 	match h.info with 
 	  | None -> None
 	  | Some i -> 
-	      let anchorpos = (Gworld.world())#nodepos i.anchor in
+	      let anchorpos = (World.w())#nodepos i.anchor in
 	      Some {i with  anchor = (pos_mtr_to_pix anchorpos)}
       in
 

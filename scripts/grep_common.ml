@@ -98,7 +98,7 @@ let install_tsources () =
 	(* start sessions jittered out over an interval equivalent to the
 	   inter-packet interval *)
 	let t = Random.State.float rndstream  (1. /. (Param.get Config.packet_rate)) in
-	(Gsched.sched())#sched_in ~f:pkt_reception ~t;
+	(Sched.s())#sched_in ~f:pkt_reception ~t;
       )
     )
   )

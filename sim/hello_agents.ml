@@ -23,7 +23,7 @@ object(s)
 
   initializer (
     objdescr <- (owner#objdescr ^  "/Hello_Agent ");
-(*    (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor*)
+(*    (World.w())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor*)
   )
 
 
@@ -66,7 +66,7 @@ object (s)
     
   initializer (
     (* Schedule the first hello broadcast for in one second *)
-    (Gsched.sched())#sched_in ~f:(s#send_hello) ~t:1.0
+    (Sched.s())#sched_in ~f:(s#send_hello) ~t:1.0
   )
 
 
@@ -94,7 +94,7 @@ object (s)
     owner#mac_bcast_pkt l3pkt;
     
     (* Schedule the next hello broadcast in one second *)
-    (Gsched.sched())#sched_in ~f:(s#send_hello) ~t:1.0
+    (Sched.s())#sched_in ~f:(s#send_hello) ~t:1.0
   )
 end   
 

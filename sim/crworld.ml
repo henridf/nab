@@ -16,8 +16,8 @@ open Graph
 (** The base class from which {!Crworld.crworld_lazy} and
   {!Crworld.crworld_greedy} inherit.
 
-  @param x X size of world in meters.
-  @param y Y size in meters of world.
+  @param x X size of World.in meters.
+  @param y Y size in meters of World.
   @param rrange Radio range of nodes. Used to determine the coarseness 
   of the discrete grid (quantification) of node positions.
 *)
@@ -424,14 +424,14 @@ class virtual crworld_common ~x ~y ~rrange  = (
 )
 
 
-(** Implementation of {!World.world_t} using a greedy approach to maintaining
+(** Implementation of {!World.world(t} using a greedy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only re-computed
   each time it moves. This is usually slower than the lazy approach of
   {!Crworld.crworld_lazy}, but is necessary if using the [add_new_ngbr_hook]
-  facility of {!World.world_t}.
+  facility of {!World.world(t}.
 
-  @param x X size of world in meters.
-  @param y Y size in meters of world.
+  @param x X size of World.in meters.
+  @param y Y size in meters of World.
   @param rrange Radio range of nodes. Used to determine the coarseness 
   of the discrete grid (quantification) of node positions.
 *)
@@ -440,7 +440,7 @@ class crworld_greedy ~x ~y ~rrange : World.world_t = (
     inherit crworld_common ~x ~y ~rrange
 
     val ngbrs = (Array.make (Param.get Params.nodes) ([]:Common.nodeid_t list))
-      (* should not be referencd in virtual class crworld, since the way this
+      (* should not be referencd in virtual class crworld_ since the way this
 	 array is maintained up-to-date is different in crworld_greedy than 
 	 crworld_lazy *)
 
@@ -540,15 +540,15 @@ class crworld_greedy ~x ~y ~rrange : World.world_t = (
 )
 
 
-(** Implementation of {!World.world_t} using a lazy approach to maintaining
+(** Implementation of {!World.world(t} using a lazy approach to maintaining
   neighbor positions. In other words, a node's neighbors are only computed
   when needed (for example by when the [#neighbors] method is invoked).
   This is usually faster than the greedy approach of
   {!Crworld.crworld_greedy}, but disallows using the [add_new_ngbr_hook]
-  facility of {!World.world_t}.
+  facility of {!World.world(t}.
 
-  @param x X size of world in meters.
-  @param y Y size in meters of world.
+  @param x X size of World.in meters.
+  @param y Y size in meters of World.
   @param rrange Radio range of nodes. Used to determine the coarseness 
   of the discrete grid (quantification) of node positions.
 *)
@@ -557,7 +557,7 @@ class crworld_lazy ~x ~y ~rrange : World.world_t = (
     inherit crworld_common ~x ~y ~rrange
 
     val ngbrs = (Array.make (Param.get Params.nodes) ([]:Common.nodeid_t list))
-      (* should not be referencd in virtual class crworld, since the way this
+      (* should not be referencd in virtual class crworld_ since the way this
 	 array is maintained up-to-date is different in crworld_greedy than 
 	 crworld_lazy *)
 

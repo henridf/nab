@@ -111,3 +111,11 @@ object
   method private sched_event_at : ev:event_t -> unit
   method private next_event : event_t option
 end
+
+
+val set_sched : sched -> unit
+  (** Sets the global scheduler object. *)
+
+val s : unit -> sched
+  (** Returns the global scheduler object, if one has been set. *)
+

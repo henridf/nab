@@ -308,7 +308,7 @@ let draw_route ~color ~route = (
   in 
   let src = Route.nth_hop route 0 in
   let dst = Route.last_hop route in
-  let dist = (Gworld.world())#dist_coords src.Route.hop dst.Route.hop in
+  let dist = (World.w())#dist_coords src.Route.hop dst.Route.hop in
   Graphics.set_color (Graphics.rgb 245 245 245);    
   circle_nodes ~fill:true [|src.Route.hop|] dist;
 

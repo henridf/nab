@@ -18,7 +18,7 @@ end
 module SimpleEther : Ether_t = 
 struct 
   let emit ?(stack=0) ~nid l2pkt = 
-    let neighbors = (Gworld.world())#neighbors nid in
+    let neighbors = (World.w())#neighbors nid in
     
     List.iter (fun id -> 
       if id <> nid then (
@@ -26,11 +26,11 @@ struct
 	let recvtime = 
 	  Common.get_time()
 	  +. propdelay 
-	  ((Gworld.world())#nodepos id)
-	    ((Gworld.world())#nodepos nid) in
+	  ((World.w())#nodepos id)
+	    ((World.w())#nodepos nid) in
 	let recv_event() = 
 	  (n#mac ~stack ())#recv ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in
-	(Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
+	(Sched.s())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
       )
     ) neighbors
 

@@ -10,7 +10,7 @@ open Script_utils
 
 let avg_over_all_nodes f = (
   let tot = ref 0 in
-  Nodes.iteri (fun nid -> tot := !tot + f nid);
+  Nodes.iteri (fun nid _ -> tot := !tot + f nid);
   (i2f !tot) /. (i2f (Param.get Params.nodes))
 )
 
@@ -27,14 +27,14 @@ let clear_rtabs_and_build_trees sinklist ~ttl = (
       let diffagent = !Diff_agent.agents_array.(sink) in
       diffagent#app_send ~ttl ~dst:123 `APP_PKT 
     ) sinklist;
-    (Gsched.sched())#run();
+    (Sched.s())#run();
   )
 )  
 
 let is_connected () = (
   clear_rtabs_and_build_trees ~ttl:(Param.get Params.nodes) [0];
   let count = ref 0 in
-  Nodes.iteri (fun nid -> 
+  Nodes.iteri (fun nid _ -> 
     
     let diffagent = !Diff_agent.agents_array.(nid) in
     let rt = diffagent#get_rtab in 
@@ -54,7 +54,7 @@ let min_ttl_for_coverage sink = (
 
       count := 0;
       clear_rtabs_and_build_trees ~ttl:!ttl [sink];
-      Nodes.iteri (fun nid -> 
+      Nodes.iteri (fun nid _ -> 
 	
 	let diffagent = !Diff_agent.agents_array.(nid) in
 	let rt = diffagent#get_rtab in 
@@ -81,7 +81,7 @@ let compute_tree_length() = (
 
 (*  clear_rtabs_and_build_tree ~src:0 ~ttl:1;
   let count = ref 0 in
-  Nodes.iteri (fun nid -> 
+    Nodes.iteri (fun nid _ -> 
     let diffagent = !Diff_agent.agents_array.(nid) in
     let rt = diffagent#get_rtab in 
     let nexthop = Rtab.nexthop ~rt ~dst:0 in
@@ -106,7 +106,7 @@ let do_one_run() = (
   flush stderr;
 
   (Nodes.node 0)#originate_app_pkt ~dst:123;
-  (Gsched.sched())#run();
+  (Sched.s())#run();
   let tree = 
     Array.to_list (
       Nodes.mapi (fun nid -> 
@@ -140,7 +140,7 @@ let () =
   make_diff_nodes();
 
 (*
-  if (Gworld.world())#is_connected() then
+  if (World.w())#is_connected() then
     print_endline "World is connected"
   else
     print_endline "World is not connected";

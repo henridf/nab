@@ -25,7 +25,7 @@ let setup () = (
 
 
 
-  (* Set global objects (scheduler and world). This must be done *after* the
+  (* Set global objects (scheduler and World.. This must be done *after* the
      params above have been set. *)
   Script_utils.init_sched();
   Script_utils.init_lazy_world();
@@ -91,7 +91,7 @@ let _ =
      This will give the periodic_hello_agents time to each broadcast one hello packet
      (since they each broadcast every second)
   *)
-  (Gsched.sched())#run_for ~duration:10.01;
+  (Sched.s())#run_for ~duration:10.01;
 
   (* Recompute the encounter ratio. It should be non-zero now that nodes have
      made one hello broadcast. *)

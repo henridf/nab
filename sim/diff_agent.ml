@@ -331,7 +331,7 @@ object(s)
 	
 	
 (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
-	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
+	  (Sched.s())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
     )
   )
     
@@ -404,7 +404,7 @@ object(s)
 	if (not one_shot) then begin
 	  let next_interest_timeout = expo ~rand:(Random.State.float rnd 1.0)
 	    ~lambda:(interest_lambda()) in
-	  (Gsched.sched())#sched_in ~f:(s#send_interest ~ttl)
+	  (Sched.s())#sched_in ~f:(s#send_interest ~ttl)
 	  ~t:next_interest_timeout 
 	end
       end;
@@ -428,7 +428,7 @@ object(s)
     let f = s#send_interest ~one_shot ~ttl in
     match delay with 
       | None -> f ();
-      | Some t -> (Gsched.sched())#sched_in ~f ~t
+      | Some t -> (Sched.s())#sched_in ~f ~t
   )
 
   method private send_data_to_sink sink = 
@@ -458,7 +458,7 @@ object(s)
     (* Jitter the sends by a uniform RV over a range proportional to the
        number of sends *)
     List.iter (fun sink -> 
-      (Gsched.sched())#sched_in ~f:(fun _ -> s#send_data_to_sink sink)
+      (Sched.s())#sched_in ~f:(fun _ -> s#send_data_to_sink sink)
       ~t:(Random.State.float rnd (float (List.length sinks_to_send_to))))
       sinks_to_send_to
 

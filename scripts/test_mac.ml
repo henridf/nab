@@ -10,7 +10,7 @@ open Experiment
 let rrange = 100. 
   
 let run_and_print_stats() = 
-  (Gsched.sched())#run();
+  (Sched.s())#run();
 
   Printf.printf "Sent %d , recv %d , orig %d\n"
   !Grep_hooks.data_pkts_sent !Grep_hooks.data_pkts_recv !Grep_hooks.data_pkts_orig
@@ -34,7 +34,7 @@ let test_2_nodes ()=
   let y_pos = (Param.get (Params.y_size)) /. 2.0 in
   Nodes.iteri (fun nid _ -> 
     let newpos = ( (float nid) *. node_spacing, y_pos ) in
-    (Gworld.world())#movenode ~nid ~newpos 
+    (World.w())#movenode ~nid ~newpos 
   );
   
   Grep_hooks.set_sources 1;
@@ -47,7 +47,7 @@ let test_2_nodes ()=
       ~pkts_per_sec:100.)
       ~dst:((Param.get Params.nodes) - 1);
   in
-  (Gsched.sched())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
+  (Sched.s())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
   run_and_print_stats()  
 
 
@@ -70,7 +70,7 @@ let test_long_string ()=
   let y_pos = (Param.get (Params.y_size)) /. 2.0 in
   Nodes.iteri (fun nid _ -> 
     let newpos = ( (float nid) *. node_spacing, y_pos ) in
-    (Gworld.world())#movenode ~nid ~newpos 
+    (World.w())#movenode ~nid ~newpos 
   );
   
   Grep_hooks.set_sources 1;
@@ -83,7 +83,7 @@ let test_long_string ()=
       ~pkts_per_sec:1.)
       ~dst:((Param.get Params.nodes) - 1);
   in
-  (Gsched.sched())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
+  (Sched.s())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
   
   run_and_print_stats()
 
@@ -101,9 +101,9 @@ let test_3_nodes() =
   
   make_grep_nodes();
 
-  (Gworld.world())#movenode ~nid:0 ~newpos:(0.0, 0.0); 
-  (Gworld.world())#movenode ~nid:1 ~newpos:(50.0, 0.0); 
-  (Gworld.world())#movenode ~nid:2 ~newpos:(25.0, 25.0); 
+  (World.w())#movenode ~nid:0 ~newpos:(0.0, 0.0); 
+  (World.w())#movenode ~nid:1 ~newpos:(50.0, 0.0); 
+  (World.w())#movenode ~nid:2 ~newpos:(25.0, 25.0); 
   
   Grep_hooks.set_sources 1;
   Grep_hooks.set_stop_thresh (pkts_to_send + 1);
@@ -122,8 +122,8 @@ let test_3_nodes() =
       ~dst:1
     in
     
-  (Gsched.sched())#sched_at ~f:start_0 ~t:Sched.ASAP;
-  (Gsched.sched())#sched_in ~f:start_2 ~t:5.;
+  (Sched.s())#sched_at ~f:start_0 ~t:Sched.ASAP;
+  (Sched.s())#sched_in ~f:start_2 ~t:5.;
   
   run_and_print_stats()
 

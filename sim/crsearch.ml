@@ -20,14 +20,14 @@ open Misc
    xsect_circle_hline vs xsect_circle_vline 
 *)
 
-(* check if x is in world and not nan (can happen in sqrt computation of circle) *)
+(* check if x is in World.and not nan (can happen in sqrt computation of circle) *)
 let exists_and_in_world x worldsize_m = 
   if (x >= 0.0 && x < worldsize_m) then [x]
   else []
 
 (* Intersects the (center, radius) circle with a horizontal line at y, 
    and returns the list of 0, 1, or 2 intersection points depending on their 
-   existence and their being within the world *)
+   existence and their being within the World.*)
    
 let xsect_circle_hline ~center ~radius ~y ~worldsize_x_m = (
   let rsq = radius ** 2.0 in
@@ -39,7 +39,7 @@ let xsect_circle_hline ~center ~radius ~y ~worldsize_x_m = (
 
 (* Intersects the (center, radius) circle with a vertical line at x, 
    and returns the list of 0, 1, or 2 intersection points depending on their 
-   existence and their being within the world *)
+   existence and their being within the World.*)
 let xsect_circle_vline ~center ~radius ~x ~worldsize_y_m = (
   let rsq = radius ** 2.0 in
   let c = center in

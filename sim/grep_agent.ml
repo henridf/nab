@@ -428,7 +428,7 @@ object(s)
       hello_period_ <- Some _DEFAULT_HELLO_PERIOD;
       let jittered_start_time = 
 	Random.float (o2v hello_period_)  in
-      (Gsched.sched())#sched_in ~f:s#send_radv ~t:jittered_start_time ;
+      (Sched.s())#sched_in ~f:s#send_radv ~t:jittered_start_time ;
     end
 
   method stop_hello () = 
@@ -463,7 +463,7 @@ object(s)
 	  +. Random.float (_HELLO_JITTER_INTERVAL())
 	  -. (_HELLO_JITTER_INTERVAL() /. 2.)
 	in
-	(Gsched.sched())#sched_in ~f:s#send_radv ~t:next_hello_t;
+	(Sched.s())#sched_in ~f:s#send_radv ~t:next_hello_t;
 
     )
 
@@ -514,7 +514,7 @@ object(s)
 	
 	
 (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
-	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
+	  (Sched.s())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
     )
   )
     

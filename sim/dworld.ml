@@ -8,14 +8,14 @@
 
 (* 
    Initial attempt at 2D lattice, built on a graph.
-   Not finished because i realized that i could reuse crworld, simply
+   Not finished because i realized that i could reuse crworld_ simply
    constraining nodes to move over discrete positions. but then, open question
-   is: crworld will not respect manhattan distance. is this a problem?? don't
+   is: crworld_will not respect manhattan distance. is this a problem?? don't
    think so.
    
    2D lattice, built over a graph *)
 
-class dworld ~side : World.world_t = 
+class dWorld ~side : World.world_t = 
 object(s)
 
   val side = side
@@ -24,7 +24,7 @@ object(s)
 
   initializer (
     Log.log#log_always (lazy 
-      (sprintf "New Dworld : size %d, #nodes %d" 
+      (sprintf "New DWorld.: size %d, #nodes %d" 
       side (Param.get Params.nodes))
     );
   )
@@ -41,7 +41,7 @@ object(s)
   method get_nodes_within_radius   ~nid ~radius = (
     (Misc.isint radius || 
     raise 
-      (Failure "Dworld.get_ndoes_within_radius: radius should be integer"));
+      (Failure "DWorld.get_ndoes_within_radius: radius should be integer"));
     Graph.nhop_and_less_neigbors g (s#gnodepos nid) ~radius:(f2i radius)
   )
       
@@ -51,7 +51,7 @@ object(s)
     (Coord.coord_floor b = b )
     ||
     raise 
-      (Failure "Dworld.dist_coords: coords should be integer"));
+      (Failure "DWorld.dist_coords: coords should be integer"));
     Graph.lattice_dist_ g 
       (Coord.coord_f2n  a )
       (Coord.coord_f2n  b) 
@@ -79,8 +79,8 @@ object(s)
     nid:Common.nodeid_t -> 
     newpos:Coord.coordf_t ->
     unit
-    (*  After a node has moved, it should inform the world through this method.
-	the world will then update the node and its neighbors views of their
+    (*  After a node has moved, it should inform the World.through this method.
+	the World.will then update the node and its neighbors views of their
 	neighbors as necessary.
 	~oldpos should only be None if the node is new.
     *)
@@ -104,7 +104,7 @@ object(s)
     
   method boundarize : Coord.coordf_t -> Coord.coordf_t
     (* A topology-specific function which should put a point back within the
-       boundaries of the world, if it has stepped outside, and should return
+       boundaries of the World. if it has stepped outside, and should return
        the point intact if it has not.
        For example this might be implemented as wrapping in a torus, or
        bouncing on reflective borders, etc 

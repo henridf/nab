@@ -76,7 +76,7 @@ let do_one_routes_run n_nodes mob = (
   let maxdist = ref 0.0 in
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
-      let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+      let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
       if dist > !maxdist then maxdist := dist
     done;
   );
@@ -94,11 +94,11 @@ let do_one_routes_run n_nodes mob = (
   let dst = 1 in
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
-	let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+	let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
 	if nroutes_in_bin.(whichbin dist) <= 30 then (
 	  let r = do_one_route ~src:src#id ~dst:dst in
 	  nroutes_in_bin.(whichbin dist) <- nroutes_in_bin.(whichbin dist) + 1;
-	  let length = Route.eucl_length ~dist_f:((Gworld.world())#dist_coords) r in
+	  let length = Route.eucl_length ~dist_f:((World.w())#dist_coords) r in
 	  let cost = Route.anchor_cost r in
 	  let nsearches = Route.length r in
 	  datapoints.(!i) <- {Data.x=dist; Data.data=[|length; cost; (i2f nsearches)|]};
@@ -142,7 +142,7 @@ let do_one_radius_run n_nodes mob = (
   let maxdist = ref 0.0 in
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
-      let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+      let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
       if dist > !maxdist then maxdist := dist
     done;
   );
@@ -160,20 +160,20 @@ let do_one_radius_run n_nodes mob = (
   let dst = 1 in
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
-      let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+      let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
       if nroutes_in_bin.(whichbin dist) <= 30 then (
  	match (src#db)#last_encounter ~nid:0 with
 	  | None ->  ()
 	  | Some enc ->  (
 	      let our_encounter_age = Common.enc_age enc in
 	      let n = 
-		(Gworld.world())#find_closest 
+		(World.w())#find_closest 
 		src#pos 
 		  (fun n -> 
 		    n#id = 0 || 
 		    (n#db)#encounter_age 0 < our_encounter_age)
 	      in 
-	      let radius = (Gworld.world())#dist_nodes src (Nodes.node(o2v n)) in
+	      let radius = (World.w())#dist_nodes src (Nodes.node(o2v n)) in
 	      
 	      datapoints.(!i) <- {Data.x=dist; Data.data=[|radius|]};
 	      Printf.printf "%d\n" !i; flush stdout;

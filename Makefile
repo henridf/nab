@@ -121,8 +121,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/heap$(CMO) \
 		$(MWS_DIR)/rt_agent$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
-		$(MWS_DIR)/gsched$(CMO) \
-		$(MWS_DIR)/gworld$(CMO) \
+		$(MWS_DIR)/world$(CMO) \
 		$(MWS_DIR)/nodes$(CMO) \
 		$(MWS_DIR)/route$(CMO) \
 		$(MWS_DIR)/flood$(CMO) \

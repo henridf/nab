@@ -15,7 +15,7 @@ open Script_utils
 (*
 let resched_me = 
   let c() = Gui_ops.draw_all_nodes() in
-  let r() = (Gsched.sched())#sched_in (fun () -> c()) 1.0 in
+  let r() = (Sched.s())#sched_in (fun () -> c()) 1.0 in
   let f() = begin (); 
   (c(); r(), fun () -> r())
 *)
@@ -23,7 +23,7 @@ let resched_me =
 
 let rec clock_tick() = (
   Gui_ops.draw_all_nodes(); 
-  (Gsched.sched())#sched_in ~f:clock_tick ~t:1.0;
+  (Sched.s())#sched_in ~f:clock_tick ~t:1.0;
 )
 
 
@@ -41,7 +41,7 @@ let check_all_routes () = (
 
       n#originate_app_pkt ~dst:0;
 
-      (Gsched.sched())#run_until 
+      (Sched.s())#run_until 
       ~continue:(fun () -> 
 	Gui_hooks.route_done = ref false;
       );
@@ -103,14 +103,14 @@ let do_one_run() = (
   
 
  (Nodes.node 17)#originate_app_pkt ~dstid:0;
-  (Gsched.sched())#run();
+  (Sched.s())#run();
   Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));
   Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route !routeref);
 *)
-(*  (Gsched.sched())#run_until (fun () -> (Common.get_time()) < start_time +. 100.0);
-  (Gsched.sched())#sched_in ~handler:clock_tick ~t:1.0;*)
+(*  (Sched.s())#run_until (fun () -> (Common.get_time()) < start_time +. 100.0);
+  (Sched.s())#sched_in ~handler:clock_tick ~t:1.0;*)
 
-(*  (Gsched.sched())#stop_in 20.0;*)
+(*  (Sched.s())#stop_in 20.0;*)
 
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in

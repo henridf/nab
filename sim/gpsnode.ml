@@ -16,7 +16,7 @@ object
   val mutable pos = pos_init
 
   method pos = 
-    (Gworld.world())#nodepos id
+    (World.w())#nodepos id
 
 end
 

@@ -64,7 +64,7 @@ let do_one_run n_nodes mob = (
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
       
-      let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+      let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
       match (src#db)#last_encounter ~nid:dst with
 	| None ->  ()
 	| Some enc ->  (

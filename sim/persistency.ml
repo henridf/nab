@@ -97,8 +97,8 @@ let read_state ~in_chan  =
   
   Array.iteri (fun i agent -> agent#db#load_state db_states.(i)) !(Ease_agent.agents_array);
   
-  (* set up initial node position in internal structures of world object *)
-  Nodes.gpsiter (fun n -> (Gworld.world())#init_pos ~nid:n#id ~pos:n#pos );
-  assert ((Gworld.world())#neighbors_consistent);
+  (* set up initial node position in internal structures of World.object *)
+  Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos );
+  assert ((World.w())#neighbors_consistent);
 )
 

@@ -513,7 +513,7 @@ object(s)
       
       
       (*	if next_rreq_ttl < ((Param.get Params.nodes)/10) then*)
-      (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
+      (Sched.s())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
     )
   )
     

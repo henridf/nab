@@ -54,7 +54,7 @@ let orig_data() = (
   incr total_pkts_sent;
   incr data_pkts_orig;
   if !data_pkts_orig = !pkts_to_send then
-      (Gsched.sched())#stop_in 0.1;
+      (Sched.s())#stop_in 0.1;
 )
 
 let set_stop_thresh thepkts_to_send = (

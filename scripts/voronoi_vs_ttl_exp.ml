@@ -46,7 +46,7 @@ let _ =
     for j = 1 to max_sinks do 
       do_one_run  ~nodes:(List.nth nodes i) ~sinks:j
     done
-done
+  done;
 
 (*
   begin try Sys.remove tmpfile with _ -> () end;
@@ -61,7 +61,7 @@ done
 *)
 
 
-(*
+
   ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
 
 
@@ -75,38 +75,15 @@ done
   *)
 
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks interest | grep -v \"# \" | sort -n  > vor-int.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks data | grep -v \"# \" | sort -n  > vor-dat.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks total | grep -v \"# \" | sort -n  > vor-tot.txt"
+    "cat %s | dbrow '_difftype =~ /vor/' | dbmultistats nsinks interest | grep -v \"# \" | sort -n  > vor-int.txt"
     resfile));
   
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks interest | grep -v \"# \" | sort -n  > opp-int.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks data | grep -v \"# \" | sort -n  > opp-dat.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks total | grep -v \"# \" | sort -n  > opp-tot.txt"
-    resfile));
-  
-  
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks interest | grep -v \"# \" | sort -n  > ess-int.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks data | grep -v \"# \" | sort -n  > ess-dat.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks total | grep -v \"# \" | sort -n  > ess-tot.txt"
+    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks interest | grep -v \"# \" | sort -n  > ttl-int.txt"
     resfile));
   
 
 
 
 
-*)
+

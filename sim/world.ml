@@ -2,17 +2,6 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-(** 
-  World: All computation requiring omniscience is done here. 
-  Things like:
-  - finding neighbors of a node
-  - finding the nearest node to a point satisfying some property
-  - computing a delaunay triangulation
-  - computing the shortest path between two nodes
-  - checking connectedness of a network.
-
-  @author Henri Dubois-Ferriere.
-*)
 
 open Misc
 
@@ -60,7 +49,7 @@ object
     nid:Common.nodeid_t -> 
     newpos:Coord.coordf_t ->
     unit
-    (**  Each time a node moves, the world object should be informed through
+    (**  Each time a node moves, the World.object should be informed through
       this method.
     *)
 
@@ -87,7 +76,7 @@ object
 
   method boundarize : Coord.coordf_t -> Coord.coordf_t
     (* A topology-specific function which should put a point back within the
-       boundaries of the world, if it has stepped outside, and should return
+       boundaries of the World. if it has stepped outside, and should return
        the point intact if it has not.
        For example this might be implemented as wrapping in a torus, or
        bouncing on reflective borders, etc 
@@ -102,8 +91,11 @@ object
       can be used for example for drawing search disks *)
 end
   
-val set_world : world_t -> unit
-  (** Sets the global world object. *)
 
-val w : unit -> world_t
-  (** Returns the global world object, if one has been set. *)
+open Misc
+
+let (world_:world_t option ref) = ref None 
+let w () = try o2v !world_ with
+  | Failure _ -> raise (Failure "World.w() : no instance has been set")
+
+let set_world t = world_ := Some t

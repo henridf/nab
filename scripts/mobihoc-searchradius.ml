@@ -54,7 +54,7 @@ let do_one_radius_run n_nodes mob = (
   let maxdist = ref 0.0 in
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
-      let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+      let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
       if dist > !maxdist then maxdist := dist
     done;
   );
@@ -72,20 +72,20 @@ let do_one_radius_run n_nodes mob = (
   let dst = 1 in
   Nodes.iter (fun src -> 
     for dst = 0 to (nt - 1) do 
-      let dist = (Gworld.world())#dist_nodes src (Nodes.node(dst)) in	  
+      let dist = (World.w())#dist_nodes src (Nodes.node(dst)) in	  
       if nroutes_in_bin.(whichbin dist) <= 500 then (
  	match (src#db)#last_encounter ~nid:dst with
 	  | None ->  ()
 	  | Some enc ->  (
 	      let our_encounter_age = Common.enc_age enc in
 	      let n = 
-		(Gworld.world())#find_closest 
+		(World.w())#find_closest 
 		src#pos 
 		  (fun n -> 
 		    n#id = dst || 
 		    (n#db)#encounter_age dst < our_encounter_age)
 	      in 
-	      let radius = (Gworld.world())#dist_nodes src (Nodes.node(o2v n)) in
+	      let radius = (World.w())#dist_nodes src (Nodes.node(o2v n)) in
 	      datapoints.(!i) <- {Data.x=dist; Data.data=[|radius|]};
 	      Printf.printf "%d\n" !i; flush stdout;
 	      nroutes_in_bin.(whichbin dist) <- nroutes_in_bin.(whichbin dist) + 1;

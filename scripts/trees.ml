@@ -8,62 +8,11 @@
 open Printf
 open Misc
 open Script_utils
-
+open Voronoi_common
 
 module Pms = Params
 module Pm = Param
 
-
-module Config = 
-struct
-  let nth_top = 
-    Pm.intcreate
-      ~name:"nth_top"
-      ~default:1
-      ~cmdline:true
-      ~doc:"The whichth valid topology to choose" ()
-
-  let nsinks = 
-    Pm.intcreate
-      ~name:"nsinks"
-      ~default:1
-      ~cmdline:true
-      ~doc:"Number of sinks" ()
-      ~checker:(fun n -> Diff_agent.nsinks_ := Some n)
-
-  let floodint = 
-    Pm.floatcreate
-      ~name:"floodint"
-      ~default:60.
-      ~cmdline:true
-      ~doc:"Mean interval between floods" ()
-      ~checker:(fun n -> Diff_agent.mean_interest_interval := n)
-
-  let duration = 
-    Pm.floatcreate
-      ~name:"duration"
-      ~default:60.
-      ~cmdline:true
-      ~doc:"Simulation duration" ()
-      
-  let difftype = 
-    Pm.stringcreate ~name:"difftype" ~default:"Voronoi" ~cmdline:true
-      ~doc:"Diffusion algorithm" 
-      ~checker:(fun s -> Diff_agent.strset_difftype s) ()
-
-
-  let mac_of_string s = match s with 
-    | "null" | "nullmac" -> Mac.Nullmac
-    | "contention" | "contmac" | "contentionmac" -> Mac.Contmac
-    | _ -> raise (Failure ("Invalid mactype "^s))
-
-    
-  let mactype = 
-    Pm.stringcreate ~name:"mactype" ~default:"nullmac" ~cmdline:true
-      ~doc:"Mac layer" 
-      ~checker:(fun s -> ignore (mac_of_string s)) ()
-
-end
 
 let clear_rtabs() = 
   Array.iter 
@@ -76,7 +25,7 @@ let clear_rtabs_and_build_trees ~ttl = (
       let diffagent = !Diff_agent.agents_array.(i) in
       diffagent#subscribe ~ttl ()
     done;
-    (Gsched.sched())#run_for ~duration:240. ;
+    (Sched.s())#run_for ~duration:240. ;
 
 )
 
@@ -92,7 +41,7 @@ let is_connected () = (
   Diff_agent.diffusion_type := `OPP; 
   clear_rtabs_and_build_trees ~ttl:(Pm.get Pms.nodes);
   let count = ref 0 in
-  Nodes.iteri (fun nid -> 
+  Nodes.iteri (fun nid _ -> 
     
     let diffagent = !Diff_agent.agents_array.(nid) in
     let rt = diffagent#get_rtab in 
@@ -181,12 +130,14 @@ let print_stats () = (
 )
   
 let install_data_sources () = 
+  let lambda = (1. /. (float (Pm.get Pms.nodes))) in
+  (* the data rate is 1/nnodes, so that the overall data event rate is 1 per
+       second *)
+
   Nodes.iter (fun n ->
     n#set_trafficsource 
-    ~gen:(Tsource.make_poisson ~num_pkts:max_int ~lambda:(1./.(float (Pm.get Pms.nodes))))
-    (* the data rate is 1/nnodes, so that the overall data event rate is 1 per
-       second *)
-    ~dst:0) (* dst will be ignored by diff_agent*)
+    ~gen:(Tsource.make_poisson  ~lambda () )
+    ~dst:0) (* placeholder, dst will be ignored by diff_agent*)
 
 let subscribe_sinks() = 
   for i = 0 to Pm.get Config.nsinks - 1 do 
@@ -197,15 +148,15 @@ let subscribe_sinks() =
   
 let setup() = 
   
-  Pm.set Pms.nodes 100;
   Pm.set Pms.rrange 8.0;
-  
-  Pm.set Pms.x_size (size ~avg_degree:10 ());
-  Pm.set Pms.y_size (size ~avg_degree:10 ());
   
   let s = Pm.make_argspeclist () 
   in
-  Arg.parse s (fun s -> ()) "You messed up!"
+  Arg.parse s (fun s -> ()) "You messed up!";
+  Pm.set Pms.x_size (size ~avg_degree:10 ());
+  Pm.set Pms.y_size (size ~avg_degree:10 ())
+  
+
     
     
     
@@ -223,7 +174,7 @@ let do_one_run() =
   install_null_macs();
   subscribe_sinks();
   install_data_sources();
-  (Gsched.sched())#run_for ~duration:(Pm.get Config.duration)
+  (Sched.s())#run_for ~duration:(Pm.get Config.duration)
   
 module P = Gnuplot.GnuplotArray
 
@@ -260,7 +211,7 @@ let _ =
 
 (*
   Nodes.iteri 
-  (fun i -> 
+  (fun i _ -> 
   let closest_sinks = !Diff_agent.agents_array.(i)#closest_sinks () 
   and known_sinks = !Diff_agent.agents_array.(i)#known_sinks () in
   let msg = 

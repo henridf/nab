@@ -56,7 +56,7 @@ let do_one_run ()  = (
   Grep_common.install_tsources();
 
   
-  (Gsched.sched())#run_for 200.;
+  (Sched.s())#run_for 200.;
   
   let avgn = avg_neighbors_per_node() in
 

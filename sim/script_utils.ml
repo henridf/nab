@@ -24,10 +24,10 @@ let parse_args() = (
   Arg.parse speclist (fun _ -> ()) "";
 )
 
-let init_sched() = Gsched.set_sched (new Sched.schedHeap)
+let init_sched() = Sched.set_sched (new Sched.schedHeap)
 
 let init_greedy_world() = 
-  Gworld.set_world (new Crworld.crworld_greedy
+  World.set_world (new Crworld.crworld_greedy
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange))
@@ -36,14 +36,14 @@ let init_epfl_world() = (
   if (Param.get Params.x_size) <> 800. ||
     (Param.get Params.y_size) <> 600. then
       Log.log#log_warning (lazy "For EPFL, size should be 800x600");
-  Gworld.set_world (new Crworld.epflworld
+  World.set_world (new Crworld.epflworld
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange))
 )
 
 let init_lazy_world() = 
-  Gworld.set_world (new Crworld.crworld_lazy
+  World.set_world (new Crworld.crworld_lazy
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange)
@@ -79,16 +79,16 @@ let make_nodes () = (
 	)));
 
   install_macs  ();
-  (* set up initial node position in internal structures of world object *)
-  Nodes.iteri (fun nid _ -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
-  assert ((Gworld.world())#neighbors_consistent);
+  (* set up initial node position in internal structures of World.object *)
+  Nodes.iteri (fun nid _ -> (World.w())#init_pos ~nid ~pos:(World.w())#random_pos );
+  assert ((World.w())#neighbors_consistent);
 )
     
 let place_nodes_on_line () = 
   let x_incr = (Param.get Params.x_size) /.  float (Param.get Params.nodes) in
   Nodes.iteri (fun nid _ -> 
     let newpos = ((float nid) *. x_incr, 0.0) in
-    (Gworld.world())#movenode ~nid ~newpos)
+    (World.w())#movenode ~nid ~newpos)
 
 let make_grease_nodes () = (
 
@@ -96,7 +96,7 @@ let make_grease_nodes () = (
     (Array.init (Param.get Params.nodes)
       (fun i -> 
 	(new Gpsnode.gpsnode
-	  ~pos_init:(Gworld.world())#random_pos 
+	  ~pos_init:(World.w())#random_pos 
 	  i
 	)));
   
@@ -104,9 +104,9 @@ let make_grease_nodes () = (
   Ease_agent.set_agents
     (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent n));
 
-  (* set up initial node position in internal structures of world object *)
-  Nodes.gpsiter (fun n -> (Gworld.world())#init_pos ~nid:n#id ~pos:n#pos);
-  assert ((Gworld.world())#neighbors_consistent);
+  (* set up initial node position in internal structures of World.object *)
+  Nodes.gpsiter (fun n -> (World.w())#init_pos ~nid:n#id ~pos:n#pos);
+  assert ((World.w())#neighbors_consistent);
 )
 
   
@@ -150,7 +150,7 @@ let proportion_met_nodes()  =
 
 (*
 let draw_nodes () = 
-  Ler_graphics.draw_nodes (Nodes.map (fun n -> (Gworld.world())#project_2d
+  Ler_graphics.draw_nodes (Nodes.map (fun n -> (World.w())#project_2d
     n#pos))
 
 let gui_draw_connectivity () = 
@@ -158,18 +158,18 @@ let gui_draw_connectivity () =
     (List.iter
       ( fun m -> 
 	Ler_graphics.ler_draw_segment [|
-	  ((Gworld.world())#project_2d n#pos);
-	  ((Gworld.world())#project_2d (Nodes.node(m))#pos)|] )
-      ((Gworld.world())#neighbors n#id)
+	  ((World.w())#project_2d n#pos);
+	  ((World.w())#project_2d (Nodes.node(m))#pos)|] )
+      ((World.w())#neighbors n#id)
     )
   )
     
 let draw_node ~nid = 
-  Ler_graphics.draw_nodes [|((Gworld.world())#project_2d (Nodes.node(nid))#pos)|]
+  Ler_graphics.draw_nodes [|((World.w())#project_2d (Nodes.node(nid))#pos)|]
     
 let label_node ~node = (
   Ler_graphics.label_node 
-  ((Gworld.world())#project_2d node#pos)
+  ((World.w())#project_2d node#pos)
   (Printf.sprintf "%d" node#id)
 )
 
@@ -186,7 +186,7 @@ let redraw_and_label_nodes() = (
 
 let avg_neighbors_per_node() = 
   let total_neighbors = 
-    Nodes.fold (fun n total -> (List.length ((Gworld.world())#neighbors n#id)) + total) 0 
+    Nodes.fold (fun n total -> (List.length ((World.w())#neighbors n#id)) + total) 0 
   in
   (i2f total_neighbors) /. (i2f (Param.get Params.nodes))
 
@@ -194,8 +194,8 @@ let max_neighbors_per_node() =
   let max = ref 0 in
   let _neighbors = 
     Nodes.iter (fun n -> 
-      if List.length ((Gworld.world())#neighbors n#id) > !max
-      then max := List.length ((Gworld.world())#neighbors n#id)  )
+      if List.length ((World.w())#neighbors n#id) > !max
+      then max := List.length ((World.w())#neighbors n#id)  )
   in
   max
 
@@ -219,8 +219,8 @@ let hop_col_color ~hop = (
 
 let grep_one_route ~src ~dst = (
   let pkt_reception() = (Nodes.node(src))#originate_app_pkt dst in
-  (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
+  (Sched.s())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
+  (Sched.s())#run();
 )
 
 (*
@@ -229,31 +229,31 @@ let gui_grep_one_route() = (
   draw_nodes();
   label_nodes();
   gui_draw_connectivity();
-  let dstid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" in
+  let dstid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a dest" in
 
   Graphics.set_color (Graphics.rgb 100 100 100);    
 
 
-  let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
+  let srcid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a source" in
 
   let pkt_reception() = (Nodes.node(srcid))#trafficsource dstid 10 in
-  (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
+  (Sched.s())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
+  (Sched.s())#run();
 
-  (Nodes.node(133))#move ((Gworld.world())#random_pos);
+  (Nodes.node(133))#move ((World.w())#random_pos);
   Ler_graphics.clear_gfx();
   draw_nodes();
   label_nodes();
   gui_draw_connectivity();
 
-  let dstid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a dest" in
+  let dstid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a dest" in
 
   
-  let srcid = Ler_graphics.mouse_choose_node (Gworld.world())#get_node_at "choose a source" in
+  let srcid = Ler_graphics.mouse_choose_node (World.w())#get_node_at "choose a source" in
 
   let pkt_reception() = (Nodes.node(srcid))#originate_app_pkt dstid in
-  (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
-  (Gsched.sched())#run();
+  (Sched.s())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
+  (Sched.s())#run();
 )
 *)
 
@@ -273,7 +273,7 @@ let move_nodes ~prop  = (
   )
   in
   Mob_ctl.start_all();
-  (Gsched.sched())#run_until ~continue;
+  (Sched.s())#run_until ~continue;
   Mob_ctl.stop_all();
 )
   

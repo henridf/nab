@@ -94,14 +94,14 @@ object(s)
 	 still to fire, which we ignore here by the above check. *)
 	
       let newpos = s#getnewpos granularity in 
-      (Gworld.world())#movenode ~nid:owner#id ~newpos:newpos;
+      (World.w())#movenode ~nid:owner#id ~newpos:newpos;
       s#log_debug (lazy (Printf.sprintf "moving to %s" (Coord.sprintf newpos)));
-      (*   (Gworld.world())#movenode ~nid:owner#id ~newpos:newpos;*)
+      (*   (World.w())#movenode ~nid:owner#id ~newpos:newpos;*)
 
       let sncpy = !seqno in (* to avoid ref problem *)
       let move_event() = s#move sncpy in
 
-      (Gsched.sched())#sched_in ~f:move_event ~t:(granularity /. speed_mps)
+      (Sched.s())#sched_in ~f:move_event ~t:(granularity /. speed_mps)
     )
   )
 
@@ -118,7 +118,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(owner :> Log.inheritable_loggable)  "/waypoint";
-    target_ <- (Gworld.world())#random_pos
+    target_ <- (World.w())#random_pos
   )
 
 
@@ -126,9 +126,9 @@ object(s)
 
    method getnewpos ~gran = (
     
-     let pos = (Gworld.world())#nodepos owner#id in
-     assert (((Gworld.world())#boundarize pos) = pos);
-     if ((Gworld.world())#dist_coords target_ pos) <= gran then (
+     let pos = (World.w())#nodepos owner#id in
+     assert (((World.w())#boundarize pos) = pos);
+     if ((World.w())#dist_coords target_ pos) <= gran then (
        (* arrived within gran[m] of target *)
        let oldtarget = target_ 
        in
@@ -148,7 +148,7 @@ class uniwaypoint
   () = 
 object
   inherit waypoint owner ?gran  ()
-  method private new_waypoint() = (Gworld.world())#random_pos
+  method private new_waypoint() = (World.w())#random_pos
 end
 
 class borderwaypoint 
@@ -213,14 +213,14 @@ object(s)
     s#change_dir_maybe;
 
     
-    let oldpos = (Gworld.world())#nodepos owner#id in
-    if (((Gworld.world())#boundarize oldpos) <> oldpos) then (
-      Printf.printf "%s\n %s\n" (Coord.sprintf ((Gworld.world())#boundarize
+    let oldpos = (World.w())#nodepos owner#id in
+    if (((World.w())#boundarize oldpos) <> oldpos) then (
+      Printf.printf "%s\n %s\n" (Coord.sprintf ((World.w())#boundarize
 	oldpos)) (Coord.sprintf oldpos);
       flush stdout;
     );
 
-    assert (((Gworld.world())#boundarize oldpos) = oldpos);
+    assert (((World.w())#boundarize oldpos) = oldpos);
     
     let newx, newy = (oldpos +++. ((dir_.re, dir_.im)) ***. gran) in
     
@@ -252,7 +252,7 @@ object(s)
       newx, newy
     in
     let p = 
-      ((Gworld.world())#boundarize newpos) in
+      ((World.w())#boundarize newpos) in
 p
   )
 end
@@ -264,7 +264,7 @@ let closest_epfl_node pos = (
   Graph.iteri_
     (fun i -> 
       let thisdist = 
-	(Gworld.world())#dist_coords 
+	(World.w())#dist_coords 
 	(pos_pix_to_mtr (Read_coords.box_centeri i))
 	pos 
       in
@@ -291,7 +291,7 @@ object(s)
 
   initializer (
     s#set_objdescr ~owner:(owner :> Log.inheritable_loggable) "/epfl_waypoint";
-    current_graph_pos_ <- closest_epfl_node ((Gworld.world())#nodepos owner#id);
+    current_graph_pos_ <- closest_epfl_node ((World.w())#nodepos owner#id);
     s#get_new_target;
   )
     
@@ -303,7 +303,7 @@ object(s)
       graphtarget_ <-  Random.int rnd 113;
     done;
 
-    current_graph_pos_ <- closest_epfl_node ((Gworld.world())#nodepos owner#id);
+    current_graph_pos_ <- closest_epfl_node ((World.w())#nodepos owner#id);
     graph_hops_ <- 
     List.map (fun i -> 
       pos_pix_to_mtr ( Read_coords.box_centeri i)
@@ -315,8 +315,8 @@ object(s)
     
   method getnewpos ~gran = (
     let next_hop_target = List.hd graph_hops_ in
-    let pos = ((Gworld.world())#nodepos owner#id) in
-    if ((Gworld.world())#dist_coords next_hop_target pos) <= gran then (
+    let pos = ((World.w())#nodepos owner#id) in
+    if ((World.w())#dist_coords next_hop_target pos) <= gran then (
       begin
 	match graph_hops_ with
 	  | hd::[] -> s#get_new_target
@@ -340,7 +340,7 @@ object
 
   (* ignores gran, meaningless for a discrete mob *)
   method getnewpos ~gran = 
-    let pos = ((Gworld.world())#nodepos owner#id) in
+    let pos = ((World.w())#nodepos owner#id) in
     assert ((isint (xx pos) ) && (isint (yy pos)));
     let step = 
       [|
@@ -372,9 +372,9 @@ object
 
   method initialize () = ()
   method getnewpos ~node = 
-    (Gworld.world())#random_pos
+    (World.w())#random_pos
   method move ~node  = 
-    node#move (Gworld.world())#random_pos
+    node#move (World.w())#random_pos
 end
 
 

@@ -134,7 +134,7 @@ sig
   val label : handle -> float -> float -> string -> unit
 
 
-  (** {6 2D world coordinates, axes,...} *)
+  (** {6 2D World.coordinates, axes,...} *)
 
   val win : handle -> float -> float -> float -> float -> unit
 
@@ -218,7 +218,7 @@ sig
   val err : handle -> ?xerr:vec -> vec -> ?yerr:vec -> vec -> unit
 
 
-  (** {6 3D world coordinates, axes,...} *)
+  (** {6 3D World.coordinates, axes,...} *)
 
   val box3 : ?x : axis_opt list -> ?y : axis_opt list -> ?z : axis_opt list ->
     handle -> unit
@@ -693,7 +693,7 @@ struct
 
 
   (*
-   * 2D: world coordinates, axes,...
+   * 2D: World.coordinates, axes,...
    **********************************************************************)
 
   let win g xmin xmax ymin ymax =
@@ -1064,7 +1064,7 @@ struct
 
 
   (*
-   * 3D: world coordinates, axes,...
+   * 3D: World.coordinates, axes,...
    **********************************************************************)
 
 

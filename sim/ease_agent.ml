@@ -52,7 +52,7 @@ object(s)
 
   initializer (
     s#set_objdescr  "/Ease_Agent";
-    (Gworld.world())#add_new_ngbr_hook theowner#id ~hook:s#add_neighbor
+    (World.w())#add_new_ngbr_hook theowner#id ~hook:s#add_neighbor
   )
 
    method add_neighbor nid = (
@@ -90,18 +90,18 @@ object(s)
 	    myid; (* we are the anchor (probably we are the src) *)
 	| false ->
 	    
-	    let d_here_to_anchor = (Gworld.world())#dist_coords owner#pos anchor_pos in
+	    let d_here_to_anchor = (World.w())#dist_coords owner#pos anchor_pos in
 	    
 	    let f nid = 
-	      if (Gworld.world())#dist_coords 
-		((Gworld.world())#nodepos nid) anchor_pos < d_here_to_anchor then true 
+	      if (World.w())#dist_coords 
+		((World.w())#nodepos nid) anchor_pos < d_here_to_anchor then true 
 	      else false
 	    in
-	    match ((Gworld.world())#find_closest ~pos:owner#pos ~f)
+	    match ((World.w())#find_closest ~pos:owner#pos ~f)
 	    with 
 	      | None -> myid
 	      | Some n when (
-		  ((Gworld.world())#dist_coords (Nodes.gpsnode n)#pos anchor_pos) >
+		  ((World.w())#dist_coords (Nodes.gpsnode n)#pos anchor_pos) >
 		  d_here_to_anchor)
 		  ->
 		  myid
@@ -125,7 +125,7 @@ object(s)
       (* who's seen dst more recently than pkt.l3hdr.enc_age ? *)
       let msngr =  
 	Misc.o2v (
-	  (Gworld.world())#find_closest 
+	  (World.w())#find_closest 
 	  (* the inequality has to be sharp to ensure that we make. But if
 	     we are right next to the destination, it could be that our last
 	     encounter was 'now', in which case the destination won't
@@ -138,7 +138,7 @@ object(s)
 	)
       in
       if (msngr = dst) then 
-	(((Gworld.world())#dist_coords owner#pos (Nodes.gpsnode dst)#pos), 
+	(((World.w())#dist_coords owner#pos (Nodes.gpsnode dst)#pos), 
 	(Nodes.gpsnode dst)#pos, 
 	0.0)
       else
@@ -149,7 +149,7 @@ object(s)
 	  )
 	in
 	let d_to_messenger = 
-	  (Gworld.world())#dist_coords owner#pos (Nodes.gpsnode msngr)#pos in
+	  (World.w())#dist_coords owner#pos (Nodes.gpsnode msngr)#pos in
 	(d_to_messenger, enc.Common.p, Common.enc_age enc)
     )
   )

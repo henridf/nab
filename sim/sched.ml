@@ -2,6 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+open Misc
+
+
 
 
 open Printf
@@ -162,3 +165,7 @@ object(s)
     EventHeap.add  heap ev
 
 end
+
+let (sched_:sched option ref) = ref None 
+let s () = o2v !sched_
+let set_sched s = sched_ := Some s

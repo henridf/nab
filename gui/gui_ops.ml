@@ -5,6 +5,7 @@
 open Graph
 open Coord
 open Misc
+open Opt
 
 let draw_node ?(emphasize=false) nid = 
   let cols = [| 
@@ -17,7 +18,7 @@ let draw_node ?(emphasize=false) nid =
   else 
     (cols.(Random.int 3), false)
   in 
-  let pos = Mwsconv.pos_mtr_to_pix ((Gworld.world())#nodepos nid)
+  let pos = Mwsconv.pos_mtr_to_pix ((World.w())#nodepos nid)
   in
   Gui_gtk.draw_node ~col ~target pos
 
@@ -43,8 +44,8 @@ let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   let poslist =
   (List.map
     (fun (n1, n2) -> 
-      (Mwsconv.pos_mtr_to_pix ((Gworld.world())#nodepos n1)), 
-      (Mwsconv.pos_mtr_to_pix ((Gworld.world())#nodepos n2)))
+      (Mwsconv.pos_mtr_to_pix ((World.w())#nodepos n1)), 
+      (Mwsconv.pos_mtr_to_pix ((World.w())#nodepos n2)))
   ) nidlist
   in
   Gui_gtk.draw_segments ~col poslist
@@ -55,7 +56,7 @@ let draw_connectivity () = (
   let neighborlist = 
   Nodes.fold (fun node l ->
     let nid = node#id in
-    let ngbrs =  (Gworld.world())#neighbors nid
+    let ngbrs =  (World.w())#neighbors nid
     in 
     l@ (List.map (fun ngbr -> (nid, ngbr)) ngbrs))
   []
@@ -109,7 +110,7 @@ let draw_grep_route r =
   let colindex = ref (-1) in
 
   let nhops = List.length r
-  and nsearches = List.length (List.filter (fun h -> some h.Route.info) r)
+  and nsearches = List.length (List.filter (fun h -> is_some h.Route.info) r)
   in
   List.iter (fun h -> 
   Log.log#log_notice 
@@ -138,7 +139,7 @@ let draw_grep_route r =
 		colindex := (!colindex + 1) mod (Array.length colors);
 		let pixtree = NaryTree.map flood 
 		  ~f:(fun nid -> Mwsconv.pos_mtr_to_pix
-		    ((Gworld.world())#nodepos nid))
+		    ((World.w())#nodepos nid))
 		in
 		Log.log#log_notice 
 		  (lazy (Printf.sprintf "Tree touched %d nodes"
@@ -312,7 +313,7 @@ let dialog_pick_node ?default ~node_picked_cb () =
       GWindow.window ~kind:`DIALOG ~border_width:10 ~title:"Node ID" () in
     let dvbx = GPack.box `VERTICAL ~packing:dialog#add () in
     let entry  = GEdit.entry ~max_length:5 ~packing: dvbx#add () in
-    if some default then entry#set_text (i2s (o2v default));
+    if is_some default then entry#set_text (i2s (o2v default));
     let dquit = GButton.button ~label:"OK" ~packing: dvbx#add () in 
     ignore (dquit#connect#clicked ~callback:
       begin fun _ ->

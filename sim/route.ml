@@ -45,7 +45,7 @@ let length path = List.length path
 let i2c route = (
   List.map 
   (fun h -> 
-    {h with hop=(Gworld.world())#nodepos h.hop})
+    {h with hop=(World.w())#nodepos h.hop})
     route
 )
 

@@ -100,7 +100,7 @@ object(s)
 	receiving_from <- l2src ~pkt:l2pkt;
 
 	let recv_event() =  s#end_rx l2pkt  in
-	(Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time end_rx_time);
+	(Sched.s())#sched_at ~f:recv_event ~t:(Sched.Time end_rx_time);
 
 	(* Finally, mark that we're being interfered for the duration of this packet.*)
 	interfering_until <- max end_rx_time interfering_until;
@@ -113,7 +113,7 @@ object(s)
 
     if (Random.State.int rnd 2) = 1 then (
       let delay = Random.State.float rnd 0.1 in
-      (Gsched.sched())#sched_in ~f:(fun () -> s#xmit ~l2pkt) ~t:delay;
+      (Sched.s())#sched_in ~f:(fun () -> s#xmit ~l2pkt) ~t:delay;
       s#log_debug (lazy (sprintf "Delayed xmit by %f" delay))
     )
     else (
