@@ -97,12 +97,50 @@ let draw_all_routes() = (
     ) g
 )
 
+let draw_tree ?(col=(`NAME "light grey")) tree =  
+  let connect ~parent ~child = 
+    Gui_gtk.draw_segments ~col [parent, child]
+  in
+  NaryTree.iter2 connect tree
+
+let draw_grep_route r = 
+
+  let rec draw_hops_ = function
+    | [] -> ()
+    | hop1::hop2::r -> 
+	Gui_gtk.draw_segments [(hop1.Route.hop, hop2.Route.hop)];
+	let n = hop1.Route.hop in
+	Gui_gtk.draw_node n;
+	draw_hops_ (hop2::r); 
+    | hop1::r ->   Gui_gtk.draw_node ~target:true hop1.Route.hop 
+  in
+  let rec draw_trees_ = function 
+    | hop1::hop2::r -> (
+	begin
+	  match hop1.Route.info with
+	    | None -> ()
+	    | Some flood -> 
+		let pixtree = NaryTree.map flood 
+		  ~f:(fun nid -> Mwsconv.pos_mtr_to_pix
+		    ((Gworld.world())#nodepos nid))
+		in
+		draw_tree pixtree;
+		draw_node ~emphasize:true (NaryTree.root flood)
+	  end;		
+	  draw_trees_ (hop2::r);
+	)
+      | _ -> ()
+  in
+  draw_trees_ r; 
+  draw_hops_ r
+    
 let draw_ease_route 
     ?(lines=true) 
     ?(anchors=true) 
     ?(disks=true) 
     ?(portion=1.0)
     r  = (
+      print_endline "gui_ops.draw_ease_route"; flush stdout;
       let colors = [|
 	"blue";
 	"dim grey";
@@ -125,13 +163,16 @@ let draw_ease_route
 	  | [] -> ()
 	  | hop1::hop2::r when (List.length r <= hops_not_drawn)
 	      -> (
-		Gui_gtk.txt_msg (Printf.sprintf "Age de l'ancre courante: %d secondes" (truncate hop2.Route.anchor_age))
+		Gui_gtk.txt_msg 
+		(Printf.sprintf "Age de l'ancre courante: %d secondes" 
+		  (truncate (o2v hop2.Route.info).Route.anchor_age))
 	      )
 	  | hop1::hop2::r -> (
 
 	      (* we assume that the rectangle ratio of the window and the world
 		 are the same, otherwise this would not be a circle *)
-	      Gui_gtk.draw_circle ~centr:hop1.Route.hop ~radius:(Mwsconv.x_mtr_to_pix hop1.Route.searchcost);
+	      Gui_gtk.draw_circle ~centr:hop1.Route.hop 
+	      ~radius:(Mwsconv.x_mtr_to_pix (o2v hop1.Route.info).Route.searchcost);
 	      draw_disks_ (hop2::r);
 	    )
 	  | hop1::r -> ()
@@ -144,17 +185,18 @@ let draw_ease_route
 	  | hop1::hop2::r when (List.length r <= hops_not_drawn)
 	      -> ()
 	  | hop1::hop2::r -> (
-	      if (firsthop || ((hop2.Route.anchor_age) <> (hop1.Route.anchor_age))) then (
+	      if (firsthop || 
+	      (((o2v hop2.Route.info).Route.anchor_age) <> ((o2v hop1.Route.info).Route.anchor_age))) then (
 		(*	    Printf.printf "drawing anchor from %s to %s\n" 
 			    (Coord.sprint hop1.Route.hop) (Coord.sprint hop1.Route.anchor);*)
 		colindex := (!colindex + 1) mod (Array.length colors);
 		if lines then (
 		  Gui_gtk.draw_segments ~col:(`NAME colors.(!colindex))
-		    [hop1.Route.hop, hop1.Route.anchor];
+		  [hop1.Route.hop, (o2v hop1.Route.info).Route.anchor];
 		);
 		if (anchors) then (
 		  Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex)) ~target:true
-		    hop1.Route.anchor
+		  (o2v hop1.Route.info).Route.anchor
 		)
 	      );
 	      

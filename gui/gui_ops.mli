@@ -9,7 +9,7 @@ val draw_ease_route :
   ?anchors:bool ->
   ?disks:bool ->
   ?portion:float ->
-  Coord.coordi_t Route.t
+  Coord.coordi_t Route.ease_route_t
   -> unit
   (** Draw ease route. 
     Optional arguments [lines] [anchors] [disks] specify respectively which
@@ -17,6 +17,15 @@ val draw_ease_route :
     Optional argument [portion] (default 1.0) can indicate that only a first
     fraction of the route is to be drawn.
   *)
+
+val draw_grep_route : 
+  Coord.coordi_t Route.grep_route_t
+  -> unit
+  (** Draw grep route.  *)
+
+val draw_tree :   ?col:GDraw.color ->          
+  Coord.coordi_t NaryTree.t -> unit
+  (** Draw a tree. *)
 
 
 (* draw node at current time's position *)
