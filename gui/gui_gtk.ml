@@ -177,10 +177,12 @@ let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
   ) s
 )
 
-let draw_segments ?(col=cl_fg) l = (
+let draw_segments ?(col=cl_fg) ?(thick=1) l = (
   (drawing())#set_foreground col;
+  (drawing())#set_line_attributes ~width:thick ();
   (drawing())#segments l;
   (drawing())#set_foreground cl_fg;    
+  (drawing())#set_line_attributes ~width:1 ();
 )
 
 let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (

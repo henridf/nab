@@ -52,6 +52,7 @@ val draw_nodes :
 
 val draw_segments : 
   ?col:GDraw.color ->          
+  ?thick:int ->          
   (Coord.coordi_t * Coord.coordi_t)  list 
   -> unit
 
