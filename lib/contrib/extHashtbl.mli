@@ -5,7 +5,8 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or (at your option) any later version,
+ * with the special exception on linking described in file LICENSE.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -34,7 +35,7 @@ module Hashtbl :
 
 	val keys : ('a,'b) t -> 'a Enum.t
 	(** Return an enumeration of all the keys of a hashtable.
-	    If the key is in the Hashtable multiple times, all occuransces
+	    If the key is in the Hashtable multiple times, all occurrences
 	    will be returned.  *)
 
 	val values : ('a,'b) t -> 'b Enum.t
@@ -84,6 +85,5 @@ module Hashtbl :
 	val iter : ('a -> 'b -> unit) -> ('a, 'b) t -> unit
 	val fold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) t -> 'c -> 'c
 	val hash : 'a -> int
-	external hash_param : int -> int -> 'a -> int = "hash_univ_param" "noalloc"
 
   end
