@@ -4,7 +4,11 @@ class virtual mobility (abbrevname:string) =
 object(s)
   val abbrev = abbrevname
   method virtual initialize : unit -> unit
-  method virtual move : node:Node.node_t -> unit
+  method virtual getnewpos : node:Node.node_t -> Coord.coordf_t
+  method move ~(node:Node.node_t) = (
+    let newpos = s#getnewpos ~node:node in 
+    node#move newpos
+  )
   method abbrevname = abbrev (* for making filenames etc *)
 end
 
@@ -24,31 +28,31 @@ object
       !w
     )
 
-  method move ~node = (
+  method getnewpos ~node = (
   
     let target = waypoint_targets_.(node#id) in
     let pos = node#pos in
-    if ((Gworld.world())#dist_coords target pos) <= 1.0 then 
+    if ((Gworld.world())#dist_coords target pos) <= 1.0 then (
       (* arrived at target *)
-      begin
-	waypoint_targets_.(node#id) <- (Gworld.world())#random_pos;
-	node#move target
-      end
-    else 
-      begin
-	let direction = Coord.normalize (target ---. pos) in
-	node#move (pos +++. direction)
-      end
+      waypoint_targets_.(node#id) <- (Gworld.world())#random_pos;
+      target
+    ) else (
+      let direction = Coord.normalize (target ---. pos) in
+      (pos +++. direction)
+    )
   )
+
 
 end
 
 
-class randomjump = 
+class randomJump = 
 object 
   inherit mobility "rj"
 
   method initialize () = ()
+  method getnewpos ~node = 
+    (Gworld.world())#random_pos
   method move ~node  = 
     node#move (Gworld.world())#random_pos
 end
@@ -59,14 +63,11 @@ object
   inherit mobility "rw"
 
   method initialize () = ()
-  method move ~node = 
+  method getnewpos ~node = 
+    (Gworld.world())#boundarize
+    (* amplitude of 3 gives us a variance of 3/4 along either axis *)
+    (node#pos +++. ((Random.float 3.0, Random.float 3.0) ---. (1.5, 1.5)))
 
-    let newpos = 
-      (Gworld.world())#boundarize
-      (* amplitude of 3 gives us a variance of 3/4 along either axis *)
-      (node#pos +++. ((Random.float 3.0, Random.float 3.0) ---. (1.5, 1.5)))
-    in 
-    node#move newpos
 
 end
 
