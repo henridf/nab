@@ -38,7 +38,7 @@ let size nodes =
 
 let res_summary = ref []
 
-let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
+let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_recv = (
   Random.init 124231;
   incr run;
@@ -69,7 +69,9 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
 
   Nodes.iter (fun n ->
     if (n#id < sources) then (
-      let pkt_reception() = n#trafficsource (n#id + 1) packet_rate in
+      let dst = if hotdest then ((Param.get Params.nodes)  - 1 ) else (n#id +
+      sources) in
+      let pkt_reception() = n#trafficsource  dst packet_rate in
       (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
     )
   );
@@ -112,16 +114,16 @@ let do_one_run ~agenttype ~nodes ~sources ~packet_rate ~speed
 let runs = [
 (* speed routing rate nodes srcs pktsrecv *)
   (* 400 nodes *)
-  (0.0, GREP, 1, 800, 1, 1000);
-  (0.0, AODV, 1, 800, 1, 1000);
-  (1.0, GREP, 1, 800, 1, 1000);
-  (1.0, AODV, 1, 800, 1, 1000);
-  (2.0, GREP, 1, 800, 1, 1000);
-  (2.0, AODV, 1, 800, 1, 1000);
-  (4.0, GREP, 1, 800, 1, 1000);
-  (4.0, AODV, 1, 800, 1, 1000);
-  (8.0, GREP, 1, 800, 1, 1000);
-  (8.0, AODV, 1, 800, 1, 1000);
+  (0.0, GREP, 8, 800, 4,1000);
+  (0.0, AODV, 8, 800, 4,1000);
+  (1.0, GREP, 8, 800, 4,1000);
+  (1.0, AODV, 8, 800, 4,1000);
+  (2.0, GREP, 8, 800, 4,1000);
+  (2.0, AODV, 8, 800, 4,1000);
+  (4.0, GREP, 8, 800, 4,1000);
+  (4.0, AODV, 8, 800, 4,1000);
+  (8.0, GREP, 8, 800, 4,1000);
+  (8.0, AODV, 8, 800, 4,1000);
 ]
 
 
@@ -145,6 +147,7 @@ let _ =
     ~speed:speed
     ~sources:sources
     ~pkts_to_recv:pktsrecv
+    ~hotdest:false
   ) runs;
 
   let rec print_summary l = 
