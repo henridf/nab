@@ -47,7 +47,7 @@ let do_one_run() = (
 
   let agenttype = Config.agent_of_string (Param.get Config.agent)
   and speed = (Param.get Config.speed)
-  and rrange = (Param.get Params.rrange)
+  and rrange = (Param.get Params.radiorange)
   in
 
   Randoms.change_seed ~newseed:(Param.get Config.run) () ;
@@ -69,7 +69,9 @@ let do_one_run() = (
   init_lazy_taurus_world();
 
   begin match agenttype with
-    | AODV -> make_aodv_nodes()
+    | AODV -> () 
+	     (* make_aodv_nodes()
+	    aodv has moved out of nab/ for now *)
     | GREP -> make_grep_nodes();
 	Hashtbl.iter (fun _ grep_agent -> grep_agent#start_hello ())
 	  (Grep_agent.agents ())
@@ -87,7 +89,7 @@ let do_one_run() = (
 
 let () = 
 
-  Param.set Params.rrange rrange;
+  Param.set Params.radiorange rrange;
 
   Param.set Params.mac "null";
 
