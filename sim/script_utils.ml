@@ -172,6 +172,15 @@ let avg_neighbors_per_node() =
   in
   (i2f total_neighbors) /. (i2f (Param.get Params.nodes))
 
+let max_neighbors_per_node() = 
+  let max = ref 0 in
+  let _neighbors = 
+    Nodes.iter (fun n -> 
+      if List.length ((Gworld.world())#neighbors n#id) > !max
+      then max := List.length ((Gworld.world())#neighbors n#id)  )
+  in
+  max
+
 let wait_for_any_keypress() = (
   Printf.printf "Press any key to continue...\n" ; 
   flush stdout;
