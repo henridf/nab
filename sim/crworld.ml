@@ -207,11 +207,6 @@ object(s)
     );
     s#update_node_neighbors_ nid;
 
-
-    if (Common.get_time() > 10.0) then
-      if Random.int 100 = 1 then
-	ignore(s#neighbors_consistent);
-
   )
     
   method init_pos ~nid ~pos = (
