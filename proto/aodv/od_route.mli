@@ -40,3 +40,6 @@ type info_t = Flood.t
 type 'a t = ('a, info_t) Route.t
     (** The type of on-demand distance-vector routes. *)
 
+val nodes_touched : 'a t -> int
+  (** [unique_nodes_flooded r] returns the unique number of nodes touched by
+    floods in route [r]. Not efficient. *)

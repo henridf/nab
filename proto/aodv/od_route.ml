@@ -26,3 +26,14 @@
 type info_t = Flood.t
 
 type 'a t = ('a, info_t) Route.t
+
+let nodes_touched r = 
+  let hash = Hashtbl.create 100 in
+  List.iter (fun h ->
+    match h.Route.info with
+      | None -> ()
+      | Some flood -> 
+	  NaryTree.iter ~f:(fun nid -> Hashtbl.replace hash nid ()) flood
+  ) r;
+  Misc.hashlen hash
+
