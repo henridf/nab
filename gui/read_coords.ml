@@ -6,6 +6,18 @@ let gr = ref None
 let g () = o2v !gr
 
 
+let box_centeri  i = 
+  let pts = Graph.getinfoi_ (g()) i in
+  match pts with 
+    | x1::y1::x2::y2::x3::y3::x4::y4::[] -> 
+	(((x1, y1) +++ (x3, y3)) /// 2 )
+   | _ -> raise (Misc.Impossible_Case "Read_coords.box_center")
+
+let box_center  n = 
+  let i = Graph.index_ (g()) n in
+  box_centeri i
+
+
 let make_graph() = (
 
   let ic = open_in "/tmp/coordinates.txt" in
@@ -40,7 +52,12 @@ let make_graph() = (
 	Array.iteri 
 	  (fun i ngbr -> 
 	    if i > 8 then (
-	      Graph.add_edge_ (g()) node ngbr 1.0;
+	      let d = 
+		sqrt (float (Coord.disti_sq (box_center node) 
+		  (box_center ngbr)))
+	      in
+	      
+	      Graph.add_edge_ (g()) node ngbr d;
 	    )
 	  ) arr
       done
@@ -51,13 +68,6 @@ let make_graph() = (
   end;
 
 )
-
-let box_centeri  i = 
-  let pts = Graph.getinfoi_ (g()) i in
-  match pts with 
-    | x1::y1::x2::y2::x3::y3::x4::y4::[] -> 
-	(((x1, y1) +++ (x3, y3)) /// 2 )
-   | _ -> raise (Misc.Impossible_Case "Read_coords.box_center")
 
 
 
