@@ -87,7 +87,7 @@ class standalone_loggable : string ->
 
 (** A globally available {!Log.standalone_loggable} object, which may be used from anywhere (e.g.,
   scripts, setup code) where it is not appropriate to instanciate a new
-  standalone_loggable object. *)
+  {!Log.standalone_loggable} object. *)
 val log : standalone_loggable
 
 
@@ -110,6 +110,6 @@ class standalone_loggable_notime :
 
 (** A globally available {!Log.standalone_loggable_notime} object, which may be used from anywhere (e.g.,
   scripts, setup code) where it is not appropriate to instanciate a new
-  standalone_loggable object. *)
+  {!Log.standalone_loggable_notime} object. *)
 val lognt : standalone_loggable_notime
 
