@@ -940,47 +940,45 @@ let sprint_stats s =
   Buffer.contents b
 
 
-
-
 module Persist : Persist.t = struct
-
+  
   type description = int array
       (* array indexed by stack #, contains the number of agents to be read
 	 for each stack. *)
+      
+  let save oc = 
+    Log.log#log_notice (lazy "Saving STR agent states..");
 
-let save oc = 
-  Log.log#log_notice (lazy "Saving STR agent states..");
+    let descr : description = 
+      Array.init Node.max_nstacks 
+	(fun stack -> Misc.hashlen agents_array_.(stack))
+    in
+    Marshal.to_channel oc descr [];
 
-  let descr : description = 
-    Array.init Node.max_nstacks 
-      (fun stack -> Misc.hashlen agents_array_.(stack))
-  in
-  Marshal.to_channel oc descr [];
-
-  for stack = 0 to Node.max_nstacks - 1 do
-    let agents = agents_array_.(stack) in
-    Hashtbl.iter (fun nid agent -> 
-      Marshal.to_channel oc (nid, agent#dump_state()) []) agents
-  done;
-  Log.log#log_notice (lazy "Done.")
-
-
-let restore ?(verbose=false) ic = 
-
-  Log.log#log_notice (lazy (sp "Restoring STR agent states..."));
-  let descr = (Marshal.from_channel ic : description) in
-
-  Array.iteri (fun stack n_agents -> 
-    for i = 0 to n_agents - 1 do
-      let (nid, state) = 
-	(Marshal.from_channel ic : Common.nodeid_t * persist_t) in
-      let node = Nodes.node nid in
-      let agent = 
-	(new str_agent ~stack ~state state.metric node) in 
-      node#install_rt_agent ~stack ( agent :> Rt_agent.t);
+    for stack = 0 to Node.max_nstacks - 1 do
+      let agents = agents_array_.(stack) in
+      Hashtbl.iter (fun nid agent -> 
+	Marshal.to_channel oc (nid, agent#dump_state()) []) agents
     done;
-  ) descr;
+    Log.log#log_notice (lazy "Done.")
 
-  Log.log#log_notice (lazy "Done.")
+
+  let restore ?(verbose=false) ic = 
+
+    Log.log#log_notice (lazy (sp "Restoring STR agent states..."));
+    let descr = (Marshal.from_channel ic : description) in
+
+    Array.iteri (fun stack n_agents -> 
+      for i = 0 to n_agents - 1 do
+	let (nid, state) = 
+	  (Marshal.from_channel ic : Common.nodeid_t * persist_t) in
+	let node = Nodes.node nid in
+	let agent = 
+	  (new str_agent ~stack ~state state.metric node) in 
+	node#install_rt_agent ~stack ( agent :> Rt_agent.t);
+      done;
+    ) descr;
+
+    Log.log#log_notice (lazy "Done. (restoring STR agent states)")
 
 end
