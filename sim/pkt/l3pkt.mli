@@ -64,16 +64,11 @@ type l3hdr_ext_t =
     | `SIMPLE_HDR of Simple_pkt.t
     ]
 
-(** A l3hdr contains a src, dst, ttl and maybe some protocol-specific
+(** A [L3pkt.l3hdr_t] contains a src, dst, ttl and maybe some protocol-specific
    extensions *)
-type l3hdr_t = {
-  src : Common.nodeid_t;
-  dst : Common.nodeid_t;
-  mutable ttl : int;
-  ext : l3hdr_ext_t
-}
+type l3hdr_t 
 
-(** A t contains a l3hdr and a l4pkt *)
+(** A [L3pkt.t] contains a l3hdr and a l4pkt *)
 type t 
 
 

@@ -81,7 +81,7 @@ let clone_l3hdr ~l3hdr = {l3hdr with src = l3hdr.src; ext=(clone_l3hdr_ext l3hdr
 
 let l3hdr_ext_size = function
   | `NONE -> 0
-  | `LER_HDR _ -> 3 * _FLOAT_SIZE (* enc. age, pos *)
+  | `LER_HDR hdr -> Ler_pkt.size hdr
   | `GREP_HDR hdr ->  Grep_pkt.hdr_size hdr 
   | `AODV_HDR hdr ->  Aodv_pkt.hdr_size hdr 
   | `DIFF_HDR hdr ->  Diff_pkt.hdr_size hdr 
