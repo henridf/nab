@@ -15,7 +15,6 @@ sig
   val toarray_ : 'a circbuf_t -> 'a array           (* array.(0) will be most recently pushed item *)
   val sub_ : 'a circbuf_t -> int -> 'a circbuf_t    (* sub-circbuf with i first elements *)
   val equal_ : 'a circbuf_t -> 'a circbuf_t -> bool (* semantic equality *)
-  val test_ : unit -> unit
 end ;;
 
 
