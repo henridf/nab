@@ -12,7 +12,7 @@ let reinit() = (
   Common.set_time 0.0;
   Nodes.set_nodes [||];
   init_sched();
-  init_world();
+  init_greedy_world();
 
 )  
 

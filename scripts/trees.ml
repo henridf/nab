@@ -134,7 +134,7 @@ let make_connected_world() = (
 
 (* Now we have a connected topology, we Re-generate everything with the
    previous RND seed. 
-   In fact, we only need to do a init_world and then replace diff_agents
+   In fact, we only need to do a init_lazy_world and then replace diff_agents
    (because the current ones are already subscribed), but this is a workaround
    because agents cannot be removed from nodes (because they stay attached to
    hooks, see general_todo.txt) *)

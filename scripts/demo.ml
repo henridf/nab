@@ -76,7 +76,7 @@ let do_one_run() = (
 
 
   init_sched();
-  init_world();
+  init_greedy_world();
 
 
 

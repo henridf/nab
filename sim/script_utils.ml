@@ -25,8 +25,15 @@ let parse_args() = (
 )
 
 let init_sched() = Gsched.set_sched (new Sched.schedHeap)
-let init_world() = 
-  Gworld.set_world (new Crworld.crworld 
+
+let init_greedy_world() = 
+  Gworld.set_world (new Crworld.crworld_greedy
+    ~x:(Param.get Params.x_size)
+    ~y:(Param.get Params.y_size)
+    ~rrange:(Param.get Params.rrange))
+
+let init_lazy_world() = 
+  Gworld.set_world (new Crworld.crworld_lazy
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange)
@@ -35,7 +42,7 @@ let init_world() =
 let init_all() =   (
   Sched.set_time 0.0;
   init_sched(); 
-  init_world()
+  init_lazy_world()
 )
 
 let install_macs_ mac_factory = 

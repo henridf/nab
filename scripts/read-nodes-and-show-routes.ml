@@ -26,7 +26,7 @@ Log.set_log_level ~level:Log.LOG_NOTICE;
 set_tracefile "naml-trace.mld";
 Param.set Params.nodes n_nodes;
 init_sched();
-init_world();
+init_greedy_world();
 Persistency.read_state ~in_chan:(open_in_bin pers_file);
 
 Ler_graphics.init_gfx();

@@ -37,7 +37,7 @@ let do_one_run ()  = (
     (size ~rrange ~avg_degree	~nodes:(Param.get Params.nodes) ());
   
   init_sched();
-  init_world();
+  init_lazy_world();
   
   begin match agenttype with
     | AODV -> make_aodv_nodes()

@@ -136,7 +136,7 @@ let () =
   Log.set_log_level ~level:Log.LOG_NOTICE;
 
   init_sched();
-  init_world();
+  init_lazy_world();
   make_diff_nodes();
 
 (*

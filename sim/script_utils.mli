@@ -18,12 +18,16 @@ val init_sched : unit -> unit
   (** Instantiate the global scheduler object. Uses a Heap Scheduler by
     default. *)
 
-val init_world : unit -> unit
-  (** Instantiate the global world object. 
+val init_lazy_world : unit -> unit
+  (** Instantiate a {!Crworld.crworld_lazy} global world object.
+    Number of nodes {!Params.nodes} should be set before calling this *)
+
+val init_greedy_world : unit -> unit
+  (** Instantiate a {!Crworld.crworld_greedy} global world object.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 val init_all : unit -> unit
-  (** Instantiates both the global world object and the global scheduler
+  (** Instantiates both the global world object (a lazy one) and the global scheduler
     object, and sets the time to 0.0 *)
 
 val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float

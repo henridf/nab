@@ -28,7 +28,7 @@ let setup () = (
   (* Set global objects (scheduler and world). This must be done *after* the
      params above have been set. *)
   Script_utils.init_sched();
-  Script_utils.init_world();
+  Script_utils.init_lazy_world();
 
   (* Create gpsnodes. Gps nodes are geographically-aware, ie they know their
      position (unlike simplenodes which do not). *)

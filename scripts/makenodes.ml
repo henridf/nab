@@ -19,7 +19,7 @@ let _ =
   Log.set_log_level ~level:Log.LOG_NOTICE;
   Param.set Params.nodes n_nodes;
   init_sched();
-  init_world();
+  init_greedy_world();
   set_tracefile "warmup/naml-trace.mld";
   make_bler_nodes();
   

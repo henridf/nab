@@ -27,7 +27,7 @@ let test_2_nodes ()=
   Param.set Params.y_size  rrange;
   
   init_sched();
-  init_world();
+  init_lazy_world();
   
   make_grep_nodes();
 
@@ -63,7 +63,7 @@ let test_long_string ()=
   Param.set Params.y_size  rrange;
   
   init_sched();
-  init_world();
+  init_lazy_world();
   
   make_grep_nodes();
 
@@ -97,7 +97,7 @@ let test_3_nodes() =
   Param.set Params.y_size 300.;
   
   init_sched();
-  init_world();
+  init_lazy_world();
   
   make_grep_nodes();
 

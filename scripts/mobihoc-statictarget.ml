@@ -9,7 +9,7 @@ open Script_utils
 let reinit() = (
   Common.set_time 0.0;
   init_sched();
-  init_world();
+  init_greedy_world();
 )
 
 let nbins = 30

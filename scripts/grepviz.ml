@@ -32,7 +32,7 @@ let do_one_run() = (
     (size ~rrange ~avg_degree	~nodes:(Param.get Params.nodes) ());
   
   init_sched();
-  init_world();
+  init_lazy_world();
   
   begin match agenttype with
     | AODV -> make_aodv_nodes()
@@ -62,8 +62,8 @@ let () =
   Gui_grep.create_buttons_grep();
 
   do_one_run();
-(*  (Gsched.sched())#run_for ~duration:10.;*)
-
+  (Gsched.sched())#run_for ~duration:200.;
+  exit 0;
 
   let dst = 0 in
   for i = 0 to -1 do 
