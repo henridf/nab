@@ -2,7 +2,6 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-open Packet
 open Printf
 
 (** A bunch of simple agents who emit and receive hello packets and 
@@ -34,11 +33,11 @@ object(s)
 
     (* Check what type of packet this is, (we are only interested in hello
        packets). *)
-    match l3pkt.l4pkt with
+    match (L3pkt.l4pkt l3pkt) with
 	
-      | HELLO_PLD pos -> (* This is a hello packet *)
+      | `HELLO_PKT pos -> (* This is a hello packet *)
 
-	  let src = Packet.get_l3src ~l3pkt 
+	  let src = L3pkt.l3src ~l3pkt 
 	    (* the sender of this hello message *)
 	  in
 
@@ -77,19 +76,19 @@ object (s)
     (* Prepare a hello packet for broadcasting *)
 
     let l3hdr = (* the L3 header, with broadcast dst addr *)
-      Packet.make_l3hdr 
+      L3pkt.make_l3hdr 
 	~srcid:owner#id
-	~dstid:Packet._L3_BCAST_ADDR
+	~dstid:L3pkt._L3_BCAST_ADDR
 	()
     in
 
     let l4pkt = (* the L4 payload, which contains our position *)
-      Packet.HELLO_PLD (owner#pos)
+      `HELLO_PKT (owner#pos)
     in 
 
     let l3pkt = (* stick L3 hdr and L4 payload together to obtain
 		   full L3 packet *)
-      Packet.make_l3pkt ~l3hdr ~l4pkt 
+      L3pkt.make_l3pkt ~l3hdr ~l4pkt 
     in
 
     (* Broadcast out this packet. It will be received by all nodes within range.*)

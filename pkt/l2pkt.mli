@@ -2,7 +2,7 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-open Packet
+open L3pkt
 
 (** {2 MAC Layer (L2) Packet Types} *)
 

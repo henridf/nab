@@ -15,6 +15,7 @@ OCAMLDOC = ocamldoc
 LIB_DIR = $(shell ocamlc -where)
 
 MWS_DIR = mws
+PKT_DIR = pkt
 MWS_SCRIPT_DIR = scripts
 GUI_DIR = gui
 MISC_DIR = misc
@@ -27,10 +28,10 @@ GTK_DIR = $(LIB_DIR)/lablgtk
 CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
 INCLUDE_LIBS = -I $(GTK_DIR)
-INCLUDE_SRC = -I $(MISC_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR)
+INCLUDE_SRC = -I $(MISC_DIR) -I $(PKT_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR)
 INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC)
 
-INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR) 
+INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
 THFLAGS = -thread
@@ -41,6 +42,7 @@ DIRS = \
 	$(GUI_DIR) \
 	$(TEST_DIR) \
 	$(MWS_DIR) \
+	$(PKT_DIR) \
 	$(MWS_SCRIPT_DIR) \
 	$(GUI_DIR)
 
@@ -49,8 +51,12 @@ DEPEND = .depend
 DEPENDS = \
 	$(MWS_DIR)/*.ml \
 	$(MWS_DIR)/*.mli \
+	$(PKT_DIR)/*.ml \
+	$(PKT_DIR)/*.mli \
 	$(GUI_DIR)/*.ml \
 	$(GUI_DIR)/*.mli \
+	$(GUI_DIR)/data/*.ml \
+	$(GUI_DIR)/data/*.mli \
 	$(MWS_SCRIPT_DIR)/*.ml \
 	$(MWS_SCRIPT_DIR)/*.mli \
 	$(TEST_DIR)/*.mli \
@@ -99,7 +105,9 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/linkedlist$(CMO) \
 		$(MISC_DIR)/data$(CMO) \
 		$(MWS_DIR)/common$(CMO) \
-		$(MWS_DIR)/packet$(CMO) \
+		$(PKT_DIR)/l4pkt$(CMO) \
+		$(PKT_DIR)/l3pkt$(CMO) \
+		$(PKT_DIR)/l2pkt$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MWS_DIR)/trace$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
@@ -127,14 +135,11 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/script_utils$(CMO)
 
 
-
-
-
 GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
-		$(GUI_DIR)/epfl$(CMO) \
-		$(GUI_DIR)/gui_gtk$(CMO) \
+		$(GUI_DIR)/data/epfl$(CMO) \
 		$(GUI_DIR)/gui_pos$(CMO) \
 		$(GUI_DIR)/gui_hooks$(CMO) \
+		$(GUI_DIR)/gui_gtk$(CMO) \
 		$(GUI_DIR)/gui_ops$(CMO) \
 		$(GUI_DIR)/gui_ctl$(CMO) 
 
@@ -146,6 +151,7 @@ MODULE_OBJ_FILES = \
 
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
+		 $(MISC_DIR)/naryTree$(CMO) \
 		 $(MISC_DIR)/coord$(CMO)
 
 TEST_OBJ_FILES = \
@@ -186,6 +192,8 @@ bin/guitop: $(GUI_OBJ_FILES)
 DOC_FILES = \
 	$(MWS_DIR)/*.ml \
 	$(MWS_DIR)/*.mli \
+	$(PKT_DIR)/*.ml \
+	$(PKT_DIR)/*.mli \
 	$(GUI_DIR)/*.ml \
 	$(GUI_DIR)/*.mli \
 	$(MISC_DIR)/*.ml \
@@ -196,7 +204,7 @@ GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
 DOC_DIR = doc
 
 htmldoc: $(GUI_OBJ_FILES)
-	$(OCAMLDOC) -html -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
+	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
 	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif

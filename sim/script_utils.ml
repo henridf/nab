@@ -1,3 +1,7 @@
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
+
 open Printf
 open Misc
 open Coord
@@ -151,7 +155,7 @@ let wait_for_any_keypress() = (
 )
 
 let make_app_packet ~srcid ~dstid = 
-  Packet.make_app_pkt ~l3hdr:(Packet.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
+  L3pkt.make_app_pkt ~l3hdr:(L3pkt.make_l3hdr ~srcid:srcid ~dstid:dstid  ())
 
   
 

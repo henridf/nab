@@ -2,7 +2,7 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-open Packet 
+open L3pkt 
 
 let _ADDR_SIZE = 4
 let _TTL_SIZE = 1

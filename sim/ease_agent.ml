@@ -2,7 +2,6 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
-open Packet
 open Printf
 
 (* ease_agent: 
@@ -17,12 +16,12 @@ class type ease_agent_t =
     val mutable objdescr : string
     val owner : Gpsnode.gpsnode
     method add_neighbor : Common.nodeid_t -> unit
-    method app_send : Packet.l4pld_t -> dst:Common.nodeid_t -> unit
+    method app_send : L4pkt.l4pkt_t -> dst:Common.nodeid_t -> unit
     method db : NodeDB.nodeDB
-    method mac_recv_hook : Packet.l3packet_t -> unit
+    method mac_recv_hook : L3pkt.l3packet_t -> unit
     method objdescr : string
     method set_db : NodeDB.nodeDB -> unit
-    method private recv_ease_pkt_ : Packet.l3packet_t -> unit
+    method private recv_ease_pkt_ : L3pkt.l3packet_t -> unit
   end
 
 let agents_array = ref ([||]: ease_agent_t array)
@@ -77,9 +76,9 @@ object(s)
 	| None -> max_float
 	| Some enc ->  Common.enc_age enc
 
-  method app_send (l4pld:Packet.l4pld_t) ~dst = (
+  method app_send (l4pkt:L4pkt.l4pkt_t) ~dst = (
     s#recv_ease_pkt_ 
-    (Packet.make_ease_l3pkt 
+    (L3pkt.make_ease_l3pkt 
       ~srcid:owner#id 
       ~dstid:dst 
       ~anchor_pos:owner#pos
@@ -164,66 +163,70 @@ object(s)
 
 
   method private geo_fw_pkt_ pkt = (
+    let dst = (L3pkt.l3dst pkt) in
+    let l3hdr = L3pkt.l3hdr pkt in
+
     (* this first case is necssary to avoid a possible infinite loop if we are at
        the same position as the destination, in which case the find_closest call
        in closest_toward_anchor might return us *)
-    
-    if owner#pos = (Nodes.gpsnode pkt.l3hdr.dst)#pos  then 
-      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Nodes.gpsnode pkt.l3hdr.dst)#id
+    if owner#pos = (Nodes.gpsnode (L3pkt.l3dst pkt))#pos  then 
+      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Nodes.gpsnode dst)#id
     else (
       (* find next closest node toward anchor *)
-      let closest_id = s#closest_toward_anchor pkt.l3hdr.anchor_pos in
+      let closest_id = s#closest_toward_anchor (L3pkt.l3anchor pkt) in
       
       if closest_id = owner#id then (
 	
 	s#log_debug (lazy (sprintf "We are closest to %d" closest_id));
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos)));
+	  (Coord.sprintf (Nodes.gpsnode dst)#pos)));
 	
 	s#recv_ease_pkt_ pkt
       ) else (   
 	(* geographically forward toward anchor  *)
 	s#log_debug (lazy (sprintf "Forwarding geographically to %d" closest_id));
 	s#log_debug (lazy (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos)))
+	  (Coord.sprintf (Nodes.gpsnode dst)#pos)))
       );
       owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id
     )
   )
     
   method private recv_ease_pkt_ pkt = (
+    let l3hdr = L3pkt.l3hdr pkt in
+
     s#log_info 
     (lazy (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
       owner#id 
-      pkt.l3hdr.src 
-      pkt.l3hdr.dst
-      pkt.l3hdr.ease_enc_age
-      (Coord.sprintf pkt.l3hdr.anchor_pos)
+      (L3pkt.l3src pkt)
+      (L3pkt.l3dst pkt)
+      (L3pkt.l3enc_age pkt)
+      (Coord.sprintf (L3pkt.l3anchor pkt))
     ));
     
-    pkt.l3hdr.search_dist <- 0.0;
-    match  owner#id = pkt.l3hdr.dst with
+    L3pkt.set_search_dist ~l3hdr 0.0;
+
+    match  owner#id = (L3pkt.l3dst pkt) with
 	
       | true -> (* We are destination. *)
 	  s#log_debug (lazy (sprintf "packet has arrived"));
       | false -> (  
-	  let cur_enc_age = pkt.l3hdr.ease_enc_age in
+	  let cur_enc_age = (L3pkt.l3enc_age pkt) in
 	  if (
 	    (* comment out the first condition to have ease instead of grease *)
-	    (s#have_better_anchor  pkt.l3hdr.dst cur_enc_age) ||
-	    (s#we_are_closest_to_anchor pkt.l3hdr.anchor_pos)) then (
+	    (s#have_better_anchor  (L3pkt.l3dst pkt) cur_enc_age) ||
+	    (s#we_are_closest_to_anchor (L3pkt.l3anchor pkt))) then (
 	    (* we are closest node to anchor. next anchor search  *)
 	    (* We are src or intermediate hop *)
-	    (*	    s#log_debug (sprintf "We are first or intermediate hop");*)
-	    
+	    s#log_debug (lazy (sprintf "We are first or intermediate hop"));
 	    let (d_to_msnger, next_anchor, next_enc_age) = 
-	      s#find_next_anchor pkt.l3hdr.dst cur_enc_age
+	      s#find_next_anchor (L3pkt.l3dst pkt) cur_enc_age
 	    in
-	    pkt.l3hdr.ease_enc_age <- next_enc_age;
-	    pkt.l3hdr.anchor_pos <- next_anchor;
-	    (* Send through our containing nodes' mac layer *)
-	    pkt.l3hdr.search_dist <- d_to_msnger;
+	    L3pkt.set_enc_age ~l3hdr next_enc_age;
+	    L3pkt.set_anchor_pos ~l3hdr next_anchor;
+	    L3pkt.set_search_dist ~l3hdr d_to_msnger;
 	  );
+	  (* Send through our containing nodes' mac layer *)
 	  s#geo_fw_pkt_ pkt
 	)
   )

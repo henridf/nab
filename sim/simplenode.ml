@@ -33,7 +33,7 @@ object(s)
 
   val mutable recv_pkt_hooks = []
   val mutable recv_l2pkt_hooks = []
-  val mutable app_send_pkt_hook = fun pkt ~(dst : Common.nodeid_t) -> ()
+  val mutable app_send_pkt_hook = fun (pkt : L4pkt.l4pkt_t) ~(dst : Common.nodeid_t) -> ()
   val mutable pktin_mhooks = []
   val mutable pktout_mhooks = []
    
@@ -47,8 +47,10 @@ object(s)
 
   method mac_recv_pkt ~l2pkt = (
     
+    let l3pkt  = (L2pkt.l3pkt l2pkt) in
+
     s#log_debug (lazy (sprintf "Pkt received from %d" 
-      (Packet.get_l3src ~l3pkt:l2pkt.Packet.l3pkt)));
+      (L3pkt.l3src ~l3pkt:(L2pkt.l3pkt l2pkt))));
 
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
@@ -57,7 +59,7 @@ object(s)
       pktin_mhooks;
 
     List.iter 
-      (fun hook -> hook l2pkt.Packet.l3pkt)
+      (fun hook -> hook l3pkt)
       recv_pkt_hooks;
 
     List.iter 
@@ -72,7 +74,7 @@ object(s)
   method add_recv_l2pkt_hook  ~hook =
     recv_l2pkt_hooks <- recv_l2pkt_hooks @ [hook]
       
-  method add_app_send_pkt_hook ~hook = 
+  method add_app_send_pkt_hook ~hook =
     app_send_pkt_hook <- hook
 
   method add_pktin_mhook  ~hook =
@@ -92,13 +94,13 @@ object(s)
 
     let dst = (Nodes.node(dstid)) in
 
-    assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
+    assert (L3pkt.l3ttl ~l3pkt:l3pkt >= 0);
 
-    let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:(Packet.L2_DST dst#id)
+    let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:(L2pkt.L2_DST dst#id)
       ~l3pkt:l3pkt in
 
     let delay = 
-      Mws_utils.xmitdelay ~bytes:(Packet.l2pkt_size ~l2pkt:l2pkt)
+      Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt)
       +. Mws_utils.propdelay 
 	((Gworld.world())#nodepos id) 
 	((Gworld.world())#nodepos dstid) in
@@ -124,9 +126,9 @@ object(s)
 
   method mac_bcast_pkt ~l3pkt = (
 
-    assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
+    assert (L3pkt.l3ttl ~l3pkt:l3pkt >= 0);
 
-    let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:Packet.L2_BCAST
+    let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:L2pkt.L2_BCAST
       ~l3pkt:l3pkt in
 
     List.iter 
@@ -139,12 +141,12 @@ object(s)
       let n = (Nodes.node(nid)) in
     let recvtime = 
       Common.get_time()
-      +. Mws_utils.xmitdelay ~bytes:(Packet.l2pkt_size ~l2pkt:l2pkt)
+      +. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt)
       +. Mws_utils.propdelay 
 	((Gworld.world())#nodepos id) 
 	((Gworld.world())#nodepos nid) in
       let recv_event() = 
-	n#mac_recv_pkt ~l2pkt:(Packet.clone_l2pkt ~l2pkt:l2pkt) in
+	n#mac_recv_pkt ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) in
       (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
     ) neighbors
   )
@@ -158,7 +160,7 @@ object(s)
       
 
   method originate_app_pkt ~dstid = 
-    app_send_pkt_hook Packet.APP_PLD ~dst:dstid
+    app_send_pkt_hook `APP_PKT ~dst:dstid
 
   method dump_state = {
     node_pos=(Gworld.world())#nodepos id
