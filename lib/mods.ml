@@ -52,4 +52,11 @@
 
    include ListLabels
 
+   let iteri ~f l = 
+     let rec iteri_ l i = 
+       match l with 
+	 | [] -> ()
+	 | a::l -> f a i; iteri_ l (i + 1) in
+     iteri_ l 0;;
+   
   end
