@@ -26,6 +26,10 @@ val init_greedy_world : unit -> unit
   (** Instantiate a {!Crworld.crworld_greedy} global world object.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
+val init_epfl_world : unit -> unit
+  (** Instantiate a {!Crworld.epflworld} global world object.
+    Number of nodes {!Params.nodes} should be set before calling this *)
+
 val init_all : unit -> unit
   (** Instantiates both the global world object (a lazy one) and the global scheduler
     object, and sets the time to 0.0 *)

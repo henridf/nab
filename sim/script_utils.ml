@@ -32,6 +32,16 @@ let init_greedy_world() =
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.rrange))
 
+let init_epfl_world() = (
+  if (Param.get Params.x_size) <> 800. ||
+    (Param.get Params.y_size) <> 600. then
+      Log.log#log_warning (lazy "For EPFL, size should be 800x600");
+  Gworld.set_world (new Crworld.epflworld
+    ~x:(Param.get Params.x_size)
+    ~y:(Param.get Params.y_size)
+    ~rrange:(Param.get Params.rrange))
+)
+
 let init_lazy_world() = 
   Gworld.set_world (new Crworld.crworld_lazy
     ~x:(Param.get Params.x_size)
@@ -81,20 +91,12 @@ let place_nodes_on_line () =
     (Gworld.world())#movenode ~nid ~newpos)
 
 let make_grease_nodes () = (
-  let get_init_pos() = (Gworld.world())#random_pos 
-(*
-  these two lines were when we were using the epfl-constrained mob mvt, 
-  with 1200x900 pix size, etc
-  
-  let nodeind = Random.int 113 in
-  Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
-*)
-  in
+
   Nodes.set_gpsnodes 
     (Array.init (Param.get Params.nodes)
       (fun i -> 
 	(new Gpsnode.gpsnode
-	  ~pos_init:(get_init_pos())
+	  ~pos_init:(Gworld.world())#random_pos 
 	  i
 	)));
   
@@ -114,7 +116,8 @@ let make_grep_nodes () = (
 
   (* create grep agents, who will hook to their owners *)
   Grep_agent.set_agents
-    (Nodes.map (fun n -> new Grep_agent.grep_agent n));
+    (Nodes.map (fun n -> let agent = new Grep_agent.grep_agent n in
+    n#add_rt_agent (agent :> Rt_agent_base.t); agent));
 )
 
 let make_diff_agents () = (
