@@ -5,20 +5,34 @@
 open Printf
 open Misc
 
-let packet_buffer_size = 50
-let sinks = ref []
+type diffusion_type = [ `Voronoi | `OPP | `ESS ]
 
+let diffusion_type:(diffusion_type ref) = ref `Voronoi
+
+let strset_difftype s = match s with 
+  | "Voronoi" | "voronoi" | "vor" | "Vor" -> diffusion_type := `Voronoi
+  | "OPP" | "opp" -> diffusion_type := `OPP
+  | "ESS" | "ess" -> diffusion_type := `ESS
+  | _ -> raise (Failure ("Invalid difftype "^s))
+
+let mean_interest_interval = 30.
+let interest_lambda = 1. /.  mean_interest_interval
+let nsinks_ = ref None
+let nsinks() = o2v !nsinks_
+
+let rndseed = ref 0 
 
 class type diff_agent_t =
   object
-    method app_send : ?ttl:int -> dst:Common.nodeid_t -> L4pkt.l4pkt_t -> unit
+    method publish :  L4pkt.l4pkt_t -> dst:Common.nodeid_t ->  unit
+      (* Publish must take a ~dst because it is passed to
+	 Simplenode.add_app_send_pkt_hook - in fact, since we are
+	 data-centric, we don't do anything with it *)
     method seqno : unit -> int
-    method is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
-    method private buffer_packet : l3pkt:L3pkt.l3packet_t -> unit
+    method private is_closest_sink : ?op:(int -> int -> bool) -> Common.nodeid_t -> bool
+    method subscribe : ?delay:float -> ?ttl:int -> unit -> unit
     method private hand_upper_layer : l3pkt:L3pkt.l3packet_t -> unit
     method private incr_seqno : unit -> unit
-    method private inv_packet_upwards :
-      nexthop:Common.nodeid_t -> l3pkt:L3pkt.l3packet_t -> unit
     method get_rtab : Rtab.rtab_t
     method newadv : 
       dst:Common.nodeid_t -> 
@@ -26,31 +40,25 @@ class type diff_agent_t =
       bool
     method objdescr : string
     method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
-    method private queue_size : unit -> int
-    method private packets_waiting : dst:Common.nodeid_t -> bool
     method private process_data_pkt : l3pkt:L3pkt.l3packet_t -> unit
     method private process_radv_pkt :
       l3pkt:L3pkt.l3packet_t -> 
-      fresh:bool -> unit
-    method private process_rrep_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
-      sender:Common.nodeid_t -> 
-      fresh:bool ->
-      unit
-    method private process_rreq_pkt :
-      l3pkt:L3pkt.l3packet_t -> 
-      fresh:bool -> unit
+      l2sender:Common.nodeid_t -> unit
     method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
-    method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
-    method private send_rreq :
-      ttl:int -> dst:Common.nodeid_t -> unit
-    method private send_waiting_packets : dst:Common.nodeid_t -> unit
+
+    method closest_sinks : unit -> Common.nodeid_t list 
+      (** Returns closest sink (or sinks, if more than one at closest
+	distance). If this node itself is a sink, it is not returned, and the
+	distance 0 to itself is not considered *)
+
+    method known_sinks : unit -> Common.nodeid_t list
+      (** Returns all sinks to whom this node has a gradient (except this node
+	itself, if it is a sink*)
   end
 
 
 exception Send_Out_Failure
-
 
 let agents_array = ref ([||]:diff_agent_t array)
 
@@ -65,17 +73,21 @@ let _ERS_MULT_FACT = 2
 class diff_agent owner : diff_agent_t = 
 object(s)
 
-  inherit Log.loggable
+  inherit Log.inheritable_loggable
 
   val owner:Simplenode.simplenode = owner
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
+  val mutable subscribed = false
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
+  val rnd = Randoms.create ~seed:!rndseed ()
 
   initializer (
-    objdescr <- (owner#objdescr ^  "/DIFF_Agent ");
+    s#set_objdescr ~owner "/diffagent";
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
-    s#incr_seqno()
+    owner#add_app_send_pkt_hook ~hook:s#publish;
+    s#incr_seqno();
+    incr rndseed;
   )
 
   method get_rtab = rt
@@ -95,42 +107,6 @@ object(s)
     assert(update);
   )
 
-  method private packets_waiting ~dst = 
-    not (Queue.is_empty pktqs.(dst))
-
-  method private queue_size() = 
-    Array.fold_left (fun n q -> n + (Queue.length q))  0 pktqs
-
-  method private send_waiting_packets ~dst = 
-    while s#packets_waiting ~dst do
-      let pkt = (Queue.pop pktqs.(dst)) in
-	try 
-	  s#log_info 
-	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
-	      (L3pkt.l3src ~l3pkt:pkt) dst));
-	  s#send_out ~l3pkt:pkt
-	with 
-	  | Send_Out_Failure -> 
-	      s#log_warning 
-	      (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
-		(L3pkt.l3src ~l3pkt:pkt) dst));
-    done
-
-  (* DATA packets are buffered when they fail on send, 
-     or if there are already buffered packets for that destination *)
-  method private buffer_packet ~(l3pkt:L3pkt.l3packet_t) = (
-    match s#queue_size() < packet_buffer_size with 
-      | true ->
-	  let dst = L3pkt.l3dst ~l3pkt in
-	  assert (dst <> L3pkt._L3_BCAST_ADDR);
-	  Queue.push l3pkt pktqs.(dst);
-      | false -> (
-	  Grep_hooks.drop_data();
-	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
-	    (L3pkt.l3dst ~l3pkt)))
-	)
-  )
-
   (* wrapper around Rtab.newadv which additionally checks for 
      open rreqs to that dest and cancels if any,
      buffered packets to that dest and sends them if any *)
@@ -145,10 +121,6 @@ object(s)
 	Rtab.repair_done ~rt ~dst;
 	(* if route to dst was accepted, send any packets that were waiting
 	   for a route to this dst *)
-	if (s#packets_waiting ~dst) then (
-	  s#send_waiting_packets ~dst
-	);
-
       );
       update
     )
@@ -170,175 +142,105 @@ object(s)
     
     let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
     assert (L3pkt.l3ttl ~l3pkt >= 0);
-    (* create or update 1-hop route to previous hop *)
-    let sender = L2pkt.l2src l2pkt in
-    if (sender <> (L3pkt.l3src ~l3pkt)) then (
-      let sender_seqno = 
-	match Rtab.seqno ~rt ~dst:sender with
-	  | None -> 1
-	  | Some n -> n + 1
-      in
-      let update =  
-	s#newadv 
-	  ~dst:sender
-	  ~sn:sender_seqno
-	  ~hc:1
-	  ~nh:sender
-      in
-      assert (update);
-    );
 
+    let l2sender = L2pkt.l2src l2pkt in
+
+    begin match L3pkt.l3grepflags ~l3pkt with
+      | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
+      | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~l2sender 
+      | L3pkt.GREP_RREP | L3pkt.GREP_RREQ 
+      | L3pkt.NOT_GREP  | L3pkt.EASE 
+	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
+      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
+    end
+  )
+
+  method known_sinks () = (
+    let sinks = ref [] in
+    for i = 0 to (Param.get Params.nodes - 1) do 
+      match (Rtab.hopcount ~rt ~dst:i) with
+	| None -> ()
+	| Some hc -> sinks := i::!sinks
+    done;
+    let sinks = 
+      List.filter (fun i -> i <> owner#id) !sinks
+    in if ((List.length sinks) > nsinks()) then
+      s#log_error (lazy (sprintf "nsinks %d, sinks %s" (nsinks()) (Misc.sprintlist "%d" sinks)));
+    
+    sinks
+  )
+    
+  method closest_sinks () = (
+    let sinks = s#known_sinks() in
+    let closest_hops = 
+    List.fold_left 
+      (fun closest sink -> min closest (o2v (Rtab.hopcount ~rt ~dst:sink)))
+      max_int 
+      sinks
+    in
+    if closest_hops = max_int then []
+    else 
+      List.filter (fun sink -> 
+	(o2v (Rtab.hopcount ~rt ~dst:sink)) = closest_hops) sinks
+  )
+
+
+  method private is_closest_sink ?(op=(>=)) sink = 
+    if Rtab.hopcount ~rt ~dst:sink = None then 
+      raise (Failure "Diff_agent.is_closest_sink: called for a sink which was not in our
+    routing table");
+    
+    (s#closest_sinks ()) = [sink] || ((s#closest_sinks()) = [])
+    (* this one is equivalent to block below with op=(>) *)
+(*    (List.mem sink (s#closest_sinks())) ||  ((s#closest_sinks()) = [])
+    (* this one is equivalent to block below with op=(>=) *)
+
+    let d_to_sink s = 
+      match (Rtab.hopcount ~rt ~dst:s) with
+	| None -> max_int
+	| Some hc -> hc 
+    in
+    List.fold_left 
+      (fun bool othersink ->
+	bool &&
+	(op (d_to_sink othersink) ((d_to_sink sink) )))
+      true
+      ((List.filter (fun s -> s <> sink)) (s#known_sinks()))
+*)
+
+
+  method private process_radv_pkt ~l3pkt ~l2sender = (
     (* update route to source if packet came over fresher route than what we
        have *)
+
     let pkt_fresh = (s#packet_fresh ~l3pkt)
     and update =  
       s#newadv 
 	~dst:(L3pkt.l3src ~l3pkt)
 	~sn:(L3pkt.ssn ~l3pkt)
 	~hc:(L3pkt.shc ~l3pkt)
-	~nh:sender
+	~nh:l2sender
     in
     assert (update = pkt_fresh);
-    (* hand off to per-type method private *)
-    begin match L3pkt.l3grepflags ~l3pkt with
-      | L3pkt.GREP_DATA -> s#process_data_pkt ~l3pkt;
-      | L3pkt.GREP_RREQ -> s#process_rreq_pkt ~l3pkt ~fresh:pkt_fresh
-      | L3pkt.GREP_RADV -> s#process_radv_pkt ~l3pkt ~fresh:pkt_fresh
-      | L3pkt.GREP_RREP -> s#process_rrep_pkt ~l3pkt ~sender ~fresh:pkt_fresh;
-      | L3pkt.NOT_GREP | L3pkt.EASE 
-	-> raise (Failure "Grep_agent.recv_l2pkt_hook");
-      | L3pkt.GREP_RERR -> raise (Failure "Grep_agent.recv_l2pkt_hook");
-    end
-  ) 
-
-  method is_closest_sink ?(op=(>)) sink = (
-    let d_to_sink s = 
-      match (Rtab.hopcount ~rt ~dst:s) with
-	| None -> max_int
-	| Some hc -> hc 
-    in
-    List.fold_left (fun bool othersink ->
-      bool &&
-      (((d_to_sink sink) = max_int && (d_to_sink othersink) = max_int)
-      ||
-      (op (d_to_sink othersink) ((d_to_sink sink) ))))
-      true
-      ((List.filter (fun s -> s <> sink)) !sinks)
-  )
-
-
-  method private process_radv_pkt ~l3pkt ~fresh = (
     
     s#log_info 
-      (lazy (sprintf "Received RADV pkt from src %d "
+      (lazy (sprintf "Received Interest pkt from src %d "
 	(L3pkt.l3src ~l3pkt) ));
     let sink_closest = (s#is_closest_sink (L3pkt.l3src ~l3pkt)) in
-    match fresh, sink_closest with 
-      | true,true -> 
-	    s#send_out ~l3pkt
-      | _ -> 
-	  s#log_info 
-	  (lazy (sprintf "Dropping RADV pkt from src %d (not fresh)"
-	    (L3pkt.l3src ~l3pkt) ));
+    match pkt_fresh, sink_closest, !diffusion_type with 
+      | false, _, (_:diffusion_type) ->
+ 	  s#log_info   (lazy (sprintf "Dropping Interest pkt from src %d (not fresh)"
+	    (L3pkt.l3src ~l3pkt) ))
+      | true,true, _ 
+      | true, false, `OPP 
+      | true, false, `ESS  ->  
+	  s#send_out ~l3pkt
+      | true, false, `Voronoi -> 
+ 	  s#log_info   (lazy (sprintf "Dropping Interest pkt from src %d (not closest sink)"
+	    (L3pkt.l3src ~l3pkt) ))
   ) 
 
 
-
-  method private process_rreq_pkt ~l3pkt ~fresh = (
-    
-    let rdst = (L3pkt.rdst ~l3pkt)
-    and dsn =  (L3pkt.dsn ~l3pkt)
-    in
-    s#log_info 
-      (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
-	(L3pkt.l3src ~l3pkt) rdst));
-    match fresh with 
-      | true -> 
-	  let answer_rreq = 
-	    (rdst = owner#id)
-	    ||
-	    begin match (Rtab.seqno ~rt ~dst:rdst) with 
-	      | None -> false
-	      | Some s when (s > dsn) -> true
-	      | Some s when (s = dsn) ->
-		  (o2v (Rtab.hopcount ~rt ~dst:rdst)
-		  <
-		  (L3pkt.dhc ~l3pkt) + L3pkt.shc ~l3pkt)
-	      | Some s when (s < dsn) -> false
-	      | _ -> raise (Misc.Impossible_Case "Grep_agent.answer_rreq()") end
-	  in
-	  if (answer_rreq) then 
-	    s#send_rrep 
-	      ~dst:(L3pkt.l3src ~l3pkt)
-	      ~obo:rdst
-	  else (* broadcast the rreq further along *)
-	    s#send_out ~l3pkt
-      | false -> 
-	  s#log_info 
-	  (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
-	    (L3pkt.l3src ~l3pkt) rdst));
-  )
-      
-  method private send_rrep ~dst ~obo = (
-    s#log_info 
-    (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
-      dst obo));
-    let grep_l3hdr_ext = 
-      L3pkt.make_grep_l3hdr_ext 
-	~flags:L3pkt.GREP_RREP
-	~ssn:seqno
-	~shc:0
-	~osrc:obo
-	~osn:(o2v (Rtab.seqno ~rt ~dst:obo))
-	~ohc:(o2v (Rtab.hopcount ~rt ~dst:obo))
-	()
-    in
-    let l3hdr = 
-      L3pkt.make_l3hdr
-	~srcid:owner#id
-	~dstid:dst
-	~ext:grep_l3hdr_ext
-	()
-    in
-    let l3pkt =
-      L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
-    in
-    try 
-      s#send_out  ~l3pkt
-    with 
-      | Send_Out_Failure -> 
-	  s#log_notice 
-	  (lazy (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
-	    dst obo));
-  )
-
-  method private inv_packet_upwards ~nexthop ~l3pkt = (
-    (* this expects to be called just prior to sending l3pkt*)
-    let dst = (L3pkt.l3dst ~l3pkt) in
-    let next_rt = (agent nexthop)#get_rtab in
-    let this_sn = o2v (Rtab.seqno ~rt ~dst)
-    and this_hc = o2v (Rtab.hopcount ~rt ~dst)
-    and next_sn = o2v (Rtab.seqno ~rt:next_rt ~dst)
-    and next_hc = o2v (Rtab.hopcount ~rt:next_rt ~dst)
-    and ptype = 
-      begin match (L3pkt.l3grepflags ~l3pkt) with
-	| L3pkt.GREP_RREP  -> "rrep"
-	| L3pkt.GREP_DATA -> "data" 
-	| _ -> ""
-      end
-    in
-    if not (
-      (this_sn < next_sn) || 
-      ((this_sn = next_sn) && (this_hc >= next_hc))
-    ) then 
-      let str = (Printf.sprintf "%s packet, this:%d, nexthoph:%d, dst:%d, this_sn: %d, this_hc: %d, next_sn: %d, next_hc:
-    %d" ptype owner#id nexthop dst this_sn this_hc next_sn next_hc)
-      in
-      s#log_warning (lazy str);
-      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" str))
-	
-  )
-    
   method private process_data_pkt 
     ~(l3pkt:L3pkt.l3packet_t) =  (
       
@@ -350,8 +252,7 @@ object(s)
 	  raise Break 
 	);
 	
-	if  ((Rtab.repairing ~rt ~dst) || s#packets_waiting ~dst) then (
-	  s#buffer_packet ~l3pkt;
+	if  (Rtab.repairing ~rt ~dst)  then (
 	  raise Break
 	);		
 
@@ -361,9 +262,8 @@ object(s)
 	  | Send_Out_Failure -> 
 	      begin
 		s#log_notice 
-		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+		  (lazy (sprintf "Forwarding DATA pkt to dst %d failed, dropping."
 		    dst));
-		s#buffer_packet ~l3pkt;
 		s#init_rreq  ~dst;
 	      end
 	end
@@ -442,38 +342,6 @@ object(s)
     )
   )
     
-  method private process_rrep_pkt 
-    ~(l3pkt:L3pkt.l3packet_t)
-    ~(sender:Common.nodeid_t)
-    ~(fresh:bool)
-    = (
-      let update = s#newadv 
-	~dst:(L3pkt.osrc ~l3pkt)
-	~sn:(L3pkt.osn ~l3pkt)
-	~hc:((L3pkt.ohc ~l3pkt) + (L3pkt.shc ~l3pkt))
-	~nh:sender
-      in 
-
-      if (update || 
-      (fresh && (
-	(L3pkt.osrc ~l3pkt) = (L3pkt.l3src ~l3pkt))))
-      then (
-	(* the second line is for the case where the rrep was originated by the
-	   source, in which case update=false (bc the info from it has already
-	   been looked at in recv_l2pkt_hook) *)
-	Rtab.repair_done ~rt ~dst:(L3pkt.osrc ~l3pkt);
-	if ((L3pkt.l3dst ~l3pkt) <> owner#id) then (
-	  try 
-	    s#send_out ~l3pkt
-	  with 
-	    | Send_Out_Failure -> 
-		s#log_notice 
-		(lazy (sprintf "Forwarding RREP pkt to dst %d, obo %d failed, dropping"
-		  (L3pkt.l3dst ~l3pkt)
-		  (L3pkt.osrc ~l3pkt)));
-	)
-      )
-    )
     
   method private send_out ~l3pkt = (
     let newpkt = L3pkt.clone_l3pkt ~l3pkt in
@@ -491,31 +359,22 @@ object(s)
     L3pkt.incr_shc_pkt ~l3pkt:newpkt;
     assert (L3pkt.shc ~l3pkt:newpkt > 0);
     begin match (L3pkt.l3grepflags ~l3pkt:newpkt) with
-      | L3pkt.GREP_RADV 
-      | L3pkt.GREP_RREQ -> 
+      | L3pkt.GREP_RADV -> 
 	  assert (dst = L3pkt._L3_BCAST_ADDR);
 	  L3pkt.decr_l3ttl ~l3pkt:newpkt;
 	  begin match ((L3pkt.l3ttl ~l3pkt:newpkt) >= 0)  with
 	    | true -> 
-		Grep_hooks.sent_rreq() ;
 		owner#mac_bcast_pkt ~l3pkt:newpkt;
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end
-      | L3pkt.GREP_DATA
-      | L3pkt.GREP_RREP ->
-	  begin if ((L3pkt.l3grepflags ~l3pkt:newpkt) = L3pkt.GREP_DATA) then (
-	    Grep_hooks.sent_data();
-	  ) else (
-	    Grep_hooks.sent_rrep_rerr();
-	  );
-	    
+      | L3pkt.GREP_DATA ->
+	  begin 
 	    let nexthop = 
 	      match Rtab.nexthop ~rt ~dst  with
 		| None -> failed()
 		| Some nh -> nh 
 	    in 
-	    s#inv_packet_upwards ~nexthop:nexthop ~l3pkt:newpkt;
 	    try begin
 	      owner#mac_send_pkt ~l3pkt:newpkt ~dstid:nexthop; end
 	    with Simplenode.Mac_Send_Failure -> failed()
@@ -523,7 +382,6 @@ object(s)
 	  end
       | _ ->
 	  raise (Failure "Grep_agent.send_out: unexpected packet type")
-
     end
   )
 		
@@ -533,52 +391,66 @@ object(s)
      packets since we model CBR streams, and mhook catches packets as they enter
      the node *)
   method private hand_upper_layer ~l3pkt = (
-    Grep_hooks.recv_data();
      s#log_info (lazy (sprintf "Received app pkt from src %d"
 	  (L3pkt.l3src ~l3pkt)));
   )
 
-  (*
-    method ctrl_hook action = (
+  method private send_interest ?(ttl=255) () = (
+    s#log_notice (lazy "Sending interest");
 
-    s#log_debug (sprintf "Originating dsdv (ttl 5) ");
-
-    let pkt = 
-      L3pkt.DSDV_PKT (L3pkt.make_dsdv_pkt 
-	~srcid:owner#id 
-	~originator:owner#id 
-	~nhops:0
-    ~seqno:seqno
-    ~ttl:6) in
-    
-    seqno <- seqno + 1;
-    owner#mac_bcast_pkt 
-    ~l3pkt:pkt;
-    )
-  *)
-    
-    
-  method app_send ?(ttl=255)  ~dst (l4pkt:L4pkt.l4pkt_t) = (
-    s#log_info (lazy (sprintf "Originating radv pkt with dst %d"
-      dst));
-    let l3hdr = 
-      L3pkt.make_l3hdr
-	~srcid:owner#id
-	~dstid:L3pkt._L3_BCAST_ADDR
-	~ttl
+    let l3hdr = L3pkt.make_l3hdr
+	~srcid:owner#id	~dstid:L3pkt._L3_BCAST_ADDR ~ttl
 	~ext:(L3pkt.make_grep_l3hdr_ext
-	  ~flags:L3pkt.GREP_RADV
-	  ~ssn:seqno
-	  ~shc:0
-	  ()
-	)
-	()
-    in
+	  ~flags:L3pkt.GREP_RADV ~ssn:seqno ~shc:0 ()) () in
 
-    Grep_hooks.orig_data();
-    let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
+    let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:`APP_PKT) in
 
     s#send_out ~l3pkt;
+
+    let next_interest_timeout = expo ~rand:(Randoms.float rnd 1.0)
+      ~lambda:interest_lambda in
+      (Gsched.sched())#sched_in ~f:s#send_interest ~t:next_interest_timeout
+  )
+
+
+
+  method subscribe ?delay ?(ttl=255) () = (
+    if subscribed then 
+      s#log_error (lazy "Already Subscribed");
+    subscribed <- true;
+    s#log_notice (lazy "Subscribing");
+    match delay with 
+      | None -> s#send_interest ();
+      | Some t -> (Gsched.sched())#sched_in ~f:s#send_interest ~t
+  )
+
+
+  method private send_data_to_sink sink = 
+      s#log_info (lazy (sprintf "Originating data pkt to sink %d"
+	sink));
+      let l3hdr = L3pkt.make_l3hdr  ~srcid:owner#id ~dstid:sink  ~ttl:255
+	~ext:(L3pkt.make_grep_l3hdr_ext   ~flags:L3pkt.GREP_DATA
+	  ~ssn:seqno   ~shc:0  ())  ()
+      in
+      let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:`APP_PKT) in
+      s#send_out ~l3pkt;
+
+
+  method publish  _ ~dst:_  = (
+    let sinks_to_send_to = 
+      match !diffusion_type with 
+	| `Voronoi | `OPP -> 
+	    let candidates = s#closest_sinks () in 
+	    [Misc.rnd_from_list candidates]
+	| `ESS -> 
+	    s#known_sinks()
+    in
+    (* Jitter the sends by a uniform RV over a range proportional to the
+       number of sends *)
+    List.iter (fun sink -> 
+      (Gsched.sched())#sched_in ~f:(fun _ -> s#send_data_to_sink sink)
+      ~t:(Randoms.float rnd (float (List.length sinks_to_send_to))))
+      sinks_to_send_to
 
   )
 
