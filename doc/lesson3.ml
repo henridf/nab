@@ -149,7 +149,7 @@ let main() =
 let () = 
   main();
   Gui_gtk.init ();
-  Gui_ease.setup_easeviz_app();
+  Gui_ler.setup_easeviz_app();
   Main.main()
 
 
