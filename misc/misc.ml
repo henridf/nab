@@ -6,6 +6,7 @@
 (**                                                                                     **)
 (** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
+exception Impossible_Case;;
 
 
 (** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
@@ -41,6 +42,9 @@ let (+++.) (a, b) (c, d) = (a +. c, b+. d);;
 let (---) (a, b) (c, d) = (a - c, b - d);;
 let (---.) (a, b) (c, d) = (a -. c, b -. d);;
 
+let isint x = (x -. floor x) < epsilon_float;;
+let round x = if (x -. floor x) < 0.5 then (floor x) else (ceil x);;
+
 (** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 (**                                                                                     **)
 (**  Lists                                                                              **)
@@ -66,7 +70,17 @@ let cycle_list l = (List.tl l)@[List.hd l] ;;
 
 let listlast l = List.nth l (List.length l - 1);;
   
+(** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
+(**                                                                                     **)
+(**  Arrays                                                                             **)
+(**                                                                                     **)
+(** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
+let array_between array start finish = (
+  if (finish < start) then raise (Failure "array_between: invalid args");
+  let len = finish - start + 1 in
+    Array.sub array start len;
+)
 
 (** * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 (**                                                                                     **)
