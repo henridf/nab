@@ -43,7 +43,6 @@ MWS_SCRIPT_DIR = scripts
 GUI_DIR = gui
 GUI_DATA_DIR = $(GUI_DIR)/data
 MK_DIR = mk
-TEST_DIR = test
 
 # target dirs
 DOC_TARGET_DIR = doc
@@ -64,7 +63,6 @@ THFLAGS = -thread
 
 DIRS = 	$(MWS_LIB_DIRS) \
 	$(GUI_DIR) \
-	$(TEST_DIR) \
 	$(MWS_DIRS) \
 	$(PROTO_DIRS) 
 
@@ -210,13 +208,6 @@ MWS_LIB_OBJS = $(MWS_LIB_DIR)/misc$(CMO) \
 		 $(MWS_LIB_DIR)/naryTree$(CMO) \
 		$(MWS_LIB_DIR)/graph$(CMO)
 
-TEST_OBJS = \
-	$(TEST_DIR)/testUtils$(CMO) \
-	$(MWS_LIB_DIR)/coord$(CMO) \
-	$(TEST_DIR)/graph-test$(CMO) \
-	$(TEST_DIR)/itin-test$(CMO) \
-	$(TEST_DIR)/circbuf-test$(CMO)
-
 
 %.cmo: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
@@ -274,9 +265,6 @@ bin/camlgtk-th:
 camlgtk: bin/camlgtk
 bin/camlgtk: 
 	$(MLTOP) $(INCLUDE) -o $@  $(GTK_STUFF)
-
-testmodules:  $(MODULE_OBJS) $(MWS_LIB_OBJS) $(TEST_OBJS)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MWS_LIB_OBJS) $(MODULE_OBJS) $(TEST_OBJS)  -o $(BIN_DIR)/$@ 
 
 ocamlgfx: 
 	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
