@@ -8,9 +8,9 @@ val init_sched : unit -> unit
 val init_world : unit -> unit
 
 val make_grep_nodes : unit -> unit (* consults Params.nodes *)
+val make_grease_nodes : unit -> unit (* consults Params.nodes *)
 val make_aodv_nodes : unit -> unit (* consults Params.nodes *)
 
-val set_tracefile : string -> unit
 val cleanup : unit -> unit
 
 (* Actions *)
