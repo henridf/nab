@@ -14,10 +14,12 @@
 
 open Printf
 open Misc
+open Ether
+open Mac_null
+open Mac_contention
 
-type node_state_t = {
-  node_pos : Coord.coordf_t;
-}
+type node_state_t = Coord.coordf_t
+
 
 exception Mac_Send_Failure
 
@@ -27,21 +29,25 @@ class simplenode id   =
 
 object(s)
   
-  inherit Log.loggable
-
-  val id = id
+  inherit Log.inheritable_loggable 
 
   val mutable recv_pkt_hooks = []
   val mutable recv_l2pkt_hooks = []
   val mutable app_send_pkt_hook = fun (pkt : L4pkt.l4pkt_t) ~(dst : Common.nodeid_t) -> ()
   val mutable pktin_mhooks = []
   val mutable pktout_mhooks = []
-   
+  val mutable mac = None
+
+  val id = id
+
+  method mac =o2v  mac
+  method install_mac themac = mac <- Some themac
   method id = id
 
   initializer (
-    objdescr <- (sprintf "/node/%d " id);
+    s#set_objdescr (sprintf "/node/%d" id);
     s#log_debug (lazy (sprintf "New node %d" id));
+    mac <- Some (new nullmac s)
   )
 
 
@@ -49,19 +55,19 @@ object(s)
     
     let l3pkt  = (L2pkt.l3pkt l2pkt) in
 
-    s#log_debug (lazy (sprintf "Pkt received from %d" 
+    s#log_debug (lazy (sprintf "Pkt received from source %d" 
       (L3pkt.l3src ~l3pkt:(L2pkt.l3pkt l2pkt))));
 
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
     List.iter 
-    (fun mhook -> mhook l2pkt s )
+      (fun mhook -> mhook l2pkt s )
       pktin_mhooks;
-
+    
     List.iter 
       (fun hook -> hook l3pkt)
       recv_pkt_hooks;
-
+    
     List.iter 
       (fun hook -> hook l2pkt)
       recv_l2pkt_hooks
@@ -99,19 +105,11 @@ object(s)
     let l2pkt = L2pkt.make_l2pkt ~srcid:id ~l2_dst:(L2pkt.L2_DST dst#id)
       ~l3pkt:l3pkt in
 
-    let delay = 
-      Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt)
-      +. Mws_utils.propdelay 
-	((Gworld.world())#nodepos id) 
-	((Gworld.world())#nodepos dstid) in
-    let recvtime = Common.get_time() +. delay in
-
     List.iter 
-    (fun mhook -> mhook l2pkt s )
+      (fun mhook -> mhook l2pkt s )
       pktout_mhooks;
-
-    let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
-    (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime);
+    
+    s#mac#xmit ~l2pkt
   )
 
   method mac_send_pkt ~l3pkt ~dstid = (
@@ -135,39 +133,30 @@ object(s)
     (fun mhook -> mhook l2pkt s )
       pktout_mhooks;
 
-    let neighbors = (Gworld.world())#neighbors id in
-
-    List.iter (fun nid -> 
-      if nid <> s#id then (
-      let n = (Nodes.node(nid)) in
-      let recvtime = 
-	Common.get_time()
-	+. Mws_utils.xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt)
-	+. Mws_utils.propdelay 
-	  ((Gworld.world())#nodepos id) 
-	  ((Gworld.world())#nodepos nid) in
-      let recv_event() = 
-	n#mac_recv_pkt ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) in
-      (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
-      )
-    ) neighbors
+    s#mac#xmit ~l2pkt;
   )
 
-  method trafficsource ~num_pkts ~dst ~pkts_per_sec  = 
+  method set_trafficsource ~gen ~dst = 
+    match gen() with
+      | Some time_to_next_pkt ->
+	  let next_pkt_event() = s#trafficsource gen dst in
+	  (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
+      | None -> ()
+	  
+  method private trafficsource gen dst = 
     s#originate_app_pkt ~dst;
-    let time_to_next_pkt = 1.0 /. (i2f pkts_per_sec) in
-    let next_pkt_event() = 
-      s#trafficsource ~num_pkts:(num_pkts - 1) ~dst ~pkts_per_sec:pkts_per_sec     in
-    if (num_pkts >= 0) then 
-      (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
-      
+    (* when gen() returns None, this trafficsource is done sending *)
+    match gen() with
+      | Some time_to_next_pkt ->
+	  let next_pkt_event() = s#trafficsource gen dst in
+	  (Gsched.sched())#sched_in ~f:next_pkt_event ~t:time_to_next_pkt
+      | None -> ()
       
   method originate_app_pkt ~dst = 
     app_send_pkt_hook `APP_PKT ~dst
 
-  method dump_state = {
-    node_pos=(Gworld.world())#nodepos id
-  } 
+  method dump_state = (Gworld.world())#nodepos id
+
 
 end
 
