@@ -27,6 +27,20 @@ let insert ~ll ~v ~compare =
 	  | true -> ll := Some {v=v; fore = Some head};
 	  | false -> advance head (* > 1 node *)
 
+let iter f ll = 
+  let rec advance node = 
+    f node.v;
+    match node.fore with
+      | None -> ()
+      | Some nextnode -> 
+	  advance nextnode
+  in 
+  match !ll with 
+    | None -> () 
+    | Some head ->
+	advance head
+
+
 let pophead ~ll = 
 match !ll with 
   | None -> None   (* empty *)
