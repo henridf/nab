@@ -58,6 +58,14 @@ let ease_route_pktout_mhook routeref l2pkt node = (
 )
 
 
+let find_last_flood src route = 
+  let n = ref None in
+  for i = (List.length route) - 1 downto 0 do
+    if (List.nth route i).Route.info <> None then
+      if !n = None then
+	n := Some i
+  done;
+  !n
 
 
 let grep_route_pktin_mhook routeref l2pkt node = (
@@ -73,7 +81,6 @@ let grep_route_pktin_mhook routeref l2pkt node = (
   match L3pkt.l3grepflags ~l3pkt with
     | L3pkt.GREP_DATA ->
 	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving t node %d" node#id));	  
-	
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  route_done := true;
 	  routeref := Route.add_hop !routeref {
@@ -83,17 +90,19 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 	)
     | L3pkt.GREP_RREQ  ->
 	assert (Route.length !routeref > 0);
-	assert (NaryTree.belongs l2src (Misc.o2v ((Route.last_hop !routeref).Route.info)));
-	let tree = o2v (Route.last_hop !routeref).Route.info in
+	let hopno = find_last_flood l3src !routeref in
+	assert (hopno <> None);
+	let tree = o2v (Route.nth_hop !routeref (o2v hopno)).Route.info in
+	assert (NaryTree.belongs l2src tree);
+
 	let newtree = 
 	  (* A flood is not a tree, so this node may receive the rreq more
 	     than once. we only care for the first time.*)
 	  try (Flood.addnode  ~parent:l2src ~node:node#id tree)
-	  with  (Failure "addnode") -> tree
+	  with (Failure "addnode") -> tree
 	in
-	(Route.last_hop !routeref).Route.info <- Some newtree
+	(Route.nth_hop !routeref (o2v hopno)).Route.info <- Some newtree
     | _ -> () (* ignore RREP/RRER*)
-
 )
 
 let grep_route_pktout_mhook routeref l2pkt node = (
