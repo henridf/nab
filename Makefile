@@ -13,6 +13,7 @@ LER_SUBDIR = ler
 BLER_SUBDIR = bler
 MISC_SUBDIR = misc
 TEST_SUBDIR = test
+BIN_SUBDIR = bin
 LIB_SUBDIR = /usr/lib/ocaml
 
 INCLUDE = -I $(MISC_SUBDIR) -I $(TEST_SUBDIR) -I $(LER_SUBDIR) -I $(BLER_SUBDIR) -I $(LIB_SUBDIR)
@@ -77,16 +78,16 @@ STR_LIB = $(LIB_SUBDIR)/str$(CMA)
 test-ler: $(LER_OBJ_FILES) $(LER_SUBDIR)/test-ler$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES) $(GFX_LIB) $(LER_OBJ_FILES) $(LER_SUBDIR)/test-ler$(CMO) -o $@ 
 
-bin/exp: $(LER_OBJ_FILES) 
+exp: $(LER_OBJ_FILES) 
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GFX_LIB) $(LER_OBJ_FILES) -o $(BIN_SUBDIR)$@ 
 
-bin/bler: $(BLER_OBJ_FILES)
+bler: $(BLER_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(GFX_LIB) $(BLER_OBJ_FILES) -o $(BIN_SUBDIR)$@ 
 
-bin/doplots: $(LER_OBJ_FILES) $(LER_SUBDIR)/ler_experiments$(CMO) $(MISC_SUBDIR)/doplots$(CMO)
+doplots: $(LER_OBJ_FILES) $(LER_SUBDIR)/ler_experiments$(CMO) $(MISC_SUBDIR)/doplots$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(UNIX_LIB) $(STR_LIB) $(GFX_LIB) $(MISC_SUBDIR)/doplots$(CMO) -o $(BIN_SUBDIR)$@ 
 
-bin/proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
+proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(PROOF_OBJ_FILES) -o $(BIN_SUBDIR)$@ 
 
 CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo a.out); done
