@@ -13,8 +13,8 @@ open Printf
 open Graph
 
 
-(** Virtual class, concretized by {!Crworld.crworld_lazy} and
-  {!Crworld.crworld_greedy}.
+(** The base class from which {!Crworld.crworld_lazy} and
+  {!Crworld.crworld_greedy} inherit.
 
   @param x X size of world in meters.
   @param y Y size in meters of world.
@@ -74,7 +74,7 @@ class virtual crworld_common ~x ~y ~rrange  = (
       if !newx >  world_size_x_ then 
 	newx := (2.0 *. world_size_x_) -. !newx
       else if !newx < 0.0 then
-	newx := (-1.0) *. world_size_x_;
+	newx := (-1.0) *. !newx;
       if !newy > world_size_y_  then  
 	newy := (2.0 *. world_size_y_) -. !newy
       else if !newy < 0.0 then
