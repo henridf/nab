@@ -102,7 +102,6 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MISC_DIR)/graph$(CMO) \
 		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
-		$(MWS_DIR)/mws_utils$(CMO) \
 		$(MISC_DIR)/param$(CMO) \
 		$(MISC_DIR)/linkedlist$(CMO) \
 		$(MISC_DIR)/data$(CMO) \
@@ -111,6 +110,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(PKT_DIR)/l3pkt$(CMO) \
 		$(PKT_DIR)/l2pkt$(CMO) \
 		$(MWS_DIR)/log$(CMO) \
+		$(MWS_DIR)/mac$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
 		$(MISC_DIR)/experiment$(CMO) \
 		$(MISC_DIR)/heap$(CMO) \
