@@ -23,43 +23,31 @@
 (* $Id$ *)
 
 
-
-
-(** A MAC frontend (see {!Mac_base.frontend}) with modeling of contention and collisions. 
+(** A MAC layer with a MACA backend and a null frontend. 
 
   @author Henri Dubois-Ferriere.
 *)
 
-(** A MAC layer with a contention frontend and a null backend, ie
-  packets from the upper layers are sent directly to the frontend, and
-  vice-versa.
-
-  No queuing/buffering of packets - if a packet is received from the upper
-  layer when already transmitting, it is dropped.
-  No retransmissions or link-layer acknowledgements. *)
-class contentionmac :
+class maca_mac :
   ?stack:int ->
   bps:float ->
   #Simplenode.simplenode ->
   object
     inherit Mac.t
-    method other_stats : Contention_frontend.stats
-    method set_jitter : float -> unit
-      (** Set the jitter value (in seconds) of this mac object.
-	When a [contentionmac] is handed a packet to be transmitted, it waits 
-	a random time, uniformly chosen between 0 and [jitter] seconds before
-	transmitting. The default jitter value is 0.1 seconds. *)
-  end
+    method other_stats : unit * MACA_backend.stats
+end
 
-val macs : ?stack:int -> unit -> (Common.nodeid_t, contentionmac) Hashtbl.t 
+
+val macs : ?stack:int -> unit -> (Common.nodeid_t, maca_mac) Hashtbl.t 
   (** Returns a hashtbl, indexed by {!Common.nodeid_t}, of all the mac objects
     for stack [stack] (stack defaults to 0 if argument not provided). 
     If there are no macs on this stack, returns an empty hashtbl.
   *)
 
-val mac :  ?stack:int -> Common.nodeid_t -> contentionmac
-  (** Returns the contentionmac mac object for given node on given stack.
-    @raise Not_found if there is no contentionmac on this stack/node pair.
+val mac :  ?stack:int -> Common.nodeid_t -> maca_mac
+  (** Returns the maca_mac mac object for given node on given stack.
+    @raise Not_found if there is no maca_mac on this stack/node pair.
   *)
+
 
 

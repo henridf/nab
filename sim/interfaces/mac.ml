@@ -30,18 +30,47 @@ type basic_stats =
 
 open Misc 
 
-class type  t  = 
+class type t  = 
 object
 
   inherit Log.inheritable_loggable 
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
-  method xmit : l2pkt:L2pkt.t -> unit
+  method xmit : L2pkt.t -> unit
   method bps : float
   method basic_stats : basic_stats
   method reset_stats : unit
 end
-    
-type mactype = Nullmac | Contmac | Cheatmac
+
+
+class type ['stats] backend_t = 
+object
+    method xmit : L2pkt.t -> unit
+
+    method private backend_reset_stats : unit
+    method private backend_stats : 'stats
+    method private backend_recv : L2pkt.t -> unit
+    method private unicast_failure : L2pkt.t -> unit
+end
+
+class type virtual ['stats] frontend_t = 
+object 
+  method private frontend_reset_stats : unit
+  method private frontend_stats : 'stats
+  method private frontend_xmit : L2pkt.t -> unit
+  method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
+  method bps : float
+  method virtual private backend_recv : L2pkt.t -> unit
+
+  method basic_stats : basic_stats
+end
+
+class type ['stats] stats_t  = 
+object
+  inherit t
+  method other_stats : 'stats
+end
+
+type mactype = Nullmac | Contmac | Cheatmac | MACA_simple | MACA_contention
 
 let mac_ = ref Nullmac
 
@@ -50,6 +79,8 @@ let str2mac s =
     | "null" |  "nullmac" -> Nullmac
     | "cheat" |  "cheatmac" -> Cheatmac
     | "contention" | "cont" | "contmac" -> Contmac
+    | "maca_simple" -> MACA_simple
+    | "MACA_contention" -> MACA_contention
     | _ -> raise (Failure "Invalid format for mac type")
 
 let strset_mac s = 

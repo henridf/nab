@@ -24,7 +24,9 @@
 
 
 (** 
-  MAC layer interface and helper functions.
+  MAC layer interfaces and helper functions. One can either implement a full
+  MAC layer in a single class (of type {!Mac.t}), or mix together a frontend (of
+  type {!Mac.frontend_t}) and a backend (of type {!Mac.backend_t}).
 
   @author Henri Dubois-Ferriere.
 *)
@@ -49,9 +51,8 @@ type basic_stats =
       each MAC layer.
     *)
 
-
-
-(**  The interface which a MAC layer must implement.
+(**  
+  The complete interface which a MAC layer must implement.
 
   Note for those implementing a MAC layer: it is simplest to inherit
   from {!Mac_base.base}, for the reasons described therein.
@@ -73,7 +74,7 @@ object
       is a collision if another packet is received in this interval.
     *)
       
-  method xmit : l2pkt:L2pkt.t -> unit
+  method xmit : L2pkt.t -> unit
     (** [xmit] is called by the upper layers on the node containing this MAC
       to send a packet out. *)
 
@@ -84,13 +85,53 @@ object
 
   method reset_stats : unit
     (** Reset stats for this MAC object. *)
+
 end
     
+(** The type of a MAC backend. *)
+class type ['stats] backend_t = 
+object
+    method xmit : L2pkt.t -> unit
+      (** Same as [xmit] method of {!Mac.t} class type. *)
+
+    method private backend_reset_stats : unit
+    method private backend_stats : 'stats
+    method private backend_recv : L2pkt.t -> unit
+end
+
+(** The type of a MAC frontend. *)
+class type virtual ['stats] frontend_t = 
+object 
+  method private frontend_reset_stats : unit
+  method private frontend_stats : 'stats
+  method private frontend_xmit : L2pkt.t -> unit
+  method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
+  method bps : float
+
+  method basic_stats : basic_stats
+  method virtual private backend_recv : L2pkt.t -> unit
+end
+
+(**
+  This is parameterized by the type ['stats] which is returned by the
+  [#other_stats] method, for MAC layers which maintain more statistics than
+  the {!Mac.basic_stats} stats. For those which do not, ['stats] should be of
+  type [unit].*)
+class type ['stats] stats_t  = 
+object
+  inherit t
+  method other_stats : 'stats
+end
+
+
 (** The types of MAC that are available. *)
 type mactype = 
   | Nullmac  (** See {!Mac_null.nullmac} *)
   | Contmac  (** See {!Mac_contention.contentionmac} *)
   | Cheatmac (** See {!Mac_cheat.cheatmac} *)
+  | MACA_simple (** See {!MACA_simple.maca_mac} *)
+  | MACA_contention (** See {!MACA_contention.maca_contentionmac} *)
+
 
 val strset_mac : string -> unit
   (** Set the default mac via a string (for example provided as cmdline argument). *)

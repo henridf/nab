@@ -35,9 +35,9 @@ let l2_bcast_addr = (* 255.255.255.255 *)
   powi ~num:2 ~exp:16 + 
   powi ~num:2 ~exp:24
 
-
 type l2hdr_ext_t = 
-    NONE | MACAW of Macaw_pkt.t
+    NONE | MACAW of Macaw_pkt.t | MACA of Maca_pkt.t
+
 
 type l2hdr_t = {
   l2src: Common.nodeid_t;
@@ -45,18 +45,20 @@ type l2hdr_t = {
   ext: l2hdr_ext_t;
 }
 
-let clone_l3hdr_ext = function
+let clone_l2hdr_ext = function
   | NONE -> NONE
   | MACAW e -> MACAW (Macaw_pkt.clone e)
+  | MACA e -> MACA (Maca_pkt.clone e)
 
-let l3hdr_ext_size = function
+let l2hdr_ext_size = function
   | NONE -> 0
   | MACAW e -> Macaw_pkt.size e
+  | MACA e -> Maca_pkt.size e
 
-(* 8 should vaguely represent the mac-layer framing bytes *) 
-let l2hdr_size hdr = 8 + 2 * _ADDR_SIZE + (l3hdr_ext_size hdr.ext)
+(* 8 should vaguely represent the phy-layer framing bytes *) 
+let l2hdr_size hdr = 8 + 2 * addr_size + (l2hdr_ext_size hdr.ext)
 
-let clone_l2hdr ~l2hdr = {l2hdr with ext=clone_l3hdr_ext l2hdr.ext}
+let clone_l2hdr ~l2hdr = {l2hdr with ext=clone_l2hdr_ext l2hdr.ext}
 
 type t = {
   l2hdr : l2hdr_t;
@@ -82,6 +84,11 @@ let string_of_l2dst l2dst =
   else string_of_int l2dst
 
 let l2hdr_ext l2pkt = l2pkt.l2hdr.ext
+
+let maca_hdr l2pkt = 
+  match l2pkt.l2hdr.ext with
+    | MACA h -> h
+    | MACAW _ | NONE -> raise (Failure "L2pkt.maca_hdr")
 
 let make_l2pkt ?(ext=NONE) ~src ~dst l3pkt = 
   let l2hdr = {l2src=src; l2dst=dst; ext=ext} 

@@ -45,18 +45,18 @@ let macs ?(stack=0) () = macs_array_.(stack)
 let mac ?(stack=0) i = 
   Hashtbl.find macs_array_.(stack) i
 
-class cheatmac ?(stack=0) bps theowner  = 
+class cheatmac ?(stack=0) ~bps theowner  = 
 object(s)
 
 
-  inherit Mac_null.nullmac ~stack bps theowner as super
+  inherit Mac_null.nullmac ~stack ~bps theowner as super
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/cheatmac";
     Hashtbl.replace macs_array_.(stack) theowner#id (s :> cheatmac);
 
   )
 
-  method xmit ~l2pkt = (
+  method xmit l2pkt = (
     s#log_debug (lazy "TX packet ");
     
     match L2pkt.l2dst l2pkt with 

@@ -33,10 +33,16 @@ let macs ?(stack=0) () = macs_array_.(stack)
 let mac ?(stack=0) i = 
   Hashtbl.find macs_array_.(stack) i
 
-class nullmac ?(stack=0) bps theowner  = 
+class nullmac ?(stack=0) ~bps theowner  = 
+  let myid = theowner#id in
 object(s)
 
   inherit [unit] Mac_base.base ~stack ~bps theowner as super
+
+  val mutable bitsTX = 0 
+  val mutable bitsRX = 0
+  val mutable pktsRX = 0 
+  val mutable pktsTX = 0
 
   initializer (
     s#set_objdescr ~owner:(theowner :> Log.inheritable_loggable)  "/nullmac";
@@ -80,17 +86,17 @@ object(s)
        called at the very beginning of the packet reception, so we shouldn't
        hand this packet to upper layers until the whole thing has arrived. *)
     let t = Time.get_time() +. 
-      super#xmitdelay l2pkt in
+      Mac_base.xmit_time bps l2pkt in
     
 
     (* After the above delay, we will call send_up on our super class, which deals
        with pushing the packet into our node's protocol stack. *)
-    let recv_event() =  super#send_up ~l2pkt in
+    let recv_event() =  super#send_up l2pkt in
     
     (Sched.s())#sched_at ~f:recv_event ~t:(Scheduler.Time t)	  
   )
 
-  method xmit ~l2pkt = (
+  method xmit l2pkt = (
 
     let l2dst = (L2pkt.l2dst l2pkt) in
     if l2dst = L2pkt.l2_bcast_addr ||

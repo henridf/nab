@@ -28,11 +28,15 @@
   already receiving or sending.
   Only propagation and transmission delay are applied.
   No queuing/buffering necessary.
+
+  The [pkts_RX] and [pkts_TX] fields in the {!Mac.basic_stats} record returned
+  by the method [basic_stats] count all packets (there are no control packets
+  in a null MAC anyway).
 *)
 
 class nullmac :
   ?stack:int ->
-  float ->
+  bps:float ->
   #Simplenode.simplenode ->
   object
     inherit Mac.t
