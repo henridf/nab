@@ -115,9 +115,7 @@ ODOC_FHTML_SRC = $(SIM_LIB_CONTRIB_DIR)/odoc_fhtml.ml
 
 # Files to generate doc for (all except scripts and gui/data/ files)
 DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
-	$(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*ml)) \
-	$(SIM_SCRIPT_DIR)/script_utils.mli \
-	$(SIM_SCRIPT_DIR)/script_utils.ml
+	$(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*ml)) 
 
 DOC_FILES := $(filter-out $(ODOC_FHTML_SRC), $(DOC_FILES))
 
