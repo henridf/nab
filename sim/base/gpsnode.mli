@@ -29,11 +29,8 @@
 
 
 
-
   
-class gpsnode : 
-  pos_init:Coord.coordf_t -> 
-  Common.nodeid_t ->
+class gpsnode :  Common.nodeid_t ->
 	  
 object
   inherit Simplenode.simplenode
