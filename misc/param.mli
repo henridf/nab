@@ -28,7 +28,8 @@ val create :
   -> reader:(string -> 'a)           (* convert from string (raise
 					IllegalValue if invalid) *)
   -> ?checker:('a -> unit)           (* check validity of value (raise
-					IllegalValue if invalid) *)
+					IllegalValue if invalid). If this has
+					side-effects, should be idempotent. *)
   -> unit
   -> 'a t                            (* -> new param value *)
   (** Create a parameter of any type *)
@@ -75,10 +76,25 @@ val make_argspeclist : unit -> (string * Myarg.spec * string) list
     created params which had 'cmdline' set. This list can then be used 
     to call Arg.parse with. *)
  
-val dumpconfig : unit -> (string * string) list
+
+val configlist : unit -> (string * string) list
   (** Returns a list of (keyword, value) pairs corresponding to the values of
     all created params which had cmdline set.*)
 
 
-val make_cmdline_able : 'a t -> unit
-val make_not_cmdline_able : 'a t -> unit
+val sprintconfig : unit -> string
+  (** Returns a string representation of all registered Param (not only those
+    from params.ml) and their values.
+    Right now only those params that are command-line settable are dumped (ie
+    created with ~cmdline=true).*)
+
+val printconfig : out_channel -> unit
+  (** Prints a string representation of all registered Param (not only those
+    from params.ml) and their values.
+    Right now only those params that are command-line settable are dumped (ie
+    created with ~cmdline=true).*)
+
+(*
+  val make_cmdline_able : 'a t -> unit
+  val make_not_cmdline_able : 'a t -> unit
+*)

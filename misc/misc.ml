@@ -122,6 +122,8 @@ let array_count elt a = array_count_filt (fun x -> x = elt) a
 
 let array_same a1 a2 = list_same (Array.to_list a1) (Array.to_list a2)
 
+let sprintarr ~fmt:fmt ~l:l = Array.fold_left (fun a b -> a ^ (Printf.sprintf fmt b)) "" l
+let printarr ~fmt:fmt ~l:l = Printf.printf "%s" (sprintarr ~fmt:fmt ~l:l)
 
 (**  Iterators *)
 
@@ -160,6 +162,7 @@ let equal_or_print a b ~equal ~print =
     false
   ) else true
 	
+
 (** Random *)
   let wait_for_line() = (
     Printf.printf "Press enter to continue...\n" ; 

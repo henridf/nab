@@ -255,24 +255,7 @@ let print_header () = (
 
 
 
-let dumpconfig outchan = (
-  let conf = Param.dumpconfig () in
-
-  let max_width = 
-    List.fold_left 
-      (fun w (name,_) -> 
-	if String.length name > w then String.length name else w)
-      0
-      conf
-  in
-
-  List.iter (fun (name, value) ->
-    output_string outchan ((padto name (max_width + 4))^value^"\n")
-  ) conf;
-  flush outchan;
-)
-    
-  
+ 
 let finish () = (
   Printf.printf ".. done\n";
   flush stdout;

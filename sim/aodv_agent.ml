@@ -105,7 +105,7 @@ object(s)
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
 
   initializer (
-    s#set_objdescr ~owner  "/AODV_Agent");
+    s#set_objdescr ~owner  "/AODV_Agent";
     owner#add_recv_l2pkt_hook ~hook:s#recv_l2pkt_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
     s#incr_seqno()

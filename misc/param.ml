@@ -36,6 +36,11 @@ let create ~name  ?shortname ?(cmdline=false) ?default ~doc ~reader ?checker () 
     Hashtbl.add namespace sn sn;
   );
   
+  begin
+    match checker, default with 
+      | Some f, Some v -> f v
+      | _ -> ();
+  end;
   {value=default;
   shortname=(match shortname with None -> name | Some n -> n);
   name=name;
@@ -120,7 +125,15 @@ let make_argspeclist () =
   List.map (fun p -> make_stringargspec p) !stringparams
     
 
-let dumpconfig () = 
+let configlist () = 
+  List.sort (fun (a, _) (b, _) -> String.compare a b)
+    (List.map (fun p -> (p.name, (Misc.o2v p.value))) !stringparams
+    @
+    List.map (fun p -> (p.name, string_of_float (Misc.o2v p.value))) !floatparams
+    @
+    List.map (fun p -> (p.name, string_of_int (Misc.o2v p.value))) !intparams)
+
+let configlist_doc () = 
   List.sort (fun (a, _) (b, _) -> String.compare a b)
     (List.map (fun p -> (p.doc, (Misc.o2v p.value))) !stringparams
     @
@@ -128,3 +141,41 @@ let dumpconfig () =
     @
     List.map (fun p -> (p.doc, string_of_int (Misc.o2v p.value))) !intparams)
     
+  
+let printconfig outchan = (
+  let configlist = configlist_doc () in
+
+  let max_width = 
+    List.fold_left 
+      (fun w (name,_) -> 
+	if String.length name > w then String.length name else w)
+      0
+      configlist
+  in
+
+  List.iter (fun (name, value) ->
+    output_string outchan ((Misc.padto name (max_width + 4))^value^"\n")
+  ) configlist;
+  flush outchan;
+)
+
+
+let sprintconfig outchan = (
+  let configlist = configlist_doc () in
+
+  let max_width = 
+    List.fold_left 
+      (fun w (name,_) -> 
+	if String.length name > w then String.length name else w)
+      0
+      configlist
+  in
+
+  let stringlist = 
+    List.map (fun (name, value) ->
+      (Misc.padto name (max_width + 4))^value^"\n"
+    ) configlist 
+  in
+  List.fold_left (^) "" stringlist;
+
+)

@@ -15,3 +15,4 @@ object
   method xmit : l2pkt:L2pkt.l2packet_t -> unit
 end
     
+type mactype = Nullmac | Contmac

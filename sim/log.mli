@@ -8,7 +8,8 @@
 *)
 
 val ochan : out_channel ref
-  (** The channel onto which logs are written. *)
+  (** The channel onto which logs are written. 
+    By default, stderr.*)
 
 (** Logging levels, in order of increasing 'importance'. *)
 type log_level_t =

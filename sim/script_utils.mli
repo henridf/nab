@@ -97,8 +97,4 @@ val detach_daemon :  outfilename:string -> unit
 
 
 
-val dumpconfig : out_channel -> unit
-  (** Dumps out config of all registered Param (not only those from params.ml).
-    Right now only those params that are command-line settable are dumped (ie
-    created with ~cmdline=true).*)
 

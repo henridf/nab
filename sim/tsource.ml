@@ -17,7 +17,7 @@ let make_counting_trafficsource f num_pkts =
 
 
 let make_cbr ~num_pkts ~pkts_per_sec = 
-  let time_to_next_pkt() = 1.0 /. (i2f pkts_per_sec) in
+  let time_to_next_pkt() = 1.0 /. pkts_per_sec in
   make_counting_trafficsource time_to_next_pkt num_pkts
   
     

@@ -12,7 +12,7 @@ type traffic_generator_t = (unit -> float option)
       - None, if there are no more packets to send*)
 
 
-val make_cbr : num_pkts:int -> pkts_per_sec:int -> traffic_generator_t
+val make_cbr : num_pkts:int -> pkts_per_sec:float -> traffic_generator_t
   (** Returns a traffic_generator_t which will originate num_pkts, at a rate
     of pkts_per_sec *)
 

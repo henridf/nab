@@ -439,10 +439,11 @@ object(s)
   method publish  _ ~dst:_  = (
     let sinks_to_send_to = 
       match !diffusion_type with 
-	| `Voronoi | `OPP -> 
+	| `Voronoi | `ESS -> 
 	    let candidates = s#closest_sinks () in 
-	    [Misc.rnd_from_list candidates]
-	| `ESS -> 
+	    if candidates = [] then [] else
+	      [Misc.rnd_from_list candidates]
+	| `OPP -> 
 	    s#known_sinks()
     in
     (* Jitter the sends by a uniform RV over a range proportional to the

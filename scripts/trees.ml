@@ -42,6 +42,19 @@ struct
     Pm.stringcreate ~name:"difftype" ~default:"Voronoi" ~cmdline:true
       ~doc:"Diffusion algorithm" 
       ~checker:(fun s -> Diff_agent.strset_difftype s) ()
+
+
+  let mac_of_string s = match s with 
+    | "null" | "nullmac" -> Mac.Nullmac
+    | "contention" | "contmac" | "contentionmac" -> Mac.Contmac
+    | _ -> raise (Failure ("Invalid mactype "^s))
+
+    
+  let mactype = 
+    Pm.stringcreate ~name:"mactype" ~default:"nullmac" ~cmdline:true
+      ~doc:"Mac layer" 
+      ~checker:(fun s -> ignore (mac_of_string s)) ()
+
 end
 
 let clear_rtabs() = 
@@ -86,27 +99,26 @@ let is_connected () = (
   (* Restore diffusion type *)
   Diff_agent.strset_difftype (Pm.get Config.difftype);
   (!count = (Pm.get Pms.nodes));
-
-
-
 )
 
 let make_connected_world() = (
+  (* set the seed back to same value for generating topology *)
+  Random.init 0;
+
   Log.strset_log_level "warn";
-  
   let rnd_state = ref (Random.get_state ()) in
   let count = ref (Pm.get Config.nth_top) in
   while !count > 0 do
-    Log.lognt#log_always (lazy "Generating nodes ... ");
+    Log.lognt#log_info (lazy "Generating nodes ... ");
     init_all();
     rnd_state := Random.get_state();
     make_nodes();
     make_diff_agents();
     if is_connected() then (
       decr count;
-      Log.lognt#log_always (lazy (sprintf " OK - connected graph %d more to go!" !count));
+      Log.lognt#log_info (lazy (sprintf " OK - connected graph %d more to go!" !count));
     ) else (
-      Log.lognt#log_always (lazy "Not connected, trying again");
+      Log.lognt#log_info (lazy "Not connected, trying again");
     );
     flush stdout;
   done;
@@ -116,7 +128,7 @@ let make_connected_world() = (
    In fact, we only need to do a init_world and then replace diff_agents
    (because the current ones are already subscribed), but this is a workaround
    because agents cannot be removed from nodes (because they stay attached to
-   hooks, see general_todo.txt *)
+   hooks, see general_todo.txt) *)
   init_all();
   Random.set_state !rnd_state;
 
@@ -149,15 +161,22 @@ let install_hooks () =
     n#add_pktout_mhook data_tx_mhook)
 
 let print_stats () = (
-  printf "#h interest data\n";
-  printf "%d %d\n" !interest_tx !data_tx;
+  let params = Param.configlist() in
+  printf "#h interest data ";
+  List.iter (fun (name, value) -> print_string (name^" ")) params;
+  printf "\n";
+  printf "%d %d " !interest_tx !data_tx;
+  List.iter (fun (name, value) -> print_string (value^" ")) params;
+  printf "\n";
   flush stdout
 )
   
 let install_data_sources () = 
   Nodes.iter (fun n ->
     n#set_trafficsource 
-    ~gen:(Tsource.make_poisson ~num_pkts:max_int ~lambda:1.)
+    ~gen:(Tsource.make_poisson ~num_pkts:max_int ~lambda:(1./.(float (Pm.get Pms.nodes))))
+    (* the data rate is 1/nnodes, so that the overall data event rate is 1 per
+       second *)
     ~dst:0) (* dst will be ignored by diff_agent*)
 
 let subscribe_sinks() = 
@@ -185,48 +204,46 @@ let run_nb = ref 0
 
 let do_one_run() = 
   Log.lognt#mark_break;
-  Log.lognt#log_always (lazy (sprintf "* * * Starting run: %d" !run_nb));
+  Log.lognt#log_info (lazy (sprintf "* * * Starting run: %d" !run_nb));
   incr run_nb;
-  dumpconfig stdout;
-  Log.lognt#log_always (lazy "Making a connected topology");
+  Param.printconfig !Log.ochan;
+  Log.lognt#log_info (lazy "Making a connected topology");
   make_connected_world();
   
   install_hooks();
   install_null_macs();
   subscribe_sinks();
-  
+  install_data_sources();
   (Gsched.sched())#run_for ~duration:(Pm.get Config.duration)
   
 module P = Gnuplot.GnuplotArray
 
-let plot x y = 
+let plot ?label x y = 
   let g = P.init P.X in
-  P.xy g (Array.map float x) (Array.map float y)
+  P.xy g ?label (Array.map float x) (Array.map float y)
 
 let _ = 
   setup();
-  let nsinks = [1;2;3;4;5;6;7;8;9;10] in
-  let results =
-    List.map 
-      (fun i -> Pm.set Config.nsinks i;
-	do_one_run();
-	print_stats();
-	!interest_tx;
-      ) nsinks
-  in
-  plot (Array.of_list nsinks) (Array.of_list results);
+  do_one_run();
+  print_stats();
+  (!interest_tx, !data_tx);
+
+(*
+  let g = P.init P.X in
   
-  Printf.printf "PRinfing results, length \n";
-  Misc.printlist "%d " results
+  P.title g (Param.sprintconfig());
+  P.box g;
+  P.xlabel g "Sinks";
+  P.ylabel g "Packets";
   
+  P.pen 1;
+  P.xy g ~style:P.Linespoints ~label:"DATA-TX" (Array.map float nsinks) 
+    (Array.map (fun (i, d) ->   float d) results);
+  P.pen 2;
+  P.xy g ~style:P.Linespoints ~label:"INTEREST-TX" (Array.map float nsinks) 
+    (Array.map (fun (i, d) -> float i) results);
   
-
-
-
-
-
-
-
+*)
 
 (* attic *)
 
@@ -239,11 +256,11 @@ let _ =
   and known_sinks = !Diff_agent.agents_array.(i)#known_sinks () in
   let msg = 
   (sprintf "Node %d known sinks: %s" i Misc.sprintlist "%d" known_sinks)
-  in Log.lognt#log_always (lazy msg);
+  in Log.lognt#log_info (lazy msg);
   
   let msg = (sprintf "Node %d closest sinks: %s"	i
   (sprintf "Node %d known sinks: %s" i Misc.sprintlist "%d" closest_sinks)
-  in Log.lognt#log_always (lazy msg);
+  in Log.lognt#log_info (lazy msg);
   )
   )
 *)
