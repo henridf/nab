@@ -2,9 +2,32 @@
 
 		http://lcavwww.epfl.ch/~henridf/mws.html
 
+**             
+** SOURCE LAYOUT                                              
+**             
+
+  mws/               -> simulator core
+  mws/interfaces/    -> class interfaces
+  mws/base/          -> implementation of core functions
+  mws/pkt/           -> packet representations and related functions
+  mws/mob/           -> mobility and related functions
+  mws/mac/           -> mac layers and related functions
+
+  proto/             -> protocol agents
+  proto/ler          -> last encounter routing (EASE/GREASE)
+  proto/aodv         -> AODV
+  proto/grep         -> GREP
+
+  gui/               -> GUI-related code
+				       
+  lib/               -> Helper libs 
+  lib/contrib        -> Helper libs by external people (GPL-level licenses)
 
 
+
+**
 ** COMPILING
+**
 
 To compile mws only:
 
@@ -30,8 +53,9 @@ where filename is assumed to be a file in the scripts/ directory, as in
 	or
 	make SCRIPT=grep.ml bin/mws
 
-
+**
 ** OTHER TARGETS
+**
 
 To build documentation: 
 

@@ -16,58 +16,72 @@ OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
 
 LIB_DIR = $(shell $(CAML_BIN_DIR)/ocamlc -where)
 
-
 MWS_DIR = mws
-PKT_DIR = pkt
+MWS_BASE_DIR = $(MWS_DIR)/base
+MWS_INTF_DIR = $(MWS_DIR)/interfaces
+MWS_MAC_DIR = $(MWS_DIR)/mac
+MWS_MOB_DIR = $(MWS_DIR)/mob
+MWS_PKT_DIR = $(MWS_DIR)/pkt
+MWS_DIRS = $(MWS_BASE_DIR) $(MWS_INTF_DIR) $(MWS_MAC_DIR) $(MWS_MOB_DIR) $(MWS_PKT_DIR)
+
+
+PROTO_DIR = proto
+PROTO_LER_DIR = $(PROTO_DIR)/ler
+PROTO_GREP_DIR = $(PROTO_DIR)/grep
+PROTO_AODV_DIR = $(PROTO_DIR)/aodv
+PROTO_DIFF_DIR = $(PROTO_DIR)/diff
+PROTO_MISC_DIR = $(PROTO_DIR)/misc
+PROTO_DIRS = $(PROTO_GREP_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
+	$(PROTO_MISC_DIR) $(PROTO_LER_DIR) 
+
+MWS_LIB_DIR = lib
+MWS_LIB_CONTRIB_DIR = $(MWS_LIB_DIR)/contrib
+MWS_LIB_DIRS = $(MWS_LIB_DIR) $(MWS_LIB_CONTRIB_DIR)
+
+
 MWS_SCRIPT_DIR = scripts
 GUI_DIR = gui
 GUI_DATA_DIR = $(GUI_DIR)/data
-MISC_DIR = misc
 MK_DIR = mk
 TEST_DIR = test
+
+# target dirs
+DOC_TARGET_DIR = doc
 BIN_DIR = bin
 
 GTK_DIR = $(LIB_DIR)/lablgtk
-GNUPLOT_DIR = contrib/gnuplot
+GNUPLOT_DIR = ../contrib/gnuplot
 CAMLIMAGES_DIR = $(LIB_DIR)/camlimages
 
+INCLUDE_SRC = $(foreach dir,$(DIRS), -I $(dir))
 INCLUDE_LIBS = -I $(GTK_DIR) -I $(GNUPLOT_DIR)
-INCLUDE_SRC = -I $(MISC_DIR) -I $(PKT_DIR) -I $(TEST_DIR) -I $(MWS_DIR) -I $(GUI_DIR) 
-INCLUDE_SCRIPTS = -I $(MWS_SCRIPT_DIR)
-INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) $(INCLUDE_SCRIPTS) -I $(GUI_DATA_DIR)
-INCLUDE_DOCS = $(INCLUDE_LIBS) $(INCLUDE_SRC) 
+INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(MWS_SCRIPT_DIR) -I $(GUI_DATA_DIR)
 
 INCLUDE_CAMLIMAGES = -I $(CAMLIMAGES_DIR)
 
 LINKFLAGS_CAMLIMAGES = -cclib "-L/usr/lib/ocaml/camlimages"  
 THFLAGS = -thread
 
-DIRS = \
-	$(MISC_DIR) \
-	$(MK_DIR) \
+
+DIRS = 	$(MWS_LIB_DIRS) \
 	$(GUI_DIR) \
 	$(TEST_DIR) \
-	$(MWS_DIR) \
-	$(PKT_DIR) \
-	$(MWS_SCRIPT_DIR) \
-	$(GUI_DIR)
+	$(MWS_DIRS) \
+	$(PROTO_DIRS) 
 
-DEPEND = .depend
 
-DEPENDS = \
-	$(MWS_DIR)/*.ml \
-	$(MWS_DIR)/*.mli \
-	$(PKT_DIR)/*.ml \
-	$(PKT_DIR)/*.mli \
-	$(GUI_DIR)/*.ml \
-	$(GUI_DIR)/*.mli \
-	$(GUI_DATA_DIR)/*.ml \
-	$(GUI_DATA_DIR)/*.mli \
-	$(MWS_SCRIPT_DIR)/*.ml \
-	$(MWS_SCRIPT_DIR)/*.mli \
-	$(TEST_DIR)/*.mli \
-	$(MISC_DIR)/*.ml \
-	$(MISC_DIR)/*.mli
+# For clean_* targets, we don't rm gui/data/ files (they are slow to compile and 
+# never change)
+CLEAN_DIRS = $(DIRS) $(MWS_SCRIPT_DIR) $(MK_DIR)
+
+DEPEND_DIRS = $(DIRS) $(MWS_SCRIPT_DIR)	$(GUI_DATA_DIR)
+
+DOC_DIRS = $(DIRS) $(GUI_DATA_DIR)
+DOC_DIR = doc
+
+DEPEND_FILES := $(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*mli)) \
+	$(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*ml))
+
 
 
 ifdef SCRIPT
@@ -97,71 +111,79 @@ CAMLIMAGES_LIBS = ci_core$(CMA) \
 		ci_graphics$(CMA) \
 		ci_png$(CMA)
 
+
+
+# Files to generate doc for (all except scripts and gui/data/ files)
+DOC_FILES := $(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*mli)) \
+	$(foreach dir,$(DOC_DIRS),$(wildcard $(dir)/*ml))
+
+
 ##########################################
 # Files corresponding to different subdirs
 
 
-MWS_OBJ_FILES = $(GFX_LIB) \
+MWS_OBJS = $(GFX_LIB) \
 		$(STR_LIB) \
 		$(GNUPLOT_LIB) \
-		$(MISC_OBJ_FILES) \
-		$(MISC_DIR)/graph$(CMO) \
+		$(MWS_LIB_OBJS) \
 		$(GUI_DIR)/epflcoords$(CMO) \
 		$(GUI_DIR)/read_coords$(CMO) \
-		$(MISC_DIR)/param$(CMO) \
-		$(MISC_DIR)/linkedlist$(CMO) \
-		$(MISC_DIR)/data$(CMO) \
-		$(MWS_DIR)/common$(CMO) \
-		$(PKT_DIR)/pkt_common$(CMO) \
-		$(PKT_DIR)/l4pkt$(CMO) \
-		$(PKT_DIR)/ease_pkt$(CMO) \
-		$(PKT_DIR)/grep_pkt$(CMO) \
-		$(PKT_DIR)/aodv_pkt$(CMO) \
-		$(PKT_DIR)/diff_pkt$(CMO) \
-		$(PKT_DIR)/l3pkt$(CMO) \
-		$(PKT_DIR)/l2pkt$(CMO) \
-		$(MWS_DIR)/log$(CMO) \
-		$(MWS_DIR)/mac$(CMO) \
-		$(MWS_DIR)/params$(CMO) \
-		$(MISC_DIR)/heap$(CMO) \
-		$(MWS_DIR)/rt_agent$(CMO) \
-		$(MWS_DIR)/sched$(CMO) \
-		$(MWS_DIR)/worldt$(CMO) \
-		$(MWS_DIR)/world$(CMO) \
-		$(MWS_DIR)/nodes$(CMO) \
-		$(MWS_DIR)/route$(CMO) \
-		$(MWS_DIR)/flood$(CMO) \
-		$(MISC_DIR)/ler_graphics$(CMO) \
-		$(MWS_DIR)/le_tab$(CMO) \
-		$(MWS_DIR)/rtab$(CMO) \
-		$(MWS_DIR)/ether$(CMO) \
-		$(MWS_DIR)/tsource$(CMO) \
-		$(MWS_DIR)/simplenode$(CMO) \
-		$(MWS_DIR)/mac_base$(CMO) \
-		$(MWS_DIR)/mac_null$(CMO) \
-		$(MWS_DIR)/mac_contention$(CMO) \
-		$(MWS_DIR)/gpsnode$(CMO) \
-		$(MWS_DIR)/grep_hooks$(CMO) \
-		$(MWS_DIR)/aodv_grep_common$(CMO) \
-		$(MWS_DIR)/rt_agent_base$(CMO) \
-		$(MWS_DIR)/aodv_agent$(CMO) \
-		$(MWS_DIR)/grep_agent$(CMO) \
-		$(MWS_DIR)/diff_agent$(CMO) \
-		$(MWS_DIR)/ease_agent$(CMO) \
-		$(MWS_DIR)/gui_hooks$(CMO) \
-		$(MWS_DIR)/hello_agents$(CMO) \
-		$(MWS_DIR)/mob$(CMO) \
-		$(MWS_DIR)/mob_ctl$(CMO) \
-		$(MWS_DIR)/crsearch$(CMO) \
-		$(MWS_DIR)/crworld$(CMO) \
-		$(MWS_DIR)/script_utils$(CMO) \
-		$(MWS_DIR)/persistency$(CMO)
+		$(MWS_LIB_DIR)/param$(CMO) \
+		$(MWS_LIB_DIR)/linkedlist$(CMO) \
+		$(MWS_INTF_DIR)/rt_agent$(CMO) \
+		$(MWS_INTF_DIR)/scheduler$(CMO) \
+		$(MWS_INTF_DIR)/worldt$(CMO) \
+		$(MWS_INTF_DIR)/mac$(CMO) \
+		$(MWS_INTF_DIR)/trafficgen$(CMO) \
+		$(MWS_BASE_DIR)/time$(CMO) \
+		$(MWS_BASE_DIR)/common$(CMO) \
+		$(MWS_PKT_DIR)/pkt_common$(CMO) \
+		$(MWS_PKT_DIR)/l4pkt$(CMO) \
+		$(PROTO_LER_DIR)/ease_pkt$(CMO) \
+		$(PROTO_GREP_DIR)/grep_pkt$(CMO) \
+		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
+		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
+		$(MWS_PKT_DIR)/l3pkt$(CMO) \
+		$(MWS_PKT_DIR)/l2pkt$(CMO) \
+		$(MWS_LIB_DIR)/log$(CMO) \
+		$(MWS_BASE_DIR)/params$(CMO) \
+		$(MWS_LIB_CONTRIB_DIR)/heap$(CMO) \
+		$(MWS_BASE_DIR)/sched$(CMO) \
+		$(MWS_BASE_DIR)/world$(CMO) \
+		$(MWS_BASE_DIR)/nodes$(CMO) \
+		$(MWS_BASE_DIR)/route$(CMO) \
+		$(MWS_BASE_DIR)/flood$(CMO) \
+		$(PROTO_LER_DIR)/le_tab$(CMO) \
+		$(MWS_BASE_DIR)/rtab$(CMO) \
+		$(MWS_BASE_DIR)/ether$(CMO) \
+		$(MWS_BASE_DIR)/tsource$(CMO) \
+		$(MWS_BASE_DIR)/simplenode$(CMO) \
+		$(MWS_MAC_DIR)/mac_base$(CMO) \
+		$(MWS_MAC_DIR)/mac_null$(CMO) \
+		$(MWS_MAC_DIR)/mac_contention$(CMO) \
+		$(MWS_BASE_DIR)/gpsnode$(CMO) \
+		$(PROTO_GREP_DIR)/grep_hooks$(CMO) \
+		$(PROTO_GREP_DIR)/aodv_grep_common$(CMO) \
+		$(MWS_BASE_DIR)/rt_agent_base$(CMO) \
+		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
+		$(PROTO_GREP_DIR)/grep_agent$(CMO) \
+		$(PROTO_DIFF_DIR)/diff_agent$(CMO) \
+		$(PROTO_LER_DIR)/ease_agent$(CMO) \
+		$(MWS_BASE_DIR)/gui_hooks$(CMO) \
+		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
+		$(MWS_MOB_DIR)/mob_base$(CMO) \
+		$(MWS_MOB_DIR)/mobs$(CMO) \
+		$(MWS_BASE_DIR)/mob_ctl$(CMO) \
+		$(MWS_BASE_DIR)/crsearch$(CMO) \
+		$(MWS_BASE_DIR)/crworld$(CMO) \
+		$(MWS_SCRIPT_DIR)/script_utils$(CMO) \
+		$(MWS_BASE_DIR)/persistency$(CMO)
 # script_utils should be as near to end as possible
 # because only scripts should need to use it
 # persistency gets an exception because it performs 
 # setup-type functions, similar to those done in a script
 
-GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
+GUI_OBJS = $(MWS_OBJS) \
 		$(GUI_DATA_DIR)/epfl$(CMO) \
 		$(GUI_DATA_DIR)/blank$(CMO) \
 		$(GUI_DIR)/params_gui$(CMO) \
@@ -171,23 +193,23 @@ GUI_OBJ_FILES = $(MWS_OBJ_FILES) \
 		$(GUI_DIR)/gui_ctl$(CMO) \
 		$(GUI_DIR)/gui_grep$(CMO) 
 
-MODULE_OBJ_FILES = \
-	$(MISC_DIR)/graph$(CMO) \
-	$(MISC_DIR)/larray$(CMO) \
-	$(MISC_DIR)/circbuf$(CMO) \
-	$(MISC_DIR)/itin$(CMO)
+MODULE_OBJS = \
+	$(MWS_LIB_DIR)/larray$(CMO) \
+	$(MWS_LIB_DIR)/circbuf$(CMO) \
+	$(MWS_LIB_DIR)/itin$(CMO)
 
 
-MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
-		 $(MISC_DIR)/mods$(CMO) \
-		 $(MISC_DIR)/opt$(CMO) \
-		 $(MISC_DIR)/randoms$(CMO) \
-		 $(MISC_DIR)/coord$(CMO) \
-		 $(MISC_DIR)/naryTree$(CMO)
+MWS_LIB_OBJS = $(MWS_LIB_DIR)/misc$(CMO) \
+		 $(MWS_LIB_DIR)/mods$(CMO) \
+		 $(MWS_LIB_CONTRIB_DIR)/opt$(CMO) \
+		 $(MWS_LIB_DIR)/randoms$(CMO) \
+		 $(MWS_LIB_DIR)/coord$(CMO) \
+		 $(MWS_LIB_DIR)/naryTree$(CMO) \
+		$(MWS_LIB_DIR)/graph$(CMO)
 
-TEST_OBJ_FILES = \
+TEST_OBJS = \
 	$(TEST_DIR)/testUtils$(CMO) \
-	$(MISC_DIR)/coord$(CMO) \
+	$(MWS_LIB_DIR)/coord$(CMO) \
 	$(TEST_DIR)/graph-test$(CMO) \
 	$(TEST_DIR)/itin-test$(CMO) \
 	$(TEST_DIR)/circbuf-test$(CMO)
@@ -206,56 +228,41 @@ alltargets: mws mwsgrep grepviz mwstop gui mwsvor guitop
 
 
 mws: bin/mws
-bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+bin/mws: $(MWS_OBJS) $(MWS_SCRIPT)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJS) $(MWS_SCRIPT) -o $@ 
 
 mwsgrep: bin/mwsgrep
-bin/mwsgrep: $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJ_FILES) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
+bin/mwsgrep: $(MWS_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(UNIX_LIB) $(MWS_OBJS) scripts/grep_common$(CMO) scripts/grep$(CMO) -o $@ 
 
 grepviz: bin/grepviz
-bin/grepviz: $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
+bin/grepviz: $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grep_common$(CMO) scripts/grepviz$(CMO) -o $@ 
 
 mwsvor: bin/mwsvor
-bin/mwsvor:  $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJ_FILES) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
+bin/mwsvor:  $(MWS_OBJS) scripts/voronoi_common$(CMO)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(STR_LIB) $(MWS_OBJS) scripts/voronoi_common$(CMO) $(MWS_SCRIPT) -o $@ 
 
 mwstop: bin/mwstop
-bin/mwstop: $(MWS_OBJ_FILES)  $(MWS_SCRIPT)
-	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJ_FILES)  $(MWS_SCRIPT) -o $@
+bin/mwstop: $(MWS_OBJS)  $(MWS_SCRIPT)
+	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(MWS_OBJS)  $(MWS_SCRIPT) -o $@
 
 gui: bin/gui
-bin/gui: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
+bin/gui: $(GUI_OBJS) $(MWS_SCRIPT)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
-	$(GUI_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+	$(GUI_OBJS) $(MWS_SCRIPT) -o $@ 
 
 guitop: bin/guitop
-bin/guitop: $(GUI_OBJ_FILES) $(MWS_SCRIPT)
-	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
+bin/guitop: $(GUI_OBJS) $(MWS_SCRIPT)
+	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(MWS_SCRIPT) -o $@ 
 
 
-DOC_FILES = \
-	$(MWS_DIR)/*.ml \
-	$(MWS_DIR)/*.mli \
-	$(PKT_DIR)/*.ml \
-	$(PKT_DIR)/*.mli \
-	$(GUI_DATA_DIR)/*.ml \
-	$(GUI_DATA_DIR)/*.mli \
-	$(GUI_DIR)/*.ml \
-	$(GUI_DIR)/*.mli \
-	$(MISC_DIR)/*.ml \
-	$(MISC_DIR)/*.mli
 
-GUI_OBJ_ONLY_CMOS = $(filter %.cmo, $(GUI_OBJ_FILES))
-GUI_ML_FILES = $(GUI_OBJ_ONLY_CMOS:.cmo=.ml)
-DOC_DIR = doc
-
-htmldoc: $(GUI_OBJ_FILES)
+htmldoc: $(GUI_OBJS)
 	$(OCAMLDOC) -html -sort -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES)
 
 dotdoc:
-	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE_DOCS)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
+	$(OCAMLDOC) -dot -d $(DOC_DIR)  $(INCLUDE)  $(DOC_FILES); dot -Tgif ocamldoc.out -o graph.gif
 
 camlgtk-th: bin/camlgtk-th
 bin/camlgtk-th: 
@@ -265,8 +272,8 @@ camlgtk: bin/camlgtk
 bin/camlgtk: 
 	$(MLTOP) $(INCLUDE) -o $@  $(GTK_STUFF)
 
-testmodules:  $(MODULE_OBJ_FILES) $(MISC_OBJ_FILES) $(TEST_OBJ_FILES)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MISC_OBJ_FILES) $(MODULE_OBJ_FILES) $(TEST_OBJ_FILES)  -o $(BIN_DIR)/$@ 
+testmodules:  $(MODULE_OBJS) $(MWS_LIB_OBJS) $(TEST_OBJS)
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(MWS_LIB_OBJS) $(MODULE_OBJS) $(TEST_OBJS)  -o $(BIN_DIR)/$@ 
 
 ocamlgfx: 
 	ocamlmktop -custom -o bin/ocamlgfx $(GFX_LIB) -cclib -L/usr/X11/lib -cclib -lX11
@@ -274,10 +281,10 @@ ocamlgfx:
 ocamlstr: 
 	ocamlmktop -o bin/ocamlstr $(STR_LIB) 
 
-OPTCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.cmx); done
-BYTECLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.cmi *.cmo); done
-MISCCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *.o *.out *.annot); done
-EMACSCLEANALL = for d in $(DIRS); do (cd $$d; rm -f *~; rm -f .*~); done
+OPTCLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *.cmx); done
+BYTECLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *.cmi *.cmo); done
+CLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *.o *.out *.annot *.cm*); done
+EMACSCLEANALL = for d in $(CLEAN_DIRS); do (cd $$d; rm -f *~; rm -f .*~); done
 
 bclean:
 	$(BYTECLEANALL)
@@ -286,8 +293,8 @@ bclean:
 oclean:
 	$(OPTCLEANALL)
 	rm -f  *.cmx
-clean:  bclean oclean
-	$(MISCCLEANALL)
+clean:  
+	$(CLEANALL) 
 	rm -f *.o *.cmx *.cmi *.cmo a.out 
 eclean:
 	$(EMACSCLEANALL)
@@ -295,9 +302,10 @@ eclean:
 	rm -f .*~
 
 
+DEPEND = .depend
 
 .depend:
-	$(OCAMLDEP) $(INCLUDE_SRC) $(DEPENDS) > $(DEPEND)
+	$(OCAMLDEP) $(INCLUDE_SRC) $(DEPEND_FILES) > $(DEPEND)
 
 depend: .depend
 
