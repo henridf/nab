@@ -118,8 +118,8 @@ let list_without l el = List.filter (fun x -> x <> el) l
 			  
 let list_unique_elements l = 
   let hash = Hashtbl.create (List.length l) in
-    List.iter (fun x -> Hashtbl.remove hash x; Hashtbl.add hash x "") l;
-    Hashtbl.fold (fun key _ list -> key :: list ) hash []
+  List.iter (fun x -> Hashtbl.replace hash x "") l;
+  Hashtbl.fold (fun key _ list -> key :: list ) hash []
 
 let list_count_element ~l ~el = List.length (List.filter (fun x -> x = el) l)
 let list_count_int ~l el:int = List.length (List.filter (fun (x:int) -> (x = el)) l)
@@ -192,6 +192,7 @@ let listofhash h =
   let f _key data l = data::l in
   Hashtbl.fold f h []
 
+let hashlen h = Hashtbl.fold (fun _ _ l -> l + 1) h 0
 
 (** Error Handling and Exceptions *)
 
@@ -284,3 +285,14 @@ let pushd dir =
   Sys.chdir dir; 
   Stack.push curdir dirstack 
 let popd () = let dir = Stack.pop dirstack in Sys.chdir dir
+
+
+(** Common Functorized modules. *)
+
+module OrderedType = 
+  struct
+    type t 
+    let compare = Pervasives.compare
+  end
+
+module SimpleSet = Set.Make(OrderedType)
