@@ -6,10 +6,15 @@ open Graph
 open Coord
 
 let draw_node_time nid t = 
-  let hilite = (nid < Param.get Params.ntargets) in 
+  let col = if (nid < Param.get Params.ntargets) then 
+    `NAME "red" 
+  else 
+    `NAME "black"
+  in 
   let (_, pos) = Gui_pos.node_pos_inst nid (Common.get_time())
   in
-  Gui_gtk.draw_node hilite pos
+
+  Gui_gtk.draw_node ~col pos
   
 let draw_nodes_time nidlist t = 
   List.iter (fun nid -> draw_node_time nid t) nidlist
@@ -70,15 +75,43 @@ let draw_all_routes() = (
 )
 
 let draw_route r = (
-  let rec draw_disks_ route = (
+  let colors = [|
+    "blue";
+    "azure";
+    "moccasin";
+    "grey";
+    "green";
+    "olive drab";
+    "coral";
+    "tomato"|] in
 
+  let rec draw_disks_ route = (
     match route with 
       | [] -> ()
       | hop1::hop2::r -> (
 	  (* we assume that the rectangle ratio of the window and the world
-	     are the same, otherwise this would not be  circle *)
+	     are the same, otherwise this would not be a circle *)
 	  Gui_gtk.draw_circle ~centr:hop1.Route.hop ~radius:(Gui_hooks.x_mtr_to_pix hop1.Route.searchcost);
 	  draw_disks_ (hop2::r);
+	)
+      | hop1::r -> ()
+  ) in
+
+  let colindex = ref (-1) in
+  let rec draw_anchors_  firsthop route = (
+    match route with 
+      | [] -> ()
+      | hop1::hop2::r -> (
+	  if (firsthop || ((hop2.Route.anchor_age) <> (hop1.Route.anchor_age))) then (
+(*	    Printf.printf "drawing anchor from %s to %s\n" 
+	    (Coord.sprint hop1.Route.hop) (Coord.sprint hop1.Route.anchor);*)
+	    colindex := (!colindex + 1) mod (Array.length colors);
+	    Gui_gtk.draw_segments ~col:(`NAME colors.(!colindex))
+	      [hop1.Route.hop, hop1.Route.anchor]
+	  );
+(*	    Printf.printf "Ages are %f and %f\n"  hop1.Route.anchor_age hop2.Route.anchor_age*)
+
+	  draw_anchors_ false (hop2::r)
 	)
       | hop1::r -> ()
   ) in
@@ -102,5 +135,6 @@ let draw_route r = (
   in
   draw_route_ r;
   draw_disks_ r;
+  draw_anchors_ true r;
 )
 
