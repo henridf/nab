@@ -80,7 +80,7 @@ object(s)
 
   inherit Log.loggable
 
-  val owner:Node.node_t = owner
+  val owner:Simplenode.simplenode = owner
   val rtab = Rtab.create ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
@@ -123,8 +123,8 @@ object(s)
 	with 
 	  | Send_Out_Failure -> 
 	      s#log_error 
-	      (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
-		(Packet.get_l3src ~l3pkt:pkt) dst);
+	      (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
+		(Packet.get_l3src ~l3pkt:pkt) dst));
     done
 
   (* DATA packets are buffered when they fail on send, 
@@ -333,8 +333,8 @@ object(s)
     with 
       | Send_Out_Failure -> 
 	  s#log_notice 
-	  (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
-	    dst obo);
+	  (lazy (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
+	    dst obo));
   )
 
   method private inv_packet_upwards ~nexthop ~l3pkt = (
@@ -377,6 +377,16 @@ object(s)
 	  with 
 	    | Send_Out_Failure -> 
 		begin
+		  (* taken out of simplenode#mac_send_pkt, should not be
+		     there. 
+		     let l3hdr = Packet.get_l3hdr l3pkt in
+		     l3hdr.Packet.grep_shopcount <- l3hdr.Packet.grep_shopcount - 1;
+		     probably also need to check if other fields need to be
+		     set back to their proper values (esp ttl)
+		  *)
+		  raise (Failure "Grep_agent.process_data_pkt: fix packet");
+
+
 		  let dst = (Packet.get_l3dst ~l3pkt:l3pkt) in
 (*		  s#log_notice 
 		    (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
@@ -408,8 +418,8 @@ object(s)
 	 At some point a more detailed implementation would probably need a
 	 separate representation of pending rreqs to know which have been
 	 satisfied, etc *)
-      s#log_info (sprintf "Sending RREQ pkt for dst %d with ttl %d"
-	dst ttl);
+      s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
+	dst ttl));
       
       let l3hdr = 
 	Packet.make_grep_l3hdr
@@ -456,7 +466,7 @@ object(s)
 	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
       with
 	| Simplenode.Mac_Bcast_Failure -> 
-	    s#log_error "bcast failure"
+	    s#log_error (lazy "bcast failure")
     )
   )
     
@@ -495,13 +505,14 @@ object(s)
       decr_l3ttl ~l3pkt:l3pkt;
 
       if ((Packet.get_l3ttl ~l3pkt:l3pkt) > ((Param.get Params.nodes)/10)) then (
-	s#log_warning (sprintf "Packet with ttl %d" (Packet.get_l3ttl
-	~l3pkt:l3pkt));
-	s#log_warning (sprintf "we have %d neighbors" (List.length owner#neighbors));
+	s#log_warning (lazy (sprintf "Packet with ttl %d" (Packet.get_l3ttl
+	~l3pkt:l3pkt)));
+	let n_ngbrs = (List.length ((Gworld.world())#neighbors owner#id)) in
+	s#log_warning (lazy (sprintf "we have %d neighbors" n_ngbrs));
       );
 
       if ((Packet.get_l3ttl ~l3pkt:l3pkt) < 0) then (
-(*	s#log_info (sprintf "Dropping packet (negative ttl)");*)
+	s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));
 	
 	assert(
 	  Packet.get_l3grepflags ~l3pkt:l3pkt = Packet.GREP_RADV ||

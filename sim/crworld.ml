@@ -22,7 +22,10 @@ class crworld ~x ~y ~rrange : World.world_t =
 object(s)
 
   val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 [])
-    
+  val mutable node_positions_ =  [|(0., 0.)|]
+
+  val mutable ngbrs = 
+    (Array.make (Param.get Params.nodes) ([]:Common.nodeid_t list))
   val world_size_x_ =  x 
   val world_size_y_ =  y
   val rrange_ = rrange
@@ -31,12 +34,21 @@ object(s)
 
   val rrange_sq_ = rrange ** 2.0
     
+  val mutable new_ngbr_hooks = (Array.make (Param.get Params.nodes) [])
 
   initializer (
     grid_of_nodes_ <- 
     (Array.make_matrix grid_size_x_ grid_size_y_ []);
-    Log.log#log_always (sprintf "New CRWorld " );
+    node_positions_ <- Array.make (Param.get Params.nodes) (0., 0.);
+
+    Log.log#log_always (lazy 
+      (sprintf "New CRWorld : size <%f,%f>, rrange %f, #nodes %d" 
+      x y rrange (Param.get Params.nodes))
+    );
   )
+
+  method add_new_ngbr_hook nid ~hook =
+    new_ngbr_hooks.(nid) <- new_ngbr_hooks.(nid) @ [hook]
 
   (* takes a 'real' position  (ie, in meters) and returns the 
      discrete grid position *)
@@ -45,6 +57,25 @@ object(s)
   method random_pos  = (
     let pos = (Random.float world_size_x_, Random.float world_size_y_) in
     pos
+  )
+
+  method neighbors nid = ngbrs.(nid)
+
+  (* adds a new neighbor ngbrid to nid. 
+     does NOT do the symetric operation *)
+  method private add_neighbor ~nid ~ngbrid = (
+    assert (not (List.mem ngbrid ngbrs.(nid) ));
+    List.iter 
+      (fun hook -> hook ngbrid)
+      new_ngbr_hooks.(nid);
+    ngbrs.(nid) <- ngbrid::ngbrs.(nid)
+  )
+
+  (* removes neighbor ngbrid from nid. 
+     does NOT do the symetric operation *)
+  method private lose_neighbor ~nid ~ngbrid = (
+    assert (List.mem ngbrid ngbrs.(nid) );
+    ngbrs.(nid) <- Misc.list_without ngbrs.(nid) ngbrid
   )
 
   method private reflect pos = (
@@ -64,21 +95,20 @@ object(s)
   method boundarize pos = s#reflect pos
 
   method dist_coords a b = sqrt (Coord.dist_sq a b)
-  method dist_nodes n1 n2 = s#dist_coords n1#pos n2#pos
-  method dist_nodeids id1 id2 = s#dist_coords (Nodes.node(id1))#pos (Nodes.node(id2))#pos
-  method neighbors n1 n2 = 
-    n1 <> n2 && ((Coord.dist_sq n1#pos n2#pos) <= rrange_sq_)
+  method dist_nodeids id1 id2 = s#dist_coords (s#nodepos id1) (s#nodepos id2)
+  method are_neighbors nid1 nid2 = 
+    nid1 <> nid2 && ((Coord.dist_sq (s#nodepos nid1) (s#nodepos nid2)) <= rrange_sq_)
 
-  method private slow_compute_neighbors_ node = (
+  method private slow_compute_neighbors_ nid = (
     let neighbors = ref [] in
-    Nodes.iter 
-      (fun a_node -> if s#neighbors node a_node  then 
-	neighbors := (a_node#id)::!neighbors);
+    Nodes.iteri 
+      (fun cand_id -> if s#are_neighbors nid cand_id  then 
+	neighbors := (cand_id)::!neighbors);
     !neighbors;
   )
 
-  method private compute_neighbors_ node = (
-    let gridpos = s#pos_in_grid_ node#pos in
+  method private compute_neighbors_ nid = (
+    let gridpos = s#pos_in_grid_ (s#nodepos nid) in
     let grid_at_pos p = 
       if (s#is_in_grid p)  
       then grid_of_nodes_.(xx p).(yy p) 
@@ -104,7 +134,7 @@ object(s)
       grid_at_pos (gridpos +++ northwest) @
       grid_at_pos (gridpos +++ southwest)
     in
-    List.filter (fun a_node -> s#neighbors node (Nodes.node(a_node))) candidates
+    List.filter (fun cand_nid -> s#are_neighbors nid cand_nid) candidates
   )
 
   method neighbors_consistent = (
@@ -115,10 +145,11 @@ object(s)
       Nodes.iter 
       (fun n -> 
 	List.iter 
-	(fun n_id -> consistent := !consistent && 
-	  ((Nodes.node(n_id))#is_neighbor n))
-	n#neighbors
+	(fun ngbr_id -> consistent := !consistent && 
+	  List.mem n#id ngbrs.(ngbr_id)
+	)  (s#neighbors n#id)
       );
+
       !consistent
     ) || raise (Failure "Neighbors not commutative")
     in
@@ -128,8 +159,8 @@ object(s)
     Nodes.iter
       (fun n -> consistent := !consistent && 
 	(Misc.list_same 
-	  n#neighbors
-	  (s#compute_neighbors_ n)));
+	  (s#neighbors n#id)
+	  (s#compute_neighbors_ n#id)));
       !consistent
     ) || raise (Failure "Neighbors not correct")
     in
@@ -139,8 +170,8 @@ object(s)
     Nodes.iter
       (fun n -> consistent := !consistent && 
 	(Misc.list_same 
-	  n#neighbors
-	  (s#slow_compute_neighbors_ n)));
+	  (s#neighbors n#id)
+	  (s#slow_compute_neighbors_ n#id)));
       !consistent
     ) || raise (Failure "Neighbors not correct (slow_compute_neighbors)")
     in
@@ -151,48 +182,58 @@ object(s)
     slow_correct_neighbors()
   )
     
-  method update_pos ~node ~oldpos_opt = (
+  method nodepos nid = node_positions_.(nid)
+
+  method movenode ~nid ~newpos  = (
     (* update local data structures (grid_of_nodes) with new pos, 
        then update the node and neighbor node objects *)
     
-    let index = node#id in
-    let newpos = node#pos in
-
     let (newx, newy) = s#pos_in_grid_ newpos in
 
-    begin match oldpos_opt with
-	
-      | None ->  (
-(*	  Printf.printf "newpos : %f %f, posingrid: %d %d\n" (xx newpos) (yy
-	    newpos) newx newy; flush stdout;*)
-	  assert (not (List.mem index grid_of_nodes_.(newx).(newy)));
-	    
-	  grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
-	  (* node is new, had no previous position *)
-	)
-      | Some oldpos -> (
-	  let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
-	  
-	  if (oldx, oldy) <> (newx, newy) then (
-	    (* only update grid_of_nodes if node moved to another slot *)
-	    
-	    grid_of_nodes_.(newx).(newy) <- index::grid_of_nodes_.(newx).(newy);      
-	    assert (List.mem index (grid_of_nodes_.(oldx).(oldy)));
-	    grid_of_nodes_.(oldx).(oldy) <- list_without
-	      grid_of_nodes_.(oldx).(oldy) index;      
-	  );
-	)
-    end;
-    s#update_node_neighbors_ node;
-(*
+    let oldpos = (s#nodepos nid) in
+    node_positions_.(nid) <- newpos;
+
+    let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
+    
+    if (oldx, oldy) <> (newx, newy) then (
+      (* only update grid_of_nodes if node moved to another slot *)
+      
+      grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
+      assert (List.mem nid (grid_of_nodes_.(oldx).(oldy)));
+      grid_of_nodes_.(oldx).(oldy) <- list_without
+	grid_of_nodes_.(oldx).(oldy) nid;      
+    );
+    s#update_node_neighbors_ nid;
+
     if (Common.get_time() > 10.0) then
-      ignore(s#neighbors_consistent);
-    *)
+      if Random.int 100 = 1 then
+	ignore(s#neighbors_consistent);
+
   )
     
+  method init_pos ~nid ~pos = (
+    (* update local data structures (grid_of_nodes) with new pos, 
+       then update the node and neighbor node objects *)
+    
+    let (newx, newy) = s#pos_in_grid_ pos in
+
+    node_positions_.(nid) <- pos;
 
 
-  method private update_node_neighbors_ node = (
+(*	  Printf.printf "newpos : %f %f, posingrid: %d %d\n" (xx newpos) (yy
+	    newpos) newx newy; flush stdout;*)
+    assert (not (List.mem nid grid_of_nodes_.(newx).(newy)));
+	    
+	  grid_of_nodes_.(newx).(newy) <- nid::grid_of_nodes_.(newx).(newy);      
+	  (* node is new, had no previous position *)
+	  
+    
+
+	  s#update_node_neighbors_ nid;
+	  
+  )
+
+  method private update_node_neighbors_ nid = (
 
     (* 
        For all neighbors, do a lose_neighbor on the neighbor and on this node.
@@ -205,8 +246,8 @@ object(s)
       | a::l -> a = x || mem x l
     in
 
-    let old_neighbors = node#neighbors in
-    let new_neighbors = s#compute_neighbors_ node in
+    let old_neighbors = s#neighbors nid in
+    let new_neighbors = s#compute_neighbors_ nid in
 
     let exits = List.filter (fun nid -> not (mem nid new_neighbors)) old_neighbors
     and entries = List.filter (fun nid -> not (mem nid old_neighbors)) new_neighbors
@@ -214,16 +255,16 @@ object(s)
     in
     List.iter 
       (fun i -> 
-	node#lose_neighbor (Nodes.node i);
-	(Nodes.node i)#lose_neighbor node
+	s#lose_neighbor nid  i;
+	s#lose_neighbor i nid
       ) exits;
 
     List.iter 
       (fun i -> 
-	  node#add_neighbor (Nodes.node i);
-	  if i <> node#id then
+	s#add_neighbor nid i;
+	  if i <> nid then
 	    (* don't add twice for node itself *)
-	    (Nodes.node i)#add_neighbor node
+	    s#add_neighbor i nid
       ) entries
   )
 
@@ -234,8 +275,8 @@ object(s)
        Then, compute new neighbors, and add them to this node and to the neighbors.
     *)
 
-    let old_neighbors = node#neighbors in
-    let new_neighbors = s#compute_neighbors_ node in
+    let old_neighbors = s#neighbors node#id in
+    let new_neighbors = s#compute_neighbors_ node#id in
     let old_and_new = old_neighbors @ new_neighbors in
 
     let changed_neighbors = 
@@ -250,16 +291,15 @@ object(s)
     List.iter 
       (fun i -> 
 
-	if node#is_neighbor (Nodes.node i) then ( (* these ones left *)
-	  node#lose_neighbor (Nodes.node i);
-	  (Nodes.node i)#lose_neighbor node
+	if List.mem i ngbrs.(node#id) then ( (* these ones left *)
+	  s#lose_neighbor node#id  i;
+	  s#lose_neighbor i node#id
 
 	) else (	  (* these ones entered *)
-
-	  node#add_neighbor (Nodes.node i);
+	  s#add_neighbor node#id i;
 	  if i <> node#id then
 	    (* don't add twice for node itself *)
-	    (Nodes.node i)#add_neighbor node
+	    s#add_neighbor i node#id 
 	)
       ) changed_neighbors
   )
@@ -321,8 +361,8 @@ object(s)
 	outer_squares
       ) in
       let is_in_ring = (fun n -> 
-	((s#dist_coords center_m (Nodes.node(n))#pos) <=  radius_m) && 
-	((s#dist_coords center_m (Nodes.node(n))#pos) >= (radius_m -. rrange_))) in
+	((s#dist_coords center_m (s#nodepos n)) <=  radius_m) && 
+	((s#dist_coords center_m (s#nodepos n)) >= (radius_m -. rrange_))) in
       
       List.fold_left (fun l sq -> 
 	l @
@@ -352,12 +392,11 @@ object(s)
       let (closest_id, closest_dist) = (ref None, ref max_float) in
       List.iter 
 	(fun nid -> 
-	  let n = Nodes.node(nid) in
-	  match f n with
+	  match f nid with
 	    | true ->
-		if (s#dist_coords pos n#pos) < !closest_dist then (
-		  closest_id := Some n#id;
-		  closest_dist := (s#dist_coords pos n#pos)
+		if (s#dist_coords pos (s#nodepos nid)) < !closest_dist then (
+		  closest_id := Some nid;
+		  closest_dist := (s#dist_coords pos (s#nodepos nid))
 		)
 	    | false -> ()
 	) candidates;
@@ -388,21 +427,21 @@ object(s)
       (fun n -> 
 	match f n with
 	  | true ->
-	      if (s#dist_coords pos n#pos) < !closest_dist then (
+	      if (s#dist_coords pos (s#nodepos n#id)) < !closest_dist then (
 		closest_id := Some n#id;
-		closest_dist := (s#dist_coords pos n#pos)
+		closest_dist := (s#dist_coords pos (s#nodepos n#id))
 	      )
 	  | false -> ()
       );
     !closest_id
   )
 
-  method get_nodes_within_radius  ~node ~radius = (
+  method get_nodes_within_radius  ~nid ~radius = (
     
     let radius_sq = radius ** 2.0 in
-    let center = node#pos in
+    let center = (s#nodepos nid) in
     let l = ref [] in
-    Nodes.iter (fun node -> if s#dist_coords center node#pos <= radius then l := (node#id)::!l);
+    Nodes.iteri (fun cand_id -> if s#dist_coords center (s#nodepos cand_id) <= radius then l := (cand_id)::!l);
     !l
   )
 

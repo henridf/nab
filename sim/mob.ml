@@ -25,11 +25,12 @@ let pos_mtr_to_pix pos =
 let pos_pix_to_mtr pos = 
   (x_pix_to_mtr (Coord.xx pos), y_pix_to_mtr (Coord.yy pos))
 
+(*
 class type virtual mobility_t =
   object
     val abbrev : string
     val mutable moving : bool
-    val owner : Node.node_t
+    val owner : #Simplenode.simplenode
     val mutable speed_mps : float
     method abbrevname : string
     method virtual getnewpos : gran:float -> Coord.coordf_t
@@ -54,17 +55,22 @@ class type waypoint_t =
     method start : unit
     method stop : unit
   end
+	  *)
 
-class virtual mobility (abbrevname:string) (owner:Node.node_t) = 
+class virtual mobility 
+  (abbrevname:string) 
+  (owner:#Simplenode.simplenode) 
+  (movefun:(newpos:Coord.coordf_t -> unit)) =
 object(s)
   val abbrev = abbrevname
-  val owner:Node.node_t = owner
+  val owner = owner
   val mutable speed_mps =  1.0
   val mutable moving =  false
   val granularity = 1.0 (* be careful if high speed and low granularity, then
 			   we will load the scheduler with zillions of small
 			   movement events *)
 
+  val movefun = movefun
   method start = (
     if (not moving) then (
       moving <- true;
@@ -94,7 +100,8 @@ object(s)
        a route, we can be sure that no node will move during the route computation *)
     if (moving) then (
       let newpos = s#getnewpos granularity in 
-      owner#move newpos;
+      movefun ~newpos:newpos;
+(*      (Gworld.world())#movenode ~nid:owner#id ~newpos:newpos;*)
 
       (* mob is assumed to move us by granularity [meters], so we should schedule the next
 	 one in granulatiry / speed_mps seconds.
@@ -108,9 +115,11 @@ object(s)
 end
 
 
-class waypoint (owner:Node.node_t) = 
+class waypoint 
+  (owner:#Simplenode.simplenode) 
+  (movefun:(newpos:Coord.coordf_t -> unit)) = 
 object 
-  inherit mobility "wp" owner
+  inherit mobility "wp" owner movefun
   val mutable target_ = (0.0, 0.0)
 
   initializer (
@@ -119,8 +128,8 @@ object
 
    method getnewpos ~gran = (
     
-    let pos = owner#pos in
-    assert (((Gworld.world())#boundarize pos) = pos);
+     let pos = (Gworld.world())#nodepos owner#id in
+     assert (((Gworld.world())#boundarize pos) = pos);
     if ((Gworld.world())#dist_coords target_ pos) <= gran then (
       (* arrived within gran[m] of target *)
       let oldtarget = target_ 
@@ -156,9 +165,11 @@ let get_containing_node pos = (
 
   
   
-class epfl (owner:Node.node_t) = 
+class epfl 
+  (owner:#Simplenode.simplenode) 
+  (movefun:(newpos:Coord.coordf_t -> unit)) = 
 object(s)
-  inherit mobility "epfl" owner
+  inherit mobility "epfl" owner movefun
 (*  val mutable target_ = (0.0, 0.0)  (* the current end-destination *)*)
   val mutable graphtarget_ = 0      (* as a graph node index *)
   val mutable graph_hops_ = []       (* remaining hops through the graph to
@@ -167,7 +178,7 @@ object(s)
 
 
   initializer (
-    current_graph_pos_ <- get_containing_node (owner#pos);
+    current_graph_pos_ <- get_containing_node ((Gworld.world())#nodepos owner#id);
     s#get_new_target;
   )
     
@@ -179,7 +190,7 @@ object(s)
       graphtarget_ <-  Random.int 113;
     done;
 
-    current_graph_pos_ <- get_containing_node (owner#pos);
+    current_graph_pos_ <- get_containing_node ((Gworld.world())#nodepos owner#id);
     graph_hops_ <- 
     List.map (fun i -> 
       pos_pix_to_mtr ( Read_coords.box_centeri i) 
@@ -194,7 +205,7 @@ object(s)
     
   method getnewpos ~gran = (
     let next_hop_target = List.hd graph_hops_ in
-    let pos = owner#pos in
+    let pos = ((Gworld.world())#nodepos owner#id) in
     if ((Gworld.world())#dist_coords next_hop_target pos) <= gran then (
       begin
 	match graph_hops_ with
@@ -212,10 +223,12 @@ object(s)
 
 end
 
-let mob_array = ref ([||]: mobility_t array)
-let make_waypoint_mobs() = mob_array := (Nodes.map (fun n -> new waypoint n))
+let mob_array = ref ([||]: #mobility array)
+let make_waypoint_mobs() = mob_array := 
+  (Nodes.map (fun n -> new waypoint n
+    ((Gworld.world())#movenode ~nid:n#id)))
 let make_epfl_mobs() = (
-  mob_array := (Nodes.map (fun n -> new epfl  n));
+  mob_array := (Nodes.gpsmap (fun n -> new epfl n n#move));
   Array.iter 
     (fun m ->
       if (Random.int 2) = 0 then (

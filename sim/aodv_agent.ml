@@ -99,7 +99,7 @@ object(s)
 
   inherit Log.loggable
 
-  val owner:Node.node_t = owner
+  val owner:#Simplenode.simplenode = owner
   val rtab = Rtab.create ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
@@ -142,15 +142,15 @@ object(s)
     while s#packets_waiting ~dst:dst do
       let pkt = (Queue.pop pktqs.(dst)) in
 	try 
-(*	  s#log_info 
-	    (sprintf "Sending buffered DATA pkt from src %d to dst %d."
-	      (Packet.get_l3src ~l3pkt:pkt) dst);*)
+	  s#log_info 
+	    (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d."
+	      (Packet.get_l3src ~l3pkt:pkt) dst));
 	  s#send_out ~l3pkt:pkt
 	with 
 	  | Send_Out_Failure -> 
 	      s#log_error 
-	      (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
-		(Packet.get_l3src ~l3pkt:pkt) dst);
+	      (lazy (sprintf "Sending buffered DATA pkt from src %d to dst %d failed, dropping"
+		(Packet.get_l3src ~l3pkt:pkt) dst));
     done
 
   method private kill_buffered_packets ~dst = 
@@ -170,8 +170,8 @@ object(s)
 	  Queue.push l3pkt pktqs.(dst);
       | false -> (
 	  Grep_hooks.drop_data();
-(*	  s#log_notice (sprintf "Dropped packet for dst %d" 
-	    (Packet.get_l3dst ~l3pkt:l3pkt))*)
+	  s#log_notice (lazy (sprintf "Dropped packet for dst %d" 
+	    (Packet.get_l3dst ~l3pkt:l3pkt)))
 	)
   )
 
@@ -190,12 +190,12 @@ object(s)
 	  Rtab.newadv ~rt:rtab ~dst:dst ~rtent:rtent
       in
       if update then (
-(*	s#log_info 
-	(sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
+	s#log_info 
+	(lazy (sprintf "New route to dst %d: nexthop %d, hopcount %d, seqno %d"
 	  dst 
 	  (o2v rtent.Rtab.nexthop) 
 	  (o2v rtent.Rtab.hopcount)
-	  (o2v rtent.Rtab.seqno));*)
+	  (o2v rtent.Rtab.seqno)));
 	(* if route to dst was accepted, send any packets that were waiting
 	   for a route to this dst *)
 	if (s#packets_waiting ~dst:dst) then (
@@ -303,10 +303,10 @@ object(s)
   method private process_rreq_pkt ~l3pkt ~fresh = (
 
     let rreq = (Packet.get_grep_rreq_pld ~l3pkt:l3pkt) in
-(*    s#log_info 
-    (sprintf "Received RREQ pkt from src %d for dst %d"
+    s#log_info 
+    (lazy (sprintf "Received RREQ pkt from src %d for dst %d"
       (Packet.get_l3src ~l3pkt:l3pkt) 
-      rreq.Packet.rreq_dst);*)
+      rreq.Packet.rreq_dst));
     match fresh with 
       | true -> 
 	  let answer_rreq = 
@@ -331,18 +331,16 @@ object(s)
 	      ~obo:rreq.Packet.rreq_dst
 	  else (* broadcast the rreq further along *)
 	    s#send_out ~l3pkt:l3pkt
-      | false -> ()
-	  
-(*	  s#log_info 
-	  (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
+      | false -> 
+	  s#log_info (lazy (sprintf "Dropping RREQ pkt from src %d for dst %d (not fresh)"
 	    (Packet.get_l3src ~l3pkt:l3pkt) 
-	    rreq.Packet.rreq_dst);*)
+	    rreq.Packet.rreq_dst));
   )
       
   method private send_rrep ~dst ~obo = (
-(*    s#log_info 
-    (sprintf "Sending RREP pkt to dst %d, obo %d"
-      dst obo);*)
+    s#log_info 
+    (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
+      dst obo));
     let adv = Packet.make_grep_adv_payload 
       ~adv_dst:obo
       ~adv_seqno:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
@@ -367,14 +365,14 @@ object(s)
     with 
       | Send_Out_Failure -> 
 	  s#log_notice 
-	  (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
-	    dst obo);
+	  (lazy (sprintf "Sending RREP pkt to dst %d, obo %d failed, dropping"
+	    dst obo));
   )
 
   method private send_rerr ~dst ~obo = (
-(*    s#log_info 
-      (sprintf "Sending RREP pkt to dst %d, obo %d"
-      dst obo);*)
+    s#log_info 
+      (lazy (sprintf "Sending RREP pkt to dst %d, obo %d"
+      dst obo));
     let adv = Packet.make_grep_adv_payload 
       ~adv_dst:obo
       ~adv_seqno:(o2v (Rtab.seqno ~rt:rtab ~dst:obo))
@@ -399,8 +397,8 @@ object(s)
     with 
       | Send_Out_Failure -> 
 	  s#log_notice 
-	  (sprintf "Sending RERR pkt to dst %d, obo %d failed, dropping"
-	    dst obo);
+	  (lazy (sprintf "Sending RERR pkt to dst %d, obo %d failed, dropping"
+	    dst obo));
   )
   method private inv_packet_upwards ~nexthop ~l3pkt = (
     (* this expects to be called just prior to sending l3pkt
@@ -447,9 +445,9 @@ object(s)
 	    | Send_Out_Failure -> 
 		begin
 		  let dst = (Packet.get_l3dst ~l3pkt:l3pkt) in
-(*		  s#log_notice 
-		    (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
-		      dst);*)
+		  s#log_notice 
+		    (lazy (sprintf "Forwarding DATA pkt to dst %d failed, buffering."
+		      dst));
 		  (* important to buffer packet first because send_rreq checks for
 		     this *)
 		  if (s#local_repair ~dst:dst ~src:(Packet.get_l3dst ~l3pkt:l3pkt)
@@ -487,8 +485,8 @@ object(s)
 	 At some point a more detailed implementation would probably need a
 	 separate representation of pending rreqs to know which have been
 	 satisfied, etc *)
-      s#log_info (sprintf "Sending RREQ pkt for dst %d with ttl %d"
-	dst ttl);
+      s#log_info (lazy (sprintf "Sending RREQ pkt for dst %d with ttl %d"
+	dst ttl));
       
       let l3hdr = 
 	Packet.make_grep_l3hdr
@@ -536,7 +534,7 @@ object(s)
 	  (Gsched.sched())#sched_in ~f:next_rreq_event ~t:next_rreq_timeout;
       with
 	| Simplenode.Mac_Bcast_Failure -> 
-	    s#log_error "bcast failure"
+	    s#log_error (lazy "bcast failure")
     )
   )
     
@@ -633,7 +631,7 @@ object(s)
 	  Packet.get_l3grepflags ~l3pkt:l3pkt = Packet.GREP_RERR ||
 	  Packet.get_l3grepflags ~l3pkt:l3pkt = Packet.GREP_RREQ
 	)) then (
-	  s#log_error (sprintf "negative ttl on data or rrep!")
+	  s#log_error (lazy (sprintf "negative ttl on data or rrep!"))
 	);
 (*	assert(
 	  Packet.get_l3grepflags ~l3pkt:l3pkt = Packet.GREP_RADV ||
@@ -676,7 +674,7 @@ object(s)
 		| Some nh -> (nh, o2v (Rtab.hopcount ~rt:rtab ~dst:dst)) 
 	    in 
 	    if (ttl <= 0 ) then (
-	      s#log_warning (sprintf "zero/neg ttl for dst %d : %d" dst ttl);
+	      s#log_warning (lazy (sprintf "zero/neg ttl for dst %d : %d" dst ttl));
 	    );
 	    Packet.set_l3ttl ~l3pkt:l3pkt ~ttl:ttl;
 	    if (decr_and_check_ttl()) then (

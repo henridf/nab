@@ -10,6 +10,8 @@ else
 endif
 
 
+OCAMLDOC = ocamldoc
+
 LIB_DIR = $(shell ocamlc -where)
 
 MWS_DIR = mws
@@ -111,6 +113,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/nodeDB$(CMO) \
 		$(MWS_DIR)/rtab$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
+		$(MWS_DIR)/gpsnode$(CMO) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
 		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
@@ -160,12 +163,6 @@ TEST_OBJ_FILES = \
 %.cmx: %.ml
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) -c $<
 
-misc/im2png$(CMO): misc/im2png.ml
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(INCLUDE_CAMLIMAGES) -c $<
-im2png: misc/im2png$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(LINKFLAGS_CAMLIMAGES) $(INCLUDE) $(INCLUDE_CAMLIMAGES) \
-	$(CAMLIMAGES_LIBS) misc/im2png$(CMO) -o bin/$@
-
 mws: bin/mws
 bin/mws: $(MWS_OBJ_FILES) $(MWS_SCRIPT)
 	$(MLCOMP) $(MLFLAGS)  $(INCLUDE)  $(MWS_OBJ_FILES) $(MWS_SCRIPT) -o $@ 
@@ -184,6 +181,8 @@ bin/guitop: $(GUI_OBJ_FILES)
 	$(MLTOP) $(INCLUDE) $(GTK_STUFF) \
 	$(GUI_OBJ_FILES)  -o $@ 
 
+doc: $(GUI_OBJ_FILES)
+	$(OCAMLDOC) $(INCLUDE) $(GTK_STUFF) 	$(GUI_OBJ_FILES) 
 
 camlgtk-th: bin/camlgtk-th
 bin/camlgtk-th: 

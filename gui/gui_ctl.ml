@@ -113,9 +113,9 @@ let set_src x y = (
   Gui_hooks.route_done := false;
   let in_mhook = Gui_hooks.ease_route_pktin_mhook routeref in
   let out_mhook = Gui_hooks.ease_route_pktout_mhook routeref in
-  Nodes.iter (fun n -> n#clear_pkt_mhooks);
-  Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
-  Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
+  Nodes.gpsiter (fun n -> n#clear_pkt_mhooks);
+  Nodes.gpsiter (fun n -> n#add_pktin_mhook in_mhook);
+  Nodes.gpsiter (fun n -> n#add_pktout_mhook out_mhook);
   (Nodes.node srcnode)#originate_app_pkt ~dstid:0;
 
   (Gsched.sched())#run_until 
@@ -124,8 +124,9 @@ let set_src x y = (
   );
   
   Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
-    ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
-    srcnode)#pos);
+  ignore (Route.route_valid !routeref 
+    ~dst:((Gworld.world())#nodepos 0) 
+    ~src:((Gworld.world())#nodepos srcnode));
   Gui_ops.draw_route 
     ~lines:!show_route_lines
     ~anchors:!show_route_anchors

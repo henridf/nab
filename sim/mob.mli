@@ -17,11 +17,15 @@ val x_mtr_to_pix : float -> int
 val pos_pix_to_mtr : Coord.coordi_t -> Coord.coordf_t
 val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t
 
-class type virtual mobility_t =
+
+class virtual mobility :
+  string ->
+  #Simplenode.simplenode ->
+  (newpos:Coord.coordf_t -> unit) ->
   object
     val abbrev : string
     val mutable moving : bool
-    val owner : Node.node_t
+    val owner : #Simplenode.simplenode
     val mutable speed_mps : float
     method abbrevname : string
     method virtual getnewpos : gran:float -> Coord.coordf_t
@@ -31,18 +35,10 @@ class type virtual mobility_t =
     method stop : unit
   end
 
-class type waypoint_t =
-
+class waypoint :
+  #Simplenode.simplenode ->
+  (newpos:Coord.coordf_t -> unit) ->
   object
-    val abbrev : string
-    val mutable moving : bool
-    val owner : Node.node_t
-    val mutable speed_mps : float
-    val mutable target_ : Coord.coordf_t
-    method abbrevname : string
+    inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
-    method move : unit
-    method set_speed_mps : float -> unit
-    method start : unit
-    method stop : unit
   end

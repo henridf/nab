@@ -16,8 +16,8 @@ class type ease_agent_t =
     val mutable db : NodeDB.nodeDB
     val ntargets : Common.nodeid_t
     val mutable objdescr : string
-    val owner : Node.node_t
-    method add_neighbor : Node.node_t -> unit
+    val owner : Gpsnode.gpsnode
+    method add_neighbor : Common.nodeid_t -> unit
     method app_send : Packet.l4pld_t -> dst:Common.nodeid_t -> unit
     method db : NodeDB.nodeDB
     method mac_recv_hook : Packet.l3packet_t -> unit
@@ -46,7 +46,7 @@ object(s)
 
   inherit Log.loggable
 
-  val owner:Node.node_t = owner
+  val owner:Gpsnode.gpsnode = owner
 
 
   val mutable db = new NodeDB.nodeDB (Param.get Params.ntargets)
@@ -59,13 +59,14 @@ object(s)
     objdescr <- (owner#objdescr ^  "/Ease_Agent");
     owner#add_recv_pkt_hook ~hook:s#mac_recv_hook;
     owner#add_app_send_pkt_hook ~hook:s#app_send;
-    owner#add_new_ngbr_hook ~hook:s#add_neighbor
+    (Gworld.world())#add_new_ngbr_hook owner#id ~hook:s#add_neighbor
   )
 
 
-   method add_neighbor n = (
-     if n#id < ntargets then (
-       db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
+   method add_neighbor nid = (
+     if nid < ntargets then (
+       let n = Nodes.gpsnode nid in
+       db#add_encounter ~nid ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
      )
    )
 
@@ -96,15 +97,16 @@ object(s)
 	    
 	    let d_here_to_anchor = (Gworld.world())#dist_coords owner#pos anchor_pos in
 	    
-	    let f node = 
-	      if (Gworld.world())#dist_coords node#pos anchor_pos < d_here_to_anchor then true 
+	    let f nid = 
+	      if (Gworld.world())#dist_coords 
+		((Gworld.world())#nodepos nid) anchor_pos < d_here_to_anchor then true 
 	      else false
 	    in
 	    match ((Gworld.world())#find_closest ~pos:owner#pos ~f)
 	    with 
 	      | None -> owner#id
 	      | Some n when (
-		  ((Gworld.world())#dist_coords (Nodes.node n)#pos anchor_pos) >
+		  ((Gworld.world())#dist_coords (Nodes.gpsnode n)#pos anchor_pos) >
 		  d_here_to_anchor)
 		  ->
 		  owner#id
@@ -120,11 +122,11 @@ object(s)
     
 
     if our_enc_age < cur_enc_age then (
-      s#log_debug "Need new anchor, found one locally\n";
+      s#log_debug (lazy "Need new anchor, found one locally\n");
       let anchor = (Misc.o2v (db#last_encounter ~nid:dst)).Common.p in
       (0.0, anchor, our_enc_age)
     ) else (
-      s#log_debug "Need new anchor, looking remotely\n";
+      s#log_debug (lazy "Need new anchor, looking remotely\n");
       (* who's seen dst more recently than pkt.l3hdr.enc_age ? *)
       let msngr =  
 	Misc.o2v (
@@ -134,15 +136,15 @@ object(s)
 	     encounter was 'now', in which case the destination won't
 	     satisfy the inequality, hence the first test *)
 	  owner#pos 
-	  (fun n -> 
-	    (n#id = dst)
+	  (fun nid -> 
+	    (nid = dst)
 	    ||
-	    !agents_array.(n#id)#db#encounter_age ~nid:dst < cur_enc_age)
+	    !agents_array.(nid)#db#encounter_age ~nid:dst < cur_enc_age)
 	)
       in
       if (msngr = dst) then 
-	(((Gworld.world())#dist_coords owner#pos (Nodes.node dst)#pos), 
-	(Nodes.node dst)#pos, 
+	(((Gworld.world())#dist_coords owner#pos (Nodes.gpsnode dst)#pos), 
+	(Nodes.gpsnode dst)#pos, 
 	0.0) 
       else
 	let enc = 
@@ -152,7 +154,7 @@ object(s)
 	  )
 	in
 	let d_to_messenger = 
-	  (Gworld.world())#dist_coords owner#pos (Nodes.node msngr)#pos in
+	  (Gworld.world())#dist_coords owner#pos (Nodes.gpsnode msngr)#pos in
 	(d_to_messenger, enc.Common.p, Common.enc_age enc)
     )
   )
@@ -168,8 +170,8 @@ object(s)
        the same position as the destination, in which case the find_closest call
        in closest_toward_anchor might return us *)
     
-    if owner#pos = (Nodes.node pkt.l3hdr.dst)#pos  then 
-      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Nodes.node pkt.l3hdr.dst)#id
+    if owner#pos = (Nodes.gpsnode pkt.l3hdr.dst)#pos  then 
+      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Nodes.gpsnode pkt.l3hdr.dst)#id
     else (
       (* find next closest node toward anchor *)
       let closest_id = s#closest_toward_anchor pkt.l3hdr.anchor_pos in
@@ -178,14 +180,14 @@ object(s)
 (*
 	s#log_debug (sprintf "We are closest to %d" closest_id);
 	s#log_debug (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.node pkt.l3hdr.dst)#pos));
+	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos));
 *)
 	s#recv_ease_pkt_ pkt
       ) else (   
 	(* geographically forward toward anchor  *)
 (*      	s#log_debug (sprintf "Forwarding geographically to %d" closest_id);
 	s#log_debug (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
-	  (Coord.sprintf (Nodes.node pkt.l3hdr.dst)#pos));
+	  (Coord.sprintf (Nodes.gpsnode pkt.l3hdr.dst)#pos));
 	
 *)      );
       owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id;
@@ -196,19 +198,19 @@ object(s)
 
   method private recv_ease_pkt_ pkt = (
     s#log_info 
-    (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
+    (lazy (sprintf "%d received pkt with src %d, dst %d, enc_age %f, anchor_pos %s"
       owner#id 
       pkt.l3hdr.src 
       pkt.l3hdr.dst
       pkt.l3hdr.ease_enc_age
       (Coord.sprintf pkt.l3hdr.anchor_pos)
-    );
+    ));
     
     pkt.l3hdr.search_dist <- 0.0;
     match  owner#id = pkt.l3hdr.dst with
 	
       | true -> (* We are destination. *)
-	  s#log_debug (sprintf "packet has arrived");
+	  s#log_debug (lazy (sprintf "packet has arrived"));
       | false -> (  
 	  let cur_enc_age = pkt.l3hdr.ease_enc_age in
 	  if (

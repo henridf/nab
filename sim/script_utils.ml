@@ -15,7 +15,7 @@ let make_simplenodes () =
   (Array.init (Param.get Params.nodes)
     (fun i -> 
       (new Simplenode.simplenode 
-	~pos_init:((Gworld.world())#random_pos) 
+
 	~id:i
       )))
 
@@ -24,29 +24,29 @@ let set_simplenodes() = (
   Nodes.set_nodes (make_simplenodes())
 )
 
+
 let make_grease_nodes () = (
   let get_init_pos() = 
     let nodeind = Random.int 113 in
     Mob.pos_pix_to_mtr (Read_coords.box_centeri nodeind)
   in
-  Nodes.set_nodes [||];
-  Nodes.set_nodes 
+  Nodes.set_gpsnodes 
     (Array.init (Param.get Params.nodes)
       (fun i -> 
-	(new Simplenode.simplenode 
+	(new Gpsnode.gpsnode
 	  ~pos_init:(get_init_pos())
 	  ~id:i
 	)));
-
+  
   (* create grease agents, who will hook to their owners *)
   Ease_agent.set_agents
-    (Nodes.map (fun n -> new Ease_agent.ease_agent n));
-
+    (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent n));
 
   (* set up initial node position in internal structures of world object *)
-  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
+  Nodes.gpsiter (fun n -> (Gworld.world())#init_pos ~nid:n#id ~pos:n#pos);
   assert ((Gworld.world())#neighbors_consistent);
 )
+
   
 
 let make_grep_nodes () = (
@@ -57,7 +57,7 @@ let make_grep_nodes () = (
     (Nodes.map (fun n -> new Grep_agent.grep_agent n));
 
   (* set up initial node position in internal structures of world object *)
-  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
+  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
   assert ((Gworld.world())#neighbors_consistent);
 )
 
@@ -69,7 +69,7 @@ let make_aodv_nodes () = (
     (Nodes.map (fun n -> new Aodv_agent.aodv_agent n));
 
   (* set up initial node position in internal structures of world object *)
-  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
+  Nodes.iteri (fun nid -> (Gworld.world())#init_pos ~nid ~pos:(Gworld.world())#random_pos );
   assert ((Gworld.world())#neighbors_consistent);
 )
 
@@ -84,6 +84,10 @@ let set_tracefile f = (
   add_cleanup_hook (fun () -> Trace.close_trace_chan())
 )
 
+let proportion_met_nodes ~targets  = 
+  Ease_agent.proportion_met_nodes ~targets
+
+(*
 let draw_nodes () = 
   Ler_graphics.draw_nodes (Nodes.map (fun n -> (Gworld.world())#project_2d
     n#pos))
@@ -95,7 +99,7 @@ let gui_draw_connectivity () =
 	Ler_graphics.ler_draw_segment [|
 	  ((Gworld.world())#project_2d n#pos);
 	  ((Gworld.world())#project_2d (Nodes.node(m))#pos)|] )
-      n#neighbors
+      ((Gworld.world())#neighbors n#id)
     )
   )
     
@@ -116,12 +120,12 @@ let redraw_and_label_nodes() = (
   label_nodes()
 )
 
-let proportion_met_nodes ~targets  = 
-  Ease_agent.proportion_met_nodes ~targets
   
+*)
+
 let avg_neighbors_per_node() = 
   let total_neighbors = 
-    Nodes.fold (fun n total -> (List.length n#neighbors) + total) 0 
+    Nodes.fold (fun n total -> (List.length ((Gworld.world())#neighbors n#id)) + total) 0 
   in
   (i2f total_neighbors) /. (i2f (Param.get Params.nodes))
 
@@ -149,6 +153,7 @@ let grep_one_route ~src ~dst = (
   (Gsched.sched())#run();
 )
 
+(*
 let gui_grep_one_route() = (
 
   draw_nodes();
@@ -180,6 +185,7 @@ let gui_grep_one_route() = (
   (Gsched.sched())#sched_at ~f:pkt_reception ~t:(Sched.ASAP);
   (Gsched.sched())#run();
 )
+*)
 
 
 let move_nodes ~prop ~targets = (
@@ -189,9 +195,9 @@ let move_nodes ~prop ~targets = (
     incr ctr; 
     if !ctr = iterations then (
       ctr := 0;
-      let p = (proportion_met_nodes ~targets:targets) in
+      let p = (proportion_met_nodes ~targets) in
       Log.log#log_notice 
-	(Printf.sprintf "prop_met_nodes %f\n" p);
+	(lazy (Printf.sprintf "prop_met_nodes %f\n" p));
       p < prop 
     ) else true
   )

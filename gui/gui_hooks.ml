@@ -35,7 +35,7 @@ let node_moved newpos node = (
 )
 
 let attach_mob_hooks()  = 
-  Nodes.iter
+  Nodes.gpsiter
     (fun n -> n#add_mob_mhook ~hook:node_moved)
 
 
@@ -43,7 +43,7 @@ open Packet
 
 let route_done = ref false
 
-let ease_route_pktin_mhook routeref l2pkt (node:Node.node_t) = (
+let ease_route_pktin_mhook routeref l2pkt node = (
 
   let l3dst = (Packet.get_l3hdr l2pkt.l3pkt).dst 
   and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in
@@ -67,7 +67,7 @@ let ease_route_pktin_mhook routeref l2pkt (node:Node.node_t) = (
 (*    | false ->  assert(false)*)
 )
 
-let ease_route_pktout_mhook routeref l2pkt (node:Node.node_t) = (
+let ease_route_pktout_mhook routeref l2pkt node = (
 
   let l3dst = (Packet.get_l3hdr l2pkt.l3pkt).dst 
   and l3src = (Packet.get_l3hdr l2pkt.l3pkt).src in

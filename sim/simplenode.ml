@@ -1,7 +1,15 @@
-(* wierd: decrementing shopcount when packet not sent seems necessary, 
+(* Mar03
+   wierd: decrementing shopcount when packet not sent seems necessary, 
    ie omission was a bug, but not sure if it changes anything.
-   anyway current solution is a bit of a quick hack *)
+   anyway current solution is a bit of a quick hack 
+   May03
+   maybe this is due to the fact that ttl does not appear to be corrected
+   either - should be looked into.
+*)
 
+(* changelog
+   don't decrement grep_shopcount when not sent - this is the job of the
+   grep_agent, simplenode should be unaware of these fields *)
 (*                                  *)
 (* mws  multihop wireless simulator *)
 (*                                  *)
@@ -9,79 +17,45 @@
 open Printf
 open Misc
 
+type node_state_t = {
+  node_pos : Coord.coordf_t;
+}
+
 exception Mac_Send_Failure
 exception Mac_Bcast_Failure
 
 let coordmult = Coord.( ***. )
 
-class simplenode  ~pos_init ~id  : Node.node_t = 
+class simplenode  ~id   = 
 
-object(s: #Node.node_t)
+object(s)
   
   inherit Log.loggable
 
   val mutable neighbors  = []
-  val mutable pos = pos_init
-  val mutable mob_getnewpos = fun ~node -> (0.0,0.0)
-  val mutable speed = 0.0
 
   val id = id
 
-  val mutable new_ngbr_hooks = []
   val mutable recv_pkt_hooks = []
   val mutable recv_l2pkt_hooks = []
-  val mutable app_send_pkt_hook = fun pkt ~dst -> ()
-  val mutable mob_mhooks = []
+  val mutable app_send_pkt_hook = fun pkt ~(dst : Common.nodeid_t) -> ()
   val mutable pktin_mhooks = []
   val mutable pktout_mhooks = []
    
-  method pos = pos
   method id = id
-  method x = Coord.xx pos
-  method y = Coord.yy pos
 
   initializer (
-    objdescr <- (sprintf "/node/%d" id);
-
-    s#log_debug (sprintf "New node %d" id);
+    objdescr <- (sprintf "/node/%d " id);
+    s#log_debug (lazy (sprintf "New node %d" id));
   )
 
-  method move newpos = (
-    let oldpos = pos in
-    pos <- newpos;
-    
-    List.iter 
-    (fun mhook -> mhook newpos (s :> Node.node_t))
-      mob_mhooks;
-
-    (* important to call update_pos *after* our own position has been updated *)
-    (Gworld.world())#update_pos ~node:(s :> Node.node_t) ~oldpos_opt:(Some oldpos);
-  )
-
-
-  method add_neighbor n = (
-    assert (not (List.mem n#id neighbors));
-    List.iter 
-      (fun hook -> hook n)
-      new_ngbr_hooks;
-    neighbors <- n#id::neighbors
-  )
-
-  method lose_neighbor n = (
-    assert (List.mem n#id neighbors);
-    neighbors <- Misc.list_without neighbors n#id
-  )
-
-  method is_neighbor n = List.mem n#id neighbors
-
-  method neighbors = neighbors
 
   method mac_recv_pkt ~l2pkt = (
     
     (* mhook called before shoving packet up the stack, because 
        it should not rely on any ordering *)
     List.iter 
-    (fun mhook -> mhook l2pkt (s :> Node.node_t))
+    (fun mhook -> mhook l2pkt s )
       pktin_mhooks;
 
     List.iter 
@@ -93,8 +67,6 @@ object(s: #Node.node_t)
       recv_l2pkt_hooks
   )
     
-  method add_new_ngbr_hook ~hook =
-    new_ngbr_hooks <- new_ngbr_hooks @ [hook]
 
   method add_recv_pkt_hook ~hook =
     recv_pkt_hooks <- recv_pkt_hooks @ [hook]
@@ -105,9 +77,6 @@ object(s: #Node.node_t)
   method add_app_send_pkt_hook ~hook = 
     app_send_pkt_hook <- hook
 
-  method add_mob_mhook  ~hook =
-    mob_mhooks <- hook::mob_mhooks
-      
   method add_pktin_mhook  ~hook =
     pktin_mhooks <- hook::pktin_mhooks
       
@@ -120,9 +89,10 @@ object(s: #Node.node_t)
   )
 
   method private send_pkt_ ~l3pkt ~dstid = (
+    (* this method only exists to factor code out of 
+       mac_send_pkt and cheat_send_pkt *)
+
     let dst = (Nodes.node(dstid)) in
-      (* this method only exists to factor code out of 
-	 mac_send_pkt and cheat_send_pkt *)
 
     assert (Packet.get_l3ttl ~l3pkt:l3pkt >= 0);
 
@@ -131,11 +101,13 @@ object(s: #Node.node_t)
 
     let delay = 
       Mws_utils.xmitdelay ~bytes:(Packet.l2pkt_size ~l2pkt:l2pkt)
-      +. Mws_utils.propdelay pos dst#pos in
+      +. Mws_utils.propdelay 
+	((Gworld.world())#nodepos id) 
+	((Gworld.world())#nodepos dstid) in
     let recvtime = Common.get_time() +. delay in
 
     List.iter 
-    (fun mhook -> mhook l2pkt (s :> Node.node_t))
+    (fun mhook -> mhook l2pkt s )
       pktout_mhooks;
 
     let recv_event() = dst#mac_recv_pkt ~l2pkt:l2pkt in
@@ -143,11 +115,8 @@ object(s: #Node.node_t)
   )
 
   method mac_send_pkt ~l3pkt ~dstid = (
-    let dst = (Nodes.node(dstid)) in
-      if not (s#is_neighbor dst) then (
-(*	s#log_notice (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid);*)
-	let l3hdr = Packet.get_l3hdr l3pkt in
-	l3hdr.Packet.grep_shopcount <- l3hdr.Packet.grep_shopcount - 1;
+    if not ((Gworld.world())#are_neighbors s#id dstid) then (
+	s#log_notice (lazy (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid));
 	raise Mac_Send_Failure
       ) else
 	s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
@@ -163,7 +132,7 @@ object(s: #Node.node_t)
       ~l3pkt:l3pkt in
 
     List.iter 
-    (fun mhook -> mhook l2pkt (s :> Node.node_t))
+    (fun mhook -> mhook l2pkt s )
       pktout_mhooks;
 
     if (List.length neighbors = 0) then (
@@ -176,13 +145,14 @@ object(s: #Node.node_t)
     let recvtime = 
       Common.get_time()
       +. Mws_utils.xmitdelay ~bytes:(Packet.l2pkt_size ~l2pkt:l2pkt)
-      +. Mws_utils.propdelay pos n#pos in
+      +. Mws_utils.propdelay 
+	((Gworld.world())#nodepos id) 
+	((Gworld.world())#nodepos nid) in
       let recv_event() = 
 	n#mac_recv_pkt ~l2pkt:(Packet.clone_l2pkt ~l2pkt:l2pkt) in
       (Gsched.sched())#sched_at ~f:recv_event ~t:(Sched.Time recvtime)
     ) neighbors
   )
-
 
   method trafficsource ~dstid ~pkts_per_sec = 
     s#originate_app_pkt ~dstid:dstid;
@@ -196,7 +166,7 @@ object(s: #Node.node_t)
     app_send_pkt_hook Packet.APP_PLD ~dst:dstid
 
   method dump_state = {
-    Node.node_pos=s#pos;
+    node_pos=(Gworld.world())#nodepos id
   } 
 
 end

@@ -23,7 +23,7 @@ let resched_me =
 
 let rec clock_tick() = (
   Gui_ops.draw_all_nodes(); 
-  (Gsched.sched())#sched_in ~handler:clock_tick ~t:1.0;
+  (Gsched.sched())#sched_in ~f:clock_tick ~t:1.0;
 )
 
 
@@ -32,10 +32,10 @@ let check_all_routes () = (
   Gui_hooks.route_done := false;
   let in_mhook = Gui_hooks.ease_route_pktin_mhook routeref in
   let out_mhook = Gui_hooks.ease_route_pktout_mhook routeref in
-  Nodes.iter (fun n -> n#clear_pkt_mhooks);
-  Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
-  Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
-  Nodes.iter (fun n -> 
+  Nodes.gpsiter (fun n -> n#clear_pkt_mhooks);
+  Nodes.gpsiter (fun n -> n#add_pktin_mhook in_mhook);
+  Nodes.gpsiter (fun n -> n#add_pktout_mhook out_mhook);
+  Nodes.gpsiter (fun n -> 
     Printf.printf "New Source: %d\n" n#id; flush stdout;
     if n#id > (Param.get Params.ntargets) then (
 
@@ -58,14 +58,14 @@ let load_nodes() = (
   Persistency.read_state ~in_chan;
 
   Printf.printf "LOAD|| : Prop met: %f\n" (proportion_met_nodes 1);
-  Nodes.iter (fun n ->   
+  Nodes.gpsiter (fun n ->   
     Printf.printf "LOAD||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
   flush stdout;
 )
 
 let save_nodes() = (
   Printf.printf "SAVE|| : Prop met: %f\n" (proportion_met_nodes 1);
-  Nodes.iter (fun n ->   
+  Nodes.gpsiter (fun n ->   
     Printf.printf "SAVE||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
   flush stdout;
   let out_chan = open_out ((Sys.getcwd())^"/out.mld") in
@@ -75,7 +75,6 @@ let save_nodes() = (
 let do_one_run() = (
 
 
-  Log.set_log_level ~level:Log.LOG_DEBUG;
   init_sched();
   init_world();
 
@@ -137,6 +136,7 @@ Read_coords.check_ngbrs();
   Param.set Params.x_size 800.0;
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();
+  Log.set_log_level ~level:Log.LOG_DEBUG;
   Gui_ctl.create_buttons();
   Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();

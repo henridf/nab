@@ -31,7 +31,7 @@ type state_hdr_t = {
   time:Common.time_t
 }
 
-type sim_state_t = (Node.node_state_t array * NodeDB.nodeDB_state_t array)
+type sim_state_t = (Simplenode.node_state_t array * NodeDB.nodeDB_state_t array)
   
 let save_state  ~out_chan ~ntargets = (
   let node_cnt = (Param.get Params.nodes) in
@@ -46,7 +46,7 @@ let save_state  ~out_chan ~ntargets = (
   }
   in
   let (node_states:sim_state_t) = 
-    (Nodes.map (fun n -> n#dump_state), 
+    (Nodes.gpsmap (fun n -> n#dump_state), 
     Array.map (fun agent -> agent#db#dump_state) !(Ease_agent.agents_array))
   in
 
@@ -54,7 +54,7 @@ let save_state  ~out_chan ~ntargets = (
   Marshal.to_channel out_chan state_hdr [];
   Marshal.to_channel out_chan node_states [];
 
-  Log.log#log_info "Simulation state saved.";
+  Log.log#log_info (lazy "Simulation state saved.");
 
   close_out out_chan
 )
@@ -78,27 +78,27 @@ let read_state ~in_chan  =
   (* set globals *)
   Common.set_time hdr.time;
 
-  Log.log#log_notice "Simulation state read in:";
-  Log.log#log_notice (sprintf "\t Nodes: %d" hdr.node_cnt);
-  Log.log#log_notice (sprintf "\t Ntargets: %d" hdr.ntargets);
-  Log.log#log_notice (sprintf "\t Time: %f" hdr.time);
+  Log.log#log_notice (lazy "Simulation state read in:");
+  Log.log#log_notice (lazy (sprintf "\t Nodes: %d" hdr.node_cnt));
+  Log.log#log_notice (lazy (sprintf "\t Ntargets: %d" hdr.ntargets));
+  Log.log#log_notice (lazy (sprintf "\t Time: %f" hdr.time));
 
 
   (* make node objects out of restored node states *)
-  Nodes.set_nodes
+  Nodes.set_gpsnodes
     (Array.mapi
       (fun i nodestate -> 
-	new Simplenode.simplenode 
-	~pos_init:nodestate.Node.node_pos 
-	~id:i
+	(new Gpsnode.gpsnode
+	~pos_init:nodestate.Simplenode.node_pos 
+	  ~id:i)
       ) node_states);
   Ease_agent.set_agents
-    (Nodes.map (fun n -> new Ease_agent.ease_agent n));
+    (Nodes.gpsmap (fun n -> new Ease_agent.ease_agent n));
   
   Array.iteri (fun i agent -> agent#db#load_state db_states.(i)) !(Ease_agent.agents_array);
   
   (* set up initial node position in internal structures of world object *)
-  Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
+  Nodes.gpsiter (fun n -> (Gworld.world())#init_pos ~nid:n#id ~pos:n#pos );
   assert ((Gworld.world())#neighbors_consistent);
 )
 

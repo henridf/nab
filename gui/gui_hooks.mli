@@ -22,7 +22,7 @@ val pos_mtr_to_pix : Coord.coordf_t -> Coord.coordi_t
 
 val node_moved : 
   Coord.coordf_t -> 
-  Node.node_t -> 
+  Simplenode.simplenode -> 
   unit
 
 val attach_mob_hooks :
@@ -34,13 +34,13 @@ val attach_mob_hooks :
 val ease_route_pktin_mhook : 
   Coord.coordf_t Route.t ref ->
   Packet.l2packet_t ->
-  Node.node_t -> 
+  Gpsnode.gpsnode -> 
   unit
 
 val ease_route_pktout_mhook : 
   Coord.coordf_t Route.t ref ->
   Packet.l2packet_t ->
-  Node.node_t -> 
+  Gpsnode.gpsnode -> 
   unit
 
 val route_done : bool ref

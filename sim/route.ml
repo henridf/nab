@@ -30,8 +30,8 @@ let length path = List.length path
 let i2c routei = (
   List.map 
     (fun x -> 
-      {hop=(Nodes.node(x.hop))#pos; 
-      anchor=(Nodes.node(x.anchor))#pos;
+      {hop=(Gworld.world())#nodepos x.hop;
+      anchor=(Gworld.world())#nodepos x.anchor;
       anchor_age=x.anchor_age;
       searchcost=x.searchcost}) 
     routei

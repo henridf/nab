@@ -3,31 +3,21 @@
 (*                                  *)
 
 (* this type is used for storing to file *)
+
 type node_state_t = {
   node_pos : Coord.coordf_t;
 }
 
-class type node_t =
+exception Mac_Send_Failure
+exception Mac_Bcast_Failure
+
+class simplenode : id:Common.nodeid_t ->
 	  
-object
-  val id : Common.nodeid_t
-    
-  val mutable neighbors : Common.nodeid_t list
-  val mutable pos : Coord.coordf_t
+object ('a)
     
   method objdescr : string
     
   method id : Common.nodeid_t
-  method pos : Coord.coordf_t
-  method x : float
-  method y : float
-
-  method add_neighbor : node_t -> unit
-  method lose_neighbor : node_t -> unit
-  method is_neighbor : node_t -> bool
-  method neighbors : Common.nodeid_t list
-    
-  method move : Coord.coordf_t -> unit
 
   method mac_recv_pkt : l2pkt:Packet.l2packet_t -> unit
   method mac_send_pkt : l3pkt:Packet.l3packet_t -> dstid:Common.nodeid_t -> unit
@@ -40,12 +30,6 @@ object
     (* Broadcast packet to all neighbors. Should raise Mac_Bcast_Failure if
        node has no neighbors *)
 
-  method add_new_ngbr_hook : hook:(node_t -> unit) -> unit
-    (* Any agent (routing, application, etc) on this node who might
-       wants to know when nodes enter the neighborhood should register through
-       this hook. 
-    *)
-
   method add_recv_pkt_hook : hook:(Packet.l3packet_t -> unit) -> unit
     (* Any agent (routing, application, etc) on this node who might
        receive packets should register through this hook. 
@@ -57,17 +41,13 @@ object
        those agents which might need it.
     *)
 
-  method add_pktin_mhook : hook:(Packet.l2packet_t -> node_t -> unit) -> unit
+  method add_pktin_mhook : hook:(Packet.l2packet_t -> 'a -> unit) -> unit
     (* Any monitoring application can register here to see all packets entering
        the node.
        If multiple apps, order in which called is unspecified.*)
         
-  method add_mob_mhook : hook:(Coord.coordf_t -> node_t -> unit) -> unit
-    (* Any monitoring application can register here to receive update each
-       time the node moves.
-       If multiple apps, order in which called is unspecified.*)
     
-  method add_pktout_mhook : hook:(Packet.l2packet_t -> node_t -> unit) -> unit
+  method add_pktout_mhook : hook:(Packet.l2packet_t -> 'a -> unit) -> unit
     (* Any monitoring application can register here to see all packets leaving
        the node.
        If multiple apps, order in which called is unspecified.*)
@@ -98,6 +78,8 @@ object
     pkts_per_sec:int -> unit
 
   method dump_state : node_state_t 
+    
+
 end
   
   
