@@ -11,6 +11,7 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 
   let l3pkt = (L2pkt.l3pkt l2pkt) in
   let l3dst = L3pkt.l3dst l3pkt in
+  let ease_hdr = L3pkt.ease_hdr l3pkt in
 
   match (L2pkt.l2src l2pkt) <> node#id with
     | _ -> 	(* Packet arriving at a node *)
@@ -21,8 +22,8 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 	  routeref := Route.add_hop !routeref {
 	    Route.hop=node#pos;
 	    Route.info=Some {
-	      Route.anchor=(L3pkt.l3anchor l3pkt);
-	      Route.anchor_age=(L3pkt.l3enc_age l3pkt);
+	      Route.anchor=(Ease_pkt.anchor ease_hdr);
+	      Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
 	      Route.searchcost=0.0; (* hack see general_todo.txt *)
 	    }
 	  }
@@ -36,6 +37,7 @@ let ease_route_pktin_mhook routeref l2pkt node = (
 let ease_route_pktout_mhook routeref l2pkt node = (
   
   let l3pkt = (L2pkt.l3pkt l2pkt) in
+  let ease_hdr = L3pkt.ease_hdr l3pkt in
   
   match (L2pkt.l2src l2pkt) <> node#id with
     | true -> 	assert(false)
@@ -45,9 +47,9 @@ let ease_route_pktout_mhook routeref l2pkt node = (
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#pos;
 	  Route.info=Some {
-	    Route.anchor=(L3pkt.l3anchor l3pkt);
-	    Route.anchor_age=(L3pkt.l3enc_age l3pkt);
-	    Route.searchcost=(L3pkt.l3search_dist l3pkt)
+	    Route.anchor=(Ease_pkt.anchor ease_hdr);
+	    Route.anchor_age=(Ease_pkt.enc_age ease_hdr);
+	    Route.searchcost=(Ease_pkt.search_dist ease_hdr)
 	  }
 	}
 )
@@ -72,8 +74,8 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 
   if (l2src = node#id) then failwith "Gui_hooks.grep_route_pktin_mhook";
 
-  match L3pkt.l3grepflags ~l3pkt with
-    | L3pkt.GREP_DATA ->
+  match Grep_pkt.flags (L3pkt.grep_hdr l3pkt) with
+    | Grep_pkt.GREP_DATA ->
 	(Log.log)#log_debug (lazy (Printf.sprintf "Arriving t node %d" node#id));	  
 	if  node#id = l3dst then ( (* Packet arriving at dst. *)
 	  route_done := true;
@@ -82,7 +84,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 	    Route.info=None
 	  }
 	)
-    | L3pkt.GREP_RREQ  ->
+    | Grep_pkt.GREP_RREQ  ->
 	assert (Route.length !routeref > 0);
 	let hopno = find_last_flood !routeref in
 	assert (hopno <> None);
@@ -96,7 +98,7 @@ let grep_route_pktin_mhook routeref l2pkt node = (
 	  with (Failure "addnode") -> tree
 	in
 	(Route.nth_hop !routeref (o2v hopno)).Route.info <- Some newtree
-    | _ -> () (* ignore RREP/RRER*)
+    | Grep_pkt.GREP_RREP | Grep_pkt.GREP_RADV  -> () (* ignore RREP/RADV*)
 )
 
 let grep_route_pktout_mhook routeref l2pkt node = (
@@ -107,15 +109,15 @@ let grep_route_pktout_mhook routeref l2pkt node = (
   
   if (l2src <> node#id) then failwith "Gui_hooks.grep_route_pktout_mhook";
   
-  match L3pkt.l3grepflags ~l3pkt with
-    | L3pkt.GREP_DATA ->
+  match Grep_pkt.flags (L3pkt.grep_hdr l3pkt) with
+    | Grep_pkt.GREP_DATA ->
 	(Log.log)#log_info (lazy (Printf.sprintf "Leaving node %d" node#id));	
 	routeref := Route.add_hop !routeref {
 	  Route.hop=node#id;
 	  Route.info=None
 	}
 	  
-    | L3pkt.GREP_RREQ when (l3src = l2src) ->	(* RREQ leaving initiator *)
+    | Grep_pkt.GREP_RREQ when (l3src = l2src) ->	(* RREQ leaving initiator *)
 	begin	
 	  match Route.length !routeref with
 	      (* Add hop if this node is not yet on the route 
@@ -142,6 +144,7 @@ let grep_route_pktout_mhook routeref l2pkt node = (
 	  | _ -> raise (Misc.Impossible_Case "Gui_hooks.grep_route_pktout_mhook");
 	end	      
 
-    | _ -> () (* ignore RREP/RRER*)
+    | Grep_pkt.GREP_RREQ -> () (* RREQ at relay node *)
+    | Grep_pkt.GREP_RREP | Grep_pkt.GREP_RADV -> () (* ignore RREP/RADV*)
 )
 
