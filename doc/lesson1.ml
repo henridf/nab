@@ -24,7 +24,7 @@
 
 
 let nodes = 800
-let rrange = 12.0
+let radiorange = 12.0
 let avg_degree = 8
 
 let pkt_count = ref 0
@@ -32,9 +32,10 @@ let pkt_count = ref 0
 let setup() = (
   Param.set Params.nodes nodes;
 
-  Param.set Params.rrange rrange;
+  (* Set the transmission range (range within which nodes are neighbors). *)
+  Param.set Params.radiorange radiorange;
 
-  let size = Script_utils.size ~rrange ~nodes ~avg_degree () in
+  let size = Script_utils.size ~rrange:radiorange ~nodes ~avg_degree () in
 
   Param.set Params.x_size size;
   Param.set Params.y_size size;

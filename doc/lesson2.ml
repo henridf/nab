@@ -36,7 +36,7 @@ let nstacks = 2
 let setup() = (
   Param.set Params.nodes nodes;
 
-  Param.set Params.rrange rrange;
+  Param.set Params.radiorange rrange;
 
   let size = Script_utils.size ~rrange ~nodes ~avg_degree () in
 
