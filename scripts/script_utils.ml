@@ -162,11 +162,11 @@ let make_ler_agents ?(stack=0) proto = (
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
-let make_str_nodes () = (
+let make_str_nodes metric = (
   make_nodes();
 
   Nodes.iteri (fun nid n -> 
-    let agent = new Str_agent.str_agent ~stack:0 n in
+    let agent = new Str_agent.str_agent ~stack:0 metric n in
     n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 
