@@ -18,7 +18,7 @@ type rtab_entry_t = {
   other: spec
 }
 
-type rtab_t = rtab_entry_t array
+type t = rtab_entry_t array
 
 
 (* these two funs only exist to make sure that initialization (create_* ) and
@@ -139,3 +139,5 @@ let newadv_ignorehops ~rt ~dst ~sn ~hc ~nh =
     | _ -> raise (Misc.Impossible_Case "rtab.ml") 
   in
   rtab_changed
+
+
