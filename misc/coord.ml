@@ -2,7 +2,7 @@ open Misc
 type 'a coord_t = ('a * 'a)
 type coordi_t = int coord_t
 type coordf_t = float coord_t
-
+type coordn_t = int array
 
 let (+++) (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 let (+++.) (x1, y1) (x2, y2) = (x1 +. x2, y1 +. y2)
@@ -19,7 +19,9 @@ let ( ///. ) (x, y) scalar = (x /. scalar, y /. scalar)
 
 
 let coord_i2f (x, y) = (i2f x, i2f y)
+let coord_i2n (x, y) = [| float x; float y|]
 let coord_f2i (x, y) = (f2i x, f2i y)
+let coord_f2n (x, y) = [|x, y|]
 let coord_round (x, y) = (round x, round y)
 let coord_floor (x, y) = (floor x, floor y)
 

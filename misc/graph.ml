@@ -14,24 +14,26 @@ sig
 
   val make_ : 'a -> int -> graphtype_t -> 'a t
 
-(*
-  val make_wrap_lattice_ : dim:int -> side:int -> Coord.coordi_t t
-  val make_lattice_ : dim:int -> side:int -> Coord.coordi_t t
-    
+
+  
+  val make_lattice_ : dim:int -> side:int -> Coord.coordn_t t
+
+  val make_wrap_lattice_ : dim:int -> side:int -> Coord.coordn_t t
   val lattice_dim_ : maxsize:int -> side:int -> int
-*)
+
+
 
   val neigbors_  : 'a t -> 'a -> 'a list
   val neigborsi_ : 'a t -> int -> int list
 
 
-(*
-  val neigbors_lattice_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
-  val neigborsi_lattice_  : Coord.coordi_t t -> index:int -> side:int -> int list
 
-  val neigbors_lattice_wrap_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
-  val neigborsi_lattice_wrap_  : Coord.coordi_t t -> index:int -> side:int -> int list
-*)
+  val neigbors_lattice_  : Coord.coordn_t t -> Coord.coordn_t -> side:int -> Coord.coordn_t list
+  val neigborsi_lattice_  : Coord.coordn_t t -> index:int -> side:int -> int list
+
+  val neigbors_lattice_wrap_  : Coord.coordn_t t -> Coord.coordn_t -> side:int -> Coord.coordn_t list
+  val neigborsi_lattice_wrap_  : Coord.coordn_t t -> index:int -> side:int -> int list
+
    
   (* common *)
   val nhop_neigbors_  : 'a t -> node:'a -> radius:int -> 'a list
@@ -69,11 +71,10 @@ sig
   val dist_       : 'a t -> src:'a -> dest:'a -> int (* distance in hops *)
   val disti_      : 'a t -> src:int -> dest:int -> int
   
-(* optimized for lattices *)
-(*
-  val lattice_dist_       : Coord.coordi_t t -> src:Coord.coordi_t -> dest:Coord.coordi_t -> int
-  val lattice_disti_      : Coord.coordi_t t -> src:int -> dest:int -> int
-*)
+  (* optimized for lattices, returns manhattan distance (wrong for taurus) *)
+  val lattice_dist_       : Coord.coordn_t t -> src:Coord.coordn_t -> dest:Coord.coordn_t -> int
+  val lattice_disti_      : Coord.coordn_t t -> src:int -> dest:int -> int
+
 
   val iteri_ : (int -> unit) -> 'a t -> unit
   val itern_ : ('a  -> unit) -> 'a t -> unit
