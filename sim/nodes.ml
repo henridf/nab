@@ -7,16 +7,19 @@ open Misc
 
 let nodes_array = ref ([||]: Simplenode.simplenode array)
 
+let check() = if !nodes_array = [||] then
+  Log.log#log_warning (lazy "Node iterator called but node array is empty")
+
 let set_nodes arr = nodes_array := arr
 
-let iter f = Array.iter f !nodes_array
-let iteri f = for i = 0 to Array.length !nodes_array - 1 do  f i done
+let iter f = check(); Array.iter f !nodes_array
+let iteri f = check(); for i = 0 to Array.length !nodes_array - 1 do  f i done
 
 
     
-let map f = Array.map f !nodes_array
-let mapi f = Array.mapi (fun i node -> f i) !nodes_array
-let fold f init = Array.fold_right f !nodes_array init
+let map f = check(); Array.map f !nodes_array
+let mapi f = check(); Array.mapi (fun i node -> f i) !nodes_array
+let fold f init = check(); Array.fold_right f !nodes_array init
 
 let node i = !nodes_array.(i)
 
