@@ -7,12 +7,14 @@ sig
   val make_ : int -> 'a circbuf_t
   val length_ : 'a circbuf_t -> int
   val maxlength_ : 'a circbuf_t -> int
-  val get_ : 'a circbuf_t -> int -> 'a      (* offset counts backward from latest element inserted *)
+  val get_ : 'a circbuf_t -> int -> 'a              (* offset counts backward from latest element inserted *)
   val push_ : 'a circbuf_t -> 'a -> unit
   val iter_ : ('a -> unit) -> 'a circbuf_t -> unit         
   val iteri_ : (int -> 'a -> unit) -> 'a circbuf_t -> unit
-  val fromarray_ : 'a array -> 'a circbuf_t (* head will be at array.(0) *)
-  val toarray_ : 'a circbuf_t -> 'a array   (* array.(0) will be most recently pushed item *)
+  val fromarray_ : 'a array -> 'a circbuf_t         (* head will be at array.(0) *)
+  val toarray_ : 'a circbuf_t -> 'a array           (* array.(0) will be most recently pushed item *)
+  val sub_ : 'a circbuf_t -> int -> 'a circbuf_t    (* sub-circbuf with i first elements *)
+  val equal_ : 'a circbuf_t -> 'a circbuf_t -> bool (* semantic equality *)
   val test_ : unit -> unit
 end ;;
 
@@ -26,7 +28,7 @@ struct
     if size <= 0   then raise (Invalid_argument "CircBuf.make_ : size must be > 0");
     {buf = (Array.make size None); head=0}
   )
-			    
+		     
 
 
   let maxlength_ cbuf = Array.length cbuf.buf
@@ -96,17 +98,44 @@ struct
 
   let fromarray_ arr = {buf = Array.map (fun x -> Some x) arr; 
 			head = 0}
-			 
-			 
 
+  let equal_ cb1 cb2 = 
+    (length_ cb1 = length_ cb2) && (
+      let rec different i = 
+	i <  (length_ cb1) &&  (((get_ cb1 i) <> (get_ cb2 i)) || different (i + 1))
+      in not (different 0)
+    )
+
+  let sub_ cb size = (
+    if size > length_ cb then raise (Invalid_argument "CircBuf.sub_ : out-of-bounds");
+    let newcb = make_ size in
+      for i = (size - 1) downto 0 do
+	push_ newcb (get_ cb i)
+      done;
+      newcb
+  )
+      
   let test_ () = ( 
     let cb = make_ 5 in
+    let cb2 = make_ 6 in
     let ctr = ref 0 in 
+      assert (equal_ cb cb);
       assert (length_ cb = 0);
       assert (maxlength_ cb = 5);
       assert (toarray_ cb = [||]);
       
       push_ cb (i2f 0);
+      push_ cb2 (i2f 0);
+      assert (equal_ cb (sub_ cb 1));
+
+      assert (equal_ cb cb);
+      assert (equal_ cb cb2);
+      assert (equal_ cb2 cb);
+      push_ cb2 (i2f 0);
+      assert (equal_ cb (sub_ cb2 1));
+
+      assert (not (equal_ cb cb2));
+      assert (not (equal_ cb2 cb));
       assert ((get_ cb 0) = (i2f 0));
       assert (length_ cb = 1);
       
@@ -119,9 +148,16 @@ struct
 	push_ cb (i2f i);
 	assert ((get_ cb 0) = (i2f i));
       done;
+      push_ cb2 2.0;      
+      push_ cb2 3.0;
+      push_ cb2 4.0;
+      assert (not (equal_ cb2 cb));
+
       assert (length_ cb = 5);
       assert (toarray_ cb = [|4.0; 3.0; 2.0; 1.0; 0.0|]);
       assert (cb = fromarray_ [|4.0; 3.0; 2.0; 1.0; 0.0|]);
+      assert (toarray_ (sub_ cb 2) = [|4.0; 3.0|]);
+      assert (toarray_ (sub_ cb 5) = [|4.0; 3.0; 2.0; 1.0; 0.0|]);
       
       for i = 0 to 4 do 
 	assert ((get_ cb i) = i2f (4 - i))
