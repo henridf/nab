@@ -1,4 +1,4 @@
-d(*
+(*
  *
  *  NAB - Network in a Box
  *  Henri Dubois-Ferriere, LCA/LCAV, EPFL
