@@ -28,21 +28,6 @@
   keep a bool Array of size n, which marks if a node's neighborlist is dirty.
   
 
-  node_moved.(n) : dirty.(n) <- true
-
-  neighbors.(n) : 
-		if dirty.(n) :
-		- recompute neighbors from grid.
-		- update neighbors.(n)
-		- update exits and entries for other nodes
-		dirty.(n) <- false
-
-  neighbors.(n) : 
-		if clean.(n)
-		iter over neighbors.(n). for any dirty nodes, recompute, and
-		add/remove accordingly.
-  
-
 - (idea) in mods.ml, add stg like Module List = ListLabels, etc, for other
   labelled modules. Then need to modify code, for all list iterations we would
   then be able to put list before function for example.
