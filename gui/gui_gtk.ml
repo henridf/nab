@@ -96,7 +96,7 @@ let init () = (
 
   Gdk.Window.set_back_pixmap (gdk_window()) (`PIXMAP pixmap_);
 
- txt_label := Some (GMisc.label ~text:"Go on!" ~packing:(packer()) ());
+ txt_label := Some (GMisc.label ~text:"" ~packing:(packer()) ());
 
 )
 

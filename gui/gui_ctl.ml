@@ -171,7 +171,7 @@ let choose_node () = (
 let create_buttons() = (
 
   let ss_tab = (GPack.table ~rows:1 ~columns:3 ~homogeneous:false 
-    ~row_spacings:3 ~col_spacings:3 ~border_width:10
+    ~row_spacings:0 ~col_spacings:0 ~border_width:0
     ~packing:(Gui_gtk.packer()) ()) in
 
   start_stop_btn := Some (GButton.toggle_button ~draw_indicator:false
@@ -186,8 +186,8 @@ let create_buttons() = (
   ss_tab#attach (rt_btn())#coerce ~left:1 ~top:0 ~right:2 ~bottom:1
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 
-  let checkbox_tab = (GPack.table ~rows:2 ~columns:2 ~homogeneous:false 
-    ~row_spacings:3 ~col_spacings:3 ~border_width:10
+  let checkbox_tab = (GPack.table ~rows:1 ~columns:4 ~homogeneous:false 
+    ~row_spacings:0 ~col_spacings:0 ~border_width:0
     ()) in
 
   ss_tab#attach checkbox_tab#coerce ~left:2 ~top:0 ~right:3 ~bottom:1
@@ -198,9 +198,9 @@ let create_buttons() = (
 
   let checkboxlist = [
     ("Cacher noeuds", show_nodes, 0, 0);
-    ("Cacher ancres", show_route_anchors, 0, 1);
-    ("Cacher directions", show_route_lines, 1, 0);
-    ("Cacher disques", show_route_disks, 1, 1);
+    ("Cacher ancres", show_route_anchors, 1, 0);
+    ("Cacher directions", show_route_lines, 2, 0);
+    ("Cacher disques", show_route_disks, 3, 0);
   ] in
   
   List.iter (fun (txt, boolref, left, top) ->
