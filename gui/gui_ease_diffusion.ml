@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (* Notes on hacks/changes for quick cens dirty job.
    create_buttons_trees was just a cutnpaste/change of create_buttons_ease - 
@@ -22,7 +22,7 @@ open Misc
 open GMain
 
 let run_id = ref None
-let t = ref (Common.get_time())
+let t = ref (Time.get_time())
 
 let rt = ref None (* keep a copy of last route around so expose_event can
 		     redraw it *)
@@ -48,8 +48,8 @@ let run() = (
 
   Gui_gtk.set_expose_event_cb (fun _ -> true);
   
-  t := (Common.get_time());
-  let continue() = ((Common.get_time()) < !t +. 1.0) in
+  t := (Time.get_time());
+  let continue() = ((Time.get_time()) < !t +. 1.0) in
   (Sched.s())#run_until~continue;
 
   if !show_nodes  then  Gui_ops.draw_all_nodes(); 

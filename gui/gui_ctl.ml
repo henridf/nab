@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (* Notes on hacks/changes for quick cens dirty job.
    create_buttons_trees was just a cutnpaste/change of create_buttons_ease - 
@@ -23,14 +23,14 @@ open Misc
 open GMain
 
 let run_id = ref None
-let t = ref (Common.get_time())
+let t = ref (Time.get_time())
 
 
 let run mws_tick display_cb () = (
 
-  t := (Common.get_time());
+  t := (Time.get_time());
 
-  let continue() = ((Common.get_time()) < !t +. mws_tick) in
+  let continue() = ((Time.get_time()) < !t +. mws_tick) in
   (Sched.s())#run_until~continue;
 
   display_cb();

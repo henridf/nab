@@ -1,11 +1,11 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 open Misc
 open GMain
 
-let t = ref (Common.get_time())
+let t = ref (Time.get_time())
 
 let rt = ref None (* keep a copy of last route around so expose_event can
 		     redraw it *)
