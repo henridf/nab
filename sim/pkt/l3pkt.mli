@@ -111,7 +111,6 @@ val simple_hdr : t -> Simple_pkt.t
 val l3pkt_size : t -> int
 val clone_l3pkt : t -> t
 
-val set_l3ttl : ttl:int -> t -> unit
-val decr_l3ttl : t -> unit
+val decr_l3ttl : t -> t
 
 

@@ -113,10 +113,11 @@ let l3hdr l3pkt = l3pkt.l3hdr
 let l3src l3pkt = (l3hdr l3pkt).src
 let l3dst l3pkt = (l3hdr l3pkt).dst
 let l3ttl l3pkt = (l3hdr l3pkt).ttl
-let set_l3ttl ~ttl l3pkt = (l3hdr l3pkt).ttl <- ttl
 
 let decr_l3ttl l3pkt = 
-  l3pkt.l3hdr.ttl <- l3pkt.l3hdr.ttl - 1
+  {l3hdr = {l3pkt.l3hdr with ttl = l3pkt.l3hdr.ttl - 1};
+  l4pkt = l3pkt.l4pkt}
+
 
 let l3hdr_ext l3pkt = l3pkt.l3hdr.ext
 

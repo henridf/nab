@@ -557,11 +557,10 @@ object(s)
       | `RADV 
       | `RREQ -> 
 	  assert (dst = L3pkt.l3_bcast_addr);
-	  L3pkt.decr_l3ttl l3pkt;
-	  begin match ((L3pkt.l3ttl l3pkt) >= 0)  with
+	  begin match ((L3pkt.l3ttl l3pkt) > 0)  with
 	    | true -> 
 		stats.S.rreq_xmit <- stats.S.rreq_xmit + 1;
-		s#mac_bcast_pkt l3pkt;
+		s#mac_bcast_pkt (L3pkt.decr_l3ttl l3pkt);
 	    | false ->
 		s#log_info (lazy (sprintf "Dropping packet (negative ttl)"));		
 	  end

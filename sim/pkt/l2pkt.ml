@@ -69,10 +69,11 @@ let l2pkt_size ~l2pkt =
   l2hdr_size l2pkt.l2hdr +
   l3pkt_size l2pkt.l3pkt
 
-let clone_l2pkt ~l2pkt = {
+let clone_l2pkt ~l2pkt = l2pkt
+(*{
   l2hdr=clone_l2hdr ~l2hdr:l2pkt.l2hdr;
   l3pkt=clone_l3pkt l2pkt.l3pkt;
-}
+}*)
 
 let l3pkt l2pkt = l2pkt.l3pkt
 
