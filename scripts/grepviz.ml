@@ -82,7 +82,21 @@ let () =
     (Nodes.node dst)#originate_app_pkt (i + 2);
 
   done;
-  
+(*
+  let oc = open_out "/tmp/mws_node_state" in 
+  Persistency.save_node_state oc;  
+  let ochan = open_out "/tmp/mws_grep_state" in 
+  Persistency.save_grep_agents ochan;  
+  close_out ochan;
+
+
+
+  let ichan = open_in "/tmp/mws_node_state" in 
+  Persistency.read_node_state ichan ;  
+  let ichan = open_in "/tmp/mws_grep_state" in 
+  Persistency.read_grep_agents ichan;  
+
+*)  
   print_degree();
 
   Main.main();
