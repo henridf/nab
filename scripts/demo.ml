@@ -57,14 +57,14 @@ let load_nodes() = (
   let in_chan = open_in ((Sys.getcwd())^"/out.mld") in
   Persistency.read_state ~in_chan;
 
-  Printf.printf "LOAD|| : Prop met: %f\n" (proportion_met_nodes 1);
+(*  Printf.printf "LOAD|| : Prop met: %f\n" (proportion_met_nodes 1);*)
   Nodes.gpsiter (fun n ->   
     Printf.printf "LOAD||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
   flush stdout;
 )
 
 let save_nodes() = (
-  Printf.printf "SAVE|| : Prop met: %f\n" (proportion_met_nodes 1);
+(*  Printf.printf "SAVE|| : Prop met: %f\n" (proportion_met_nodes 1);*)
   Nodes.gpsiter (fun n ->   
     Printf.printf "SAVE||: Node %d at pos : %s\n" n#id (Coord.sprintf n#pos));
   flush stdout;
@@ -137,7 +137,7 @@ let _ =
   Param.set Params.y_size 600.0;
   Gui_gtk.init ();
   Log.set_log_level ~level:Log.LOG_DEBUG;
-  Gui_ctl.create_buttons();
+  Gui_ctl.create_buttons_ease();
   Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();
   do_one_run();

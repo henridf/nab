@@ -2,6 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(** Low-leve interface to some wrappers around GTK functionality *)
+
+
 val init : unit -> unit
 
 (* use this function to pack things into the main vbox *)
@@ -27,6 +30,7 @@ val draw :
   clear:bool 
   -> unit 
   -> unit
+
 
 val draw_node :  
   ?col:GDraw.color ->          

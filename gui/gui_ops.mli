@@ -2,6 +2,7 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(** High-level GUI drawing operations *)
 
 (* draw node at position of some time in the past *)
 val draw_node_time : 

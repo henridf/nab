@@ -40,7 +40,10 @@ let res = 10
   (* using list of functions is not most efficient, but we are assuming there
      will be a small number of functions per list. Otherwise CPS might be nice
      here *)
-let draw_array = Array.make_matrix (1200/res) (900/res) [(fun () -> ()) ]
+let draw_array = ref [||]
+
+
+
 let copy_pixmap x y = (
   (drawing())#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width:res
   ~height:res   (pixmap()) 
@@ -55,11 +58,11 @@ let draw ~clear () = (
 	    copy_pixmap (x*res) (y*res);
 	  );
 	  List.iter (fun f -> f()) funs;
-	    draw_array.(x).(y) <- [(fun () -> ()) ];
-
+	  !draw_array.(x).(y) <- [(fun () -> ()) ];
+	  
 	)
       )  column
-  ) draw_array 
+  ) !draw_array 
 )
   
   
@@ -74,14 +77,21 @@ let set_expose_event_cb f = (
 )
 
 let init () = (
+
+  Gui_hooks.init();
+
+  let width = (Param.get Params.x_pix_size) 
+  and height = (Param.get Params.y_pix_size)  in
+
+  draw_array := Array.make_matrix (width/res) (height/res) [(fun () -> ()) ];
+
   wnd := Some (GWindow.window ~show:true ());
 
   let _ = (window())#connect#destroy ~callback:Main.quit in
-
   
   vbx := Some (GPack.vbox ~packing:(window())#add ());
   pkr := (vbox())#add;
-  fixed := Some (GPack.fixed ~width:1200 ~height:900 ~packing:((vbox())#add) ());
+  fixed := Some (GPack.fixed ~width ~height ~packing:((vbox())#add) ());
 
   gdk_wnd := Some ((fix())#misc#realize (); (fix())#misc#window);
 
@@ -131,12 +141,11 @@ let draw_segments_buf ?(col=cl_fg) ?(thick=1) s = (
 	and (g2x, g2y) = p2 /// res
 	in
 	match (g1x, g1y) = (g2x, g2y) with
-	  | true -> draw_array.(g1x).(g1y) <- f::draw_array.(g1x).(g1y)
+	  | true -> !draw_array.(g1x).(g1y) <- f::!draw_array.(g1x).(g1y)
 	  | false -> 
-	      draw_array.(g1x).(g1y) <- f::draw_array.(g1x).(g1y);
-	      draw_array.(g2x).(g2y) <- f::draw_array.(g2x).(g2y)
+	      !draw_array.(g1x).(g1y) <- f::!draw_array.(g1x).(g1y);
+	      !draw_array.(g2x).(g2y) <- f::!draw_array.(g2x).(g2y)
   ) s
-
 )
 
 let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (

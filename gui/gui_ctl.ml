@@ -169,7 +169,7 @@ let choose_node () = (
 )
 	
   
-let create_buttons() = (
+let create_buttons_common() = (
 
   let ss_tab = (GPack.table ~rows:1 ~columns:3 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
@@ -182,10 +182,17 @@ let create_buttons() = (
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
 
   choose_route_btn := Some (GButton.toggle_button ~draw_indicator:false
-    ~label:"dessiner une route" ()) ;
+    ~label:"draw a route" ()) ;
   ignore ((rt_btn())#connect#released ~callback:(choose_node));
   ss_tab#attach (rt_btn())#coerce ~left:1 ~top:0 ~right:2 ~bottom:1
     ~xpadding:0 ~ypadding:0  ~expand:`BOTH;
+
+  ss_tab
+)
+
+let create_buttons_ease() = (
+
+  let ss_tab = create_buttons_common() in
 
   let checkbox_tab = (GPack.table ~rows:1 ~columns:4 ~homogeneous:false 
     ~row_spacings:0 ~col_spacings:0 ~border_width:0
@@ -198,10 +205,10 @@ let create_buttons() = (
   
 
   let checkboxlist = [
-    ("Cacher noeuds", show_nodes, 0, 0);
-    ("Cacher ancres", show_route_anchors, 1, 0);
-    ("Cacher directions", show_route_lines, 2, 0);
-    ("Cacher disques", show_route_disks, 3, 0);
+    ("Hide nodes", show_nodes, 0, 0);
+    ("Hide Anchors", show_route_anchors, 1, 0);
+    ("Hide Directions", show_route_lines, 2, 0);
+    ("Hide Disks", show_route_disks, 3, 0);
   ] in
   
   List.iter (fun (txt, boolref, left, top) ->
