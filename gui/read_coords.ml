@@ -8,7 +8,7 @@ let g () = o2v !gr
 
 let make_graph() = (
 
-  let ic = open_in "/home/henri/work/150th/coordinates.txt" in
+  let ic = open_in "/tmp/coordinates.txt" in
 
   let re = Str.regexp "[ \t]+" in
 
