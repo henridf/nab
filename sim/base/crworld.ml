@@ -70,23 +70,6 @@ class virtual world_common ~x ~y ~rrange  = (
       pos
     )
 
-
-
-    method private reflect pos = (
-      let newx = ref (xx pos) and newy = ref (yy pos) in 
-      if !newx >  world_size_x_ then 
-	newx := (2.0 *. world_size_x_) -. !newx
-      else if !newx < 0.0 then
-	newx := (-1.0) *. !newx;
-      if !newy > world_size_y_  then  
-	newy := (2.0 *. world_size_y_) -. !newy
-      else if !newy < 0.0 then
-	newy := (-1.0) *. !newy;
-
-      assert (!newx >= 0.0 && !newx <=  world_size_x_ && !newy >= 0.0 && !newy <=  world_size_y_);
-      (!newx, !newy)
-    )
-
     method virtual get_nodes_within_radius :  nid:Common.nodeid_t -> radius:float -> Common.nodeid_t list
     method virtual boundarize : Coord.coordf_t -> Coord.coordf_t
     method virtual dist_coords :  Coord.coordf_t -> Coord.coordf_t -> float
@@ -230,7 +213,7 @@ class virtual world_common ~x ~y ~rrange  = (
     method init_pos ~nid ~pos = (
       (* update local data structures (grid_of_nodes) with new pos, 
 	 then update the node and neighbor node objects *)
-      
+
       let (newx, newy) = s#pos_in_grid_ pos in
 
       if node_positions_.(nid) <> initial_pos then 
@@ -566,7 +549,21 @@ class virtual reflecting_world ~x ~y ~rrange = (
 
     inherit world_common ~x ~y ~rrange
 
-    method boundarize pos = s#reflect pos
+    method boundarize pos = 
+
+      let newx = ref (xx pos) and newy = ref (yy pos) in 
+      if !newx >  world_size_x_ then 
+	newx := (2.0 *. world_size_x_) -. !newx
+      else if !newx < 0.0 then
+	newx := (-1.0) *. !newx;
+      if !newy > world_size_y_  then  
+	newy := (2.0 *. world_size_y_) -. !newy
+      else if !newy < 0.0 then
+	newy := (-1.0) *. !newy;
+
+      assert (!newx >= 0.0 && !newx <=  world_size_x_ && !newy >= 0.0 && !newy <=  world_size_y_);
+      (!newx, !newy)
+      
     method dist_coords a b = sqrt (Coord.dist_sq a b)
     method are_neighbors nid1 nid2 = 
       nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
@@ -580,7 +577,7 @@ class virtual taurus_world ~x ~y ~rrange = (
 
     inherit world_common ~x ~y ~rrange
 
-    method boundarize pos = s#reflect pos
+    method boundarize pos = pos
     method dist_coords a b = sqrt (Coord.dist_sq a b)
     method are_neighbors nid1 nid2 = 
       nid1 <> nid2 && ((Coord.dist_sq (node_positions_.(nid1)) (node_positions_.(nid2))) <= rrange_sq_)
