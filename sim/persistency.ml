@@ -45,7 +45,7 @@ let save_state ~node_cnt ~out_chan ~ntargets = (
   }
   in
   let (node_states:sim_state_t) = 
-    Nodes.map (fun n -> n#dump_state ~node_cnt:node_cnt)
+    Nodes.map (fun n -> n#dump_state)
   in
 
   if (node_cnt <> Array.length node_states) then 
@@ -62,8 +62,10 @@ let save_state ~node_cnt ~out_chan ~ntargets = (
 )
 
 
-let read_state ~in_chan  = (
-
+let read_state ~in_chan  = 
+  raise Misc.Not_Implemented
+(*
+(
   (* get bits from channel *)
   let str = (Marshal.from_channel in_chan : string) in
   let hdr = (Marshal.from_channel in_chan : state_hdr_t) in
@@ -104,5 +106,5 @@ let read_state ~in_chan  = (
   (* set up initial node position in internal structures of world object *)
   Nodes.iter (fun n -> (Gworld.world())#update_pos ~node:n ~oldpos_opt:None);
   assert ((Gworld.world())#neighbors_consistent);
-
 )
+*)
