@@ -60,7 +60,8 @@ object(s)
       output_string !output_fd (sprintf "%f " (Common.get_time()));
       output_string !output_fd objdescr;
       output_string !output_fd (Lazy.force msg);
-      output_char !output_fd '\n'
+      output_char !output_fd '\n';
+      flush !output_fd;
     )
 
   method private log msg = s#log_level ~level:LOG_INFO ~msg:msg
