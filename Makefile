@@ -83,7 +83,15 @@ DEPEND_FILES := $(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*mli)) \
 
 
 ifdef SCRIPT
-	MWS_SCRIPT = $(MWS_SCRIPT_DIR)/$(SCRIPT)
+  ifeq ($(wildcard $(SCRIPT)),$(SCRIPT))
+    MWS_SCRIPT = $(SCRIPT)
+  else
+    MWS_SCRIPT = $(MWS_SCRIPT_DIR)/$(SCRIPT)
+    ifneq ($(wildcard $(SCRIPT)),$(SCRIPT))
+      $(error I cannot find $(SCRIPT))
+    endif
+    # doesn't exist
+  endif
 endif
 
 ############
