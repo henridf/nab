@@ -102,7 +102,7 @@ object(s)
     if l2dst = L2pkt.l2_bcast_addr ||
       ((World.w())#are_neighbors myid l2dst)
     then (
-      s#log_debug (lazy "TX packet ");
+      s#log_debug (lazy (sprintf "TX packet to %d" l2dst));
       SimpleEther.emit ~stack ~nid:myid l2pkt;
       pktsTX <- pktsTX + 1;
       bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
