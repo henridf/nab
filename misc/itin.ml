@@ -182,6 +182,7 @@ struct
 	assert false;
       ) with 
       	  Failure "Itinerary.unroll_itin_: cannot unroll itinerary which is not full" -> ();
+    Printf.printf "Itinerary.test_ : passed \n";
   )
 
 end;;

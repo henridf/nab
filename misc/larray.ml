@@ -185,6 +185,7 @@ module LinkedArray : LinkedArray_t =
 	    connect_ lacp None_head None_tail;
 	    assert (length_ lacp = 1);
 	    assert (toarray_ lacp = [|0.0|]);
+	    Printf.printf "LinkedArray.test_ : passed \n";
     )
 	  
   end;;

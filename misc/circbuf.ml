@@ -84,7 +84,7 @@ module CircBuf : CircBuf_t =
 	  push_ cb (i2f (i + 5));
 	done;
 	assert (toarray_ cb = [| 7.0; 6.0; 5.0; 4.0; 3.0 |]);
-	(* internal representation = [| 4.0; 3.0; 7.0; 6.0; 5.0 |]);*)
+	(* internal representation = [| 4.0; 3.0; 7.0; 6.0; 5.0 |];*)
 	(*  head                                  ^^^              *)
 	assert ((get_ cb 0) = 7.0);
 	assert ((get_ cb 1) = 6.0);
@@ -100,6 +100,7 @@ module CircBuf : CircBuf_t =
 	  decr valcheck;
 	) in
 	  iteri_ iterichecker cb;
+	  Printf.printf "CircBuf.test_ : passed \n";
     )
 		     
   end;;
