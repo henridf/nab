@@ -234,8 +234,12 @@ end
 
 
 (** A Null frontend, which can be inherited from by MAC layers with no frontend
-  logic, ie MAC layers which do no carrier sensing and do not model collisions
-  (for example see {!MACA_simple.maca_mac}). *)
+  logic, ie MAC layers which do no carrier sensing and do not model
+  collisions. (for example see {!MACA_simple.maca_mac}). 
+
+  All this one does is to apply transmission delay.
+
+*)
 class virtual null_frontend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit [unit] frontend
@@ -245,10 +249,19 @@ object
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
 end
 
+(** A Null frontend, with additional features:
+  - provides a 'state' method to indicate current status of the frontend
+  (idle, receiving, transmitting).
+  - silently drops packets that it gets for transmission from the backend, if
+  it is already transmitting or receiving.
+  - does not receive packets if already receiving or transmitting.
+  - provides a callback to the backend when a packet transmission is complete.
+*)
 class virtual cb_null_frontend : ?stack:int -> bps:float -> #Node.node ->
 object
   inherit null_frontend
   method virtual private backend_xmit_complete : unit
+  method private state : Mac.frontend_state
 end
 
 (** {1 Functions for manipulating {!Mac.basic_stats} .} *) 

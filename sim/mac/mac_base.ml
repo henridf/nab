@@ -160,7 +160,7 @@ object(s)
   method xmit l2pkt = ()
     (* xxx/qmac
        if the packet queue is empty, send it to the mac frontend 
-       ( s#frontend_xmit l2pkt ).
+       (s#frontend_xmit l2pkt).
        otherwise, add it to the queue *)
 
   method private backend_xmit_complete = 
@@ -205,6 +205,7 @@ class virtual null_frontend ?(stack=0)  ~(bps:float)
   let myid = owner#id in
 object(s)
   inherit [unit] frontend ~stack ~bps owner
+
   method private frontend_reset_stats = 
     bitsTX <- 0;
     bitsRX <- 0;
@@ -212,29 +213,59 @@ object(s)
     pktsTX <- 0
       
   method private frontend_stats = ()
-
+    
   method private frontend_xmit l2pkt = 
-    SimpleEther.emit ~stack ~nid:myid l2pkt;
     pktsTX <- pktsTX + 1;
-    bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt)
+    bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
+    SimpleEther.emit ~stack ~nid:myid l2pkt;
+    
 
   method recv ?(snr=1.0) ~l2pkt () = 
+    let recv_event() = s#backend_recv l2pkt in
+    
     pktsRX <- pktsRX + 1;
     bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
-    s#backend_recv l2pkt
+    (Sched.s())#sched_in ~f:recv_event ~t:(xmit_time bps l2pkt)
+    
 
 end
 
 class virtual cb_null_frontend ?(stack=0) ~(bps:float) (owner:#Node.node) =
 object(s)
   inherit null_frontend ~stack ~bps owner as null_frontend
+  val mutable state = Mac.Idle
+
+  method private state = state
 
   method private frontend_xmit l2pkt = 
-    null_frontend#frontend_xmit l2pkt;
-    let t = xmit_time bps l2pkt in
-    (Sched.s())#sched_in ~t ~f:(fun() -> s#backend_xmit_complete)
+    if state = Mac.Idle then (
+      let xmit_done_event() = (
+	assert (state = Mac.Tx);
+	state <- Mac.Idle;
+	s#backend_xmit_complete
+      ) in
+      state <- Mac.Tx;
+      null_frontend#frontend_xmit l2pkt;
+      let t = xmit_time bps l2pkt in
+      (Sched.s())#sched_in ~t ~f:xmit_done_event
+    )
+
+  method recv ?(snr=1.0) ~l2pkt () = 
+    if state = Mac.Idle then (
+      let recv_event() = begin
+	assert (state = Mac.Rx);
+	state <- Mac.Idle;
+	s#backend_recv l2pkt
+      end in
+      
+      state <- Mac.Rx;
+      pktsRX <- pktsRX + 1;
+      bitsRX <- bitsRX + (L2pkt.l2pkt_size ~l2pkt);
+      (Sched.s())#sched_in ~f:recv_event ~t:(xmit_time bps l2pkt)
+    )
 
   method virtual private backend_xmit_complete : unit 
+
 end
 
 
