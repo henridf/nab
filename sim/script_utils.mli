@@ -38,11 +38,17 @@ val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
   (** Returns the side of a square surface to get the required average node
     degree, given the number of nodes and radio range *)
     
-val make_nodes : unit -> unit
+val make_nodes : ?with_positions:bool -> unit -> unit
   (** Create {!Simplenode.simplenode} each with a mac layer of the type
     specified in {!Params.mac}.
 
-    Number of nodes {!Params.nodes} should be set before calling this *)
+    Number of nodes {!Params.nodes} should be set before calling this.
+
+    Optional [with_positions] determines whether to initialize nodes with
+    (randomly generated) positions. It is true by default, and should only be
+    false if node positions are being restored from a prior run.
+
+ *)
 
 val make_grep_nodes : unit -> unit 
   (** Create {!Simplenode.simplenode} each with a grep agent and a mac layer

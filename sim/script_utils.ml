@@ -70,7 +70,7 @@ let install_macs ?(stack=0) () =
     | Mac.Contmac -> install_contention_macs ~stack ()
 
 
-let make_nodes () = (
+let make_nodes ?(with_positions=true) () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)  
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
@@ -79,9 +79,11 @@ let make_nodes () = (
 	)));
 
   install_macs  ();
-  (* set up initial node position in internal structures of World.object *)
-  Nodes.iteri (fun nid _ -> (World.w())#init_pos ~nid ~pos:(World.w())#random_pos );
-  assert ((World.w())#neighbors_consistent);
+  if with_positions then begin
+    (* set up initial node position in internal structures of World object *)
+    Nodes.iteri (fun nid _ -> (World.w())#init_pos ~nid ~pos:(World.w())#random_pos);
+    assert ((World.w())#neighbors_consistent);
+  end
 )
     
 let place_nodes_on_line () = 
