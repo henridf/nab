@@ -52,15 +52,12 @@ let res_summary = ref []
 
 let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed 
   ~pkts_to_send = (
-    (* this assumes that we alternate btw grep and aodv.*)
     if agenttype = GREP then 
       Random.init (nextseed())
     else
       Random.init !seed;
 
-  incr run;
-
-  Log.set_log_level ~level:Log.LOG_NOTICE;
+  Log.set_log_level ~level:Log.LOG_WARNING;
   Param.set Params.nodes nodes;
   Param.set Params.rrange rrange;
   Param.set Params.x_size (size nodes);
@@ -86,186 +83,201 @@ let do_one_run ~hotdest ~agenttype ~nodes ~sources ~packet_rate ~speed
 
   Nodes.iter (fun n ->
     if (n#id < sources) then (
-      let dst = if hotdest then ((Param.get Params.nodes)  - 1 ) else (n#id +
-      sources) in
-      let pkt_reception() = n#trafficsource ~num_pkts:pkts_to_send ~dstid:dst ~pkts_per_sec:packet_rate in
-      (Gsched.sched())#sched_in ~f:pkt_reception ~t:(((float n#id) *. 5.) +. 0.001);
+      let dst = if hotdest then 
+	((Param.get Params.nodes)  - 1 )
+      else 
+	(((Param.get Params.nodes)  - 1 ) - n#id)
+      in
+      if (dst <> n#id) then (
+	(* in case we have n nodes, n sources, then the n/2'th node would have
+	   itself as destination*)
+	let pkt_reception() = n#trafficsource ~num_pkts:pkts_to_send ~dstid:dst ~pkts_per_sec:packet_rate in
+	let start_time = Random.float 10.0 in
+	(Gsched.sched())#sched_in ~f:pkt_reception ~t:start_time;
+      )
     )
   );
   
-  Printf.fprintf !outfd "\n";
-  Printf.fprintf !outfd "---------------------------\n";
-  Printf.fprintf !outfd "\n";
-  Printf.fprintf !outfd "Run %d parameters:\n" !run;
-  Printf.fprintf !outfd "%d Nodes, type %s\t\t\n" nodes (agent_string agenttype);
-  Printf.fprintf !outfd "Sources: %d\t\t\n" sources;
-  Printf.fprintf !outfd "%d [pkt/s], %f [m/s] \n" packet_rate speed ;
-  Printf.fprintf !outfd "%d [pkt bufsize]\n" Grep_agent.packet_buffer_size;
   let start_time = Common.get_time() in
-(*  (Gsched.sched())#stop_in 40.0;*)
   (Gsched.sched())#run();
-  
-
-  Printf.fprintf !outfd "\n";
-  Printf.fprintf !outfd "Results:\n" ;
-  Printf.fprintf !outfd "Packets sent: \t%d\n" !Grep_hooks.total_pkts_sent;
-  Printf.fprintf !outfd "DATA sent: \t%d\n" !Grep_hooks.data_pkts_sent;
-  Printf.fprintf !outfd "DATA dropped: \t%d\n" !Grep_hooks.data_pkts_drop;
-  Printf.fprintf !outfd "DATA dropped on rerr: \t%d\n" !Grep_hooks.data_pkts_drop_rerr;
-  Printf.fprintf !outfd "DATA orig: \t%d\n" !Grep_hooks.data_pkts_orig;
-  Printf.fprintf !outfd "DATA recv: \t%d\n" !Grep_hooks.data_pkts_recv;
-  Printf.fprintf !outfd "RREQ send: \t%d\n" !Grep_hooks.rreq_pkts_sent;
-  Printf.fprintf !outfd "RREP/RERR send: \t%d\n" !Grep_hooks.rrep_rerr_pkts_sent;
-  Printf.fprintf !outfd "Invariant Breaks: \t%d\n" !Grep_hooks.inv_viol;
-
+ 
   let avgn = avg_neighbors_per_node() in
   let end_time = Common.get_time() in
-  Printf.fprintf !outfd "Time elapsed is %f\n" (end_time -. start_time);
   Printf.fprintf !outfd "Avg neighbors per node is %f\n" avgn;
 
-  res_summary := (speed, !Grep_hooks.total_pkts_sent)::!res_summary  ;
+  res_summary := 
+  (speed, 
+  !Grep_hooks.data_pkts_orig,
+  !Grep_hooks.total_pkts_sent,
+  !Grep_hooks.data_pkts_recv,
+  !Grep_hooks.data_pkts_sent,
+  !Grep_hooks.rrep_rerr_pkts_sent,
+  !Grep_hooks.rreq_pkts_sent,
+  !Grep_hooks.data_pkts_drop,
+  !Grep_hooks.data_pkts_drop_rerr
+  )::!res_summary  ;
   
   flush !outfd
 )
 
 
 
+(* CPU1 on lcavpc23 Thursday noon *)
 let runs = [
-(* speed routing rate nodes srcs pktsrecv *)
-  (* 400 nodes *)
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
-  (8.0, GREP, 8, 200, 4, 200);
-  (8.0, AODV, 8, 200, 4, 200);
+  (* speed rate nodes srcs pktssend *)
+  (  0.0,  8,   800,  1,  100);
+  (  1.0,  8,   800,  1,  100);
+  (  2.0,  8,   800,  1,  100);
+  (  4.0,  8,   800,  1,  100);
+  (  8.0,  8,   800,  1,  100);
+  (  16.0,  8,   800,  1,  100);
+  (  32.0,  8,   800,  1,  100);
 ]
 
-(*
+(* CPU1 on lcavpc23 Thursday noon *)
 let runs = [
-(* speed routing rate nodes srcs pktsrecv *)
-  (* 400 nodes *)
-  (0.0, GREP, 8, 200, 4, 100);
-  (0.0, AODV, 8, 200, 4, 100);
-  (1.0, GREP, 8, 200, 4, 100);
-  (1.0, AODV, 8, 200, 4, 100);
-  (2.0, GREP, 8, 200, 4, 100);
-  (2.0, AODV, 8, 200, 4, 100);
-  (4.0, GREP, 8, 200, 4, 100);
-  (4.0, AODV, 8, 200, 4, 100);
-  (8.0, GREP, 8, 200, 4, 100);
-  (8.0, AODV, 8, 200, 4, 100);
-  (16.0, GREP, 8, 200, 4, 100);
-  (16.0, AODV, 8, 200, 4, 100);
+  (* speed rate nodes srcs pktssend *)
+  (  0.0,  8,   100,  100,  100);
+  (  1.0,  8,   100,  100,  100);
+  (  2.0,  8,   100,  100,  100);
+  (  4.0,  8,   100,  100,  100);
+  (  8.0,  8,   100,  100,  100);
+  (  16.0,  8,   100,  100,  100);
+  (  32.0,  8,   100,  100,  100);
 ]
-  *)
 
+let aodvtots = ref (0, 0, 0, 0, 0, 0, 0, 0) 
+let greptots = ref (0, 0, 0, 0, 0, 0, 0, 0) 
 
+let addtots 
+  (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) 
+  (sp, dorig2, ts2, dr2, ds2, rreps2, rreqs2, dd2, ddrerr2)
+  = 
+  (dorig + dorig2, 
+  ts + ts2, 
+  dr + dr2,
+  ds + ds2, 
+  rreps + rreps2, 
+  rreqs + rreqs2, 
+  dd + dd2, 
+  ddrerr + ddrerr2)
 
+  
+let rec print_summary l = 
+  match l with 
+    | ((sp, dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) as aodv)
+      ::
+      ((sp2, dorig2, ts2, dr2, ds2, rreps2, rreqs2, dd2, ddrerr2) as grep)
+      ::
+      rem ->
+	(*	  Printf.fprintf !outfd "%f\nTotal Sent: %d %d\nData Sent: %d %d\nRREPR Sent: %d %d\nRREQ Sent: %d %d\nDATA Recv %d %d\n" 
+		  sp  ts ts2 ds ds2 rreps rreps2 rreqs rreqs2 datar datar2;*)
+	aodvtots := addtots !aodvtots aodv;
+	greptots := addtots !greptots grep;
+	print_summary rem;
+      | [] -> ()
+      | _ -> raise (Misc.Impossible_Case  "print_Summary")
 
+let repeats = 10
 
 let _ = 
- 
   if daemon then (
     Script_utils.detach_daemon outfile;
     outfd := !Log.output_fd;
   );
-  List.iter (fun (speed, agenttype, rate, nodes, sources,  pktssend) ->
-    do_one_run 
-    ~nodes:nodes
-    ~agenttype:agenttype
-    ~packet_rate:rate
-    ~speed:speed
-    ~sources:sources
-    ~pkts_to_send:pktssend
-    ~hotdest:false
-  ) runs;
 
-  let aodvtot = ref 0 and greptot = ref 0 in
-  let rec print_summary l = 
-    match l with 
-      | (speed1, aodv_pkts)::(speed2, grep_pkts)::rem ->
-	  aodvtot := aodv_pkts + !aodvtot;
-	  greptot := grep_pkts + !greptot;
-	  Printf.fprintf !outfd "%f %d %d\n" speed1 grep_pkts aodv_pkts;
-	  print_summary rem;
-      | [] -> ()
-      | _ -> raise (Misc.Impossible_Case  "print_Summary")
-  in
-  Printf.fprintf !outfd "Speed GREP AODV\n";
-  print_summary !res_summary;
-  Printf.fprintf !outfd "Total GREP: %d , Total AODV: %d\n" !greptot !aodvtot
+  List.iter (fun (speed, rate, nodes, sources,  pktssend) ->
+    aodvtots :=  (0, 0, 0, 0, 0, 0, 0, 0);
+    greptots :=  (0, 0, 0, 0, 0, 0, 0, 0);
+
+    incr run;
+    Printf.fprintf !outfd "\n";
+    Printf.fprintf !outfd "---------------------------\n";
+    Printf.fprintf !outfd "\n";
+    Printf.fprintf !outfd "Scenario %d parameters:\n" !run;
+    Printf.fprintf !outfd "%d Nodes, %d repeats\t\t\n" nodes repeats;
+    Printf.fprintf !outfd "Sources: %d\t\t\n" sources;
+    Printf.fprintf !outfd "%d [pkt/s], %f [m/s] \n" rate speed ;
+
+    Misc.repeat repeats (fun () -> 
+      do_one_run 
+	~nodes:nodes
+	~agenttype:GREP
+	~packet_rate:rate
+	~speed:speed
+	~sources:sources
+	~pkts_to_send:pktssend
+	~hotdest:false;
+
+      do_one_run 
+	~nodes:nodes
+	~agenttype:AODV
+	~packet_rate:rate
+	~speed:speed
+	~sources:sources
+	~pkts_to_send:pktssend
+	~hotdest:false;
+    );
+
+    print_summary !res_summary;
+    
+    Printf.fprintf !outfd "\nResults:\n";
+    let (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = !aodvtots in
+    Printf.fprintf !outfd "DOrig TSent DRec DSent RREPS RREQS DD DDRERR\n";
+    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (AODV)\n" dorig ts dr ds rreps rreqs
+      dd ddrerr;
+    let (dorig, ts, dr, ds, rreps, rreqs, dd, ddrerr) = !greptots in
+    Printf.fprintf !outfd "%d %d %d %d %d %d %d %d (GREP)\n" dorig ts dr ds rreps rreqs
+      dd ddrerr;
+      
+
+    res_summary := []
+  ) runs;
+  
+
+
+  
   
 
 (*
 used for long sessions
   (* 100 nodes *)
   (* speed routing rate nodes srcs pktsrecv *)
-  (0.0, GREP, 8, 100, 10, 32000);
-  (0.0, AODV, 8, 100, 10, 32000);
-  (1.0, GREP, 8, 100, 10, 32000);
-  (1.0, AODV, 8, 100, 10, 32000);
-  (2.0, GREP, 8, 100, 10, 32000);
-  (2.0, AODV, 8, 100, 10, 32000);
-  (4.0, GREP, 8, 100, 10, 32000);
-  (4.0, AODV, 8, 100, 10, 32000);
-  (8.0, GREP, 8, 100, 10, 32000);
-  (8.0, AODV, 8, 100, 10, 32000);
-  (16.0, GREP, 8, 100, 10, 32000);
-  (16.0, AODV, 8, 100, 10, 32000);
+  (0.0, 8, 100, 10, 32000);
+  (0.0, 8, 100, 10, 32000);
+  (1.0, 8, 100, 10, 32000);
+  (1.0, 8, 100, 10, 32000);
+  (2.0, 8, 100, 10, 32000);
+  (2.0, 8, 100, 10, 32000);
+  (4.0, 8, 100, 10, 32000);
+  (4.0, 8, 100, 10, 32000);
+  (8.0, 8, 100, 10, 32000);
+  (8.0, 8, 100, 10, 32000);
+  (16.0, 8, 100, 10, 32000);
+  (16.0, 8, 100, 10, 32000);
 
   (* 200 nodes *)
-  (0.0, GREP, 8, 200, 20, 32000);
-  (0.0, AODV, 8, 200, 20, 32000);
-  (1.0, GREP, 8, 200, 20, 32000);
-  (1.0, AODV, 8, 200, 20, 32000);
-  (2.0, GREP, 8, 200, 20, 32000);
-  (2.0, AODV, 8, 200, 20, 32000);
-  (4.0, GREP, 8, 200, 20, 32000);
-  (4.0, AODV, 8, 200, 20, 32000);
-  (8.0, GREP, 8, 200, 20, 32000);
-  (8.0, AODV, 8, 200, 20, 32000);
-  (16.0, GREP, 8, 200, 20, 32000);
-  (16.0, AODV, 8, 200, 20, 32000);
+  (0.0, 8, 200, 20, 32000);
+  (0.0, 8, 200, 20, 32000);
+  (1.0, 8, 200, 20, 32000);
+  (1.0, 8, 200, 20, 32000);
+  (2.0, 8, 200, 20, 32000);
+  (2.0, 8, 200, 20, 32000);
+  (4.0, 8, 200, 20, 32000);
+  (4.0, 8, 200, 20, 32000);
+  (8.0, 8, 200, 20, 32000);
+  (8.0, 8, 200, 20, 32000);
+  (16.0, 8, 200, 20, 32000);
+  (16.0, 8, 200, 20, 32000);
 
   (* 400 nodes *)
-  (0.0, GREP, 8, 400, 20, 32000);
-  (0.0, AODV, 8, 400, 20, 32000);
-  (1.0, GREP, 8, 400, 20, 32000);
-  (1.0, AODV, 8, 400, 20, 32000);
-  (2.0, GREP, 8, 400, 20, 32000);
-  (2.0, AODV, 8, 400, 20, 32000);
-  (4.0, GREP, 8, 400, 20, 32000);
-  (4.0, AODV, 8, 400, 20, 32000);
-  (8.0, GREP, 8, 400, 20, 32000);
-  (8.0, AODV, 8, 400, 20, 32000);*)
+  (0.0, 8, 400, 20, 32000);
+  (0.0, 8, 400, 20, 32000);
+  (1.0, 8, 400, 20, 32000);
+  (1.0, 8, 400, 20, 32000);
+  (2.0, 8, 400, 20, 32000);
+  (2.0, 8, 400, 20, 32000);
+  (4.0, 8, 400, 20, 32000);
+  (4.0, 8, 400, 20, 32000);
+  (8.0, 8, 400, 20, 32000);
+  (8.0, 8, 400, 20, 32000);*)
