@@ -75,6 +75,7 @@ let refresh ?(clear=true) ()  = (
 
   if (!rt <> None) then
     Gui_ops.draw_grep_route 
+    ~portion:!route_portion
       (Gui_conv.route_nodeid_to_pix (o2v !rt));
 )
 
@@ -130,6 +131,66 @@ let get_route nid = (
 
 
 
+let reset_rtabs() = 
+  rt := None;
+  Hashtbl.iter (fun id agent -> 
+    let rt, metric = agent#rtab_metric in
+    Str_rtab.purge_n_hop_entries rt metric 0)
+    Str_agent.agents_array_.(0)
+
+let graph_gradient() =
+  let oc = open_out "/tmp/gradient_grepviz.dat" in
+  
+  let cost nid = if nid = 0 then 0.0 else 
+    let str_agent = Hashtbl.find Str_agent.agents_array_.(0) nid in
+      let rt, metric = str_agent#rtab_metric in
+      let ent = Str_rtab.best_invalid_entry rt metric 0 in
+      Str_rtab.cost metric ent
+  in
+  Hashtbl.iter (fun id str_agent -> 
+    let c = cost id
+    and d = (World.w())#dist_nodeids 0 id in 
+    if c < max_float then
+      Printf.fprintf oc "%.2f %.2f\n" d c)
+    Str_agent.agents_array_.(0);
+  close_out oc;
+  if !rt <> None then (
+    let oc = open_out "/tmp/route_grepviz.dat" in
+    List.iter (fun h -> 
+      let nid = h.Route.hop in 
+      let c = cost nid 
+      and d = (World.w())#dist_nodeids 0 nid in 
+      assert (c < max_float);
+      if c < max_float then
+	Printf.fprintf oc "%.2f %.2f\n" d c
+    ) (List.rev (o2v !rt));
+    close_out oc;
+    let oc = open_out "/tmp/floods_grepviz.dat" in
+    List.iter (fun h -> 
+      begin 
+	match h.Route.info with
+	| None -> ()
+	| Some flood -> 
+	    let cost = cost (NaryTree.root flood) in
+	    let flood_span = ref 0.0 in 
+	    NaryTree.iter 
+	      ~f:(fun nid -> if (World.w())#dist_nodeids 0 nid > !flood_span then 
+		flood_span := (World.w())#dist_nodeids 0 nid) 
+	      flood;
+	    let d_root_dest = 
+	      ((World.w())#dist_nodeids 0 (NaryTree.root flood)) in
+	    let lower_bar =  -. !flood_span
+	    and upper_bar =  !flood_span in
+	    if cost < max_float then
+	    Printf.fprintf oc "%.2f %.2f %.2f %.2f\n"
+	      d_root_dest
+	      cost 
+	      (lower_bar +. cost)
+	      (upper_bar +. cost)
+      end;     
+    ) (List.rev (o2v !rt));
+    close_out oc
+  )
 
 let choose_node () = (
   (* call Mob_ctl.stop_all always because node mobs might not be stopped even 
@@ -198,6 +259,8 @@ let refresh_fun () = ignore (refresh())
 let buttonlist = [
   ("Move nodes",       `TOGGLE,  [`FUNC start_stop]);
   ("Draw route",       `TOGGLE,  [`FUNC choose_node]);
+  ("Graph Gradient",       `TOGGLE,  [`FUNC graph_gradient]);
+  ("Reset Rtabs",       `TOGGLE,  [`FUNC reset_rtabs]);
   ("Show node id",     `TOGGLE,  [`FUNC show_node_id]);
   ("Show nodes",       `CHECK,   [`TOGGLE show_nodes; `FUNC refresh_fun ]);
   ("Show Connectivity",`CHECK,   [`TOGGLE show_connectivity; `FUNC refresh_fun]);
