@@ -1,11 +1,69 @@
+- crworld optimizations:
+  crworld could be more "lazy" : why update neighbors each time movenode
+  happens? should only be updated when required.
+  there are two "tasks" each time movenode is called:
+	- update grid_of_nodes (requires creating two new lists)
+	- update_node_neighbors_
+	  - compute_neighbors_
+	    - build candidate list 
+	    - filter all candidates through "are_neighbors"
+
+
+  grid_of_nodes is used:
+	- by #find_closest (used by get_node_at)
+	- by update_node_neighbors
+
+
+  also lose_neighbor and add_neighbor probably put a lot of load on the GC,
+  because they create/destroy a list each time. maybe doing the above
+  "lazification" is enough, since there will be less of
+  lose_neighbor/add_neighbor calls.
+	
+  decision: will do a greedy update of grid_of_nodes (ie, unchanged), 
+  and only lazify update_node_neighbors since this one is by far the heaviest.
+  still need to figure out how.
+
+
+  strategy:
+  keep a bool Array of size n, which marks if a node's neighborlist is dirty.
+  
+
+  node_moved.(n) : dirty.(n) <- true
+
+  neighbors.(n) : 
+		if dirty.(n) :
+		- recompute neighbors from grid.
+		- update neighbors.(n)
+		- update exits and entries for other nodes
+		dirty.(n) <- false
+
+  neighbors.(n) : 
+		if clean.(n)
+		iter over neighbors.(n). for any dirty nodes, recompute, and
+		add/remove accordingly.
+  
+
+- (idea) in mods.ml, add stg like Module List = ListLabels, etc, for other
+  labelled modules. Then need to modify code, for all list iterations we would
+  then be able to put list before function for example.
+- crworld.is_connected: 
+  should be more efficient to originate one flood from one point, and see if
+  everyone gets it. 
 -  mob.ml is tied in an ugly manner to pixels, epflcoords, etc, which obliges
     things like:
-    + have epflcoords and readcoords in mws_object_files in makefile
-    + replicate pix/mtr conversion functions in mob.ml
+    (a) have epflcoords and readcoords in mws_object_files in makefile
+    (b) replicate pix/mtr conversion functions in mob.ml
 
     need to break this somehow.
     this will also allow putting the params.x/y_pix_size into mwsconv.ml,
     where they belong
+
+    actually it's not clear that (a) is really bad.
+    for (b), the root of the problem seems to be that epflcoords is
+    represented in pixels. one approach would be to convert it to meters.
+
+- turn world into a module rather than a class?
+  might speed things up by avoiding all the method dispatch costs
 
 - install ocaml-unused-var-warning.patch  (when moved to 3.07)
 - maybe have ways to customize logging (precision of time in left column), do

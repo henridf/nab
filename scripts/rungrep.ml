@@ -107,7 +107,7 @@ let () =
 
 	  let s = 
 	    Printf.sprintf 
-	      "bin/mws -pktssend %d -speed %f -loglevel notice -mac null -nodes %d -sources %d -tmat %s -rate %f -agent aodv -run %d"
+	      "bin/mwsgrep -pktssend %d -speed %f -loglevel notice -mac null -nodes %d -sources %d -tmat %s -rate %f -agent aodv -run %d"
 	      pktssend
 	      sp
 	      nodes
@@ -121,7 +121,7 @@ let () =
 	  ignore (Sys.command s);
 	  let s = 
 	    Printf.sprintf 
-	      "bin/mws -pktssend %d -speed %f -loglevel notice -mac null -nodes %d -sources %d -tmat %s -rate %f -agent grep -run %d"
+	      "bin/mwsgrep -pktssend %d -speed %f -loglevel notice -mac null -nodes %d -sources %d -tmat %s -rate %f -agent grep -run %d"
 	      pktssend
 	      sp
 	      nodes

@@ -7,15 +7,52 @@ open Misc
 open Script_utils
 open Experiment
 
-let avg_degree = 12
 let rrange = 100. 
+  
+let run_and_print_stats() = 
+  (Gsched.sched())#run();
 
+  Printf.printf "Sent %d , recv %d , orig %d\n"
+  !Grep_hooks.data_pkts_sent !Grep_hooks.data_pkts_recv !Grep_hooks.data_pkts_orig
 
+let test_2_nodes ()= 
 
+  Param.set Params.rrange rrange;
+  Param.set Params.mac "cont";
+  Param.set Params.nodes 2;
+
+  let pkts_to_send = 100 in
+  let node_spacing = rrange *. 0.7 in
+  Param.set Params.x_size (node_spacing *. float (Param.get Params.nodes));
+  Param.set Params.y_size  rrange;
+  
+  init_sched();
+  init_world();
+  
+  make_grep_nodes();
+
+  let y_pos = (Param.get (Params.y_size)) /. 2.0 in
+  Nodes.iteri (fun nid -> 
+    let newpos = ( (float nid) *. node_spacing, y_pos ) in
+    (Gworld.world())#movenode ~nid ~newpos 
+  );
+  
+  Grep_hooks.set_sources 1;
+  Grep_hooks.set_stop_thresh (pkts_to_send + 1);
+  
+  let pkt_reception () = 
+    (Nodes.node 0)#set_trafficsource 
+    ~gen:(Tsource.make_cbr 
+      ~num_pkts:pkts_to_send 
+      ~pkts_per_sec:100.)
+      ~dst:((Param.get Params.nodes) - 1);
+  in
+  (Gsched.sched())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
+  run_and_print_stats()  
 
 
 let test_long_string ()= 
-  Log.set_log_level ~level:Log.LOG_NOTICE;
+
 
   Param.set Params.rrange rrange;
   Param.set Params.nodes 10;
@@ -40,24 +77,18 @@ let test_long_string ()=
   Grep_hooks.set_stop_thresh (pkts_to_send + 1);
   
   let pkt_reception () = 
-    (Nodes.node 0)#trafficsource 
-    ~num_pkts:pkts_to_send 
-      ~dst:((Param.get Params.nodes) - 1)
-      ~pkts_per_sec:1;
+    (Nodes.node 0)#set_trafficsource 
+    ~gen:(Tsource.make_cbr 
+      ~num_pkts:pkts_to_send 
+      ~pkts_per_sec:1.)
+      ~dst:((Param.get Params.nodes) - 1);
   in
   (Gsched.sched())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
   
-  let start_time = Common.get_time() in
-  (Gsched.sched())#run();
+  run_and_print_stats()
 
-  Printf.printf "Sent %d , recv %d , orig %d\n"
-  !Grep_hooks.data_pkts_sent !Grep_hooks.data_pkts_recv !Grep_hooks.data_pkts_orig
-
-  
-  
 
 let test_3_nodes() = 
-  Log.set_log_level ~level:Log.LOG_DEBUG;
   Param.set Params.rrange rrange;
   Param.set Params.nodes 3;
 
@@ -77,21 +108,27 @@ let test_3_nodes() =
   Grep_hooks.set_sources 1;
   Grep_hooks.set_stop_thresh (pkts_to_send + 1);
   
-  let pkt_reception () = 
-    (Nodes.node 0)#trafficsource 
-    ~num_pkts:pkts_to_send 
+  let start_0 () = 
+    (Nodes.node 0)#set_trafficsource 
+    ~gen:(Tsource.make_cbr
+      ~num_pkts:pkts_to_send 
+      ~pkts_per_sec:1.) 
       ~dst:1
-      ~pkts_per_sec:1 
-  in
-
-  (Gsched.sched())#sched_at ~f:pkt_reception ~t:Sched.ASAP;
+  and start_2 () = 
+    (Nodes.node 2)#set_trafficsource 
+      ~gen:(Tsource.make_cbr
+	~num_pkts:pkts_to_send 
+      ~pkts_per_sec:1.) 
+      ~dst:1
+    in
+    
+  (Gsched.sched())#sched_at ~f:start_0 ~t:Sched.ASAP;
+  (Gsched.sched())#sched_in ~f:start_2 ~t:5.;
   
-  let start_time = Common.get_time() in
-  (Gsched.sched())#run();
-  
-  Printf.printf "Sent %d , recv %d , orig %d, total sent %d\n"
-    !Grep_hooks.data_pkts_sent !Grep_hooks.data_pkts_recv
-    !Grep_hooks.data_pkts_orig !Grep_hooks.total_pkts_sent
+  run_and_print_stats()
 
 
-let _ = test_long_string()
+
+let _ = 
+  Log.set_log_level ~level:Log.LOG_DEBUG;
+  test_3_nodes()

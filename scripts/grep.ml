@@ -45,9 +45,10 @@ let do_one_run ()  = (
   end;
 
   (* Attach a random waypoint mobility process to each node *)
-  Mob_ctl.make_waypoint_mobs ~gran:(rrange /. 10.) ();
+  Mob_ctl.make_uniwaypoint_mobs ~gran:(rrange /. 10.) ();
   Mob_ctl.set_speed_mps speed;
   Mob_ctl.start_all();
+
 
   Grep_hooks.set_sources sources;
   Grep_hooks.set_stop_thresh (pkts_to_send * sources);

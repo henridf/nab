@@ -19,6 +19,7 @@ let _ =
 
 
 
+(*
   begin try Sys.remove tmpfile with _ -> () end;
 
   List.iter 
@@ -43,9 +44,9 @@ let _ =
     ) durations;
 
 
-(*
-  ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
 
+  ignore (Sys.command (Printf.sprintf "cat %s | dbstripextraheaders > %s" tmpfile resfile));
+*)
 
 (*
 cat out.txt | dbcoladd data interest total > out.tmp.txt
@@ -55,38 +56,38 @@ cat out.txt | dbcoladd data interest total > out.tmp.txt
   let chop = Filename.chop_extension in
 
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks interest | sort -n  > vor-int.txt"
+    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats floodint interest | grep -v \"# \" | sort -n  > vor-flood-int.txt"
     resfile));
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks data | sort -n  > vor-dat.txt"
+    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats floodint data | grep -v \"# \" | sort -n  > vor-flood-dat.txt"
     resfile));
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats nsinks total | sort -n  > vor-tot.txt"
-    resfile));
-  
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks interest | sort -n  > opp-int.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks data | sort -n  > opp-dat.txt"
-    resfile));
-  ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats nsinks total | sort -n  > opp-tot.txt"
+    "cat %s | dbrow '_difftype =~ /voronoi/' | dbmultistats floodint total | grep -v \"# \" | sort -n  > vor-flood-tot.txt"
     resfile));
   
+  ignore (Sys.command (Printf.sprintf 
+    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats floodint interest | grep -v \"# \" | sort -n  > opp-flood-int.txt"
+    resfile));
+  ignore (Sys.command (Printf.sprintf 
+    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats floodint data | grep -v \"# \" | sort -n  > opp-flood-dat.txt"
+    resfile));
+  ignore (Sys.command (Printf.sprintf 
+    "cat %s | dbrow '_difftype =~ /opp/' | dbmultistats floodint total | grep -v \"# \" | sort -n  > opp-flood-tot.txt"
+    resfile));
+  
   
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks interest | sort -n  > ess-int.txt"
+    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats floodint interest | grep -v \"# \" | sort -n  > ess-flood-int.txt"
     resfile));
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks data | sort -n  > ess-dat.txt"
+    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats floodint data | grep -v \"# \" | sort -n  > ess-flood-dat.txt"
     resfile));
   ignore (Sys.command (Printf.sprintf 
-    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats nsinks total | sort -n  > ess-tot.txt"
+    "cat %s | dbrow '_difftype =~ /ess/' | dbmultistats floodint total | grep -v \"# \" | sort -n  > ess-flood-tot.txt"
     resfile));
   
 
 
 
 
-*)
+

@@ -101,6 +101,7 @@ let is_connected () = (
       | None -> ()
       | Some n -> incr count
   );
+  Param.set Params.mac "cont";
   install_contention_macs();
   clear_rtabs();
   Log.strset_log_level (Pm.get Pms.log_level);
@@ -234,7 +235,7 @@ let _ =
   setup();
   do_one_run();
   print_stats();
-  (!interest_tx, !data_tx);
+(*  (!interest_tx, !data_tx);*)
 
 (*
   let g = P.init P.X in

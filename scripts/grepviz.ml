@@ -65,8 +65,8 @@ let () =
 
   let src() = (Param.get Params.nodes) - 1 in
   let dst = 0 in
-  for i = 0 to 10 do 
-    (Nodes.node (src()))#originate_app_pkt ~dst;
+  for i = 0 to -1 do 
+    (Nodes.node dst)#originate_app_pkt (i + 2);
     (Gsched.sched())#run_for ~duration:10.;
   done;
   

@@ -65,7 +65,6 @@ object(s)
   )
 
   method neighbors nid = ngbrs.(nid)
-
   (* adds a new neighbor ngbrid to nid. 
      does NOT do the symetric operation *)
   method private add_neighbor_ ~nid ~ngbrid = (
