@@ -16,8 +16,9 @@ sig
   val addplace_ : t -> int -> unit
   val get_ : t -> int -> int           (* get an entry in the itinerary, specified by relative age *)
   val hops_to_place_ : t -> int -> int (* throws Failure if place not in itin *)
-  val unroll_ : t -> t                 (* itinerary must be full before this can be called *)
-  val shorten_ : t -> t -> t           (* target should be at end of both itineraries *)
+  val unroll_ : t -> t                 
+  val shorten_ : aux:t -> main:t -> t  
+  val equal_ : t -> t -> bool          (* semantic equality *)
   val print_ : t -> int -> unit
   val test_ : unit -> unit    
 end;;
@@ -45,6 +46,7 @@ struct
   let maxlength_ itin = CircBuf.maxlength_ itin.cbuf
 
   let addplace_ itin place = (
+    if (place >= itin.graphsize) then raise (Failure "Itinerary.addplace_ : place bigger than graphsize");
     CircBuf.push_ itin.cbuf place;
     itin.arr.(place) <- itin.counter;
 			       
@@ -77,15 +79,23 @@ struct
 	  h - 1 (* -1 so that the last node in itinerary is 0 hops away *)
   )
     
-  (* replaces rightitin's itinerary upto given place with leftitin's. *)
+  let print_ itin l = (
+    for i = 0 to l - 1 do
+      Printf.printf "%d " (get_ itin i)
+    done;
+    Printf.printf "[maxlength %d]" (maxlength_ itin);
+    Printf.printf "\n"; flush stdout
+  )
+
+  (* replaces rightitin's itinerary upto given place with leftitin's. Not commutative *)
   let splice__ ~leftitin ~rightitin p = (
     assert (leftitin.graphsize = rightitin.graphsize);
 
     let l1 = hops_to_place_ leftitin p in
-    let l2 = (maxlength_ rightitin) - (hops_to_place_ rightitin p) in
+    let l2 = (length_ rightitin) - (hops_to_place_ rightitin p) in
     let newitin = make_ ~itinsize:(l1 + l2)  ~graphsize:leftitin.graphsize in
 
-      for i = (maxlength_ rightitin) - 1 downto (hops_to_place_ rightitin p) do
+      for i = (length_ rightitin) - 1 downto (hops_to_place_ rightitin p) do
 	addplace_ newitin (get_ rightitin i)
       done;
 
@@ -93,24 +103,24 @@ struct
 	addplace_ newitin (get_ leftitin i)
       done;
 
+      assert ((get_ newitin (length_ newitin - 1)) =  (get_ rightitin (length_ rightitin - 1)));
+
       newitin;
   )
 
-  let shorten_ it1 it2 = (
-    assert (it1.graphsize = it2.graphsize);
-
-    if ((get_ it1 (maxlength_ it1 - 1)) <> (get_ it2 (maxlength_ it2 - 1))) then 
-      failwith "Itinerary.shorten_ : Incompatible itineraries have different end points";
+  (* shortens main using aux *)
+  let shorten_ ~aux ~main = (
+    assert (aux.graphsize = main.graphsize);
     
     (* xxx/canoptimize could compare lengths and iterate over shortest of two itineraries *)
     let opt_gain = ref 0 in
     let opt_place = ref None in
-      for i = 0 to maxlength_ it1 - 1 do
+      for i = 0 to length_ main - 1 do
 
-	let p = get_ it1 i in begin
+	let p = get_ main i in begin
 	  try (
-	    let h1 = hops_to_place_ it1 p 
-	    and h2 = hops_to_place_ it2 p in
+	    let h1 = hops_to_place_ aux p 
+	    and h2 = hops_to_place_ main p in
 	      if (h2 - h1) > !opt_gain then (
 		opt_gain := h2 - h1;
 		opt_place := Some p
@@ -121,8 +131,8 @@ struct
 	  end
       done;
       match !opt_place with
-	  None -> it2
-	| Some integer -> splice__ it1 it2 integer
+	  None -> main
+	| Some integer -> splice__ aux main integer
   )
 
   let unroll_ itin = (
@@ -186,12 +196,23 @@ struct
        graphsize=itin.graphsize}
   )		 
 			    
-  let print_ itin l = (
-    for i = 0 to l - 1 do
-      Printf.printf "%d " (get_ itin i)
-    done;
-    Printf.printf "\n"; flush stdout
+  let equal_ it1 it2 = (
+    let module M = struct type hops = Hops of int | Never | Out end in
+    let hops it p = (
+      try M.Hops (hops_to_place_ it p) with
+	  Failure "Itinerary.hops_to_place_ : place visited, but out of itinerary" -> M.Out
+	| Failure "Itinerary.hops_to_place_ : place has never been visited" -> M.Never
+    ) 
+    in
+      (length_ it1 = length_ it2) &&
+      (it1.graphsize = it2.graphsize) &&
+      (CircBuf.equal_ it1.cbuf it2.cbuf) &&
+      let rec different i = 
+	i <  (it1.graphsize) &&  (((hops it1 i) <> (hops it2 i)) || different (i + 1))
+      in not (different 0)
+			  
   )
+      
 
   let test_ () = (
 
@@ -211,6 +232,10 @@ struct
 	  done;
 
     ) in
+
+    (* semantic equality *)
+    assert (equal_ (make_itin 4 [| 1; 2; 3; 4|]) (make_itin 6 [| 1; 2; 3; 4|]));
+    assert (not (equal_ (make_itin 4 [| 1; 2; 3; 4|]) (make_itin 4 [| 1; 2; 3|])));
 
     let itin = make_ ~itinsize:4 ~graphsize:!graphsize in
       assert (maxlength_ itin = 4);
@@ -302,22 +327,37 @@ struct
     graphsize := 11;
     let it1 = make_itin 4 [| 4; 5; 6; 7|] in
     let it2 = make_itin 3 [| 1; 2; 7|] in
-    let shortened1 = shorten_ it1 it2 
-    and shortened2 = shorten_ it1 it2 in
+    let shortened1 = shorten_ ~aux:it1 ~main:it2 
+    and shortened2 = shorten_ ~aux:it2 ~main:it1 in
       assert (shortened1 = make_itin 3 [| 1; 2; 7|]);
       assert (shortened2 = make_itin 3 [| 1; 2; 7|]);
 
+   let it1 = make_itin 6 [| 4; 5; 6; 7|] in
+   let it2 = make_itin 7 [| 1; 2; 7|] in
+   let shortened1 = shorten_ ~aux:it1 ~main:it2 in
+   let shortened2 = shorten_ ~aux:it2 ~main:it1 in
+     assert (equal_ shortened1 ( make_itin 3 [| 1; 2; 7|]));
+     assert (equal_ shortened2 ( make_itin 3 [| 1; 2; 7|]));
+
+
     let it1 = make_itin 9 [|1; 2; 3; 5; 6; 7; 8; 9; 10|] in
     let it2 = make_itin 6 [|3; 4; 5; 6; 9; 10|] in
-    let shortened1 = shorten_ it1 it2 
-    and shortened2 = shorten_ it2 it1 in
+    let shortened1 = shorten_ ~aux:it1 ~main:it2 
+    and shortened2 = shorten_ ~aux:it2 ~main:it1 in
       assert (shortened1 = make_itin 6 [|3; 4; 5; 6; 9; 10|]);
       assert (shortened2 = make_itin 6 [|3; 4; 5; 6; 9; 10|]);
+      
+      let it1 = make_itin 12 [|1; 2; 3; 5; 6; 7; 8; 9; 10|] in
+    let it2 = make_itin 6 [|3; 4; 5; 6; 9; 10|] in
+    let shortened1 = shorten_ ~aux:it1 ~main:it2 
+    and shortened2 = shorten_ ~aux:it2 ~main:it1 in
+     assert (equal_ shortened1 ( make_itin 6 [|3; 4; 5; 6; 9; 10|]));
+     assert (equal_ shortened2 ( make_itin 6 [|3; 4; 5; 6; 9; 10|]));
 
     let it1 = make_itin 9 [|1; 2; 3; 5; 6; 7; 8; 9; 10|] 
     and it2 = make_itin 9 [|1; 2; 3; 5; 6; 7; 8; 9; 10|] in
-    let shortened1 = shorten_ it1 it2 
-    and shortened2 = shorten_ it2 it1 in
+    let shortened1 = shorten_ ~aux:it1 ~main:it2 
+    and shortened2 = shorten_ ~aux:it2 ~main:it1 in
       assert (shortened1 = it1);
       assert (shortened2 = it1);
 
@@ -325,28 +365,48 @@ struct
     (* splice 3-2-1-0 with 3-2-1-0 at any place -> same itin*)
     let itin = make_itin 4 [|3; 2; 1; 0|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
+    let itin_l = make_itin 5 [|3; 2; 1; 0|]
+    and itin2_l = make_itin 6 [|3; 2; 1; 0|] in 
       begin
 	for i = 0 to 3 do
-	  assert ((splice__ itin itin2 i) = itin)
+	  assert ((splice__ itin itin2 i) = itin);
+	  assert (maxlength_ (splice__ itin itin2 i) =  4);
+	  assert ((splice__ itin_l itin2_l i) = itin);
+	  assert (maxlength_ (splice__ itin_l itin2_l i) =  4);
 	done;
       end;
       
     (* splice 3-2-3-2 with 3-2-1-0 at 2 or 3 -> same itin*)
     let itin = make_itin 4 [|3; 2; 3; 2|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
+    let itin_l = make_itin 5 [|3; 2; 3; 2|]
+    and itin2_l = make_itin 5 [|3; 2; 1; 0|] in 
       begin
 	assert ((splice__ itin itin2  2) = itin2);
+	assert (maxlength_ (splice__ itin itin2 2) =  4);
+	assert (maxlength_ (splice__ itin itin2 3) =  4);
 	assert ((splice__ itin itin2  3) = itin2);
+	assert ((splice__ itin_l itin2_l  2) = itin2);
+	assert ((splice__ itin_l itin2_l  3) = itin2);
+	assert (maxlength_ (splice__ itin_l itin2_l 2) =  4);
+	assert (maxlength_ (splice__ itin_l itin2_l 3) =  4);
       end;
 
     (* splice 0-0-0-0 with 3-2-1-0 at 0 -> 0*)
     let itin = make_itin 4 [|0; 0; 0; 0;|]
     and itin2 = make_itin 4 [|3; 2; 1; 0|] in 
+    let itin_l = make_itin 5 [|0; 0; 0; 0;|]
+    and itin2_l = make_itin 5 [|3; 2; 1; 0|] in 
       begin
-	let newitin = splice__ itin itin2  0 in
+	let newitin = splice__ itin itin2  0 
+	and newitin_l = splice__ itin_l itin2_l  0 
+	in
 	  assert ((maxlength_ newitin) = 1);
 	  assert ((get_ newitin 0) =  0);
 	  assert ((hops_to_place_ newitin  0) = 0) ;
+	  assert ((maxlength_ newitin_l) = 1);
+	  assert ((get_ newitin_l 0) =  0);
+	  assert ((hops_to_place_ newitin_l  0) = 0) ;
       end;
       
     (* splice 1-3-0 with 3-2-1-0 at  0 -> 1-3-0*)
