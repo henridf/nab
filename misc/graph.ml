@@ -1,5 +1,5 @@
-(* Open things:
-   t.info is hardwired to be int lists. Maybe should be flexible (like nodes are type 'a)
+(* 
+   do we really need the double addressability of nodes (by int, and by 'a ) ?
 *)
 open Misc
 open Set
@@ -13,23 +13,36 @@ sig
   type graphtype_t = Directed | Undirected
 
   val make_ : 'a -> int -> graphtype_t -> 'a t
-  val make_lattice_ : dim:int -> side:int -> int array t
+  val make_wrap_lattice_ : dim:int -> side:int -> Coord.coordi_t t
+  val make_lattice_ : dim:int -> side:int -> Coord.coordi_t t
+    
+  val lattice_dim_ : maxsize:int -> side:int -> int
 
   val neigbors_  : 'a t -> 'a -> 'a list
   val neigborsi_ : 'a t -> int -> int list
+
+
+  val neigbors_lattice_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
+  val neigborsi_lattice_  : Coord.coordi_t t -> index:int -> side:int -> int list
+
+  val neigbors_lattice_wrap_  : Coord.coordi_t t -> Coord.coordi_t -> side:int -> Coord.coordi_t list
+  val neigborsi_lattice_wrap_  : Coord.coordi_t t -> index:int -> side:int -> int list
+
   val nhop_neigbors_  : 'a t -> node:'a -> radius:int -> 'a list
   val nhop_neigborsi_ : 'a t -> index:int -> radius:int -> int list
-
+  val nhop_and_less_neigbors_ : 'a t -> node:'a -> radius:int -> 'a list
+  val nhop_and_less_neigborsi_ : 'a t -> index:int -> radius:int -> int list
 
   val size_      : 'a t -> int          (* number of nodes in graph, might be <> than max. size of graph *)
   val index_     : 'a t -> 'a -> int
   val node_      : 'a t -> int -> 'a
   val contains_  : 'a t -> 'a -> bool
   val containsi_ : 'a t -> int -> bool
-    
 
   val setinfo_   : 'a t -> 'a -> int list -> unit (* convenience functions to allow client to associate 'info' with each node *)
   val setinfoi_  : 'a t -> int -> int list -> unit (* Graph module blindly manipulates 'info' *)
+  val appendinfo_   : 'a t -> 'a -> int -> unit 
+  val appendinfoi_  : 'a t -> int -> int -> unit 
   val getinfo_   : 'a t -> 'a -> int list         
   val getinfoi_  : 'a t -> int -> int list
   val getinfosi_ : 'a t -> int list -> int list    
@@ -46,6 +59,7 @@ sig
   val iteri_ : (int  -> unit) -> 'a t -> unit
   val itern_ : ('a  -> unit) -> 'a t -> unit
   val print_ : 'a t -> unit
+  val print_lattice_ : Coord.coordi_t t -> unit
 end;;
 
 
@@ -111,17 +125,31 @@ struct
 	Not_found -> raise (Invalid_argument  "Graph.getinfo_: node does not exist");
   )
 
-  let setinfoi_ g i info = (
+  let setinfoi_ g i infolist = (
     if i >= g.ind then raise (Invalid_argument "Graph.setinfoi_ : index does not exist");
-    g.info.(i) <- info
+    g.info.(i) <- infolist
   )
 
-  let setinfo_ g n info = (
+
+  let setinfo_ g n infolist = (
     try 
       let i = index_ g n in 
-	setinfoi_ g i info
+	setinfoi_ g i infolist
     with
 	Not_found -> raise (Invalid_argument  "Graph.setinfo_: node does not exist");
+  )
+
+  let appendinfoi_ g i info = (
+    if i >= g.ind then raise (Invalid_argument "Graph.setinfoi_ : index does not exist");
+    g.info.(i) <- info::g.info.(i)
+  )
+
+  let appendinfo_ g n info = (
+    try 
+      let i = index_ g n in 
+	appendinfoi_ g i info
+    with
+	Not_found -> raise (Invalid_argument  "Graph.appendinfoi_: node does not exist");
   )
 
   let add_edgei_ g i1 i2 c = (
@@ -304,6 +332,16 @@ struct
       !curngbrs
   )
 
+  let nhop_and_less_neigborsi_ g ~index ~radius = (
+    let rec recurse i l =
+      if i > radius then l else 
+	recurse (i + 1) (l @ nhop_neigborsi_ g ~index:index ~radius:i)
+    in
+    let ngbrs = recurse 0 [] in
+    assert (List.length (list_unique_elements ngbrs) = (List.length ngbrs));
+    ngbrs
+  )
+
   let nhop_neigbors_ g ~node ~radius = (
     try 
       let i = index_ g node in
@@ -311,11 +349,18 @@ struct
     with
 	Not_found -> raise (Invalid_argument "Graph.nhop_neigbors_: node does not exist")
   )
+
+  let nhop_and_less_neigbors_ g ~node ~radius = (
+    try 
+      let i = index_ g node in
+	List.map (fun j -> g.nodes.(j)) (nhop_and_less_neigborsi_ g ~index:i ~radius:radius)
+    with
+	Not_found -> raise (Invalid_argument "Graph.nhop_and_less_neigbors_: node does not exist")
+  )
 				   
-(* val tuple : side:int -> dim:int -> index:int -> int array 
-   Returns the d-tuple of coordinates (represented as int array of length d) 
+(* Returns the d-tuple of coordinates (represented as int array of length d) 
    for the indexth point in a d-dimensional hypercube of side length s *)
-  let tuple__ ~side ~dim ~index = (
+  let coord_of_i_ ~side ~dim ~index = (
     let ith i = (
       let rec _div j num = if j = 0 then num else (_div (j - 1) num/side) in
 	(_div i index) mod side
@@ -323,8 +368,14 @@ struct
       Array.init dim ith
   )
 
-  (* val wrap_tuple : t -> int -> int array -> int array 
-     Wrap a tuple around the borders of hypercube of side s. 
+ let i_of_coord_ ~side ~coord = 
+   let index = ref 0 in 
+   Array.iteri (fun i x -> index := !index + x * (powi ~num:side ~exp:i)) coord;
+   !index
+     
+      
+
+  (* Wrap a tuple around the borders of hypercube of side s. 
      Assumes that coordinates of the tuple are at out of boundaries by at most "s"
      (otherwise we should do modulos ) *)
   let wrap_tuple__ g s t = (
@@ -335,56 +386,136 @@ struct
 	  if ((coord >= s ) || (coord < 0)) then at_edge := true
       ) t;
       if (!at_edge) then (
-	index_ g (
 	  Array.map (
 	    fun coord -> 
 	      if coord >= s then coord - s 
 	      else if coord < 0 then s + coord else coord
 	  ) t
-	)
-      ) else index_ g t
+      ) else t
   )
 
+  let rec lattice_dim_ ~maxsize ~side = (
+    match maxsize / side with
+      | 1 -> 1
+      | n -> 1 + (lattice_dim_ ~maxsize:(maxsize/side) ~side:side)  
+  )
 
-  (* val lattice_neigborsi__ : t -> int array -> int -> int array list *)
-  let lattice_neigborsi__ g point side = (
-    (* somewhat contorted because we're  avoiding allocating local structures here *)
-    let ngbrs = Array.make (2 * (Array.length point)) 0 in
-      for i = 0 to (Array.length point - 1) do
+  let neigborsi_lattice_wrap_ g ~index ~side = (
+
+    let dim = lattice_dim_ ~maxsize:g.maxsize ~side:side in
+    let point = g.nodes.(index) in
+    assert (point = coord_of_i_ ~side:side ~dim:dim ~index:index);
+    let ngbrs = Array.make (2 * dim) 0 in
+    for i = 0 to (dim - 1) do
+	(* somewhat contorted because we're avoiding allocating local structures here *)
+	let twoi = 2 * i and twoiplus1 = (2 * i) + 1 in
+	point.(i) <- point.(i) + 1;
+	ngbrs.(twoi) <- i_of_coord_ ~side:side ~coord:(wrap_tuple__ g side point); 
+	(* could use index_ instead of i_of_coord_ here? *)
+	point.(i) <- point.(i) - 2;
+	ngbrs.(twoiplus1) <- i_of_coord_ ~side:side ~coord:(wrap_tuple__ g side point);
+	point.(i) <- point.(i) + 1;
+      done;
+    (* xxx/canoptimize *)
+      list_unique_elements (Array.to_list ngbrs)
+  )
+
+  let neigbors_lattice_wrap_ g point ~side = (
+    try 
+      let i = index_ g point in
+      assert (i = i_of_coord_ ~side:side ~coord:point);
+	List.map (fun j -> g.nodes.(j)) (neigborsi_lattice_wrap_ g ~index:i ~side:side)
+    with
+	Not_found -> raise (Invalid_argument "Graph.neigborsi_lattice_wrap_: node does not exist")
+  )
+
+  let neigborsi_lattice_ g ~index ~side = (
+    let dim = lattice_dim_ ~maxsize:g.maxsize ~side:side in
+
+    let outside point = (
+      let at_edge = ref false in
+      Array.iter  (
+	fun coord -> 
+	  if ((coord >= side ) || (coord < 0)) then at_edge := true
+      ) point;
+      !at_edge;
+    ) in
+
+    let point = g.nodes.(index) in
+    assert (point = coord_of_i_ ~side:side ~dim:dim ~index:index);
+
+    let ngbrs = Array.make (2 * dim) index in
+      for i = 0 to dim-1 do
 	let twoi = 2 * i and twoiplus1 = (2 * i) + 1 in
 	  point.(i) <- point.(i) + 1;
-	  ngbrs.(twoi) <- wrap_tuple__ g side point;
+	  ngbrs.(twoi) <- if outside point then index else (i_of_coord_ ~side:side ~coord:point);
 	  point.(i) <- point.(i) - 2;
-	  ngbrs.(twoiplus1) <- wrap_tuple__ g side point;
+	  ngbrs.(twoiplus1) <- if outside point then index else (i_of_coord_ ~side:side ~coord:point);
 	  point.(i) <- point.(i) + 1;
       done;
-      ngbrs
+    list_without (Array.to_list ngbrs) index
   )
+
+  let neigbors_lattice_ g point ~side = (
+    try 
+      let i = index_ g point in
+      assert (i = i_of_coord_ ~side:side ~coord:point);
+	List.map (fun j -> g.nodes.(j)) (neigborsi_lattice_ g ~index:i ~side:side)
+    with
+	Not_found -> raise (Invalid_argument "Graph.neigborsi_lattice_: node does not exist")
+  )
+
+  let make_wrap_lattice_ ~dim ~side = (
+
+    let size = (powi side dim) in
+    let g = make_ (Array.make dim 0) size Undirected in
+      for i = 0 to size - 1 do
+	add_node_ g (coord_of_i_ ~side:side ~dim:dim ~index:i)
+	  
+      done;
+      (* for each node, compute its neigbors and connect them *)
+      itern_ (
+	fun node -> 
+	  let ngbrs = neigbors_lattice_wrap_ g node ~side:side in
+	  List.iter (fun ngbr -> add_edge_ g ngbr node 1.0) ngbrs
+      ) g;
+      g;
+  )				  
+
 
   let make_lattice_ ~dim ~side = (
 
     let size = (powi side dim) in
     let g = make_ (Array.make dim 0) size Undirected in
-      for i = 1 to size do
-	add_node_ g (tuple__ ~side:side ~dim:dim ~index:i)
+      for i = 0 to size-1 do
+	add_node_ g (coord_of_i_ ~side:side ~dim:dim ~index:i)
       done;
       (* for each node, compute its neigbors and connect them *)
       itern_ (
 	fun node -> 
-	  let ngbrsi = lattice_neigborsi__ g node side 
-	  and nodei = index_ g node in
-	    Array.iter (fun ngbr -> add_edgei_ g ngbr nodei 1.0) ngbrsi
+	  let ngbrs = neigbors_lattice_ g node ~side:side in
+	  List.iter (fun ngbr -> add_edge_ g ngbr node 1.0) ngbrs
       ) g;
       g;
-  )				  
+  )
 
   let print_ g = (
     iteri_ (fun i -> 
-	      let ngbrs = neigborsi_ g i in
-		Printf.printf "%d -> " i;
-		List.iter (fun n -> Printf.printf "%d " n) ngbrs;
-		Printf.printf "\n"
-	   ) g
+      let ngbrs = neigborsi_ g i in
+      Printf.printf "%d -> " i;
+      List.iter (fun n -> Printf.printf "%d " n) ngbrs;
+      Printf.printf "\n"
+    ) g
+  )
+
+  let print_lattice_ g = (
+    itern_ (fun n -> 
+      let ngbrs = neigbors_ g n in
+      Printf.printf "%s" (Coord.sprint n);
+      Printf.printf " -> ";
+      List.iter (fun n -> Printf.printf "%s" (Coord.sprint n); Printf.printf " ") ngbrs;
+      Printf.printf "\n"
+    ) g
   )
 end;;
 
