@@ -5,8 +5,11 @@
 let mob_array = ref ([||]: #Mob.mobility array)
 
 let make_waypoint_mobs() = mob_array := 
-  (Nodes.map (fun n -> new Mob.waypoint n
+  (Nodes.gpsmap (fun n -> new Mob.waypoint n
     ((Gworld.world())#movenode ~nid:n#id)))
+
+let make_discrete_randomwalk_mobs() = mob_array := 
+  (Nodes.gpsmap (fun n -> new Mob.discreteRandomWalk n n#move))
 
 let make_epfl_waypoint_mobs() = (
   mob_array := (Nodes.gpsmap (fun n -> new Mob.epfl_waypoint n n#move));

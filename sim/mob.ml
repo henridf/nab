@@ -56,8 +56,6 @@ object(s)
   method set_speed_mps speed = speed_mps <- speed
 
     
-  (*  method virtual initialize : unit -> unit*)
-    
   (* should move us by gran meters .
      not sure if this gran parameter makes sense in other mobs (like rw)
   *)
@@ -197,12 +195,27 @@ object
 
   inherit mobility "discrRW" owner movefun
 
-  method initialize () = ()
-  method getnewpos ~node = 
-    (Gworld.world())#boundarize
-    (* amplitude of 3 gives us a variance of 3/4 along either axis *)
-    (node#pos +++. ((Random.float 3.0, Random.float 3.0) ---. (1.5, 1.5)))
-
+  (* ignores gran, meaningless for a discrete mob *)
+  method getnewpos ~gran = 
+    let pos = ((Gworld.world())#nodepos owner#id) in
+    assert ((isint (xx pos) ) && (isint (yy pos)));
+    let step = 
+      [|
+	(1., 0.); 
+	(-1., 0.); 
+	(0., 1.); 
+	(-1., 0.)
+      |].(Random.int 4) in
+    let newx = ref (xx (pos +++. step)) 
+    and newy = ref (yy (pos +++. step)) in
+    
+    if (!newx = -1.) then newx := 0.;
+    if (!newy = -1.) then newy := 0.;
+    if (!newx = (Param.get Params.x_size)) then newx := ((Param.get
+      Params.x_size) -. 1.);
+    if (!newy = (Param.get Params.y_size)) then newx := ((Param.get
+      Params.y_size) -. 1.);
+    (!newx, !newy)
 
 end
 

@@ -58,6 +58,20 @@ class epfl_waypoint :
     inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
   end
+  
+  
+  
+(** Discrete Random Walk, moves by 1.0 in one of 4 cardinal directions at each
+  step *)
+class discreteRandomWalk :
+  #Simplenode.simplenode ->
+  (newpos:Coord.coordf_t -> unit) ->
+  object
+    inherit mobility
+    method getnewpos : gran:float -> Coord.coordf_t
+  end
+
+
 
 (**/**)
 (* xxx/hack copied from gui_hooks b/c otherwise makefile problems in using

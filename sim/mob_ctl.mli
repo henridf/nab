@@ -12,6 +12,10 @@ val make_epfl_waypoint_mobs : unit -> unit
   (** Create {!Mob.mobility} objects that implement a waypoint mobility model
     over epfl campus (uses {!Epflcoords.l}). *)
 
+val make_discrete_randomwalk_mobs : unit -> unit
+  (** Create {!Mob.mobility} objects that implement a discrete random walk 
+    mobility model. *)
+
 val start_node : Common.nodeid_t -> unit
   (** Starts mobility of given node. *)
 
