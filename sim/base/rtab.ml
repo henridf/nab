@@ -30,11 +30,7 @@
 
 open Misc 
 
-type aodv_flags = {
-  mutable valid:bool;
-}
-
-type spec = [ `GREP | `AODV of aodv_flags ]
+type spec = [ `GREP ]
 
 type rtab_entry_t = {
   mutable seqno: int option;
@@ -47,28 +43,17 @@ type rtab_entry_t = {
 type t = rtab_entry_t array
 
 
-(* these two funs only exist to make sure that initialization (create_* ) and
-  clear_* funs have the same behavior *)
-let empty_aodv_entry() = {
-    seqno=None; nexthop=None;
-    hopcount=None;  repairing=false; 
-    other= `AODV {valid=false}
-}
 let empty_grep_entry() = {
     seqno=None;  nexthop=None;
     hopcount=None;  repairing=false; 
     other= `GREP
 }
 
-let create_aodv ~size = Array.init size 
-  (fun _ -> empty_aodv_entry())
-
 let create_grep ~size = Array.init size 
   (fun _ -> empty_grep_entry())
 
 let clear_entry ~rt ~dst = 
   match   rt.(dst).other with
-    | `AODV _ -> rt.(dst) <- empty_aodv_entry()
     | `GREP -> rt.(dst) <- empty_grep_entry()
 
 
@@ -86,20 +71,17 @@ let invalidate ~rt ~dst = (
 *)
   match rt.(dst).other with 
     | `GREP -> ()
-    | `AODV flags -> flags.valid <- false
 )
 
 let validate ~rt ~dst = 
   match rt.(dst).other with 
     | `GREP -> ()
-    | `AODV flags -> flags.valid <- true
 
 
 let invalid ~rt ~dst = 
 (*rt.(dst).hopcount = Some max_int*)
   match rt.(dst).other with 
     | `GREP -> false
-    | `AODV flags -> not flags.valid
 
 (*  *)
 

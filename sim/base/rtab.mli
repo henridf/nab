@@ -22,16 +22,14 @@
 
 (* $Id$ *)
 
-(** Routing tables for AODV and GREP. *)
+(** Routing tables for GREP. *)
 
 type t
   (** The type of routing table exported by this module. *)
 
-type aodv_flags = {
-  mutable valid:bool;
-}
 
-type spec = [ `GREP | `AODV of aodv_flags ]
+
+type spec = [ `GREP ]
 
 type rtab_entry_t = {
   mutable seqno: int option;
@@ -41,7 +39,6 @@ type rtab_entry_t = {
   other: spec
 }
 
-val create_aodv : size:int -> t
 val create_grep : size:int -> t
 
 val seqno : rt:t -> dst:Common.nodeid_t -> int option
