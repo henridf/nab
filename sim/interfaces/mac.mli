@@ -39,7 +39,15 @@ type basic_stats =
       basic as it gets.  Of course, most MACs will want to maintain other
       stats as well - this is not specified in the common MAC interface, since
       the specific stats will vary depending on the characteristics of the
-      MAC. *)
+      MAC. 
+      In every mac implementation, the [bits_RX] and [bits_TX] fields should
+      count the total number of bits received/transmitted.
+      The meaning of the [pkts_RX] and [pkts_TX] fields may vary for different
+      MAC layers. For example, a mac layer may choose to increment these
+      counters for every packet received (including short control packets), or
+      only for data packets. This should be specified in the documentation of
+      each MAC layer.
+    *)
 
 
 
