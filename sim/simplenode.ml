@@ -3,6 +3,7 @@
 (*                                  *)
 
 open Printf
+exception Mac_Send_Failure
 
 class simplenode  ~pos_init ~id ~ntargets : Node.node_t = 
 
@@ -21,7 +22,9 @@ object(s: #Node.node_t)
   val agents = Hashtbl.create 1
 
   val mutable recv_pkt_hooks = []
-  val mutable app_send_pkt_hook = fun p -> ()
+  val mutable recv_l2pkt_hooks = []
+  val mutable app_send_pkt_hook = fun pkt ~dst -> ()
+  val mutable control_hook = fun p -> ()
   val mutable mhook = fun p a -> ()
    
   method pos = pos
@@ -96,29 +99,46 @@ object(s: #Node.node_t)
 
     List.iter 
       (fun hook -> hook l2pkt.Packet.l3pkt)
-      recv_pkt_hooks
+      recv_pkt_hooks;
+
+    List.iter 
+      (fun hook -> hook l2pkt)
+      recv_l2pkt_hooks
   )
     
   method add_recv_pkt_hook  ~hook =
     recv_pkt_hooks <- recv_pkt_hooks @ [hook]
       
+  method add_recv_l2pkt_hook  ~hook =
+    recv_l2pkt_hooks <- recv_l2pkt_hooks @ [hook]
+      
   method add_app_send_pkt_hook ~hook = 
     app_send_pkt_hook <- hook
+
+  method add_control_hook ~hook = 
+    control_hook <- hook
 
   method add_mhook  ~hook =
     mhook <- hook
       
+  method agent_control ~action = control_hook action
 
-  method private send_pkt_ ~l3pkt ~dst = (
+  method private send_pkt_ ~l3pkt ~dstid = (
+    let dst = (Nodes.node(dstid)) in
       (* this method only exists to factor code out of 
 	 mac_send_pkt and cheat_send_pkt *)
-    let nmsg = (Naml_msg.mk_node_send ~srcnid:s#id ~dstnid:dst#id) in
+    let nmsg = (Naml_msg.mk_node_send ~srcnid:s#id ~dstnid:dstid) in
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
 
-    let recvtime = Common.get_time() +. Mws_utils.propdelay pos dst#pos in
+
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:(Packet.L2_DST dst#id)
       ~l3pkt:l3pkt in
+
+    let delay = 
+      Mws_utils.xmitdelay ~bytes:(Packet.l2pkt_size ~l2pkt:l2pkt)
+      +. Mws_utils.propdelay pos dst#pos in
+    let recvtime = Common.get_time() +. delay in
 
     mhook l2pkt (s :> Node.node_t);
 
@@ -126,16 +146,16 @@ object(s: #Node.node_t)
     (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
   )
 
-  method mac_send_pkt ~l3pkt ~mac_dst = (
-
-      if not (s#is_neighbor mac_dst) then 
-	s#log_error (Printf.sprintf "mac_send_pkt: %d not a neighbor. Dropping packet"
-	  mac_dst#id)
-      else
-	s#send_pkt_ ~l3pkt:l3pkt ~dst:mac_dst
+  method mac_send_pkt ~l3pkt ~dstid = (
+    let dst = (Nodes.node(dstid)) in
+      if not (s#is_neighbor dst) then (
+	s#log_error (Printf.sprintf "mac_send_pkt: %d not a neighbor." dstid);
+	raise Mac_Send_Failure
+      ) else
+	s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
   )
 
-  method cheat_send_pkt ~l3pkt ~dst = s#send_pkt_ ~l3pkt:l3pkt ~dst:dst
+  method cheat_send_pkt ~l3pkt ~dstid = s#send_pkt_ ~l3pkt:l3pkt ~dstid:dstid
 
   method mac_bcast_pkt ~l3pkt = (
 
@@ -146,22 +166,24 @@ object(s: #Node.node_t)
     let l2pkt = Packet.make_l2pkt ~srcid:id ~l2_dst:Packet.L2_BCAST
       ~l3pkt:l3pkt in
 
+
     mhook l2pkt (s :> Node.node_t);
 
     List.iter (fun nid -> 
       let n = (Nodes.node(nid)) in
-      let recvtime = Common.get_time() +. Mws_utils.propdelay pos n#pos in
-      let recv_event() = n#mac_recv_pkt ~l2pkt:l2pkt in
-
-      (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.ASAP)
+    let recvtime = 
+      Common.get_time()
+      +. Mws_utils.xmitdelay ~bytes:(Packet.l2pkt_size ~l2pkt:l2pkt)
+      +. Mws_utils.propdelay pos n#pos in
+      let recv_event() = 
+	n#mac_recv_pkt ~l2pkt:(Packet.clone_l2pkt ~l2pkt:l2pkt) in
+      (Gsched.sched())#sched_at ~handler:recv_event ~t:(Sched.Time recvtime)
     ) neighbors
   )
 
 
-  method originate_app_pkt ~dst = 
-    let l3h = Packet.make_l3hdr ~srcid:id ~dstid:dst#id () in
-    let app_pkt = Packet.make_app_pkt ~l3hdr:l3h  in
-    app_send_pkt_hook app_pkt
+  method originate_app_pkt ~dstid = 
+    app_send_pkt_hook Packet.APP_PLD ~dst:dstid
 
   method dump_state   = {
     Node.node_pos=s#pos;
