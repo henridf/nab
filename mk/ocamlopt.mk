@@ -20,7 +20,9 @@ COMPTYPE	= opt
 MLWARN		=
 MLFAST		= -inline 10
 MLFAST		= -unsafe -noassert
-PROFILE	= 	 -p
+ifdef PROF
+	PROFILE	= 	 -p
+endif
 DEBUGGER	=
 MLFLAGS		= $(DEBUGGER) $(MLFAST) $(PROFILE)
 MLLINKFLAGS	= $(MLFAST) $(PROFILE)
