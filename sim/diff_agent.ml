@@ -15,7 +15,7 @@ let strset_difftype s = match s with
   | "ESS" | "ess" -> diffusion_type := `ESS
   | _ -> raise (Failure ("Invalid difftype "^s))
 
-let mean_interest_interval = ref 30.
+let mean_interest_interval = ref 60.
 let interest_lambda() = 1. /.  !mean_interest_interval
 let nsinks_ = ref None
 let nsinks() = o2v !nsinks_
