@@ -30,20 +30,12 @@ let largest f1 f2 =
 let smallest f1 f2 = 
   if (f1 < f2) then f1 else f2
 
-let (+++) (a, b) (c, d) = (a + c, b+ d)
-let (+++.) (a, b) (c, d) = (a +. c, b+. d)
-let (---) (a, b) (c, d) = (a - c, b - d)
-let (---.) (a, b) (c, d) = (a -. c, b -. d)
-let (///) (a, b) c = (a/c, b/c)
-let (///.) (a, b) c = (a/.c, b/.c)
- 
-let pair_i2f (a, b) = (i2f a, i2f b)
-let pair_f2i (a, b) = (f2i a, f2i b)
-
 let isint x = (x -. floor x) < epsilon_float
 let round x = if (x -. floor x) < 0.5 then (floor x) else (ceil x)
 
-let powi num exp = f2i ((i2f num) ** (i2f exp))
+let powi ~num ~exp = f2i ((i2f num) ** (i2f exp))
+let nth_root ~num ~n = f2i (num ** (1.0/.(i2f n)))
+
 let sign x = if x < 0.0 then (-1.0) else (1.0)
 let signi x = if x < 0 then (-1) else (1)
 
@@ -55,7 +47,7 @@ let ininterval ~num ~left ~right = (num >=left) && num <= right
 let norm a = let n = ref 0.0 in Array.iter (fun x -> n := !n +. (x ** 2.0)) a; sqrt !n
 let normdot a = let n = ref 0.0 in Array.iter (fun x -> n := !n +. ((i2f x) ** 2.0)) a; sqrt !n
 
-let id () = ()
+let id x = x
 
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 (*                                                                                     **)
@@ -63,22 +55,6 @@ let id () = ()
 (*                                                                                     **)
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
-(* Returns the j first elements of thelist **)
-let listuntil j thelist = 
-  if (j > List.length thelist) then failwith "listuntil" else
-    let rec listuntil j left right = 
-      match j with 
-	  0 -> List.rev left
-	| _ -> listuntil (j -1 )  (( List.hd right)::left) (List.tl right)
-    in
-      listuntil j [] thelist
-
-(* Returns the second part of the list starting at element j **)
-let listfrom j thelist = List.rev (listuntil (List.length thelist - j) (List.rev thelist))
-
-let listbetween i j thelist = List.rev (listuntil (j -i ) (List.rev (listuntil j thelist)))
-
-let cycle_list l = (List.tl l)@[List.hd l] 
 
 let listlast l = List.nth l (List.length l - 1)
   
@@ -93,17 +69,16 @@ let list_unique_elements l =
     List.iter (fun x -> Hashtbl.remove hash x; Hashtbl.add hash x "") l;
     Hashtbl.fold (fun key value list -> key :: list ) hash []
 
+let sprintlist ~fmt:fmt ~l:l = List.fold_left (fun a b -> a ^ (Printf.sprintf fmt b)) "" l
+let printlist ~fmt:fmt ~l:l = Printf.printf "%s" (sprintlist ~fmt:fmt ~l:l)
+
+
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 (*                                                                                     **)
 (*  Arrays                                                                             **)
 (*                                                                                     **)
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
-let array_between array start finish = (
-  if (finish < start) then raise (Failure "array_between: invalid args");
-  let len = finish - start + 1 in
-    Array.sub array start len;
-)
 
 let array_f2i a = Array.map (fun x -> f2i x ) a
 let array_i2f a = Array.map (fun x -> i2f x ) a
@@ -147,7 +122,7 @@ let matrix_iter f m =
 (*                                                                                     **)
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
-let o2v o = function 
+let o2v = function 
     None -> raise (Failure "Misc.o2v : None")
   | Some v -> v
 
@@ -159,14 +134,18 @@ let o2v o = function
 (* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **)
 
 exception Impossible_Case
+exception Not_Implemented
 exception Break
 
+exception Fatal of string
+exception Transient of string
+
 let equal_or_print a b ~equal ~print =
-    if not (equal a b) then (
-      print a;
-      print b;
-      false
-    ) else true
+  if not (equal a b) then (
+    print a;
+    print b;
+    false
+  ) else true
 	
 
 
