@@ -61,6 +61,33 @@ let draw_all_nodes() = (
 
 )
 
+
+let draw_all_nodes_wparam ?(normalize=false) ?(unit_radio=15.0) nodes_param = (
+  (* normalize parameters to one*)
+  let clDarkBlue = `RGB (90*(65535/255),90*(65535/255),250*(65535/255)) in
+  let plot_param =  match normalize with
+    | true -> 
+	let max_param = Array.fold_left (fun a b -> if(a>b) then a else b) min_float  nodes_param in
+	Array.map (fun i -> i/.max_param) nodes_param
+    | false -> 
+	Array.map (fun i -> i) nodes_param
+  in
+  let rec rec_ n = 
+    match n with 
+      |	0  -> ()
+      | nid -> (
+	  let radio_size = (int_of_float (plot_param.(nid-1) *. unit_radio) ) in
+	  let color_factor = (int_of_float (plot_param.(nid-1) *. 100.0) ) in
+	  let clfillcolor = `RGB ((150+color_factor)*(65535/255),(220-color_factor)*(65535/255),(120)*(65535/255))in
+	  draw_node (nid - 1);
+	  Gui_gtk.draw_filled_circle  ~centr:(Gui_conv.pos_mtr_to_pix (Nodes.node (nid-1))#pos) ~radius:radio_size ~line_color:clDarkBlue ~fill_color:clfillcolor;
+	  rec_ (nid - 1)
+	)
+  in
+  rec_ (Param.get Params.nodes);
+)
+ 
+
 let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   let poslist =
   (List.map

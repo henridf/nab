@@ -83,6 +83,21 @@ val draw_all_nodes :
   unit
   (** Draw all nodes. *)
 
+val draw_all_nodes_wparam : 
+  ?normalize:bool -> 
+  ?unit_radio:float ->
+  float array ->
+  unit
+    (** Draw all nodes with an associated parameter per node. For
+	each node, it draws a circle centered in the node of size 
+	proportional to the value of its parameter. 
+	This circle is filled with a color based on the value of the
+	parameter.
+	Normalize: if true, divide all parameters by the maximum value
+	so that the maximum value is one.
+	Unit radio: indicates the radio of the circle that correspond
+	with the unitary parameter.*)
+
 val user_pick_node : 
   ?msg:string ->
   node_picked_cb:(Common.nodeid_t -> unit)
