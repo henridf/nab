@@ -23,16 +23,10 @@
 (* $Id$ *)
 
 
-
-
-
-
-
 open Graph
 open Coord
-open Misc
-open Opt
-open Gui_conv
+open Route
+
 
 let draw_node ?(emphasize=false) nid = 
   let cols = [| 
@@ -45,7 +39,7 @@ let draw_node ?(emphasize=false) nid =
   else 
     (cols.(Random.int 3), false)
   in 
-  let pos = pos_mtr_to_pix ((World.w())#nodepos nid)
+  let pos = Gui_conv.pos_mtr_to_pix ((World.w())#nodepos nid)
   in
   Gui_gtk.draw_node ~col ~target pos
 
@@ -71,8 +65,8 @@ let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
   let poslist =
   (List.map
     (fun (n1, n2) -> 
-      (pos_mtr_to_pix ((World.w())#nodepos n1)), 
-      (pos_mtr_to_pix ((World.w())#nodepos n2)))
+      (Gui_conv.pos_mtr_to_pix ((World.w())#nodepos n1)), 
+      (Gui_conv.pos_mtr_to_pix ((World.w())#nodepos n2)))
   ) nidlist
   in
   Gui_gtk.draw_segments ~col poslist
@@ -92,7 +86,7 @@ let draw_connectivity () = (
 )
 
 let draw_all_boxes() = (
-  let f point = pos_mtr_to_pix (Coord.i2f point) in
+  let f point = Gui_conv.pos_mtr_to_pix (Coord.i2f point) in
   let list2segs l = 
     match l with 
       | x1::y1::x2::y2::x3::y3::x4::y4::[] -> [
@@ -119,8 +113,8 @@ let draw_all_routes() = (
       List.iter (
 	fun ngbr ->
 	  Gui_gtk.draw_segments [
-	    pos_mtr_to_pix (Read_coords.box_centeri n),
-	    pos_mtr_to_pix (Read_coords.box_centeri ngbr)];
+	    Gui_conv.pos_mtr_to_pix (Read_coords.box_centeri n),
+	    Gui_conv.pos_mtr_to_pix (Read_coords.box_centeri ngbr)];
       ) ngbrs
     ) g
 )
@@ -137,11 +131,11 @@ let draw_grep_route r =
   let colindex = ref (-1) in
 
   let nhops = List.length r
-  and nsearches = List.length (List.filter (fun h -> is_some h.Route.info) r)
+  and nsearches = List.length (List.filter (fun h -> Opt.is_some h.info) r)
   in
   List.iter (fun h -> 
   Log.log#log_notice 
-    (lazy (Printf.sprintf "\n\tHop: %s "  (Coord.sprint h.Route.hop) ))) r;
+    (lazy (Printf.sprintf "\n\tHop: %s "  (Coord.sprint h.hop) ))) r;
 
   Log.log#log_notice 
     (lazy (Printf.sprintf "%d Hops, %d Searches"  nhops nsearches ));
@@ -149,11 +143,11 @@ let draw_grep_route r =
   let rec draw_hops_ = function
     | [] -> ()
     | hop1::hop2::r -> 
-	Gui_gtk.draw_segments ~thick:2 [(hop1.Route.hop, hop2.Route.hop)];
-	let n = hop1.Route.hop in
+	Gui_gtk.draw_segments ~thick:2 [(hop1.hop, hop2.hop)];
+	let n = hop1.hop in
 	Gui_gtk.draw_node n;
 	draw_hops_ (hop2::r); 
-    | hop1::r ->   Gui_gtk.draw_node ~target:true hop1.Route.hop 
+    | hop1::r ->   Gui_gtk.draw_node ~target:true hop1.hop 
   in
 
   let draw_disks_ route = (
@@ -162,34 +156,34 @@ let draw_grep_route r =
 	| [] -> ()
 	| hop1::hop2::r -> (
 	    begin
-	      match hop1.Route.info with
+	      match hop1.info with
 		| None -> ()
 		| Some flood -> 
 		    let radius = 
-		      (f2i (sqrt (i2f(Coord.disti_sq hop1.Route.hop hop2.Route.hop)))) 
+		      (Misc.f2i (sqrt (Misc.i2f (Coord.disti_sq hop1.hop hop2.hop)))) 
 		    in
 		    Printf.printf "drawing circle, radius %d" radius;
 		    flush stdout;
-		    Gui_gtk.draw_circle ~centr:hop1.Route.hop ~radius;
+		    Gui_gtk.draw_circle ~centr:hop1.hop ~radius;
 	    end;
 	    aux (hop2::r);
 	  )
 	| hop1::r -> ()
     ) in
     let route_only_anchors = 
-      List.filter (fun hop -> hop.Route.info != None) route
-    in aux (route_only_anchors@[listlast route])
+      List.filter (fun hop -> hop.info != None) route
+    in aux (route_only_anchors@[Misc.listlast route])
   )
   in 
   let rec draw_trees_ = function 
     | hop1::hop2::r -> (
 	begin
-	  match hop1.Route.info with
+	  match hop1.info with
 	    | None -> ()
 	    | Some flood -> 
 		colindex := (!colindex + 1) mod (Array.length colors);
 		let pixtree = NaryTree.map flood 
-		  ~f:(fun nid -> pos_mtr_to_pix
+		  ~f:(fun nid -> Gui_conv.pos_mtr_to_pix
 		    ((World.w())#nodepos nid))
 		in
 		Log.log#log_notice 
@@ -212,7 +206,6 @@ let draw_ease_route
     ?(disks=true) 
     ?(portion=1.0)
     r  = (
-      print_endline "gui_ops.draw_ease_route"; flush stdout;
       let colors = [|
 	"blue";
 	"dim grey";
@@ -227,8 +220,6 @@ let draw_ease_route
       let hops_not_drawn = (List.length r) -
 	truncate ((float (List.length r)) *. portion_)
       in
-      Printf.printf "hops_not_drawn %d\n" hops_not_drawn; 
-      Printf.printf "portion: %f\n" portion_;flush stdout;
 
       let rec draw_disks_ route = (
 	match route with 
@@ -237,14 +228,14 @@ let draw_ease_route
 	      -> (
 		Gui_gtk.txt_msg 
 		(Printf.sprintf "Anchor Age: %d seconds" 
-		  (truncate (o2v hop2.Route.info).Route.anchor_age))
+		  (truncate (Opt.get hop2.info).anchor_age))
 	      )
 	  | hop1::hop2::r -> (
 
 	      (* we assume that the rectangle ratio of the window and the world
 		 are the same, otherwise this would not be a circle *)
-	      Gui_gtk.draw_circle ~centr:hop1.Route.hop 
-	      ~radius:(x_mtr_to_pix (o2v hop1.Route.info).Route.searchcost);
+	      Gui_gtk.draw_circle ~centr:hop1.hop 
+	      ~radius:(Gui_conv.x_mtr_to_pix (Opt.get hop1.info).searchcost);
 	      draw_disks_ (hop2::r);
 	    )
 	  | hop1::r -> ()
@@ -252,29 +243,30 @@ let draw_ease_route
 
       let colindex = ref (-1) in
       let rec draw_anchors_  firsthop route = (
+
+	let draw_anchor_line hop = 
+	  colindex := (!colindex + 1) mod (Array.length colors);
+	  if lines then (
+	    Gui_gtk.draw_segments ~col:(`NAME colors.(!colindex))
+	    [hop.hop, (Opt.get hop.info).anchor];
+	  );
+	  if (anchors) then (
+	    Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex)) ~target:true
+	    (Opt.get hop.info).anchor
+	  )
+	in
+
 	match route with 
 	  | [] -> ()
-	  | hop1::hop2::r when (List.length r <= hops_not_drawn)
-	      -> ()
+	  | hop1::hop2::r when (List.length r <= hops_not_drawn) -> ()
+	  | hop1::hop2::r when firsthop -> (
+	      draw_anchor_line hop1;
+	      draw_anchors_ false (hop1::hop2::r)
+	    )
 	  | hop1::hop2::r -> (
-	      if (firsthop || 
-	      (((o2v hop2.Route.info).Route.anchor_age) <> ((o2v hop1.Route.info).Route.anchor_age))) then (
-		(*	    Printf.printf "drawing anchor from %s to %s\n" 
-			    (Coord.sprint hop1.Route.hop) (Coord.sprint hop1.Route.anchor);*)
-		colindex := (!colindex + 1) mod (Array.length colors);
-		if lines then (
-		  Gui_gtk.draw_segments ~col:(`NAME colors.(!colindex))
-		  [hop1.Route.hop, (o2v hop1.Route.info).Route.anchor];
-		);
-		if (anchors) then (
-		  Gui_gtk.draw_cross ~diag:false ~col:(`NAME colors.(!colindex)) ~target:true
-		  (o2v hop1.Route.info).Route.anchor
-		)
-	      );
-	      
-	      (*	    Printf.printf "Ages are %f and %f\n"  hop1.Route.anchor_age hop2.Route.anchor_age*)
-
-	      draw_anchors_ false (hop2::r)
+	      if (Opt.get hop2.info).anchor_age <> 
+		(Opt.get hop1.info).anchor_age then draw_anchor_line hop2;
+	      draw_anchors_ false (hop2::r);
 	    )
 	  | hop1::r -> ()
       ) in
@@ -286,9 +278,9 @@ let draw_ease_route
 	      -> (
 		if List.length r = 0 then (
 		  Gui_gtk.draw_node ~target:true ~col:(`NAME "red")
-		  hop2.Route.hop;
-		  Gui_gtk.draw_segments [(hop1.Route.hop, hop2.Route.hop)];
-		  let n = hop1.Route.hop in
+		  hop2.hop;
+		  Gui_gtk.draw_segments [(hop1.hop, hop2.hop)];
+		  let n = hop1.hop in
 		  let c1 = Coord.xx n  
 		  and c2 = Coord.yy n  in
 		  Gui_gtk.draw_node n;
@@ -302,8 +294,8 @@ let draw_ease_route
 	  | hop1::hop2::r -> (
 	      (*	  Graphics.set_color (color ~hop:!i ~routelength:len);
 			  Graphics.set_color (Graphics.rgb 0 0 0);*)
-	      Gui_gtk.draw_segments [(hop1.Route.hop, hop2.Route.hop)];
-	      let n = hop1.Route.hop in
+	      Gui_gtk.draw_segments [(hop1.hop, hop2.hop)];
+	      let n = hop1.hop in
 	      let c1 = Coord.xx n  
 	      and c2 = Coord.yy n  in
 	      Gui_gtk.draw_node n;
@@ -312,7 +304,7 @@ let draw_ease_route
 	      draw_route_ (hop2::r);
 	    )
 	  | hop1::r -> (
-	      Gui_gtk.draw_node ~target:true hop1.Route.hop;
+	      Gui_gtk.draw_node ~target:true hop1.hop;
 	    )
       )
       in
@@ -325,7 +317,7 @@ let draw_ease_route
 let get_node_cb_sig_id = ref None
 
 let remove_get_node_cb() = 
-  let id = o2v !get_node_cb_sig_id in
+  let id = Opt.get !get_node_cb_sig_id in
   Gui_gtk.remove_button_press_cb id
 
 let user_pick_node ?(msg = "Pick a node!") ~node_picked_cb () = (
@@ -334,8 +326,8 @@ let user_pick_node ?(msg = "Pick a node!") ~node_picked_cb () = (
     Gui_gtk.install_button_press_cb 
     (fun b -> 
 
-      let x, y = (f2i (GdkEvent.Button.x b), f2i (GdkEvent.Button.y b)) in
-      let node = closest_node_at (x, y)
+      let x, y = (Misc.f2i (GdkEvent.Button.x b), Misc.f2i (GdkEvent.Button.y b)) in
+      let node = Gui_conv.closest_node_at (x, y)
       in
       remove_get_node_cb();
       node_picked_cb node;
@@ -365,7 +357,7 @@ let dialog_pick_node ?default ~node_picked_cb () =
       GWindow.window ~kind:`DIALOG ~border_width:10 ~title:"Node ID" () in
     let dvbx = GPack.box `VERTICAL ~packing:dialog#add () in
     let entry  = GEdit.entry ~max_length:5 ~packing: dvbx#add () in
-    if is_some default then entry#set_text (i2s (o2v default));
+    if Opt.is_some default then entry#set_text (Misc.i2s (Opt.get default));
     let dquit = GButton.button ~label:"OK" ~packing: dvbx#add () in 
     ignore (dquit#connect#clicked ~callback:
       begin fun _ ->
