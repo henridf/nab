@@ -1,0 +1,17 @@
+NAB - AODV Implementation (RFC 3561 compliant)
+
+
+Some notes on gray areas in the RFC and how they are dealt with in the NAB
+AODV implementation.
+
+
+
+- Incrementing destination sequence number on a route break.
+According to RFC 6.11 (i), when a next hop breaks, you increment the sequence
+number only at the time when you originate the RERR, which comes after having
+attempted a local repair (if that was turned on).
+But (when doing local repair) it is necessary to increment the dest. sequence
+no *before* sending out the first RREQ.
+
+
+
