@@ -82,27 +82,28 @@ val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
   (** Returns the side of a square surface to get the required average node
     degree, given the number of nodes and radio range *)
     
-val make_nodes : ?with_positions:bool -> unit -> unit
+val make_nodes : ?pos_aware:bool -> ?with_positions:bool -> unit -> unit
   (** Create {!Simplenode.simplenode} each with a mac layer of the type
     specified in {!Params.mac}.
 
     Number of nodes {!Params.nodes} should be set before calling this.
 
-    Optional [with_positions] determines whether to initialize nodes with
-    (randomly generated) positions. It is true by default, and should only be
-    false if node positions are being restored from a prior run.
-
+    Optional [with_positions] (true by default) determines whether to initialize nodes with
+    (randomly generated) positions. It can be passed as [false]
+    for example if node positions are being restored from a prior run.
+    Optional [pos_aware] (false by default) determines whether the nodes are
+    position aware.
  *)
 
-val make_naked_nodes : ?with_positions:bool -> unit -> unit
+val make_naked_nodes : ?pos_aware:bool -> ?with_positions:bool -> unit -> unit
   (** Create {!Simplenode.simplenode} nodes with no routing agents or MAC layers.
 
     Number of nodes {!Params.nodes} should be set before calling this.
-
-    Optional [with_positions] determines whether to initialize nodes with
-    (randomly generated) positions. It is true by default, and should only be
-    false if node positions are being restored from a prior run.
-
+    Optional [with_positions] (true by default) determines whether to initialize nodes with
+    (randomly generated) positions. It can be passed as [false]
+    for example if node positions are being restored from a prior run.
+    Optional [pos_aware] (false by default) determines whether the nodes are
+    position aware.
  *)
 
 val make_grep_nodes : unit -> unit 
@@ -110,23 +111,25 @@ val make_grep_nodes : unit -> unit
     of the type specified in {!Params.mac}.
     Number of nodes {!Params.nodes} should be set before calling this *)
 
-val make_diff_agents : ?stack:int -> unit -> unit 
-  (** Creates and adds a diffusion agent to each node. See {!Diff_agent.diff_agent_t}.
-    Nodes should be created before calling this.*)
-  
+
 val make_flood_agents : ?stack:int -> unit -> unit 
-  (** Creates and adds a simple flooding agent to each node. See {!Flood_agent.flood_agent}.
+  (** Creates and adds a simple flooding agent to each node, on [stack]
+    (default stack 0). See {!Flood_agent.flood_agent}.
     Nodes should be created before calling this.*)
   
-val make_aodv_nodes : unit -> unit 
-  (** Create {!Simplenode.simplenode} each with a aodv agent and a mac layer
-    of the type specified in {!Params.mac}.
+val make_grease_nodes : ?ease:bool -> unit -> unit 
+  (** Create gpsnodes each with a GREASE agent and a mac layer
+    of the type specified in {!Params.mac}. 
+    Pass optional parameter [ease] as [true] if you want EASE behavior
+    (default is grease).
     Number of nodes {!Params.nodes} should be set before calling this *)
 
-val make_grease_nodes : unit -> unit 
-  (** Create gpsnodes each with a EASE agent and a mac layer
-    of the type specified in {!Params.mac}.
-    Number of nodes {!Params.nodes} should be set before calling this *)
+val make_grease_agents : ?stack:int -> ?ease:bool -> unit -> unit 
+  (** Creates and adds a grease agent to each node, on [stack]
+    (default stack 0). 
+    Pass optional parameter [ease] as [true] if you want EASE behavior
+    (default is grease).
+    Nodes should be created before calling this.*)
 
 val install_macs : ?stack:int ->  ?bps:float -> unit -> unit
   (** Installs a Mac layer of type {!Params.mac} on each node.
@@ -135,6 +138,11 @@ val install_macs : ?stack:int ->  ?bps:float -> unit -> unit
 
 val install_null_macs : ?stack:int ->  ?bps:float -> unit -> unit
   (** Installs a Nullmac Mac layer on each node.
+    Nodes should be created before calling this.
+    Optional [stack] is explained in {!Simplenode.simplenode}. *)
+
+val install_cheat_macs : ?stack:int ->  ?bps:float -> unit -> unit
+  (** Installs a Cheatmac layer on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Simplenode.simplenode}. *)
 

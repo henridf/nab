@@ -55,13 +55,13 @@ let init_greedy_world() =
   World.set_greedy_world (new Crworld.greedy_reflecting_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
-    ~rrange:(Param.get Params.rrange))
+    ~rrange:(Param.get Params.radiorange))
 
 let init_greedy_taurus_world() = 
   World.set_greedy_world (new Crworld.greedy_taurus_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
-    ~rrange:(Param.get Params.rrange))
+    ~rrange:(Param.get Params.radiorange))
 
 let init_epfl_world() = (
   if (Param.get Params.x_size) <> 800. ||
@@ -70,21 +70,21 @@ let init_epfl_world() = (
   World.set_lazy_world (new Crworld.epflworld
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
-    ~rrange:(Param.get Params.rrange))
+    ~rrange:(Param.get Params.radiorange))
 )
 
 let init_lazy_world() = 
   World.set_lazy_world (new Crworld.lazy_reflecting_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
-    ~rrange:(Param.get Params.rrange)
+    ~rrange:(Param.get Params.radiorange)
 )
 
 let init_lazy_taurus_world() = 
   World.set_lazy_world (new Crworld.lazy_taurus_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
-    ~rrange:(Param.get Params.rrange)
+    ~rrange:(Param.get Params.radiorange)
 )
 
 let init_all() =   (
@@ -117,13 +117,16 @@ let install_macs ?(stack=0) ?(bps=default_bps) () =
     | Mac.Cheatmac -> install_cheat_macs ~stack ~bps ()
 
 
-let make_naked_nodes ?(with_positions=true) () = (
+let make_naked_nodes ?(pos_aware=false) ?(with_positions=true) () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
+  if pos_aware then 
+  Nodes.set_gpsnodes 
+    (Array.init (Param.get Params.nodes)
+      (fun nid -> new Gpsnode.gpsnode  nid))
+  else 
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
-      (fun i -> 
-	(new Simplenode.simplenode i
-	)));
+      (fun i -> (new Simplenode.simplenode i)));
 
   if with_positions then begin
     (* set up initial node position in internal structures of World object *)
@@ -132,8 +135,8 @@ let make_naked_nodes ?(with_positions=true) () = (
   end
 )
 
-let make_nodes ?(with_positions=true) () = (
-  make_naked_nodes ~with_positions ();
+let make_nodes ?(pos_aware=false) ?(with_positions=true) () = (
+  make_naked_nodes ~pos_aware ~with_positions ();
   install_macs  ();
 )
     
@@ -143,27 +146,36 @@ let place_nodes_on_line () =
     let newpos = ((float nid) *. x_incr, 0.0) in
     (World.w())#movenode ~nid ~newpos)
 
-let make_grease_nodes () = (
+
+let make_grease_agents ?(stack=0) ?(ease=false) () = (
+  let grease = not ease in  
+  Nodes.gpsiteri (fun nid n -> 
+    let agent = new Ease_agent.ease_agent ~stack ~grease n in
+    n#install_rt_agent ~stack (agent :> Rt_agent.t));
+
+)
+
+
+let make_grease_nodes ?(ease=false) () = (
+
 
   Nodes.set_gpsnodes 
     (Array.init (Param.get Params.nodes)
       (fun nid -> 
 	let pos_init = (World.w())#random_pos in
 	(World.w())#init_pos ~nid ~pos:pos_init;
-	(new Gpsnode.gpsnode ~pos_init nid);
+	(new Gpsnode.gpsnode nid);
       )
     );
 
-  Nodes.gpsiteri (fun nid n -> 
-    let agent = new Ease_agent.ease_agent ~stack:0 ~grease:true n in
-    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
+  make_grease_agents ~ease ~stack:0 ();
 
   install_macs();
 
   assert ((World.w())#neighbors_consistent);
 )
 
-  
+
 
 let make_grep_nodes () = (
   make_nodes();
@@ -173,14 +185,7 @@ let make_grep_nodes () = (
     n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
 )
 
-let make_diff_agents ?(stack=0) () = (
-  (* create diffusion agents, and 'insert' them into their owner nodes. *)
 
-
-  Nodes.iteri (fun nid n -> 
-    let agent = (new Diff_agent.diff_agent ~stack n) in
-    n#install_rt_agent ~stack (agent :> Rt_agent.t));
-)
 
 let make_flood_agents ?(stack=0) () = (
   
@@ -189,13 +194,7 @@ let make_flood_agents ?(stack=0) () = (
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
-let make_aodv_nodes () = (
-  make_nodes();
 
-  Nodes.iteri (fun nid n -> 
-    let agent = new Aodv_agent.aodv_agent ~stack:0 n in
-    n#install_rt_agent ~stack:0 (agent :> Rt_agent.t));
-)
 
 
 
@@ -381,7 +380,7 @@ let detach_daemon ~outfilename = (
   side = sqrt(area)
 *)
 let size 
-  ?(rrange=(Param.get Params.rrange))  
+  ?(rrange=(Param.get Params.radiorange))  
   ?(nodes=(Param.get  Params.nodes)) ~avg_degree () = 
 
   sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
