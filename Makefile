@@ -126,6 +126,7 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/grep_hooks$(CMO) \
 		$(MWS_DIR)/aodv_agent$(CMO) \
 		$(MWS_DIR)/grep_agent$(CMO) \
+		$(MWS_DIR)/diff_agent$(CMO) \
 		$(MWS_DIR)/ease_agent$(CMO) \
 		$(MWS_DIR)/hello_agents$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
