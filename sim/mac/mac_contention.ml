@@ -61,7 +61,12 @@ object(s)
     incr rndseed
   )
 
-  method private backend_recv = backend#send_up
+  method private backend_recv l2pkt = 
+    let dst = L2pkt.l2dst l2pkt in
+    if (dst = myid || dst = L2pkt.l2_bcast_addr) then
+      backend#send_up l2pkt
+
+
   method bps = bps
 
   method reset_stats = 
