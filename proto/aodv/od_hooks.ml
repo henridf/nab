@@ -53,7 +53,7 @@ let pkt_type l3pkt =
 	  | Str_pkt.DATA _ -> `DATA
 	  | Str_pkt.RREQ _ -> `RREQ
 	  | Str_pkt.RREP _ -> `RREP
-	  | Str_pkt.HELLO -> `RADV end
+	  | Str_pkt.HELLO _ -> `RADV end
     | _ -> failwith "Od_hooks.pkt_type : unknown packet type"
 
 let rreq_orig l3pkt = 
@@ -68,10 +68,10 @@ let rreq_orig l3pkt =
     | `GREP_HDR h -> failwith "Od_hooks.rreq_orig" 
     | `STR_HDR h -> 
 	begin match h with 
-	  | Str_pkt.RREQ r -> r.Str_pkt.rreq_orig
+	  | Str_pkt.RREQ (_,r) -> r.Str_pkt.rreq_orig
 	  | Str_pkt.DATA _
 	  | Str_pkt.RREP _
-	  | Str_pkt.HELLO -> failwith "Od_hooks.rreq_orig" end 
+	  | Str_pkt.HELLO _ -> failwith "Od_hooks.rreq_orig" end 
     | _ -> failwith "Od_hooks.pkt_type : unknown packet type"
 
 let rreq_orig l3pkt = 
@@ -85,8 +85,8 @@ let rreq_orig l3pkt =
     | `GREP_HDR h -> L3pkt.l3src l3pkt
     | `STR_HDR h -> begin 
 	match h with
-	  | Str_pkt.RREQ rreq -> rreq.Str_pkt.rreq_orig
-	  | Str_pkt.RREP _ | Str_pkt.HELLO 
+	  | Str_pkt.RREQ (_, rreq) -> rreq.Str_pkt.rreq_orig
+	  | Str_pkt.RREP _ | Str_pkt.HELLO  _
 	  | Str_pkt.DATA _ -> failwith "Od_hooks.rreq_orig : not a rreq"
       end
     | _ -> failwith "Od_hooks.rreq_orig : unknown packet type"
