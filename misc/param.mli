@@ -16,7 +16,8 @@ exception IllegalValue of string
 
 val create : 
      name:string                     (* param name *)
-  -> default:'a                      (* default value *)
+  -> default:'a option               (* if None, can raise exception on a get
+					when no value has been set *)
   -> doc:string                      (* documentation string *)
   -> reader:(string -> 'a)           (* convert from string (raise
 					IllegalValue if invalid) *)
@@ -26,5 +27,6 @@ val create :
 
 val set : 'a t -> 'a -> unit
 val strset : 'a t -> string -> unit
-val get : 'a t -> 'a
+val get : 'a t -> 'a                 (* fails if default was
+					None and value was not set *)
   
