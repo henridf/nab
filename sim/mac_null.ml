@@ -20,7 +20,7 @@ object(s)
   val owner:#Simplenode.simplenode = owner
 
   initializer (
-    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/nullmac";
+    s#set_objdescr ~owner:(owner :> #Log.inheritable_loggable)  "/nullmac"
   )
 
   method recv ?snr ~l2pkt () = (
@@ -50,7 +50,7 @@ object(s)
 
   method xmit ~l2pkt = (
     s#log_debug (lazy "TX packet ");
-    Ether.emit ~nid:ownerid ~l2pkt
+    SimpleEther.emit ~nid:ownerid ~l2pkt
   )
 end
       

@@ -122,7 +122,7 @@ object(s)
 	  +. xmitdelay ~bytes:(L2pkt.l2pkt_size ~l2pkt:l2pkt) in
 	sending_until <- end_xmit_time;
 	interfering_until <- max end_xmit_time interfering_until;
-	Ether.emit ~nid:ownerid ~l2pkt
+	SimpleEther.emit ~nid:ownerid ~l2pkt
       ) else (
 	let msg = 
 	  if s#sending then "sending" else  "receiving" 
