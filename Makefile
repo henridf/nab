@@ -144,6 +144,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
 		$(PROTO_MISC_DIR)/simple_pkt$(CMO) \
+		$(PROTO_MISC_DIR)/dbf_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l3pkt$(CMO) \
 		$(SIM_MAC_DIR)/macaw_pkt$(CMO) \
 		$(SIM_MAC_DIR)/maca_pkt$(CMO) \
