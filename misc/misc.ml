@@ -145,3 +145,9 @@ let equal_or_print a b ~equal ~print =
 
 
 
+(** String Handling *)
+
+  let padto ?(ch=' ') s len = 
+    let l = len - (String.length s) in 
+    if l <= 0 then s else s ^ String.make l ch
+
