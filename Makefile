@@ -94,7 +94,9 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/route$(CMO) \
 		$(MISC_DIR)/ler_graphics$(CMO) \
 		$(MWS_DIR)/nodeDB$(CMO) \
-		$(MWS_DIR)/magic_bler_agent$(CMO) \
+		$(MWS_DIR)/rtab$(CMO) \
+		$(MWS_DIR)/dsdv_agent$(CMO) \
+#		$(MWS_DIR)/magic_bler_agent$(CMO) \
 		$(MWS_DIR)/simplenode$(CMO) \
 		$(MWS_DIR)/mob$(CMO) \
 		$(MWS_DIR)/persistency$(CMO) \
