@@ -24,8 +24,6 @@ Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:30
 
   should we set the seqno on a data packet when ours is fresher???
 
-
-
   PPR5: is it a good idea to discard a packet when the buffer is full without
   initiating a RREQ? Maybe think we should initiate one (if there is no
   pkt for this destination in the buffer), since pkts will keep flowing our
@@ -58,6 +56,9 @@ class type grep_agent_t =
       sn:int -> hc:int -> nh:int ->
       bool
     method objdescr : string
+    method start_hello :  unit -> unit
+    method stop_hello : unit -> unit
+
     method private packet_fresh : l3pkt:L3pkt.l3packet_t -> bool
     method private queue_size : unit -> int
     method private packets_waiting : dst:Common.nodeid_t -> bool
@@ -74,6 +75,8 @@ class type grep_agent_t =
       l3pkt:L3pkt.l3packet_t -> 
       fresh:bool -> unit
     method private recv_l2pkt_hook : L2pkt.l2packet_t -> unit
+    method private recv_l3pkt_ : l3pkt:L3pkt.l3packet_t ->
+      sender:Common.nodeid_t -> unit
     method private send_out : l3pkt:L3pkt.l3packet_t -> unit
     method private send_rrep : dst:Common.nodeid_t -> obo:Common.nodeid_t -> unit
     method private send_rreq :
@@ -101,6 +104,8 @@ object(s)
   val rt = Rtab.create_grep ~size:(Param.get Params.nodes) 
   val mutable seqno = 0
   val pktqs = Array.init (Param.get Params.nodes) (fun n -> Queue.create()) 
+
+  val mutable hello_period_ = None
 
   val rreq_uids = Array.create (Param.get Params.nodes) 0
     (* see #init_rreq for explanation on this *)
@@ -198,27 +203,7 @@ object(s)
       | _ -> raise (Misc.Impossible_Case "Grep_agent.packet_fresh()")
   )
     
-  method private recv_l2pkt_hook l2pkt = (
-    
-    let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
-    assert (L3pkt.l3ttl ~l3pkt >= 0);
-    (* create or update 1-hop route to previous hop *)
-    let sender = L2pkt.l2src l2pkt in
-    if (sender <> (L3pkt.l3src ~l3pkt)) then (
-      let sender_seqno = 
-	match Rtab.seqno ~rt ~dst:sender with
-	  | None -> 1
-	  | Some n -> n + 1
-      in
-      let update =  
-	s#newadv 
-	  ~dst:sender
-	  ~sn:sender_seqno
-	  ~hc:1
-	  ~nh:sender
-      in
-      assert (update);
-    );
+  method private recv_l3pkt_ ~l3pkt ~sender = (
     (* update route to source if packet came over fresher route than what we
        have *)
     let pkt_fresh = (s#packet_fresh ~l3pkt)
@@ -243,8 +228,39 @@ object(s)
     end
   )
 
-  method private process_radv_pkt ~l3pkt ~sender = 
-    raise Misc.Not_Implemented
+
+  method private recv_l2pkt_hook l2pkt = (
+    
+    let l3pkt = L2pkt.l3pkt ~l2pkt:l2pkt in
+    assert (L3pkt.l3ttl ~l3pkt >= 0);
+
+    (* create or update 1-hop route to previous hop, unless the packet was
+       originated by the previous hop, in which case this will happen in l3
+       processing.
+    *)
+    let sender = L2pkt.l2src l2pkt in
+    if (sender <> (L3pkt.l3src ~l3pkt)) then (
+      let sender_seqno = 
+	match Rtab.seqno ~rt ~dst:sender with
+	  | None -> 1
+	  | Some n -> n + 1
+      in
+      let update =  
+	s#newadv 
+	  ~dst:sender
+	  ~sn:sender_seqno
+	  ~hc:1
+	  ~nh:sender
+      in
+      assert (update);
+    );
+
+    s#recv_l3pkt_ ~l3pkt ~sender
+)
+
+
+
+  method private process_radv_pkt ~l3pkt ~sender = ()
 
   method private process_rreq_pkt ~l3pkt ~fresh = (
     
@@ -399,13 +415,58 @@ object(s)
 
       rreq_uids.(dst) <- Random.int max_int;
 
-
       Rtab.repair_start ~rt ~dst;
       s#log_notice 
       (lazy (sprintf "Initiating RREQ for dst %d" dst ));
       s#send_rreq ~ttl:_ERS_START_TTL ~dst ~rreq_uid:rreq_uids.(dst)
     )
   )
+
+  method start_hello () = 
+
+    if none hello_period_ then begin
+      hello_period_ <- Some _DEFAULT_HELLO_PERIOD;
+      let jittered_start_time = 
+	Random.float (o2v hello_period_)  in
+      (Gsched.sched())#sched_in ~f:s#send_radv ~t:jittered_start_time ;
+    end
+
+  method stop_hello () = 
+    hello_period_ <- None
+
+  method private send_radv() = (
+    
+      let grep_l3hdr_ext = 
+	L3pkt.make_grep_l3hdr_ext
+	  ~flags:L3pkt.GREP_RADV
+	  ~ssn:seqno
+	  ~shc:0
+	  ()
+      in
+      let l3hdr = 
+	L3pkt.make_l3hdr
+	  ~srcid:owner#id
+	  ~dstid:L3pkt._L3_BCAST_ADDR
+	  ~ext:grep_l3hdr_ext
+	  ~ttl:1 
+	  ()
+      in
+      let l3pkt = 
+	L3pkt.make_l3pkt ~l3hdr ~l4pkt:`NONE
+    
+      in	
+      s#send_out ~l3pkt;
+      
+      if (some hello_period_) then 
+	let next_hello_t = 
+	  _DEFAULT_HELLO_PERIOD 
+	  +. Random.float (_HELLO_JITTER_INTERVAL())
+	  -. (_HELLO_JITTER_INTERVAL() /. 2.)
+	in
+	(Gsched.sched())#sched_in ~f:s#send_radv ~t:next_hello_t;
+
+    )
+
 
   method private send_rreq ~ttl ~dst ~rreq_uid = (
     
