@@ -111,11 +111,15 @@ proof: $(LER_OBJ_FILES) $(PROOF_OBJ_FILES)
 
 all: bler exp doplots graph-test
 
-CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *~ a.out); done
+CLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *.o *.cmx *.cmi *.cmo *.out); done
+EMACSCLEANALL = for d in $(SUBDIRS); do (cd $$d; rm -f *~); done
 
 clean:
 	$(CLEANALL)
-	rm -f *.o *.cmx *.cmi *.cmo *~ a.out 
+	rm -f *.o *.cmx *.cmi *.cmo a.out 
+eclean:
+	$(EMACSCLEANALL)
+	rm -f *~
 
 depend:
 	ocamldep $(INCLUDE) $(DEPENDS) > $(DEPEND)
