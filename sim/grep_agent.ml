@@ -473,10 +473,7 @@ object(s)
       | L3pkt.GREP_DATA
       | L3pkt.GREP_RREP ->
 	  begin if ((L3pkt.l3grepflags ~l3pkt) = L3pkt.GREP_DATA) then (
-	    if (L3pkt.l3src ~l3pkt) = owner#id then
-	      Grep_hooks.orig_data()
-	    else 
-	      Grep_hooks.sent_data();
+	    Grep_hooks.sent_data();
 	  ) else (
 	    Grep_hooks.sent_rrep_rerr();
 	  );
@@ -543,6 +540,7 @@ object(s)
 	)
 	()
     in
+    Grep_hooks.orig_data();
     let l3pkt = (L3pkt.make_l3pkt ~l3hdr:l3hdr ~l4pkt:l4pkt) in
     if (s#packets_waiting ~dst) then (
       s#buffer_packet ~l3pkt
