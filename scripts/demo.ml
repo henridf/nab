@@ -27,6 +27,32 @@ let rec clock_tick() = (
 )
 
 
+let check_all_routes () = (
+  let routeref = (ref (Route.create())) in
+  Gui_hooks.route_done := false;
+  let in_mhook = Gui_hooks.ease_route_pktin_mhook routeref in
+  let out_mhook = Gui_hooks.ease_route_pktout_mhook routeref in
+  Nodes.iter (fun n -> n#clear_pkt_mhooks);
+  Nodes.iter (fun n -> n#add_pktin_mhook in_mhook);
+  Nodes.iter (fun n -> n#add_pktout_mhook out_mhook);
+  Nodes.iter (fun n -> 
+    Printf.printf "New Source: %d\n" n#id; flush stdout;
+    if n#id > (Param.get Params.ntargets) then (
+
+      n#originate_app_pkt ~dstid:0;
+
+      (Gsched.sched())#run_until 
+      ~continue:(fun () -> 
+	Gui_hooks.route_done = ref false;
+      );
+      
+      Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));flush stdout;
+      (*  ignore (Route.route_valid !routeref ~dst:(Nodes.node 0)#pos ~src:(Nodes.node
+	  srcnode)#pos);*)
+    )
+  )
+)
+
 let load_nodes() = (
   let in_chan = open_in ((Sys.getcwd())^"/out.mld") in
   Persistency.read_state ~in_chan;
@@ -58,6 +84,8 @@ let do_one_run() = (
 (*  make_grease_nodes();*)
   load_nodes();
 
+(*  check_all_routes();*)
+
   Gui_hooks.attach_mob_hooks();
 
 
@@ -67,9 +95,10 @@ let do_one_run() = (
 
   
 
-(*  move_nodes ~prop:0.5 ~targets:1;
- save_nodes();*)
-
+(*
+  move_nodes ~prop:0.5 ~targets:1;
+ save_nodes();
+*)
 
 
 
@@ -100,6 +129,9 @@ let do_one_run() = (
 
 let _ = 
   Read_coords.make_graph();
+Read_coords.check_ngbrs();
+
+(*  Read_coords.check_conn();*)
   Param.set Params.nodes 1000;
   Param.set Params.rrange 20.0;
   Param.set Params.x_size 800.0;
@@ -109,7 +141,7 @@ let _ =
   Gui_ops.draw_all_nodes();
   Gui_ops.draw_all_boxes();
   do_one_run();
-(*  Read_coords.check_conn();*)
+
 
   Main.main();
 
