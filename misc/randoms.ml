@@ -20,7 +20,7 @@ let rewind_seed() =
   Random.init !seed
 
 
-type rng_stream = {mutable state: Random.state}
+type rng_stream = {mutable state: Random.State.t}
 
 let save_state_ handle = 
   handle.state<-Random.get_state()
