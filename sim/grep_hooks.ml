@@ -21,6 +21,8 @@ let rrer_pkts_sent = ref 0
 
 let rrep_rerr_pkts_sent = ref 0
 
+let inv_viol = ref 0
+
 let set_sources n = (
   sources := n;
   pkts_originated := (Array.make n 0);
@@ -35,6 +37,7 @@ let set_sources n = (
   rrer_pkts_sent := 0;
   rrep_rerr_pkts_sent := 0;
   total_pkts_sent := 0;
+  inv_viol := 0;
 )
 
 
@@ -80,4 +83,8 @@ let sent_rreq() = (
 let sent_rrep_rerr() = (
   incr total_pkts_sent;
   incr rrep_rerr_pkts_sent
+)
+
+let inv_violation() = (
+  incr inv_viol
 )

@@ -7,6 +7,14 @@
 
 (* RTR 4 not implemented (updating entry to destination node) *)
 
+(* maybe nodes not incrementing seqno on sending rrep??
+17.331472 /node/84 /GREP_Agent this:84, nexthoph:300, dst:300, this_sn: 202, this_hc: 1, next_sn: 200, next_hc:
+    0
+Fatal error: exception Failure("Inv_packet_upwards this:84, nexthoph:300, dst:300, this_sn: 202, this_hc: 1, next_$    0")
+*)
+
+
+
 (*                                  *)
 (* mws  multihop wireless simulator *)
 (*                                  *)
@@ -314,7 +322,7 @@ object(s)
     %d" owner#id nexthop dst this_sn this_hc next_sn next_hc)
       in
       s#log_error (lazy str);
-      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" str))
+(*      raise (Failure (Printf.sprintf "Inv_packet_upwards %s" str))*)
 	
   )
     
