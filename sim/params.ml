@@ -8,9 +8,9 @@
 let nodes = 
   Param.intcreate 
     ~name:"nodes" 
+    ~default:1000
     ~cmdline:true
-    ~default: 100
-    ~doc:"Number of nodes in Simulation"
+    ~doc:"Number of nodes"
     ()
 
 let x_size = 

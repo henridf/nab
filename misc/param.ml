@@ -99,15 +99,32 @@ let get param = match param.value with
 
 let make_intargspec param = 
 	("-"^param.shortname, 
-	Arg.Int (fun i -> set param i),
+	Myarg.Int (fun i -> set param i),
 	param.doc)
 
 let make_floatargspec param = 
 	("-"^param.shortname, 
-	Arg.Float (fun i -> set param i),
+	Myarg.Float (fun i -> set param i),
+	param.doc)
+
+let make_stringargspec param = 
+	("-"^param.shortname, 
+	Myarg.String (fun i -> set param i),
 	param.doc)
 
 let make_argspeclist () = 
   List.map (fun p -> make_intargspec p) !intparams
   @
   List.map (fun p -> make_floatargspec p) !floatparams
+  @
+  List.map (fun p -> make_stringargspec p) !stringparams
+    
+
+let dumpconfig () = 
+  List.sort (fun (a, _) (b, _) -> String.compare a b)
+    (List.map (fun p -> (p.doc, (Misc.o2v p.value))) !stringparams
+    @
+    List.map (fun p -> (p.doc, string_of_float (Misc.o2v p.value))) !floatparams
+    @
+    List.map (fun p -> (p.doc, string_of_int (Misc.o2v p.value))) !intparams)
+    

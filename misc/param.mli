@@ -68,7 +68,9 @@ val strset : 'a t -> string -> unit
 val get : 'a t -> 'a                 (* fails if default was
 					None and value was not set *)
   
-val make_argspeclist : unit -> (string * Arg.spec * string) list
+val make_argspeclist : unit -> (string * Myarg.spec * string) list
   (** Returns a list of triples [(key, spec, doc)] corresponding to all
     created params which had 'cmdline' set. This list can then be used 
     to call Arg.parse with. *)
+ 
+val dumpconfig : unit -> (string * string) list
