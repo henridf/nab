@@ -152,7 +152,7 @@ object(s)
 	s#send_pkt_ ~stack ~l3pkt:l3pkt dst
   )
     
-  method cheat_send_pkt ?(stack=0) ~dst l3pkt = s#send_pkt_ ~l3pkt:l3pkt dst
+  method cheat_send_pkt ?(stack=0) ~dst l3pkt = s#send_pkt_ ~stack ~l3pkt:l3pkt dst
 
   method mac_bcast_pkt ?(stack=0) l3pkt = (
 
