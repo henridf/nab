@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 let nw_sizes = [
   500;
@@ -11,6 +11,6 @@ let nw_sizes = [
   16000;
 ]
 let mobs = [
-  new Mob.randomWalk;
-  new Mob.waypoint
+  new Mobs.randomWalk;
+  new Mobs.waypoint
 ]

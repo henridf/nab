@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 open Printf
 open Misc
@@ -31,7 +31,7 @@ let nw_sizes = [
 
 
 let mobs = [
-  new Mob.randomWalk;
+  new Mobs.randomWalk;
 ]
 
 let move_nodes ~f ~percent ~targets= (
@@ -39,7 +39,7 @@ let move_nodes ~f ~percent ~targets= (
   while ((proportion_met_nodes targets) < percent) do 
     repeat iterations (fun x -> 
       Nodes.iter (fun n -> if n#id >= targets then f ~node:n); 
-      Common.set_time (Common.get_time() +. 1.0);
+      Common.set_time (Time.get_time() +. 1.0);
     );
     Log.log#log_notice 
       (Printf.sprintf "static prop_met_nodes %f\n"

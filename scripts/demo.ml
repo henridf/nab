@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 open GMain
 open Printf
@@ -107,13 +107,13 @@ let do_one_run() = (
   Printf.printf "Route:\n %s\n" (Route.sprint ( !routeref));
   Gui_ops.draw_route (Gui_hooks.mtr_2_pix_route !routeref);
 *)
-(*  (Sched.s())#run_until (fun () -> (Common.get_time()) < start_time +. 100.0);
+(*  (Sched.s())#run_until (fun () -> (Time.get_time()) < start_time +. 100.0);
   (Sched.s())#sched_in ~handler:clock_tick ~t:1.0;*)
 
 (*  (Sched.s())#stop_in 20.0;*)
 
   let avgn = avg_neighbors_per_node() in
-  let end_time = Common.get_time() in
+  let end_time = Time.get_time() in
   Printf.fprintf stderr "Avg neighbors per node is %f\n" avgn;
   
   flush stderr

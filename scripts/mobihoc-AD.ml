@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (* compute distance as a function of encounter age *)
 
@@ -40,8 +40,8 @@ let nw_sizes = [
 ]
 
 let mobs = [
-  new Mob.randomWalk;
-  new Mob.waypoint
+  new Mobs.randomWalk;
+  new Mobs.waypoint
 ]
 
 let do_one_run n_nodes mob = (

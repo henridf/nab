@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 open GMain
 open Printf
@@ -71,7 +71,7 @@ let min_ttl_for_coverage sink = (
 
 let compute_tree_length() = (
   let avgn = avg_neighbors_per_node() in
-  let end_time = Common.get_time() in
+  let end_time = Time.get_time() in
   Printf.fprintf stderr "Avg neighbors per node is %f\n" avgn;
   flush stderr;
 
@@ -100,7 +100,7 @@ let compute_tree_length() = (
 
 let do_one_run() = (
   let avgn = avg_neighbors_per_node() in
-  let end_time = Common.get_time() in
+  let end_time = Time.get_time() in
   Printf.fprintf stderr "Avg neighbors per node is %f\n" avgn;
   
   flush stderr;

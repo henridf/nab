@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 open Printf
 open Misc
@@ -34,9 +34,9 @@ let nw_sizes = [
   64000;*)
 ]
 let mobs = [
-  (*  new Mob.randomWalk;
-      new Mob.waypoint;*)
-  new Mob.randomJump
+  (*  new Mobs.randomWalk;
+      new Mobs.waypoint;*)
+  new Mobs.randomJump
 ]
 
 let do_one_run n_nodes mob = (

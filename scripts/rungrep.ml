@@ -1,6 +1,6 @@
-(*                                  *)
-(* mws  multihop wireless simulator *)
-(*                                  *)
+
+
+
 
 (* ocaml unix.cma -I misc -I mws scripts/rungrep.ml 2> /tmp/log.out  *)
 
