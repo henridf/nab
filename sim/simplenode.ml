@@ -3,8 +3,12 @@
 (*                                  *)
 
 open Printf
+open Misc
+
 exception Mac_Send_Failure
 exception Mac_Bcast_Failure
+
+let coordmult = Coord.( ***. )
 
 class simplenode  ~pos_init ~id ~ntargets : Node.node_t = 
 
@@ -51,7 +55,7 @@ object(s: #Node.node_t)
     pos <- newpos;
     
     let nmsg = (Naml_msg.mk_node_move ~nid:s#id ~pos:newpos) in
-    s#logmsg_info nmsg;
+    s#logmsg_debug nmsg;
     Trace.namltrace ~msg:nmsg;
 
     (* important to call update_pos *after* our own position has been updated *)
@@ -66,14 +70,10 @@ object(s: #Node.node_t)
     let newpos = mob_getnewpos ~node:(s :> Node.node_t) in
     s#move newpos;
     
-    if (s#id = 1) then 
-      s#log_notice (sprintf "new pos: %s" (Coord.sprintf newpos));
-    
     (* mob is assumed to move us by one meter, so we should schedule the next
        one in 1 / speed_mps seconds *)
     let move_event() = s#selfmove in
     (Gsched.sched())#sched_in ~handler:move_event ~t:(1.0/.speed)
-
   )
 
   method add_neighbor n = (
@@ -208,6 +208,14 @@ object(s: #Node.node_t)
     ) neighbors
   )
 
+
+  method trafficsource ~dstid ~pkts_per_sec = 
+    s#originate_app_pkt ~dstid:dstid;
+    let time_to_next_pkt = 1.0 /. (i2f pkts_per_sec) in
+    let next_pkt_event() = 
+      s#trafficsource ~dstid:dstid ~pkts_per_sec:pkts_per_sec     in
+    (Gsched.sched())#sched_in ~handler:next_pkt_event ~t:time_to_next_pkt
+      
 
   method originate_app_pkt ~dstid = 
     app_send_pkt_hook Packet.APP_PLD ~dst:dstid
