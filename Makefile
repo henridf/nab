@@ -115,7 +115,6 @@ MWS_OBJ_FILES = $(GFX_LIB) \
 		$(MWS_DIR)/log$(CMO) \
 		$(MWS_DIR)/mac$(CMO) \
 		$(MWS_DIR)/params$(CMO) \
-		$(MISC_DIR)/experiment$(CMO) \
 		$(MISC_DIR)/heap$(CMO) \
 		$(MWS_DIR)/sched$(CMO) \
 		$(MWS_DIR)/gsched$(CMO) \
@@ -167,7 +166,6 @@ MODULE_OBJ_FILES = \
 
 MISC_OBJ_FILES = $(MISC_DIR)/misc$(CMO) \
 		 $(MISC_DIR)/randoms$(CMO) \
-		 $(MISC_DIR)/myarg$(CMO) \
 		 $(MISC_DIR)/coord$(CMO) \
 		 $(MISC_DIR)/naryTree$(CMO)
 
