@@ -4,7 +4,7 @@
 
 open Printf
 
-class simplenode  ~pos_init ~id  : Node.node_t = 
+class simplenode  ~pos_init ~id ~ntargets : Node.node_t = 
 
 object(s: #Node.node_t)
   
@@ -15,7 +15,9 @@ object(s: #Node.node_t)
   val mutable bler_agent = None
 
   val id = id
-  val mutable db = new NodeDB.nodeDB
+  val mutable db = new NodeDB.nodeDB ntargets
+  val ntargets = ntargets
+
   val agents = Hashtbl.create 1
 
   val mutable recv_pkt_hooks = []
@@ -36,7 +38,6 @@ object(s: #Node.node_t)
     let nmsg = (Naml_msg.mk_init_nodepos ~nid:s#id ~pos:pos_init) in
     s#logmsg_info nmsg;
     Trace.namltrace ~msg:nmsg;
-
   )
 
   method move newpos = (
@@ -52,14 +53,14 @@ object(s: #Node.node_t)
   )
 
   method add_neighbor n = (
-    s#log_info (sprintf "Adding neighbor %d" n#id);
     assert (not (Common.NodeSet.mem n#id neighbors));
-    db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
+    if n#id < ntargets then (
+      db#add_encounter ~nid:n#id ~enc:(Common.enc ~time:(Common.get_time()) ~place:n#pos);
+    );
     neighbors <- Common.NodeSet.add n#id neighbors
   )
 
   method lose_neighbor n = (
-    s#log_info (sprintf "Losing neighbor %d" n#id);
     assert (Common.NodeSet.mem n#id neighbors);
     neighbors <- Common.NodeSet.remove n#id neighbors
   )
