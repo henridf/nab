@@ -12,7 +12,7 @@
 class virtual mobility :
   #Simplenode.simplenode ->
   ?gran:float ->
-  (newpos:Coord.coordf_t -> unit) ->
+  unit ->
   object
 
     method objdescr : string
@@ -37,11 +37,12 @@ class virtual mobility :
 	
   end
 
-(** Waypoint mobility class. *)
-class waypoint :
+(** Uniform waypoint mobility class: waypoints are chosen at random uniformly
+  over surface. *)
+class uniwaypoint :
   #Simplenode.simplenode ->
   ?gran:float ->
-  (newpos:Coord.coordf_t -> unit) ->
+  unit ->
   object
     inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
@@ -51,7 +52,7 @@ class waypoint :
 class borderwaypoint :
   #Simplenode.simplenode ->
   ?gran:float ->
-  (newpos:Coord.coordf_t -> unit) ->
+  unit ->
   object
     inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
@@ -60,7 +61,7 @@ class borderwaypoint :
 (** Waypoint over EPFL mobility class. *)
 class epfl_waypoint :
   #Simplenode.simplenode ->
-  (newpos:Coord.coordf_t -> unit) ->
+  unit ->
   object
     inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
@@ -72,7 +73,7 @@ class epfl_waypoint :
   step *)
 class discreteRandomWalk :
   #Simplenode.simplenode ->
-  (newpos:Coord.coordf_t -> unit) ->
+  unit ->
   object
     inherit mobility
     method getnewpos : gran:float -> Coord.coordf_t
