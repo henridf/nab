@@ -2,6 +2,9 @@
 (* mws  multihop wireless simulator *)
 (*                                  *)
 
+(* note: 
+   look at the deleted file discrTorusTop in CVS repository before continuing
+   this one - might contain some useful code *)
 
 (* 
    Initial attempt at 2D lattice, built on a graph.
