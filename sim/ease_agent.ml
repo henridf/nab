@@ -164,15 +164,32 @@ object(s)
 
 
   method private geo_fw_pkt_ pkt = (
-    (* find next closest node toward anchor *)
-    let closest_id = s#closest_toward_anchor pkt.l3hdr.anchor_pos in
+    (* this first case is necssary to avoid a possible infinite loop if we are at
+       the same position as the destination, in which case the find_closest call
+       in closest_toward_anchor might return us *)
     
-    if closest_id = owner#id then 
-      s#recv_ease_pkt_ pkt
-    else (   
-      (* geographically forward toward anchor  *)
-      s#log_debug (sprintf "Forwarding geographically to %d" closest_id);
+    if owner#pos = (Nodes.node pkt.l3hdr.dst)#pos  then 
+      owner#cheat_send_pkt ~l3pkt:pkt ~dstid:(Nodes.node pkt.l3hdr.dst)#id
+    else (
+      (* find next closest node toward anchor *)
+      let closest_id = s#closest_toward_anchor pkt.l3hdr.anchor_pos in
+      
+      if closest_id = owner#id then (
+(*
+	s#log_debug (sprintf "We are closest to %d" closest_id);
+	s#log_debug (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
+	  (Coord.sprintf (Nodes.node pkt.l3hdr.dst)#pos));
+*)
+	s#recv_ease_pkt_ pkt
+      ) else (   
+	(* geographically forward toward anchor  *)
+(*      	s#log_debug (sprintf "Forwarding geographically to %d" closest_id);
+	s#log_debug (sprintf "our_pos: %s, dst_pos:%s" (Coord.sprintf owner#pos)
+	  (Coord.sprintf (Nodes.node pkt.l3hdr.dst)#pos));
+	
+*)      );
       owner#cheat_send_pkt ~l3pkt:pkt ~dstid:closest_id;
+      
     )
   )
 
