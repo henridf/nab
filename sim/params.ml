@@ -3,30 +3,7 @@
 (*                                  *)
 
 
-(* Globally accessible parameters.                                       *)
-(* These parameters have not (yet?) been examined to figure out if they  *)
-(* really need to be globally acessible.                                 *)
-
-let warmup_percent = 
-  Param.create 
-    ~name:"warmup" 
-    ~default: (Some 0.4)
-    ~doc:"encounter ratio required to exit warmup" 
-    ~reader:float_of_string
-    ~checker:(Some 
-      (fun s ->
-	if s < 0.0 || s > 1.0 then 
-	  raise (Param.IllegalValue "warmup must be a float between 0.0 and 1.0");
-      )
-    )
-    
-let warmup = 
-  Param.create 
-    ~name:"warmup" 
-    ~default: (Some false)
-    ~doc:"Warmup (move nodes around)"
-    ~reader:bool_of_string 
-    ~checker:None
+(** Globally accessible parameters.  *)
 
 let nodes = 
   Param.create 
@@ -83,19 +60,4 @@ let ntargets =
     ~reader:int_of_string 
     ~checker:None
 
-let nodes_file = 
-  Param.create 
-    ~name:"nodes_file" 
-    ~default: (Some "ler-sim.mld")
-    ~doc:"File containing warmed up node positions"
-    ~reader:Misc.id 
-    ~checker:None
-
-let trace_enabled = 
-  Param.create 
-    ~name:"trace_enabled" 
-    ~default: (Some false)
-    ~doc:"Save naml trace"
-    ~reader:bool_of_string 
-    ~checker:None
 
