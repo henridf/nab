@@ -21,7 +21,7 @@ let _L3_BCAST_ADDR = (* 255.255.255.255 *)
 let _ADDR_SIZE = 4
 let _TTL_SIZE = 1
 let _SEQNO_SIZE = 4
-
+let _FLOAT_SIZE = 8
 
 (* L4 (APPLICATION) STUFF *)
 
@@ -73,6 +73,7 @@ let make_grep_rreq_payload ~rreq_dst ~dseqno ~dhopcount = {
 type l4pld_t = 
     (* if any l4 payload becomes mutable, need to 
        change clone_l4pkt below *)
+  | NONE
   | APP_PLD 
   | BLER_PLD of bler_payload_t
   | DSDV_PLD of dsdv_payload_t
@@ -85,6 +86,7 @@ let clone_l4pkt ~l4pkt = l4pkt
 let l4pkt_size ~l4pkt = 
   match l4pkt with
     | APP_PLD -> 1500
+    | NONE -> 0
     | BLER_PLD p  -> raise Misc.Not_Implemented
     | DSDV_PLD p -> raise Misc.Not_Implemented
     | GREP_RREP_PLD p
@@ -96,7 +98,7 @@ let l4pkt_size ~l4pkt =
 	
 (* L3 STUFF *)
 type grep_flags_t = 
-    NOT_GREP | GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RERR | GREP_RADV
+    NOT_GREP | EASE | GREP_DATA | GREP_RREQ | GREP_RREP | GREP_RERR | GREP_RADV
 
 
 (* note on TTL:
@@ -115,6 +117,8 @@ type l3hdr_t = {(* adjust l3hdr_size if this changes *)
   mutable grep_flags : grep_flags_t;
   grep_sseqno : int;   (* seqno of the source at the time the source sent it *)
   mutable grep_shopcount: int; (* hops traversed since leaving the source *)
+  mutable ease_enc_age: Common.time_t;
+  mutable anchor_pos: Coord.coordf_t
 }
 
 
@@ -126,6 +130,7 @@ let l3hdr_size ~l3hdr =
   + 1           (* grep_flags *) 
   + match l3hdr.grep_flags with
     | NOT_GREP -> 0
+    | EASE -> 3 * _FLOAT_SIZE (* enc. age, pos *)
     | other -> 
 	_SEQNO_SIZE  (* sseqno *)
 	+ _TTL_SIZE  (* grep_hopcount *)
@@ -173,13 +178,21 @@ let get_l3shopcount ~(l3pkt:l3packet_t) = (
   (get_l3hdr l3pkt).grep_shopcount
 )
 
-let make_l3hdr ~srcid ~dstid ?(ttl=255) () = {
+let make_l3hdr 
+  ~srcid 
+  ~dstid 
+  ?(ttl=255) 
+  ?(ptype=NOT_GREP) 
+  ?(enc_age=0.0) 
+  ?(anchor_pos=(0.0, 0.0)) () = {
   src=srcid; 
   dst=dstid;
   ttl=ttl;
-  grep_flags=NOT_GREP;
+  grep_flags=ptype;
   grep_sseqno=0;
   grep_shopcount=0;
+  ease_enc_age=enc_age;
+  anchor_pos=anchor_pos
 }
 
 let make_grep_l3hdr 
@@ -195,6 +208,8 @@ let make_grep_l3hdr
   grep_flags=flags;
   grep_sseqno=sseqno;
   grep_shopcount=shopcount;
+  ease_enc_age=0.0;
+  anchor_pos=(0., 0.)
 }
 
 let make_app_pkt ~l3hdr = {
@@ -210,6 +225,11 @@ let make_l3_pkt ~l3hdr ~l4pkt = {
 let make_bler_l3pkt ~srcid ~dstid  = {
   l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ());
   l4pkt=BLER_PLD (ANCH_REQ (dstid, max_float))(*dst, current enc. age*)
+}
+
+let make_ease_l3pkt ~srcid ~dstid ~anchor ~enc_age = {
+  l3hdr=(make_l3hdr ~srcid:srcid ~dstid:dstid ~ptype:EASE ());
+  l4pkt=NONE
 }
 
 let make_dsdv_l3pkt ~srcid ~ttl ~originator ~seqno ~nhops = {
