@@ -71,7 +71,8 @@ maintains a global view of network state, in particular node positions and
 neighborhoods. <p>
 
 When running a simulation one can choose between a lazy
-(doc <a href="gen/Worldt.lazy_world_t.html">here</a>) and a greedy (doc <a href="gen/Worldt.greedy_world_t.html">here</a>). <br>
+(doc <a href="gen/Worldt.lazy_world_t.html">here</a>) and a greedy (doc <a
+href="gen/Worldt.greedy_world_t.html">here</a>) world. <br>
 The greedy world recomputes a node's neighborhood each time that node moves,
 whereas the lazy world only computes that neighborhood when it is required by
 some part of NAB. <br>The lazy approach is usually more efficient. In particular,
@@ -85,7 +86,7 @@ each time a node's neighborhood changes.
 
 <h2><a name="3">3. Node objects, stacks, and hooks.</a></h2>
 
-The node object is encapsulates most of the state and constituent objects
+The node object encapsulates most of the state and constituent objects
 (routing agent, mac layer, traffic source) that are in a node. The basic node
 class is the <code>simplenode</code> (doc <a href="gen/Simplenode.simplenode.html">here</a>); one can also
 use the <code>gpsnode</code> (doc <a href="gen/Gpsnode.gpsnode.html">here</a>) which is is position-aware.
@@ -99,10 +100,10 @@ functions and methods which take a stack parameter, this parameter is optional
 and defaults to 0. Therefore a one need never explicitly pass
 <code>stack</code> parameters in a simulation which only uses one stack.
 <p>
-Nodes also offer hooks for which are used to insert a function which is then
+Nodes also expose hooks to insert a function which is then
 called at specific events, ie when a packet enters or leaves a node. Hooks are
 a very flexible and general mechanism to extract packet-level information as a
-simulation runs, for example it is easy to implement ns-2 style traces by
+simulation runs. For example it is easy to implement ns-2 style traces by
 inserting simple hooks which output the appropriate strings when invoked. We
 refer to the NAB tutorial for simple examples of using hooks; more advanced
 hooks to reconstruct entire routes and floods are in proto/aodv/od_hooks.ml
@@ -120,7 +121,7 @@ type discipline which prevents many errors.
 <p>
 A layer 4 packet (doc <a href="gen/L4pkt.html">here</a>) contains an application-specific payload
 packet. <br>A layer 3 packet (doc <a href="gen/L3pkt.html">here</a>) contains a layer 3 header and a layer 4
-packet as a payload. A layer 3 header contains at the least a source and
+packet as a payload. A layer 3 header contains at least a source and
 destination; it can also contain protocol-specific extensions. <br>Finally a layer
 2 packet (doc <a href="gen/L2pkt.html">here</a>) contains a layer 2 header and a layer 3 packet as payload.
 
@@ -132,7 +133,7 @@ destination; it can also contain protocol-specific extensions. <br>Finally a lay
 A routing agent receives l4 packets from the application layer, and l2 packets
 from the mac layer. The notion of 'routing' here is used in a very loose
 sense: a routing agent might implement a standard unicast routing protocol, a
-topology control, or any other protocol which is somewhere between the MAC and
+topology control algorithm, or any other protocol which is somewhere between the MAC and
 application layers. The only requirement is that it conform to a simple
 interface (doc <a href="gen/Rt_agent.t.html">here</a>). 
 <p>
@@ -162,7 +163,7 @@ May 2004.
 
 <h2><a name="7">7. Mobility generators</a></h2>
 A mobility generator (doc <a href="gen/Mob.t.html">here</a>) is a class implementing a few simple methods
-to start/stop a node, set it's speed, and provide the next position to move
+to start/stop a node, set its speed, and provide the next position to move
 to. 
 <p>
 A number of mobility generators (doc <a href="gen/Mobs.html">here</a>) are provided in NAB, including a
