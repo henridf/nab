@@ -66,12 +66,10 @@ let do_one_run() = (
   init_sched();
 
 (*  init_epfl_world();*)
-  init_lazy_taurus_world();
+  init_lazy_world();
 
   begin match agenttype with
-    | AODV -> () 
-	     (* make_aodv_nodes()
-	    aodv has moved out of nab/ for now *)
+    | AODV -> make_aodv_nodes()
     | GREP -> make_grep_nodes();
 	Hashtbl.iter (fun _ grep_agent -> grep_agent#start_hello ())
 	  (Grep_agent.agents ())
@@ -80,7 +78,7 @@ let do_one_run() = (
 (*  Mob_ctl.make_epfl_waypoint_mobs();*)
   Mob_ctl.make_billiard_mobs ~gran:(rrange /. 10.) ();
   Mob_ctl.set_speed_mps speed;
-  Mob_ctl.start_all();
+(*  Mob_ctl.start_all();*)
 
   print_degree();
 
@@ -95,9 +93,11 @@ let () =
 
   Script_utils.parse_args();
 
+
   Gui_gtk.init();
 
   Gui_grep.setup_grepviz_app();
+
 
   do_one_run();
 (*  (Sched.s())#run_for ~duration:1600.;*)
