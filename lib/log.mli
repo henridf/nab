@@ -23,12 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-
-
-
 (** Logging facilities. 
   @author Henri Dubois-Ferriere.
 *)
