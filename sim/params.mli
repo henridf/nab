@@ -11,13 +11,13 @@ val nodes : int Param.t
   (** The number of nodes in the simulation. *)
 
 val x_size : float Param.t
-  (** The X [m] size  of the simulation area. *)
+  (** The X (meters) size  of the simulation area. *)
 
 val y_size : float Param.t
-  (** The Y [m] size  of the simulation area. *)
+  (** The Y (meters) size  of the simulation area. *)
 
 val rrange : float Param.t
-  (** Radio range [m] of nodes *)
+  (** Radio range (meters) of nodes *)
 
 val ntargets : int Param.t
   (** The number of nodes that can potentially be routed to as destinations.

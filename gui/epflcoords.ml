@@ -1,3 +1,10 @@
+(*                                  *)
+(* mws  multihop wireless simulator *)
+(*                                  *)
+
+(** Graph representation of EPFL campus *)
+
+
 let l = [
 "BP 386 290 408 290 408 159 386 159 AN-1 AN-2 P-ARCHI";
 "SG 291 352 369 352 369 271 291 270 SG-D SG-C SG-B P-ARCHI AN-2";
