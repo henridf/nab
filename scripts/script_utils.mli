@@ -162,23 +162,6 @@ val place_nodes_on_line : unit -> unit
 val avg_neighbors_per_node : unit -> float 
 
 
-
-(* Graphics *)
-(*
-val draw_nodes : unit -> unit
-val draw_node : nid:Common.nodeid_t -> unit
-val label_node : node:Node.node_t -> unit
-val label_nodes : unit -> unit
-val redraw_and_label_nodes : unit -> unit  
-val wait_for_any_keypress : unit -> unit
-
-
-
-val gui_grep_one_route : unit -> unit
-val gui_draw_connectivity : unit -> unit
-
-*)
-
 val detach_daemon :  outfilename:string -> unit
   (** Detach from terminal. All further logs will be spewed to outfilename *)
 
