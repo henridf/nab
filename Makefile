@@ -9,8 +9,7 @@ else
 	include mk/ocaml.mk	
 endif
 
-CAML_BIN_DIR =/home/henridf/local/bin/
-# $(dir $(shell which ocamlc))
+CAML_BIN_DIR = $(dir $(shell which ocamlc))
 
 OCAMLDOC = $(CAML_BIN_DIR)/ocamldoc
 OCAMLDEP = $(CAML_BIN_DIR)/ocamldep.opt
@@ -228,7 +227,6 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 		 $(SIM_LIB_CONTRIB_DIR)/opt$(CMO) \
 		 $(SIM_LIB_CONTRIB_DIR)/enum$(CMO) \
 		 $(SIM_LIB_CONTRIB_DIR)/extHashtbl$(CMO) \
-		 $(SIM_LIB_CONTRIB_DIR)/dynArray$(CMO) \
 		 $(SIM_LIB_DIR)/pkt_queue$(CMO) \
 		 $(SIM_LIB_DIR)/randoms$(CMO) \
 		 $(SIM_LIB_DIR)/coord$(CMO) \
