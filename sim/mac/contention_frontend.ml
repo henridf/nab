@@ -23,10 +23,6 @@
 (* $Id$ *)
 
 
-
-
-
-open Ether
 open L2pkt
 open Printf
 open Misc
@@ -56,7 +52,7 @@ object(s)
   val mutable dropsTXRX = 0
 
   val mutable end_rx_handle = 0
-    
+
 
     
   val myid = owner#id
@@ -79,7 +75,7 @@ object(s)
     sending_until >= Time.get_time()
 
   method private state = 
-    if s#sending then Mac.Idle else if end_rx_handle <> 0 then Mac.Rx else Mac.Idle
+    if s#sending then Mac.Tx else if end_rx_handle <> 0 then Mac.Rx else Mac.Idle
 
 
   (* This is called at the end (ie after the last bit comes in) of a succesful
@@ -139,6 +135,9 @@ object(s)
     (* should be implemented by the backend which will then get mixed in with
        this frontend *)
 
+  method virtual private backend_xmit_complete : unit
+    (* should be implemented by the backend which will then get mixed in with
+       this frontend *)
 
   method private frontend_xmit l2pkt = (
       let receiving = end_rx_handle <> 0 in
@@ -153,7 +152,7 @@ object(s)
 	pktsTX <- pktsTX + 1;
 	bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
 
-	SimpleEther.emit ~stack ~nid:myid l2pkt
+	Ether.emit ~stack ~nid:myid l2pkt
       ) else (
 	let dst_str = (string_of_l2dst (l2dst l2pkt)) in
 	if s#sending then (
