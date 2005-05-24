@@ -69,6 +69,22 @@ class virtual contention_frontend : ?stack:int -> bps:float ->
 object
   inherit Log.virtual_loggable 
   inherit [stats] Mac.frontend_t
+
+  (* Instance vars that are exported for inheriting classes. *) 
+  val mutable interfering_until : Time.time_t
+  val mutable sending_until : Time.time_t
+  val mutable receiving_from : int
+  val mutable collsRXTX : int
+  val mutable collsRXRX : int
+  val mutable pktsTX : int
+  val mutable pktsRX : int
+  val mutable bitsTX : int
+  val mutable bitsRX : int
+  val mutable end_rx_handle : int
+
+  method private end_rx : L2pkt.t -> unit
+  method private interfering : bool
+  method private sending : bool
 end
 
 
