@@ -94,6 +94,10 @@ let pi = 4. *. atan 1.
 
 let rad2deg rad = (rad /. pi) *. 180.
 
+let qfunct z =
+  1. /. 2. *. (1. -. Gsl_sf.erf(z /. (sqrt 2.)))
+
+
 
 let is_finite x =
   let cx = classify_float x in
