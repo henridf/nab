@@ -97,9 +97,8 @@ end
 module LossyEther : Ether_t = 
 struct 
 
-  let scenario = 0
+  let rf = Channel_model.Synthetic
   let d0 = 1.
-  let channel = List.nth Channel_model.channel_parameters scenario
 
   (* This function sends the packet over the ether. *)
   let emit ?(pt=0.) ?(pn = 0.) ~stack ~nid l2pkt = 
@@ -110,15 +109,11 @@ struct
 	let n = (Nodes.node(id)) in
 	
 	let d = sqrt (Coord.dist_sq ((World.w())#nodepos id) ((World.w())#nodepos nid)) in
-	let snr = Channel_model.gamma ~p_t:pt ~pld0:channel.Channel_model.pld0 
-	  ~d0:d0 ~n:channel.Channel_model.n ~sigma:channel.Channel_model.sigma ~p_n:pn 
-	  ~d:d in
+	let snr = Channel_model.gamma ~rf ~p_t:pt ~d0:d0 ~p_n:pn ~d in
 	  
 	let recvtime = 
           Time.get_time()
-            +. propdelay 
-            ((World.w())#nodepos id)
-            ((World.w())#nodepos nid) in
+            +. propdelay ((World.w())#nodepos id) ((World.w())#nodepos nid) in
 	let recv_event() = 
           (n#mac ~stack ())#recv ~snr:snr ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in
           (* the snr parameter represents here the reception probability

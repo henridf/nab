@@ -45,11 +45,6 @@ val set_ether : ether_t -> unit
 
 module type Ether_t = sig 
   val emit : ?pt: float -> ?pn: float -> stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
-  (** A node's MAC calls this to emit bits into the air. The Ether module
-    then takes care of sending them, with appropriate propagation delay and SNR,
-    to nodes within range. 
-    [stack] serves to distinguish when multiple stacks are being used. 
-    The notion of multiple stacks is explained in {!Node.node}. *)
 end
 
 module SimpleEther : Ether_t
@@ -77,4 +72,12 @@ module LossyEther : Ether_t
      *)
 
 val emit : ?pt: float -> ?pn: float -> stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit
-
+  (** A node's MAC calls this to emit bits into the air. The Ether module
+    then takes care of sending them, with appropriate propagation delay and SNR,
+    to nodes within range. 
+    [stack] serves to distinguish when multiple stacks are being used. (The
+    notion of multiple stacks is explained in {!Node.node}). 
+    [nid] is the id of the sending node.
+    
+    xxx/comment what are [pt] and [pn] ??
+  *)
