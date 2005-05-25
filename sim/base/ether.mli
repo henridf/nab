@@ -33,9 +33,18 @@ val propdelay : Coord.coordf_t -> Coord.coordf_t -> float
   (** Computes the propagation delay (at light speed) between 
     two coordinates (expressed in meters). *)
 
+(** Available Ether models *)
+type ether_t = SimpleEther   (** see {!Ether.SimpleEther}. *)
+	       | LossyEther  (** see {!Ether.LossyEther}. *)
+	       | NullEther   (** see {!Ether.NullEther}. *)
+
+val set_ether : ether_t -> unit 
+  (** Choose the type of ether used in the simulation (default is
+    SimpleEther). *)
+
 
 module type Ether_t = sig 
-  val emit : stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
+  val emit : ?pt: float -> ?pn: float -> stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit 
   (** A node's MAC calls this to emit bits into the air. The Ether module
     then takes care of sending them, with appropriate propagation delay and SNR,
     to nodes within range. 
@@ -57,3 +66,15 @@ module NullEther : Ether_t
     when a neighbor unicasts a packet to another node).
 *)
   
+module LossyEther : Ether_t
+    (** LossyEther is identical to SimpleEther but it adds a reception probability
+     * to each recv (in the SNR field). The Mac layer can then decide if it was able
+     * to decode the message or not. The reception probability is an approximation
+     * formula of the log-normal shadowing model. To speed up the calculation, the
+     * distance between the two nodes is normalized and then the corresponding
+     * reception probability looked up in a precomputed table. The approximation is
+     * good for messages with length L=120 bits.
+     *)
+
+val emit : ?pt: float -> ?pn: float -> stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit
+
