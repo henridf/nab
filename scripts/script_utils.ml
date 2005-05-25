@@ -120,6 +120,10 @@ let install_cheat_macs ?(stack=0) ?(bps=default_bps) () =
   let makemac node = ((new Mac_cheat.cheatmac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
 
+let install_tdack_macs ?(stack=0) ?(bps=default_bps) ?(chip=Narrowband_radios.xemics1205) () = 
+  let makemac node = ((new Mac_tdack.tdackmac ~stack ~bps ~chip node) :> Mac.t) in
+  install_macs_ ~stack makemac
+
 let install_maca_simple_macs ?(stack=0) ?(bps=default_bps) () = 
   let makemac node = ((new MACA_simple.maca_mac ~stack ~bps node) :> Mac.t) in
   install_macs_ ~stack makemac
@@ -136,7 +140,7 @@ let install_macs ?(stack=0) ?(bps=default_bps) () =
     | Mac.Cheatmac -> install_cheat_macs ~stack ~bps ()
     | Mac.MACA_simple -> install_maca_simple_macs ~stack ~bps ()
     | Mac.MACA_contention -> install_maca_contention_macs ~stack ~bps ()
-
+    | Mac.Tdackmac -> install_tdack_macs ~stack ~bps ()
 
 
 let install_mobs ?gran () = 
@@ -164,7 +168,7 @@ let make_naked_nodes ?(with_positions=true) () = (
 
 let make_nodes ?(with_positions=true) () = (
   make_naked_nodes ~with_positions ();
-  install_macs  ();
+  install_macs ();
 )
     
 let place_nodes_on_line () = 

@@ -113,7 +113,7 @@ val make_ler_agents : ?stack:int -> Ler_agent.ler_proto_t -> unit
     position aware nodes (see [make_nodes] and [make_naked_nodes] above).
 *)
 
-val install_macs : ?stack:int ->  ?bps:float -> unit -> unit
+val install_macs : ?stack:int ->  ?bps:float ->  unit -> unit
   (** Installs a Mac layer of type {!Params.mac} on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Node.node}. *)
@@ -142,6 +142,17 @@ val install_cheat_macs : ?stack:int ->  ?bps:float -> unit -> unit
 
 val install_contention_macs : ?stack:int -> ?bps:float -> unit -> unit
   (** Installs a Contentionmac Mac layer on each node.
+    Nodes should be created before calling this.
+    Optional [stack] is explained in {!Node.node}. *)
+
+val install_contention_macs : ?stack:int -> ?bps:float -> unit -> unit
+  (** Installs a Contentionmac Mac layer on each node.
+    Nodes should be created before calling this.
+    Optional [stack] is explained in {!Node.node}. *)
+
+val install_tdack_macs : ?stack:int -> ?bps:float ->
+  ?chip:Radiochips.t -> unit -> unit
+  (** Installs a tdack Mac layer on each node.
     Nodes should be created before calling this.
     Optional [stack] is explained in {!Node.node}. *)
 
