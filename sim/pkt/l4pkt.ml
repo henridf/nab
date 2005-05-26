@@ -45,6 +45,7 @@ type t =
        change clone_l4pkt below *)
     [ `EMPTY
     | `APP_PKT of int
+    | `TOS_PKT
     | `HELLO_PKT of hello_payload_t
     ]
       
@@ -53,6 +54,7 @@ let clone_l4pkt ~l4pkt = l4pkt
 let l4pkt_size ~l4pkt = 
   match l4pkt with
     | `APP_PKT _ -> 1500
+    | `TOS_PKT -> 28
     | `EMPTY -> 0
     | `HELLO_PKT _ -> hello_payload_size
 	

@@ -30,8 +30,9 @@
 type hello_payload_t = Coord.coordf_t
 
 type t =
-    [ `EMPTY
-    | `APP_PKT of int
+    [ `EMPTY          (** No application payload. *)
+    | `APP_PKT of int (** 1500 byte packet, a la wifi. *)
+    | `TOS_PKT        (** Small 28-byte packet a la TOS_Msg. *)
     | `HELLO_PKT of hello_payload_t
     ]
 
