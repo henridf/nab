@@ -61,7 +61,7 @@ val pe : modulation:Radiochips.modulation_t -> gamma:float -> b_n:float -> rate:
 
 val packet_reception_probability :
   encoding:Radiochips.phy_encoding_t ->
-  framelength:float -> preamblelength:float -> pe:float -> float
+  framelength:int -> preamblelength:int -> pe:float -> float
   (** Calculates the probability of packet reception for the given
     parameters. 
     xxx/comment are the lengths in bytes or bits?

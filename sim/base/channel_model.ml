@@ -149,8 +149,8 @@ let pe ~modulation ~gamma ~b_n ~rate =
 (** framelength and preamblelength are in byte! *)
 let packet_reception_probability ~encoding ~framelength ~preamblelength ~pe =
   let pe' = 1. -. pe in
-  let l = preamblelength in
-  let f = framelength in
+  let l = float preamblelength in
+  let f = float framelength in
   match encoding with
       NRZ -> pe' ** (8. *. l) *. pe' ** (8. *. (f -. l))
     | FourbFiveb ->  pe' ** (8. *. l) *. pe' ** (8. *. (f -. l) *. 1.25)
