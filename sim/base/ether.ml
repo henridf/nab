@@ -128,9 +128,7 @@ struct
 
 end
 
-(* This function makes the choice of the used ether
- * type according to the used_ether val.
- *)
+
 let emit = 
   match !ether with
       SimpleEther -> SimpleEther.emit
