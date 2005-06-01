@@ -34,6 +34,12 @@ class maca_contentionmac :
   #Node.node ->
   object
     inherit Mac.t
+
+    (** Set max initial TX backoff (effective backoff is uniform random
+      variable between 0 and this value).
+    *)
+    method set_jitter : float -> unit
+
     method other_stats : Contention_frontend.stats * MACA_backend.stats
 end
 

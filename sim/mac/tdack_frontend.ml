@@ -122,43 +122,16 @@ object(s)
       (* We will be under interference for the duration of this packet.*)
       interfering_until <- max interfering_until end_rx_time
      );
-    
   )
 
   method virtual private backend_xmit_complete : unit
     (* should be implemented by the backend which will then get mixed in with
        this frontend *)
 
-  method private frontend_xmit l2pkt = (
-      let receiving = end_rx_handle <> 0 in
-      if not s#sending && not receiving then (
-	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
-	let delay = Random.State.float rnd jitter in
-	let end_xmit_time = 
-	  Time.get_time() 
-	  +. s#xmitdelay l2pkt 
-	  +. delay in
-
-	  sending_until <- end_xmit_time;
-	  interfering_until <- max end_xmit_time interfering_until;
-
-
-	  let end_tx_event()  = s#backend_xmit_complete in
-	    (* notify the backand of the end of xmit *)
-	    end_tx_handle <- (Sched.s())#sched_at_handle ~f:end_tx_event ~t:(Scheduler.Time end_xmit_time);
-	    s#log_debug (lazy (sprintf "Switching from RX to TX, final xmit delayed by %f" delay));
-	    
-	  (Sched.s())#sched_in ~f:(fun () -> s#final_xmit l2pkt) ~t:delay;
- 
-     ) else (
-	(* call the super function *)
-	ct#frontend_xmit l2pkt; 
-      )
-  )
-
+  (* overrides the method #final_xmit from contention_frontend *)
   method private final_xmit l2pkt = (
-	
-	begin match (L2pkt.l2hdr_ext l2pkt) with
+    
+    begin match (L2pkt.l2hdr_ext l2pkt) with
 	  | TDACK (Tdack_pkt.ACK _) -> ()
 	      (* do nothing. has been counted in backend *)
 	  | TDACK (Tdack_pkt.PKT _) | MACA _ | MACAW _ | NONE ->
@@ -172,10 +145,6 @@ object(s)
 	(*  Ether.emit ~pt:chip.Radiochips.pt_min ~pn:chip.Radiochips.p_n ~stack ~nid:(owner#id) l2pkt *)
    )
 
-  method private xmitdelay l2pkt = 
-    let bytes = (L2pkt.l2pkt_size ~l2pkt) in
-    (i2f (bytes * 8)) /. bps
-
   method private tdack_stats = 
     {
       failedRX = failedRX;
@@ -186,8 +155,6 @@ object(s)
     failedRX <- 0;
     ct#frontend_reset_stats
   )
-
-  method set_jitter j = jitter <- j
 
   method set_tx_power p =
     txPower <- p

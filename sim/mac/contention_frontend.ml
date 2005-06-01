@@ -52,9 +52,12 @@ object(s)
   val mutable dropsTXRX = 0
 
   val mutable end_rx_handle = 0
+  val mutable end_tx_handle = 0
 
-
+  val rnd = Random.State.make [|!rndseed|] 
     
+  val mutable jitter = 0.001
+
   val myid = owner#id
 
   (*
@@ -74,7 +77,7 @@ object(s)
   method private sending = 
     sending_until >= Time.get_time()
 
-  method private state = 
+  method private frontend_state = 
     if s#sending then Mac.Tx else if end_rx_handle <> 0 then Mac.Rx else Mac.Idle
 
 
@@ -130,6 +133,7 @@ object(s)
     interfering_until <- max end_rx_time interfering_until
   )
 
+  method set_jitter j = jitter <- j
 
   method virtual private backend_recv : L2pkt.t -> unit
     (* should be implemented by the backend which will then get mixed in with
@@ -143,17 +147,24 @@ object(s)
       let receiving = end_rx_handle <> 0 in
       if not s#sending && not receiving then (
 	s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
+	let delay = Random.State.float rnd jitter in
 	let end_xmit_time = 
 	  Time.get_time() 
-	  +. s#xmitdelay l2pkt in
-	sending_until <- end_xmit_time;
-	interfering_until <- max end_xmit_time interfering_until;
-	
-	pktsTX <- pktsTX + 1;
-	bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
+	  +. s#xmitdelay l2pkt 
+	  +. delay in
 
-	Ether.emit ~stack ~nid:myid l2pkt
-      ) else (
+	  sending_until <- end_xmit_time;
+	  interfering_until <- max end_xmit_time interfering_until;
+
+
+	  let end_tx_event()  = s#backend_xmit_complete in
+	    (* notify the backand of the end of xmit *)
+	    end_tx_handle <- (Sched.s())#sched_at_handle ~f:end_tx_event ~t:(Scheduler.Time end_xmit_time);
+	    s#log_debug (lazy (sprintf "Switching from RX to TX, final xmit delayed by %f" delay));
+	    
+	  (Sched.s())#sched_in ~f:(fun () -> s#final_xmit l2pkt) ~t:delay;
+ 
+     ) else (
 	let dst_str = (string_of_l2dst (l2dst l2pkt)) in
 	if s#sending then (
 	  s#log_info (lazy (sprintf "Pkt to %s dropped because already sending"
@@ -166,6 +177,40 @@ object(s)
 	)
       )
   )
+
+  method private frontend_xmit l2pkt = (
+    let receiving = end_rx_handle <> 0 in
+    if not s#sending && not receiving then (
+      s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
+      let end_xmit_time = 
+	Time.get_time() 
+	+. s#xmitdelay l2pkt in
+      sending_until <- end_xmit_time;
+      interfering_until <- max end_xmit_time interfering_until;
+      
+      
+
+    ) else (
+      let dst_str = (string_of_l2dst (l2dst l2pkt)) in
+      if s#sending then (
+	s#log_info (lazy (sprintf "Pkt to %s dropped because already sending"
+	  dst_str));
+	dropsTXTX <- dropsTXTX + 1;
+      ) else (
+	s#log_info (lazy (sprintf "Pkt to %s dropped because already receiving"
+	  dst_str));
+	dropsTXRX <- dropsTXRX + 1;
+      )
+    )
+  )
+
+  method private final_xmit l2pkt = (
+	
+      pktsTX <- pktsTX + 1;
+      bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
+
+      Ether.emit ~stack ~nid:myid l2pkt
+   )
 
   method basic_stats = {
     Mac.bits_RX = bitsRX; 

@@ -61,7 +61,6 @@ object
   method private tdack_stats : stats
   method private tdack_reset_stats : unit
 
-  method set_jitter : float -> unit
   method set_tx_power : float -> unit
 end
 

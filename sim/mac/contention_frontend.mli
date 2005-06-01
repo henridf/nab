@@ -82,7 +82,13 @@ object
   val mutable bitsRX : int
   val mutable end_rx_handle : int
 
+  (** Set max initial TX backoff (effective backoff is uniform random
+    variable between 0 and this value).
+  *)
+  method set_jitter : float -> unit
+    
   method private end_rx : L2pkt.t -> unit
+  method private frontend_state : Mac.frontend_state
   method private interfering : bool
   method private sending : bool
 end
