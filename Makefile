@@ -22,7 +22,8 @@ SIM_INTF_DIR = $(SIM_DIR)/interfaces
 SIM_MAC_DIR = $(SIM_DIR)/mac
 SIM_MOB_DIR = $(SIM_DIR)/mob
 SIM_PKT_DIR = $(SIM_DIR)/pkt
-SIM_DIRS = $(SIM_BASE_DIR) $(SIM_INTF_DIR) $(SIM_MAC_DIR) $(SIM_MOB_DIR) $(SIM_PKT_DIR)
+SIM_RADIO_DIR = $(SIM_DIR)/radios
+SIM_DIRS = $(SIM_BASE_DIR) $(SIM_INTF_DIR) $(SIM_RADIO_DIR) $(SIM_MAC_DIR) $(SIM_MOB_DIR) $(SIM_PKT_DIR)
 
 
 PROTO_DIR = proto
@@ -49,9 +50,10 @@ DOC_TARGET_DIR = doc
 BIN_DIR = bin
 
 GTK_DIR = $(LIB_DIR)/lablgtk
+GSL_DIR = $(LIB_DIR)/gsl
 
 INCLUDE_SRC = $(foreach dir,$(DIRS), -I $(dir))
-INCLUDE_LIBS = -I $(GTK_DIR)
+INCLUDE_LIBS = -I $(GTK_DIR) -I $(GSL_DIR)
 INCLUDE = $(INCLUDE_LIBS) $(INCLUDE_SRC) -I $(SIM_SCRIPT_DIR) -I $(GUI_DATA_DIR)
 
 THFLAGS = -thread
@@ -63,7 +65,7 @@ DIRS = 	$(SIM_LIB_DIRS) \
 	$(GUI_DIR) \
 	$(SIM_DIRS) \
 	$(PROTO_DIRS) \
-	$(SCRIPT_DIRS)
+	$(SCRIPT_DIRS) 
 
 # For clean_* targets, we don't rm gui/data/ files (they are slow to compile and 
 # never change)
@@ -108,6 +110,7 @@ GTK_INIT_OBJS = $(GTK_DIR)/gtkInit$(CMO)
 GTK_TH_STUFF = $(GTK_TH_LIBS)  $(GTK_TH_OBJS)
 GTK_STUFF =  $(GTK_LIBS) $(GTK_INIT_OBJS)
 
+GSL_LIBS = bigarray$(CMA) gsl$(CMA)
 
 
 ODOC_FHTML_SRC = $(SIM_LIB_CONTRIB_DIR)/odoc_fhtml.ml
@@ -135,6 +138,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_INTF_DIR)/mac$(CMO) \
 		$(SIM_INTF_DIR)/trafficgen$(CMO) \
 		$(SIM_INTF_DIR)/persist$(CMO) \
+		$(SIM_INTF_DIR)/radiochips$(CMO) \
 		$(SIM_BASE_DIR)/common$(CMO) \
 		$(SIM_PKT_DIR)/pkt_common$(CMO) \
 		$(SIM_PKT_DIR)/l4pkt$(CMO) \
@@ -146,6 +150,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_MISC_DIR)/dbf_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l3pkt$(CMO) \
 		$(SIM_MAC_DIR)/macaw_pkt$(CMO) \
+		$(SIM_MAC_DIR)/tdack_pkt$(CMO) \
 		$(SIM_MAC_DIR)/maca_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l2pkt$(CMO) \
 		$(SIM_BASE_DIR)/params$(CMO) \
@@ -161,7 +166,9 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_AODV_DIR)/od_route$(CMO) \
 		$(PROTO_LER_DIR)/le_tab$(CMO) \
 		$(SIM_BASE_DIR)/rtab$(CMO) \
+		$(SIM_BASE_DIR)/channel_model$(CMO) \
 		$(SIM_BASE_DIR)/ether$(CMO) \
+		$(SIM_RADIO_DIR)/narrowband_radios$(CMO) \
 		$(SIM_BASE_DIR)/tsource$(CMO) \
 		$(SIM_BASE_DIR)/node$(CMO) \
 		$(SIM_MAC_DIR)/mac_base$(CMO) \
@@ -170,6 +177,9 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_MAC_DIR)/mac_cts_queue$(CMO) \
 		$(SIM_MAC_DIR)/contention_frontend$(CMO) \
 		$(SIM_MAC_DIR)/mac_contention$(CMO) \
+		$(SIM_MAC_DIR)/tdack_frontend$(CMO) \
+		$(SIM_MAC_DIR)/tdack_backend$(CMO) \
+		$(SIM_MAC_DIR)/mac_tdack$(CMO) \
 		$(SIM_MAC_DIR)/MACA_backend$(CMO) \
 		$(SIM_MAC_DIR)/MACA_simple$(CMO) \
 		$(SIM_MAC_DIR)/MACA_contention$(CMO) \
@@ -192,6 +202,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \
 		$(PROTO_MISC_DIR)/null_agent$(CMO) \
+		$(PROTO_MISC_DIR)/bcast_agent$(CMO) \
 		$(SIM_BASE_DIR)/crsearch$(CMO) \
 		$(SIM_BASE_DIR)/crworld$(CMO) \
 		$(SIM_SCRIPT_DIR)/traffic_utils$(CMO) \
@@ -248,24 +259,24 @@ allopttargets: nab grepviz nabviz
 
 nab: bin/nab
 bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GSL_LIBS) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
 
 grepviz: bin/grepviz
 bin/grepviz: $(GUI_OBJS) scripts/grepviz$(CMO)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) scripts/grepviz$(CMO) -o $@ 
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(GSL_LIBS) $(GTK_STUFF) $(GUI_OBJS) scripts/grepviz$(CMO) -o $@ 
 
 nab-top: bin/nab-top
 bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)
-	$(MLTOP) $(INCLUDE) $(UNIX_LIB) $(SIM_OBJS)  $(SIM_SCRIPT) -o $@
+	$(MLTOP) $(INCLUDE) $(GSL_LIBS) $(UNIX_LIB) $(SIM_OBJS)  $(SIM_SCRIPT) -o $@
 
 nabviz: bin/nabviz
 bin/nabviz: $(GUI_OBJS) $(SIM_SCRIPT)
-	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GTK_STUFF) \
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GSL_LIBS) $(GTK_STUFF) \
 	$(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 nabviz-top: bin/nabviz-top
 bin/nabviz-top: $(GUI_OBJS) $(SIM_SCRIPT)
-	$(MLTOP) $(INCLUDE) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
+	$(MLTOP) $(INCLUDE) $(GSL_LIBS) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 
 ODOC_FHTML_OBJ = $(SIM_LIB_CONTRIB_DIR)/odoc_fhtml$(CMO)
