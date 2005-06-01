@@ -34,7 +34,7 @@ val l2_bcast_addr : int
 (** {2 L2 Packet Types} *)
 
 type l2hdr_ext_t = 
-    NONE | MACAW of Macaw_pkt.t | MACA of Maca_pkt.t
+    NONE | MACAW of Macaw_pkt.t | MACA of Maca_pkt.t | TDACK of Tdack_pkt.t
 
 type l2hdr_t (** A L2 header contains a src, dst and maybe some MAC-specific
 	       extensions. *)

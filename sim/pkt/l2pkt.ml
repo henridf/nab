@@ -36,7 +36,7 @@ let l2_bcast_addr = (* 255.255.255.255 *)
   powi ~num:2 ~exp:24
 
 type l2hdr_ext_t = 
-    NONE | MACAW of Macaw_pkt.t | MACA of Maca_pkt.t
+    NONE | MACAW of Macaw_pkt.t | MACA of Maca_pkt.t | TDACK of Tdack_pkt.t
 
 
 type l2hdr_t = {
@@ -49,11 +49,13 @@ let clone_l2hdr_ext = function
   | NONE -> NONE
   | MACAW e -> MACAW (Macaw_pkt.clone e)
   | MACA e -> MACA (Maca_pkt.clone e)
+  | TDACK e -> TDACK (Tdack_pkt.clone e)
 
 let l2hdr_ext_size = function
   | NONE -> 0
   | MACAW e -> Macaw_pkt.size e
   | MACA e -> Maca_pkt.size e
+  | TDACK e -> Tdack_pkt.size e
 
 (* 8 should vaguely represent the phy-layer framing bytes *) 
 let l2hdr_size hdr = 8 + 2 * addr_size + (l2hdr_ext_size hdr.ext)
@@ -66,8 +68,10 @@ type t = {
 }
 
 let l2pkt_size ~l2pkt = 
-  l2hdr_size l2pkt.l2hdr +
-  l3pkt_size l2pkt.l3pkt
+  match l2pkt.l2hdr.ext with
+    | TDACK (Tdack_pkt.ACK _) -> l2hdr_size l2pkt.l2hdr
+    | TDACK (Tdack_pkt.PKT _) | MACA _ | MACAW _ | NONE  ->  l2hdr_size l2pkt.l2hdr +
+	l3pkt_size l2pkt.l3pkt
 
 let clone_l2pkt ~l2pkt = l2pkt
 (*{
@@ -89,11 +93,13 @@ let l2hdr_ext l2pkt = l2pkt.l2hdr.ext
 let maca_hdr l2pkt = 
   match l2pkt.l2hdr.ext with
     | MACA h -> h
-    | MACAW _ | NONE -> raise (Failure "L2pkt.maca_hdr")
+    | MACAW _ | TDACK _ | NONE -> raise (Failure "L2pkt.maca_hdr")
+
+let tdack_hdr l2pkt =
+  match l2pkt.l2hdr.ext with
+    | TDACK a -> a
+    | MACA _ | MACAW _ | NONE -> raise (Failure "L2pkt.tdack_hdr")
 
 let make_l2pkt ?(ext=NONE) ~src ~dst l3pkt = 
   let l2hdr = {l2src=src; l2dst=dst; ext=ext} 
   in {l2hdr=l2hdr; l3pkt=l3pkt}
-
-
-
