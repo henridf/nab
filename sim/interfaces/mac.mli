@@ -120,7 +120,7 @@ type frontend_state =
 (** The type of a MAC frontend. *)
 class type virtual ['stats] frontend_t = 
 object 
-  method private state : frontend_state
+  method private frontend_state : frontend_state
   method private frontend_reset_stats : unit
   method private frontend_stats : 'stats
   method private frontend_xmit : L2pkt.t -> unit
@@ -136,6 +136,7 @@ object
 
   method basic_stats : basic_stats
   method virtual private backend_recv : L2pkt.t -> unit
+  method virtual private backend_xmit_complete : unit
 end
 
 
@@ -159,12 +160,11 @@ type mactype =
   | Cheatmac (** See {!Mac_cheat.cheatmac} *)
   | MACA_simple (** See {!MACA_simple.maca_mac} *)
   | MACA_contention (** See {!MACA_contention.maca_contentionmac} *)
-
+  | Tdackmac (** See {!Mac_tdack.tdackmac} *)
 
 val strset_mac : string -> unit
   (** Set the default mac via a string (for example provided as cmdline argument). *)
 
 val mac : unit -> mactype
   (** Returns the mac type employed. *)
-
 

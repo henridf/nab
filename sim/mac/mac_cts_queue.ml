@@ -75,7 +75,7 @@ object(s)
 
   method other_stats = backend#backend_stats
 
-  method read_state = frontend#state
+  method read_state = frontend#frontend_state
 
 end
 

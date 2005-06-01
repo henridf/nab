@@ -60,13 +60,14 @@ type frontend_state =
 
 class type virtual ['stats] frontend_t = 
 object 
-  method private state : frontend_state
+  method private frontend_state : frontend_state
   method private frontend_reset_stats : unit
   method private frontend_stats : 'stats
   method private frontend_xmit : L2pkt.t -> unit
   method recv : ?snr:float -> l2pkt:L2pkt.t -> unit -> unit
   method bps : float
   method virtual private backend_recv : L2pkt.t -> unit
+  method virtual private backend_xmit_complete : unit
 
   method basic_stats : basic_stats
 end
@@ -77,7 +78,7 @@ object
   method other_stats : 'stats
 end
 
-type mactype = Nullmac |  QueueNullmac | Contmac | Cheatmac | MACA_simple | MACA_contention 
+type mactype = Nullmac |  QueueNullmac | Contmac | Cheatmac | MACA_simple | MACA_contention | Tdackmac
 
 let mac_ = ref Nullmac
 
@@ -88,11 +89,11 @@ let str2mac s =
     | "contention" | "cont" | "contmac" -> Contmac
     | "maca_simple" -> MACA_simple
     | "MACA_contention" -> MACA_contention
+    | "tdack" | "tdackmac" -> Tdackmac
     | _ -> raise (Failure "Invalid format for mac type")
 
 let strset_mac s = 
   mac_ := str2mac s
 
 let mac() = !mac_
-
 

@@ -134,8 +134,6 @@ end
   - nodes can only transmit one packet at the time
   - nodes can receive at the same time from multiple neighbors
 *)
-  
-
 type mac_queue_stats = 
     { nDrops : int } (* add more stats if necessary *)
 
@@ -149,7 +147,7 @@ object(s)
 
   method private backend_reset_stats  = Pkt_queue.reset_stats pktq
 
-  method virtual private state : Mac.frontend_state
+  method virtual private frontend_state : Mac.frontend_state
 
   method private backend_stats = { nDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped}  
 
@@ -178,7 +176,7 @@ object(s)
     (*   - nodes can only transmit one packet at the time:
 	 if node is not already transmitting a pkt, start transmitting
 	 this packet, otherwise, add it to the queue *) 
-    if not(s#state=Mac.Tx) then (
+    if not(s#frontend_state=Mac.Tx) then (
       s#log_debug (lazy(Printf.sprintf "Tx is free: txmitting pkt!"));
       s#frontend_xmit l2pkt
     )
@@ -223,7 +221,7 @@ object(s)
 
   method private backend_reset_stats  = Pkt_queue.reset_stats pktq
 
-  method virtual private state : Mac.frontend_state
+  method virtual private frontend_state : Mac.frontend_state
 
   method private backend_stats = { ctsDrops = (Pkt_queue.stats pktq).Pkt_queue.dropped}  
 
@@ -290,7 +288,7 @@ object(s)
   method private try_cts_queue_tx = (
     (* try a cts transmission from the queue ... *)
     if (not (Pkt_queue.is_empty pktq))  then (
-      begin match s#state with
+      begin match s#frontend_state with
 	| Mac.Idle -> 
 	    let new_l2pkt = (Pkt_queue.pop pktq) in
 	    s#cts_tx new_l2pkt;
@@ -307,7 +305,7 @@ object(s)
   )
     
   method xmit l2pkt = (
-    begin match s#state with
+    begin match s#frontend_state with
       | Mac.Idle -> s#cts_tx l2pkt
       | Mac.Rx | Mac.Tx  -> s#store_and_reschedule l2pkt
     end;
@@ -357,7 +355,7 @@ object(s)
   inherit [unit] frontend ~stack ~bps owner as null_frontend
   val mutable state = Mac.Idle
 
-  method private state = state
+  method private frontend_state = state
 
   method private frontend_reset_stats = 
     bitsTX <- 0;
@@ -410,7 +408,7 @@ object(s)
     Hashtbl.replace ctsmacs_states_.(stack) owner#id (fun() -> !state);
   )
 
-  method private state = !state
+  method private frontend_state = !state
 
   method private frontend_reset_stats = 
     bitsTX <- 0;

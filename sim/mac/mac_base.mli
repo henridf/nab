@@ -247,7 +247,7 @@ object
     (** To be implemented by the frontend class which is mixed in with this
       backend (method documented in {!Mac.frontend_t}). *)
 
-  method virtual private state : Mac.frontend_state
+  method virtual private frontend_state : Mac.frontend_state
     (** To be implemented by the frontend class which is mixed in with this
       backend (method documented in {!Mac.frontend_t}). *)
 end
@@ -281,7 +281,7 @@ object
     (** To be implemented by the frontend class which is mixed in with this
 	backend (method documented in {!Mac.frontend_t}). *)
     
-  method virtual private state : Mac.frontend_state
+  method virtual private frontend_state : Mac.frontend_state
     (** To be implemented by the frontend class which is mixed in with this
 	backend (method documented in {!Mac.frontend_t}). *)
 end
