@@ -118,8 +118,7 @@ struct
           (n#mac ~stack ())#recv ~snr:snr ~l2pkt:(L2pkt.clone_l2pkt ~l2pkt:l2pkt) () in
           (* the snr parameter represents here the reception probability
            * for that packet. It is up to the mac layer to decide if it
-           * was able to decode it or not. Note that the value is between
-           * [0, 1]
+           * was able to decode it or not. 
            *)
 	  (Sched.s())#sched_at ~f:recv_event ~t:(Scheduler.Time recvtime)
       )
@@ -129,7 +128,7 @@ struct
 end
 
 
-let emit = 
+let emit ()= 
   match !ether with
       SimpleEther -> SimpleEther.emit
     | LossyEther -> LossyEther.emit

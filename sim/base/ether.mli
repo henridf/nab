@@ -63,21 +63,18 @@ module NullEther : Ether_t
   
 module LossyEther : Ether_t
     (** LossyEther is identical to SimpleEther but it adds a reception probability
-     * to each recv (in the SNR field). The Mac layer can then decide if it was able
-     * to decode the message or not. The reception probability is an approximation
-     * formula of the log-normal shadowing model. To speed up the calculation, the
-     * distance between the two nodes is normalized and then the corresponding
-     * reception probability looked up in a precomputed table. The approximation is
-     * good for messages with length L=120 bits.
-     *)
+      * to each recv (in the SNR field), which is computed using the
+      * [Channel_model] module. The Mac layer can then decide if it was able
+      * to decode the message or not. 
+    *)
 
-val emit : ?pt: float -> ?pn: float -> stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit
+val emit : unit -> ?pt: float -> ?pn: float -> stack:int -> nid:Common.nodeid_t -> L2pkt.t -> unit
   (** A node's MAC calls this to emit bits into the air. The Ether module
     then takes care of sending them, with appropriate propagation delay and SNR,
     to nodes within range. 
     [stack] serves to distinguish when multiple stacks are being used. (The
     notion of multiple stacks is explained in {!Node.node}). 
     [nid] is the id of the sending node.
-    
-    xxx/comment what are [pt] and [pn] ??
+    [pt] is the transmit power
+    [pn] is the noise floor of the used radio chip
   *)
