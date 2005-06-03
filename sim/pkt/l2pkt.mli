@@ -48,8 +48,10 @@ type t (** The type of a layer 2 packet, which contains a l2 header and a
 
 val make_l2pkt :
   ?ext:l2hdr_ext_t -> src:Common.nodeid_t -> dst:Common.nodeid_t -> L3pkt.t -> t
+
 val clone_l2pkt : l2pkt:t -> t
 
+val ack_pkt : src:Common.nodeid_t -> dst:Common.nodeid_t -> t
 
 
 (** {2 L2 Packet Deconstructors} *)

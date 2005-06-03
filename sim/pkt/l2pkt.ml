@@ -103,3 +103,10 @@ let tdack_hdr l2pkt =
 let make_l2pkt ?(ext=NONE) ~src ~dst l3pkt = 
   let l2hdr = {l2src=src; l2dst=dst; ext=ext} 
   in {l2hdr=l2hdr; l3pkt=l3pkt}
+
+let ack_pkt ~src ~dst = 
+    let l4pkt = `EMPTY in
+    let l3hdr = L3pkt.make_l3hdr ~src ~dst () in
+    let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt in
+      make_l2pkt ~ext:(TDACK (Tdack_pkt.ACK {Tdack_pkt.cost=0})) ~src ~dst l3pkt
+  
