@@ -26,7 +26,14 @@
 
 
 (** A MAC with modeling of contention, collisions and lossy links. 
-  xxx/comment a high-level description would be nice ;)
+
+    The distinctive feature of this MAC protocol is that multiple neighbors
+    can acknowledge a message, i.e. all neighbors, which successfully
+    decode the message, can send an ACK. The preference is given to
+    noes which have a lower cost. It is to note that this cost is not determined
+    by the MAC layer. It is given from the routing layer (or a genie) which
+    has a better overview of the network structure.
+
   @author Thomas Schmid.
 *)
 
@@ -62,10 +69,14 @@ class tdackmac :
 
     method set_tx_power : float -> unit
       (** Set the tx power. *)
+    method set_ack_power_increase : float -> unit
+      (** Set the power increase with which an ACK is sent *)
     method reset_stats : unit
       (** Reset all statistics to 0 (backend, frontend and basic stats) *)
 
     method set_cost : int -> unit
+    method get_cost : unit -> int
+    method get_slot : unit -> int
     method set_min : int -> unit
     method set_max : int -> unit
     method set_num : int -> unit
