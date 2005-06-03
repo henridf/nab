@@ -25,8 +25,12 @@
 
 
 (** A MAC backend (see {!Mac_base.backend}) It models the ACK schema and
-    logic for sending ACKs.
-  xxx/comment a high-level description would be nice ;)
+    logic for sending ACKs. After sending a packet, the sender waits for an ACK
+    from a node which successfully received the message. If no ACK is received,
+    a timer will timeout and the message will be counted as not acknowledged.
+    The time after a message is devided into time slots, since multiple nodes
+    can receive and acknowledge a packet. Each node then tries to deliver its
+    ACK in one of these slots.
 
   @author Thomas Schmid
 *)
@@ -50,6 +54,8 @@ type stats = {
   varianceAckTime: float;
   averageAckDistance: float;
   varianceAckDistance: float;
+  averageRetransmissions : float;
+  varianceRetransmissions : float;
   dropRX : int;
   dropTX : int;
 }
@@ -64,6 +70,8 @@ type stats = {
     varianceAckTime: sample variance for the above
     averageAckDistance: sample average for distance from which ACK was received
     varianceAckDistance: sample variance for the above
+    averageRetransmissions: the average of retransmissions needed until a packet was accepted.
+    varianceRetransmissions: the variance for the retransmissions
     dropRX: number of packets which had to be dropped for RX
     dropTX: number of packets which hat to be dropped because queue is full
 *)
@@ -92,6 +100,10 @@ object
     
   method set_cost : int -> unit
     (** Sets the cost for this node *)
+  method get_cost : unit -> int
+    (** Returns the cost for this node *)
+  method get_slot : unit -> int
+    (** Returns the slot calculated from the cost, min, max and num parameters *)
   method set_max : int -> unit
     (** Sets the max cost for downstream neighbors *)
   method set_min : int -> unit

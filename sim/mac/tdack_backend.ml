@@ -50,7 +50,9 @@ type stats =
       varianceAckTime: float; (* the variance of times it takes until an ACK is received *)
       averageAckDistance: float; (* the average distance from where we received successfull ACKs *)
       varianceAckDistance: float; (* the variance for the distance above *)
-       dropRX:int; (* number of received packets which were dropped *)
+      averageRetransmissions : float; (* the average of retransmissions needed until a packet was accepted. *)
+      varianceRetransmissions : float; (* the variance for the retransmissions *)
+      dropRX:int; (* number of received packets which were dropped *)
       dropTX:int (* number of transmitted packets which were dropped *)
     }
 
@@ -78,6 +80,7 @@ object(s)
   val mutable state = IDLE
 
   val mutable cost = 255
+  val mutable slot = 0.
 
   val mutable slottime = 0.
   val mutable ack_handle = 0
@@ -90,18 +93,21 @@ object(s)
   val mutable min = 0    (* min cost of downstream neighbors *)
   val mutable max = 255 (* max cost of downstream neighbors *)
 
+  val mutable currentPacket = L2pkt.ack_pkt ~src:0 ~dst:0 (* holds the packet which we transmit for retransmissions. *)
+  val mutable retransmissions = 0 (* counts the number of retransmitts a packet needed until an ACK was received. *)
+  val mutable maxRetransmissions = 5
+
   val mutable ackTimeList = [] (* this list stores all time differences between sending a
 			  message and successfully receiving the ACK *)
 
   val mutable ackDistanceList = [] (* this list stores all distances from where we got a successfull ACK. *)
 
+  val mutable retransmissionsList = [] (* stores the number of retransmissions needed for each packet *)
+
   initializer (
     (* calculate the slot time for an ACK *)
     
-    let l4pkt = `EMPTY in
-    let l3hdr = L3pkt.make_l3hdr ~src:0 ~dst:0 () in
-    let l3pkt = L3pkt.make_l3pkt ~l3hdr ~l4pkt in
-    let l2pkt = L2pkt.make_l2pkt ~ext:(TDACK (ACK {cost=0})) ~src:0 ~dst:0 l3pkt in
+    let l2pkt = L2pkt.ack_pkt ~src:0 ~dst:0 in
     let bytes = (L2pkt.l2pkt_size ~l2pkt) in
     let t = (i2f (bytes * 8)) /. bps in
     slottime <- t +. 0.2 *. t    (* add 20% as guard space *)
@@ -117,7 +123,8 @@ object(s)
     ackTimeout <- 0;
     dropRX <- 0;
     ackTimeList <- [];
-    ackDistanceList <- []
+    ackDistanceList <- [];
+    retransmissionsList <- []
 
   method virtual private frontend_state : Mac.frontend_state
 
@@ -132,6 +139,8 @@ object(s)
     varianceAckTime = s#get_variance_ack_time;
     averageAckDistance = s#get_average_ack_distance;
     varianceAckDistance = s#get_variance_ack_distance;
+    averageRetransmissions = s#get_average_retransmissions;
+    varianceRetransmissions = s#get_variance_retransmissions;
     dropRX = dropRX;
     dropTX = (Pkt_queue.stats pktq).Pkt_queue.dropped
   }
@@ -139,6 +148,12 @@ object(s)
 
   method set_cost c =
     cost <- c;
+
+  method get_cost () =
+    cost;
+
+  method get_slot () =
+    Misc.f2i slot;
 
   method set_min m =
     min <- m;
@@ -176,6 +191,9 @@ object(s)
 		      ackTimeList <- ackTimeList @ [(Time.get_time() -. pktSendTime)];
 		      let d = sqrt (Coord.dist_sq ((World.w())#nodepos myid) ((World.w())#nodepos (L2pkt.l2src l2pkt))) in
 			ackDistanceList <- ackDistanceList @ [d];
+			(* store the number of retransmissions needed for that packet *)
+			retransmissionsList <- retransmissionsList @ [Misc.i2f retransmissions];
+			retransmissions <- 0;
 
 		      (* cancel the ack timeout *)
 		      assert(ack_timeout_handle <> 0);
@@ -238,9 +256,9 @@ object(s)
 
   method xmit l2pkt = (
     (*   - nodes can only transmit one packet at the time:
-	 if node is not already transmitting a pkt, or waiting for an ACK,
+	 if node is idle and not waiting for an ACK,
 	 start transmitting this packet, otherwise, add it to the queue *) 
-    if (not(s#frontend_state=Mac.Tx)) && (state=IDLE) then (
+    if (s#frontend_state=Mac.Idle) && (state=IDLE) then (
       s#log_debug (lazy(Printf.sprintf "Tx is free: txmitting pkt!"));
       (* add the TDACK extension to the l2pkt header. the l2hdr.ext field is not mutable. therefore
       we have to create a new l2pkt. *)
@@ -249,6 +267,8 @@ object(s)
 	~src:(l2src l2pkt)
 	~dst:(l2dst l2pkt)
 	(l3pkt l2pkt) in
+
+	currentPacket <- l2pkt;
 
       state <- TXPKT;
       s#frontend_xmit l2pkt';
@@ -346,21 +366,16 @@ object(s)
   method private get_variance_ack_distance =
     s#get_variance ackDistanceList
  
+  method private get_average_retransmissions =
+    s#get_average retransmissionsList
+
+  method private get_variance_retransmissions =
+    s#get_variance retransmissionsList
+
   method private get_average l =
-    if List.length l > 0 then
-      (List.fold_left ( +. ) 0. l) /. (Misc.i2f (List.length l))
-    else
-      0.
+    Gsl_stats.mean (Array.of_list l)
 
-	(** Calculates the sample variance (s^2) for the floats in l. *)
+      (** Calculates the sample variance (s^2) for the floats in l. *)
   method private get_variance l =
-    if List.length l > 1 then (
-      let m = s#get_average l in
-      let minus_square x = (x -. m) *. (x -. m) in
-      let l' = List.map minus_square l in
-	(List.fold_left ( +. ) 0. l') /. (Misc.i2f ((List.length l') - 1))
-    ) else (
-      0.
-    )
-
+    Gsl_stats.variance (Array.of_list l)
 end
