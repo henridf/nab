@@ -62,6 +62,10 @@ object
   method private tdack_reset_stats : unit
 
   method set_tx_power : float -> unit
+  method set_ack_power_increase : float -> unit
+
+  method private final_xmit : L2pkt.t -> unit
+  method private virtual xmitdelay : L2pkt.t -> float
 end
 
 

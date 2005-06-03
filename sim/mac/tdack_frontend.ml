@@ -52,6 +52,7 @@ object(s)
   val rnd = Random.State.make [|!rndseed|] 
 
   val mutable txPower = 0.
+  val mutable ackPowerIncrease = 0.
 
   initializer (
     incr rndseed
@@ -101,8 +102,8 @@ object(s)
       ct#recv ~snr ~l2pkt ();
      ) else (
       s#log_debug (lazy (
-		     sprintf "RX faild for Pkt from %d, instantanious SNR %.3f, receive probability %.3f"
-		       (l2src l2pkt) instantanious_snr packet_rx_proba));
+		     sprintf "RX faild for Pkt from %d, instantanious SNR %.3f, receive probability %.3f error_probability:%.3f snr:%.3f"
+		       (l2src l2pkt) instantanious_snr packet_rx_proba error_probability snr));
       failedRX <- failedRX + 1;
       (* check if we were rx or tx... *)
       begin match s#sending, s#interfering with
@@ -132,18 +133,17 @@ object(s)
   method private final_xmit l2pkt = (
     
     begin match (L2pkt.l2hdr_ext l2pkt) with
-	  | TDACK (Tdack_pkt.ACK _) -> ()
-	      (* do nothing. has been counted in backend *)
-	  | TDACK (Tdack_pkt.PKT _) | MACA _ | MACAW _ | NONE ->
-	      pktsTX <- pktsTX + 1
-	end;
- 
-	bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
-
-
-	Ether.emit ~pt:txPower ~pn:chip.Radiochips.p_n ~stack ~nid:(owner#id) l2pkt
-	(*  Ether.emit ~pt:chip.Radiochips.pt_min ~pn:chip.Radiochips.p_n ~stack ~nid:(owner#id) l2pkt *)
-   )
+      | TDACK (Tdack_pkt.ACK _) -> 
+	  (* do nothing. has been counted in backend *)
+	  let ackTXPower = txPower +. ackPowerIncrease in
+	    (Ether.emit ()) ~pt:ackTXPower ~pn:chip.Radiochips.p_n ~stack ~nid:(owner#id) l2pkt
+      | TDACK (Tdack_pkt.PKT _) | MACA _ | MACAW _ | NONE ->
+	  pktsTX <- pktsTX + 1;
+	  (Ether.emit ()) ~pt:txPower ~pn:chip.Radiochips.p_n ~stack ~nid:(owner#id) l2pkt
+    end;
+    
+    bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
+  )
 
   method private tdack_stats = 
     {
@@ -158,6 +158,10 @@ object(s)
 
   method set_tx_power p =
     txPower <- p
+
+  method set_ack_power_increase p =
+    ackPowerIncrease <- p
+ 
 
 end
 
