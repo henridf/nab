@@ -178,38 +178,12 @@ object(s)
       )
   )
 
-  method private frontend_xmit l2pkt = (
-    let receiving = end_rx_handle <> 0 in
-    if not s#sending && not receiving then (
-      s#log_debug (lazy (sprintf "TX packet (%d bytes)" (l2pkt_size ~l2pkt)));
-      let end_xmit_time = 
-	Time.get_time() 
-	+. s#xmitdelay l2pkt in
-      sending_until <- end_xmit_time;
-      interfering_until <- max end_xmit_time interfering_until;
-      
-      
-
-    ) else (
-      let dst_str = (string_of_l2dst (l2dst l2pkt)) in
-      if s#sending then (
-	s#log_info (lazy (sprintf "Pkt to %s dropped because already sending"
-	  dst_str));
-	dropsTXTX <- dropsTXTX + 1;
-      ) else (
-	s#log_info (lazy (sprintf "Pkt to %s dropped because already receiving"
-	  dst_str));
-	dropsTXRX <- dropsTXRX + 1;
-      )
-    )
-  )
-
   method private final_xmit l2pkt = (
 	
       pktsTX <- pktsTX + 1;
       bitsTX <- bitsTX + (L2pkt.l2pkt_size ~l2pkt);
 
-      Ether.emit ~stack ~nid:myid l2pkt
+      (Ether.emit ()) ~stack ~nid:myid l2pkt
    )
 
   method basic_stats = {

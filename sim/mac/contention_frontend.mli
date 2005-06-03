@@ -91,6 +91,7 @@ object
   method private frontend_state : Mac.frontend_state
   method private interfering : bool
   method private sending : bool
+  method private final_xmit : L2pkt.t -> unit
 end
 
 
