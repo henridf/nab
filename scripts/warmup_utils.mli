@@ -23,8 +23,17 @@
 (* $Id$ *)
 
 
+(** Helper functions for running or restoring from file simulation warmups. *)
+
+
 val sprint_added_stats : unit -> string
 val sprint_added_jdbstats : unit -> string
 
 val setup_or_restore : unit -> unit
-val maybe_warmup : string -> unit
+  (** If a dump file was passed as an anon argument, restores a warmed up
+    simulation using this dump file; otherwise sets up a fresh simulation.*)
+  
+  
+val maybe_warmup : ~fname:string -> unit
+  (** Warmup simulation if -warmup [traffic | mob | none] was passed as
+    argument, and save state after warmup to file [fname]. *)

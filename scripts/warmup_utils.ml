@@ -104,7 +104,7 @@ struct
     ~printer:string_of_agent
     ()
 
-      
+    
   let run = Param.intcreate ~name:"run" ~default:1
     ~cmdline:true
     ~checker:(fun i -> Randoms.change_seed ~newseed:i ())
@@ -206,10 +206,10 @@ let traffic_warmup() =
     start_appropriate_nodes();
 
     (Sched.s())#run_for ~duration:20.;
-(*    Hashtbl.iter (fun id agent -> 
-      let rt, metric = agent#rtab_metric in
-      Str_rtab.purge_n_hop_entries rt metric 0)
-      Str_agent.agents_array_.(0);*)
+    (*    Hashtbl.iter (fun id agent -> 
+	  let rt, metric = agent#rtab_metric in
+	  Str_rtab.purge_n_hop_entries rt metric 0)
+	  Str_agent.agents_array_.(0);*)
   done;
   Mob_ctl.stop_all();
   (Sched.s())#run_for ~duration:20.(* purge traffic still in network. *)
@@ -222,7 +222,7 @@ let setup_sim () =
   let agenttype = Param.get Config.agent
   and rrange = (Param.get Params.radiorange)
   in
- 
+  
   Param.set Params.x_size 
     (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
   Param.set Params.y_size 
@@ -236,8 +236,8 @@ let setup_sim () =
     | LER_FRESH -> Script_utils.make_ler_agents Ler_agent.FRESH 
     | LER_EASE -> Script_utils.make_ler_agents Ler_agent.EASE
     | LER_GREASE -> Script_utils.make_ler_agents Ler_agent.GREASE
-end;
-
+  end;
+  
   Script_utils.install_mobs ()
 
 
@@ -258,9 +258,9 @@ let setup_or_restore() =
     close_in ic;
   )
 
-  
     
-let maybe_warmup fname = 
+    
+let maybe_warmup ~fname = 
   if Param.get Config.warmup <> NONE then (
     Log.log#log_always (lazy (sp "Warming up with %s" (Param.as_string Config.warmup)));
     Log.log#log_always (lazy (sp "Will dump to file %s" fname));
