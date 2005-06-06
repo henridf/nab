@@ -22,8 +22,12 @@
 
 (* $Id$ *)
 
+class type waypoint_view =
+object
+  method getnewpos : gran:float -> float * float
+end  
 
-
+val getmob : Common.nodeid_t -> waypoint_view
 
 val make_uniwaypoint : ?gran:float -> #Node.node -> unit
   (** Uniform waypoint mobility class: waypoints are chosen at random uniformly

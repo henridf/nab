@@ -34,6 +34,14 @@ type other_state =
 
 let mobs = Hashtbl.create 64 
 
+
+class type waypoint_view =
+object
+  method getnewpos : gran:float -> float * float
+end  
+
+let getmob nid = ((Hashtbl.find mobs nid) :> waypoint_view)
+
 class waypoint
   ?gran
   ?state:other_state
