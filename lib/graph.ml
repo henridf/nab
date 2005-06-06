@@ -24,10 +24,6 @@
 
 
 
-(* 
-   do we really need the double addressability of nodes (by int, and by 'a ) ?
-*)
-
 open Misc
 open Hashtbl
 
@@ -87,6 +83,8 @@ sig
   val add_edge_  : 'a t -> 'a -> 'a  -> float ->  unit
   val add_edgei_ : 'a t -> int -> int  -> float -> unit
 
+  val get_edgecost_ : 'a t -> 'a -> 'a -> float 
+
 
   (* all of these can raise (Failure "No_route") *)
   (* routes start at src, ends 1 hop before dst *)
@@ -125,7 +123,6 @@ struct
 	     t : graphtype_t
 	   }
 
-
   let index_ g n = Hashtbl.find g.hash n (* throws Not_found *)
   let node_ g i = g.nodes.(i)
   
@@ -138,7 +135,9 @@ struct
     m =  Array.make_matrix size size Nan;
     t = gtype}
 
-				  
+  let a_cost c = match c with Nan -> false | Cost _ -> true
+  let float_of_cost c = match c with Nan -> failwith "float_of_cost" | Cost x -> x
+	  
   let iteri_ f g = for i = 0 to (g.ind - 1) do f i done
   let itern_ f g = for i = 0 to (g.ind - 1) do f g.nodes.(i) done
 
@@ -197,6 +196,7 @@ struct
 	Not_found -> raise (Invalid_argument  "Graph.appendinfoi_: node does not exist");
   )
 
+
   let add_edgei_ g i1 i2 c = (
     if (i1 = i2) then raise (Invalid_argument "Graph.add_edgei_: cannot connect a node to itself");
     if i1 >= g.ind or i2 >= g.ind then raise (Invalid_argument  "Graph.add_edgei_: index does not exist");
@@ -213,6 +213,14 @@ struct
 	Not_found -> raise (Invalid_argument  "Graph.add_edge_: node does not exist");
   )
 
+  let get_edgecost_ g n1 n2 = (
+    if (n1 = n2) then raise (Invalid_argument "Graph.get_edgecost_: cost from node to itself???");
+    try 
+      let i1 = index_ g n1 and i2 = index_ g n2 in 
+      float_of_cost g.m.(i1).(i2)
+    with 
+	Not_found -> raise (Invalid_argument  "Graph.get_edgecost_: node does not exist");
+)
 
   let add_node_ g n = (
     if g.ind = g.maxsize then failwith "add_node: graph is full";
@@ -249,8 +257,6 @@ struct
       !res
   )
 
-  let a_cost c = match c with Nan -> false | Cost _ -> true
-  let float_of_cost c = match c with Nan -> failwith "float_of_cost" | Cost x -> x
 
   exception Found of int
 
