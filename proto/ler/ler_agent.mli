@@ -72,7 +72,7 @@ object
 end
 
 
-
+val agent : ?stack:int -> Common.nodeid_t -> ler_agent
 
 val ntargets : int Param.t
   (** The number of nodes that can potentially be routed to as destinations.
