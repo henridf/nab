@@ -28,7 +28,7 @@
 
 # 1000 2000 4000
 protos="str-age"
-nodes="500"
+nodes="500 1000"
 mobs="rw billiard borderwp"
 movers="all dests"
 num_runs=4
@@ -81,7 +81,7 @@ for node in $nodes
 		elif [ $action == "route" ]; then
 
 		    pkts_orig=$node
-		    cmd="bin/nab -pkts_orig $pkts_orig $statefile  -dumpfile $resultfile $statefile"
+		    cmd="bin/nab -pkts_orig $pkts_orig  -dumpfile $resultfile $statefile"
 
 		fi
 		
