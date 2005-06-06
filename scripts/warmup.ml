@@ -59,4 +59,4 @@ let () =
     let logname = (Filename.chop_extension dumpfile)^".log" in
     Script_utils.detach_daemon ~outfilename:logname ()end;
 
-  Warmup_utils.maybe_warmup dumpfile
+  Warmup_utils.maybe_warmup ~fname:dumpfile
