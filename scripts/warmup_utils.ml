@@ -144,7 +144,7 @@ let encounter_ratio() =
 	(float total_encounters) /. (float ((Param.get Params.nodes)))
     | LER_FRESH | LER_EASE | LER_GREASE -> 
 	Ler_agent.proportion_met_nodes()
-    | _ -> failwith "cannot compute encounter ratio"
+    | AODV -> failwith "cannot compute encounter ratio"
 
 
 
