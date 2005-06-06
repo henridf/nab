@@ -34,6 +34,6 @@ val setup_or_restore : unit -> unit
     simulation using this dump file; otherwise sets up a fresh simulation.*)
   
   
-val maybe_warmup : ~fname:string -> unit
+val maybe_warmup : fname:string -> unit
   (** Warmup simulation if -warmup [traffic | mob | none] was passed as
     argument, and save state after warmup to file [fname]. *)
