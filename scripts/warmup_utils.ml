@@ -132,23 +132,33 @@ let sprint_added_jdbstats() =
     | LER_FRESH | LER_EASE | LER_GREASE -> ""
 
 let encounter_ratio() = 
+  match Param.get Config.agent with
+      STR_AGE | STR_MAX | STR_AODV ->
+	let total_encounters = 
+	  Hashtbl.fold (fun id str_agent encs -> 
+	    let rt, metric = str_agent#rtab_metric in
+	    if  Str_rtab.best_invalid_entry rt metric 0 <> Str_pkt.null_triple then 
+	      encs + 1 else encs
+	  ) Str_agent.agents_array_.(0) 0;
+	in
+	(float total_encounters) /. (float ((Param.get Params.nodes)))
+    | LER_FRESH | LER_EASE | LER_GREASE -> 
+	Ler_agent.proportion_met_nodes()
+    | _ -> failwith "cannot compute encounter ratio"
 
-  let total_encounters = 
-    Hashtbl.fold (fun id str_agent encs -> 
-      let rt, metric = str_agent#rtab_metric in
-      if  Str_rtab.best_invalid_entry rt metric 0 <> Str_pkt.null_triple then 
-	encs + 1 else encs
-    ) Str_agent.agents_array_.(0) 0;
-  in
-  (float total_encounters) /. (float ((Param.get Params.nodes)))
-  
+
+
 let set_hellos() = 
-  let dests = Traffic_utils.all_destinations() in
-  Hashtbl.iter 
-    (fun id agent -> 
-      if List.mem id dests then agent#start_hello else agent#stop_hello
-    ) Str_agent.agents_array_.(0)
+  let agenttype = Param.get Config.agent in
+  if (agenttype == STR_AGE || agenttype == STR_MAX || agenttype == STR_AODV) then
+    let dests = Traffic_utils.all_destinations() in
+    Hashtbl.iter 
+      (fun id agent -> 
+	if List.mem id dests then agent#start_hello else agent#stop_hello
+      ) Str_agent.agents_array_.(0)
 
+
+      
 let start_appropriate_nodes() = 
   let dests = Traffic_utils.all_destinations() 
   and sources = Traffic_utils.all_sources() in
@@ -227,15 +237,34 @@ let setup_sim () =
     (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
   Param.set Params.y_size 
     (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
+
+  if agenttype == LER_FRESH || 
+    agenttype == LER_EASE || 
+    agenttype == LER_GREASE then
+      Param.set World.world World.Greedy;
+
   Script_utils.init_all();
+
   begin match agenttype with
-    | AODV -> Script_utils.make_aodv_nodes()
-    | STR_AGE -> Script_utils.make_str_nodes Str_rtab.STR_AGE;
-    | STR_MAX -> Script_utils.make_str_nodes Str_rtab.STR_MAX;
-    | STR_AODV -> Script_utils.make_str_nodes Str_rtab.STR_AODV;
-    | LER_FRESH -> Script_utils.make_ler_agents Ler_agent.FRESH 
-    | LER_EASE -> Script_utils.make_ler_agents Ler_agent.EASE
-    | LER_GREASE -> Script_utils.make_ler_agents Ler_agent.GREASE
+    | AODV -> 
+	Script_utils.make_aodv_nodes()
+
+    | STR_AGE -> 
+	Script_utils.make_str_nodes Str_rtab.STR_AGE;
+    | STR_MAX -> 
+	Script_utils.make_str_nodes Str_rtab.STR_MAX;
+    | STR_AODV -> 
+	Script_utils.make_str_nodes Str_rtab.STR_AODV;
+
+    | LER_FRESH -> 
+	Script_utils.make_nodes();
+	Script_utils.make_ler_agents Ler_agent.FRESH 
+    | LER_EASE -> 
+	Script_utils.make_nodes(); 
+	Script_utils.make_ler_agents Ler_agent.EASE
+    | LER_GREASE -> 
+	Script_utils.make_nodes(); 
+	Script_utils.make_ler_agents Ler_agent.GREASE
   end;
   
   Script_utils.install_mobs ()
