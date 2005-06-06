@@ -9,6 +9,7 @@
 #directory "/home/henridf/work/nab/lib/contrib";;
 #directory "/home/henridf/work/nab/scripts";;
 #directory "/home/henridf/work/nab/sim/base";;
+#directory "/home/henridf/work/nab/sim/mob";;
 #directory "/home/henridf/work/nab/sim/interfaces";;
 #directory "/home/henridf/work/nab/sim/pkt";;
 #directory "/home/henridf/work/nab/sim/mac";;
@@ -21,4 +22,6 @@
 #directory "/home/henridf/work/nab/proto/ler";;
 
 
-#directory "/usr/lib/ocaml/3.07/lablgtk";;
+#directory "+lablgtk";;
+#directory "+gsl";;
+
