@@ -32,6 +32,9 @@ open Printf
   @author Henri Dubois-Ferriere.
  *)
 
+let orig_ttl = ref 8
+
+
 (** @param owner a [Node.node] object representing the node on which
   this agent is running *)
 class flood_agent ?(stack=0) theowner = 
@@ -51,8 +54,6 @@ object(s)
   method private incr_seqno() = seqno <- seqno + 1;
 
 
-
-
   (* This is called from the underlying MAC each time we receive a packet. *)
   method recv_pkt_mac ~l2src ~l2dst l3pkt = (
 
@@ -63,7 +64,9 @@ object(s)
     if not (Hashtbl.mem pkt_hash l3pkt) then (
       s#log_debug (lazy (sprintf "Packet received for first time; reforwarding %d" src));
       Hashtbl.add pkt_hash l3pkt ();
-      s#mac_bcast_pkt l3pkt
+      if L3pkt.l3ttl l3pkt > 0 then 
+	let l3pkt = L3pkt.decr_l3ttl l3pkt in
+	s#mac_bcast_pkt l3pkt
     ) else (
       s#log_debug (lazy (sprintf "Duplicate packet; dropping %d" src));
     )
@@ -79,7 +82,7 @@ object(s)
     (* Make complete l3 header, which contains src, dst, and our protocol specific
        extension. *)
     let l3hdr = 
-      L3pkt.make_l3hdr ~src:myid ~dst ~ext:(`SIMPLE_HDR hdr_ext) () in
+      L3pkt.make_l3hdr ~src:myid ~ttl:!orig_ttl ~dst ~ext:(`SIMPLE_HDR hdr_ext) () in
     
     (* Return a full l3 pkt containing the constructed l3 hdr and the l4 packet we
        were passed.*)
