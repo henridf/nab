@@ -23,7 +23,6 @@
 (* $Id$ *)
 
 
-open GMain
 open Misc
 open Script_utils
 
