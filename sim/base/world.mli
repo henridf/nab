@@ -41,7 +41,8 @@ type worldtype =
       (** The type of world that can be used (see sim/interfaces/worldt.ml)*)
       
 val world : worldtype Param.t
-  (** Configuration parameter representing the type of world to use. *)
+  (** Configuration parameter representing the type of world to use. Default
+    is Lazy.*)
 
 val w : unit -> Worldt.lazy_world_t
   (** Returns the global lazy_world object, if one has been set. 
