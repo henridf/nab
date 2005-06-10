@@ -24,7 +24,8 @@
 
 
 
-(** General utils and helpers for writing nab scripts and apps.
+(**
+  General utils and helpers for writing nab scripts and apps.
   @author Henri Dubois-Ferriere. 
 *)
 
@@ -98,12 +99,12 @@ val make_str_nodes : Str_rtab.metric_t -> unit
     Number of nodes {!Params.nodes} should be set before calling this *)
 
 
-val make_flood_agents : ?stack:int -> unit -> unit 
+val install_flood_agents : ?stack:int -> unit -> unit 
   (** Creates and adds a simple flooding agent to each node, on [stack]
     (default stack 0). See {!Flood_agent.flood_agent}.
     Nodes should be created before calling this.*)
   
-val make_ler_agents : ?stack:int -> Ler_agent.ler_proto_t -> unit 
+val install_ler_agents : ?stack:int -> Ler_agent.ler_proto_t -> unit 
   (** Creates and adds a LER agent to each node, on [stack]
     (default stack 0). 
     The parameter {!Ler_agent.ler_proto_t} indicates the choice of algorithm 

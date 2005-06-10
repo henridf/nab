@@ -62,7 +62,7 @@ let setup() = (
   Hashtbl.iter (fun nid mac -> mac#set_jitter 3.0) (Mac_contention.macs ~stack:2 ());
   
   for stack = 0 to nstacks - 1 do
-    Script_utils.make_flood_agents ~stack ();
+    Script_utils.install_flood_agents ~stack ();
   done
 )
 
@@ -114,7 +114,7 @@ let tree_hook flood_tree l2pkt node = (
   let l2src = (L2pkt.l2src l2pkt) in
   flood_tree := 
   try (Flood.addnode  ~parent:l2src ~node:node#id !flood_tree)
-  with (Failure "addnode") -> !flood_tree
+  with NaryTree.Duplicate_node -> !flood_tree
     (* Adding a node can raise an exception if the node is already in the
        tree. When that happens, it means that our node is receiving the flood
        packet for the second (or more) time, so we don't care. *)

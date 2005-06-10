@@ -93,9 +93,9 @@ let setup () = (
   done;
 
   (* Create GREASE, EASE, and FRESH routing agents on stacks 0, 1, and 2.*)
-  Script_utils.make_ler_agents ~stack:0 Ler_agent.GREASE;
-  Script_utils.make_ler_agents ~stack:1 Ler_agent.EASE;
-  Script_utils.make_ler_agents ~stack:2 Ler_agent.FRESH;
+  Script_utils.install_ler_agents ~stack:0 Ler_agent.GREASE;
+  Script_utils.install_ler_agents ~stack:1 Ler_agent.EASE;
+  Script_utils.install_ler_agents ~stack:2 Ler_agent.FRESH;
   
   (* Create billiard mobility processes (see mob_ctl.mli, mobs.mli).*)
   Mob_ctl.make_billiard_mobs ~gran:(radiorange /. 2.) ();

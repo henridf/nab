@@ -178,7 +178,7 @@ let place_nodes_on_line () =
     (World.w())#movenode ~nid ~newpos)
 
 
-let make_ler_agents ?(stack=0) proto = (
+let install_ler_agents ?(stack=0) proto = (
   Nodes.iteri (fun nid n -> 
     let agent = new Ler_agent.ler_agent ~stack ~proto n in
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
@@ -201,7 +201,7 @@ let make_aodv_nodes ?(localrepair=true) ?(dstonly=false) () = (
 )
 
 
-let make_flood_agents ?(stack=0) () = (
+let install_flood_agents ?(stack=0) () = (
   
   Nodes.iteri (fun nid n -> 
     let agent = (new Flood_agent.flood_agent ~stack n) in

@@ -167,7 +167,7 @@ Finally we must not forget to create the flooding agents on all 3 stacks:
 
 <pre class=example>
 # for stack = 0 to nstacks - 1 do                       <!--test_keep-->
-    Script_utils.make_flood_agents ~stack ()            <!--test_keep-->
+    Script_utils.install_flood_agents ~stack ()            <!--test_keep-->
   done;;
 - : unit = ()
 </pre>
@@ -212,7 +212,7 @@ not modify the tree.
 # let tree_hook flood_tree l2pkt node = (                                    <!--test_keep-->
   let l2src = (L2pkt.l2src l2pkt) in                                         <!--test_keep-->
   flood_tree := try (Flood.addnode  ~parent:l2src ~node:node#id !flood_tree) <!--test_keep-->
-  with (Failure "addnode") -> !flood_tree                                    <!--test_keep-->
+  with NaryTree.Duplicate_node -> !flood_tree                                    <!--test_keep-->
 );;
 val tree_hook : Flood.t ref -> L2pkt.t -> < id : Common.nodeid_t; .. > -> unit =  &lt;fun&gt;
 </pre>

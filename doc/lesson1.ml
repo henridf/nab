@@ -46,7 +46,7 @@ let setup() = (
 
   Script_utils.make_nodes ();
   
-  Script_utils.make_flood_agents();
+  Script_utils.install_flood_agents();
 
 )
 

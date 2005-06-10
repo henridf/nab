@@ -258,13 +258,13 @@ let setup_sim () =
 
     | LER_FRESH -> 
 	Script_utils.make_nodes();
-	Script_utils.make_ler_agents Ler_agent.FRESH 
+	Script_utils.install_ler_agents Ler_agent.FRESH 
     | LER_EASE -> 
 	Script_utils.make_nodes(); 
-	Script_utils.make_ler_agents Ler_agent.EASE
+	Script_utils.install_ler_agents Ler_agent.EASE
     | LER_GREASE -> 
 	Script_utils.make_nodes(); 
-	Script_utils.make_ler_agents Ler_agent.GREASE
+	Script_utils.install_ler_agents Ler_agent.GREASE
   end;
   
   Script_utils.install_mobs ()
