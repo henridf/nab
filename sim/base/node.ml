@@ -69,7 +69,7 @@ object(s)
   method remove_mac ?(stack=0) () = 
     macs.(stack) <- None
 
-  method private remove_stack ?(stack=0) () = 
+  method remove_stack ?(stack=0) () = 
     s#remove_mac ~stack ();
     s#remove_rt_agent ~stack ()
 
@@ -83,7 +83,7 @@ object(s)
       | None -> failwith ("Node.agent No rtagent on stack "^(string_of_int stack))
       | Some rtagent -> rtagent
 
-  method private remove_rt_agent ?(stack=0) () = 
+  method remove_rt_agent ?(stack=0) () = 
     rt_agents.(stack) <- None
 
   method mac_recv_pkt ?(stack=0) l2pkt = (

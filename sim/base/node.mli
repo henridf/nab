@@ -102,21 +102,19 @@ object ('a)
       type are hidden. 
     *)
     
-(*  method remove_rt_agent : ?stack:int -> unit -> unit
-    (** Remove {!Rt_agent.t} from given [stack] (stack 0 if not specified). *)
-
-    this is error prone: an rt_agent may have events scheduled which could
-    interfere with the simulation (e.g, sending a hello message).
-
-    so, disabled until i decide on a solution to this. 
-
-
-    method remove_stack : ?stack:int -> unit -> unit
-  (** Remove entire protocol stack [stack] (stack 0 if not specified). *)
-
-
-*)
-
+  method remove_rt_agent : ?stack:int -> unit -> unit
+    (** Remove {!Rt_agent.t} from given [stack] (stack 0 if not specified). 
+      Caution: may cause errors if you do this in the middle of a simulation,
+      ie if there are outstanding events (e.g., sending a hello message) which
+      will then arrive at a node where the routing agent to handle them has
+      been removed.
+    *)
+    
+  method remove_stack : ?stack:int -> unit -> unit
+    (** Remove entire protocol stack [stack] (stack 0 if not specified). 
+      Same note of caution applies for [remove_rt_agent].
+    *)
+    
 
   (** Sending/receiving packets. *)
 
@@ -143,8 +141,8 @@ object ('a)
     (** Broadcast packet to all neighbors. *)
     
   method originate_app_pkt : l4pkt:L4pkt.t -> dst:Common.nodeid_t -> unit
-    (** originates a packet from an application on this node to dst:
-      create the packet and shove it down the app_send_pkt_hooks *)
+    (** Originates a packet from an application on this node to dst:
+      create the packet and push it down the app_send_pkt_hooks *)
 
   method mac_send_failure : ?stack:int -> L2pkt.t -> unit
     (** A MAC implementation may call this method when  a unicast transmission
