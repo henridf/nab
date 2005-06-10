@@ -117,13 +117,15 @@ object(s)
      EASE routing logic. *)
   method recv_pkt_app l4pkt dst = (
 
-    let ler_hdr = Ler_pkt.make_ler_hdr 
-      ~anchor_pos:owner#pos ~enc_age:(le_tab#le_age dst)  in
-    let l3hdr = 
-      L3pkt.make_l3hdr ~src:myid ~dst:dst ~ext:(`LER_HDR ler_hdr) () in
-    let l3pkt =  L3pkt.make_l3pkt ~l3hdr ~l4pkt in
-
-    s#recv_ler_pkt_ l3pkt;
+    if dst <> L3pkt.l3_bcast_addr then
+      let ler_hdr = Ler_pkt.make_ler_hdr 
+	~anchor_pos:owner#pos ~enc_age:(le_tab#le_age dst)  in
+      let l3hdr = 
+	L3pkt.make_l3hdr ~src:myid ~dst:dst ~ext:(`LER_HDR ler_hdr) () in
+      let l3pkt =  L3pkt.make_l3pkt ~l3hdr ~l4pkt in
+      s#recv_ler_pkt_ l3pkt;
+    else
+      Log.log#log_info (lazy "Dropping packet with bcast destination..");
   )
 
 
