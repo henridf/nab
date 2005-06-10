@@ -151,7 +151,7 @@ let od_route_pktin_mhook routeref l2pkt node = (
 	     receive the rreq more than once. we only care for the first
 	     time.*)
 	  try (Flood.addnode  ~parent:l2src ~node:node#id tree)
-	  with (Failure "addnode") -> tree
+	  with NaryTree.Duplicate_node -> tree
 	in
 	(Route.nth_hop !routeref (o2v hopno)).Route.info <- Some newtree
     | `RREP | `RADV | `RERR -> () (* ignore RREP/RADV/RERR*)

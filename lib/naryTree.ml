@@ -25,16 +25,18 @@
 
 
 type 'a t = Empty | Node of 'a * 'a t list
+exception Empty_error
+exception Duplicate_node
 
 let rec belongs el =  function
   | Empty -> false
   | Node (parent, children) -> (parent = el) || (List.exists (belongs el) children)
 
-let rec height = 
+let rec depth = 
   let max_list l = List.fold_left max 0 l in
   function 
-    | Empty -> 0
-    | Node (_, children) -> 1 + (max_list (List.map height children))
+    | Empty -> raise Empty_error
+    | Node (_, children) -> 1 + (max_list (List.map depth children))
 
 let rec iter ~f = 
   function
@@ -60,7 +62,7 @@ let iter2 ~f tree =
   
 
 let root = function
-  | Empty -> failwith "root"
+  | Empty -> raise Empty_error
   | Node (v, _) -> v
 
 	
@@ -70,7 +72,7 @@ let rec map ~f =
     | Node (parent, children) -> Node (f parent, List.map (map ~f) children)
 	
 let addnode ~parent ~node tree = 
-  if belongs node tree then failwith "addnode";
+  if belongs node tree then raise Duplicate_node;
   let addtolist l = (Node (node, []))::l in
   
   let rec add_ = function 

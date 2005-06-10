@@ -31,6 +31,9 @@
 (** Functional n-ary trees. *)
 
 
+exception Empty_error
+exception Duplicate_node
+
 (*
   would this be good to disallow Empty in the trees?
 
@@ -43,11 +46,17 @@ type 'a t = Empty | Node of 'a * 'a t list
 val map : f:('a -> 'b) -> 'a t -> 'b  t
 
 val belongs : 'a -> 'a t -> bool
-val height :  'a t -> int
+
+
+val depth :  'a t -> int
+  (** Returns the depth of the tree. 
+    @raise Empty_error if the tree is empty.
+  *)
 
 val root : 'a t -> 'a
-  (** Returns the node at the root of the tree. Raise [Failure "root"] if tree
-    is empty.*)
+  (** Returns the node at the root of the tree. 
+    @raise Empty_error if the tree is empty.
+  *)
 
 val size : 'a t -> int
   (** Returns the number of (non Empty) nodes in the tree *)
@@ -63,7 +72,7 @@ val iter2 : f:(parent:'a -> child:'a -> unit) -> 'a t -> unit
 
 val addnode : parent:'a -> node:'a -> 'a t -> 'a t 
   (** [NaryTree.addnode ~parent ~node tree] returns a new tree which is the
-    result of adding [node] under [parent] in [tree]. Raise [Failure "addnode"] if
-    [node] is already in [tree].*)
+    result of adding [node] under [parent] in [tree]. 
+    @raise Duplicate_node if [node] is already in [tree].*)
 
 val sprintf : f:('a -> string) -> 'a t -> string
