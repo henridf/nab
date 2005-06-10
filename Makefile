@@ -160,6 +160,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(SIM_BASE_DIR)/nodes$(CMO) \
 		$(SIM_BASE_DIR)/route$(CMO) \
 		$(SIM_BASE_DIR)/flood$(CMO) \
+		$(PROTO_MISC_DIR)/flood_hooks$(CMO) \
 		$(PROTO_LER_DIR)/ler_hooks$(CMO) \
 		$(PROTO_LER_DIR)/ler_route$(CMO) \
 		$(PROTO_AODV_DIR)/od_hooks$(CMO) \
