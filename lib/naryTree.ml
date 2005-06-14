@@ -38,17 +38,16 @@ let rec depth =
     | Empty -> raise Empty_error
     | Node (_, children) -> 1 + (max_list (List.map depth children))
 
-let rec iter ~f = 
+let rec iter f = 
   function
     | Empty -> ()
-    | Node (parent, children) -> f parent; List.iter (iter ~f) children
-
+    | Node (parent, children) -> f parent; List.iter (iter f) children
 let size t = 
   let count = ref 0 in
-  iter ~f:(fun _ -> incr count) t;
+  iter (fun _ -> incr count) t;
   !count
 
-let iter2 ~f tree = 
+let iter2 f tree = 
   let myf ~parent ~child = 
     match child with
       | Empty -> ()
@@ -60,6 +59,29 @@ let iter2 ~f tree =
     | Node (parent, children) -> List.iter (fun child -> myf ~parent ~child) children; List.iter iter2_ children
   in iter2_ tree
   
+let rec leaves_aux acc (tree : 'a t) = 
+  match tree with
+    | Empty -> []
+    | Node (parent, []) -> parent::acc
+    | Node (parent, children) -> (List.fold_left (leaves_aux) [] children)@acc
+  
+
+let leaves tree = leaves_aux [] tree
+
+let parent_hash tree = 
+  let h  = Hashtbl.create (size tree) in
+  iter2 (fun ~parent ~child -> Hashtbl.add h child parent) tree;
+  h
+
+let paths tree = 
+  let l = leaves tree in 
+  let h = parent_hash tree in
+  let rec path leaf = 
+    if Hashtbl.mem h leaf then leaf::(path (Hashtbl.find h leaf))
+    else [leaf]
+  in
+  List.map path l
+
 
 let root = function
   | Empty -> raise Empty_error
@@ -92,5 +114,5 @@ let sprintf ~f tree =
 	let printnode ~parent ~child = 
 	  Buffer.add_string buf
 	    (Printf.sprintf "%s has parent %s\n" (f child) (f parent)) in
-	iter2 ~f:printnode tree;
+	iter2 printnode tree;
 	Buffer.contents buf

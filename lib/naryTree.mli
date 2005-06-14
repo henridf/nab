@@ -22,13 +22,7 @@
 
 (* $Id$ *)
 
-
-
-
-
-
-
-(** Functional n-ary trees. *)
+(** Functional n-ary trees. Some functions are neither elegant nor efficient... *)
 
 
 exception Empty_error
@@ -45,8 +39,13 @@ type 'a t = Empty | Node of 'a * 'a t list
 
 val map : f:('a -> 'b) -> 'a t -> 'b  t
 
-val belongs : 'a -> 'a t -> bool
+val paths : 'a t -> 'a list list
+  (** [paths tree] returns a list of paths from the root to each leaf. *)
 
+val belongs : 'a -> 'a t -> bool
+  (** [NaryTree.belongs n tree] returns [true] if [t] contains node [n],
+    [false] otherwise (using structural equality).
+  *)
 
 val depth :  'a t -> int
   (** Returns the depth of the tree. 
@@ -58,14 +57,17 @@ val root : 'a t -> 'a
     @raise Empty_error if the tree is empty.
   *)
 
+val leaves : 'a t -> 'a list
+  (** Returns a list containing the leaves of the tree. *)
+
 val size : 'a t -> int
   (** Returns the number of (non Empty) nodes in the tree *)
 
-val iter : f:('a -> unit) -> 'a t -> unit
+val iter : ('a -> unit) -> 'a t -> unit
   (** Iterate over tree, presenting each node once to the provided function. 
     Does nothing if the tree has size 0. Order is not specified. *)
 
-val iter2 : f:(parent:'a -> child:'a -> unit) -> 'a t -> unit
+val iter2 : (parent:'a -> child:'a -> unit) -> 'a t -> unit
   (** Iterate over tree, presenting each node along with its parent to the
     provided function. Does nothing if the tree has size <= 1.
     Order is not specified. *)

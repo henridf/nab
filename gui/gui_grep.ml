@@ -174,7 +174,7 @@ let graph_gradient() =
 	    let cost = cost (NaryTree.root flood) in
 	    let flood_span = ref 0.0 in 
 	    NaryTree.iter 
-	      ~f:(fun nid -> if (World.w())#dist_nodeids 0 nid > !flood_span then 
+	      (fun nid -> if (World.w())#dist_nodeids 0 nid > !flood_span then 
 		flood_span := (World.w())#dist_nodeids 0 nid) 
 	      flood;
 	    let d_root_dest = 

@@ -33,7 +33,7 @@ let nodes_touched r =
     match h.Route.info with
       | None -> ()
       | Some flood -> 
-	  NaryTree.iter ~f:(fun nid -> Hashtbl.replace hash nid ()) flood
+	  NaryTree.iter (fun nid -> Hashtbl.replace hash nid ()) flood
   ) r;
   Misc.hashlen hash
 

@@ -150,7 +150,7 @@ let draw_tree ?(col=(`NAME "light grey")) tree =
   let connect ~parent ~child = 
     Gui_gtk.draw_segments ~col [parent, child]
   in
-  NaryTree.iter2 ~f:connect tree
+  NaryTree.iter2 connect tree
 
 let draw_grep_route ?(portion=1.0) r = 
 
