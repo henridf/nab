@@ -28,14 +28,12 @@ check_exit()
 
 for s in $nab_scripts 
   do
-  rm bin/nab;
   make SCRIPT=$s bin/nab;
   check_exit;
 done
 
 for s in $nabviz_scripts 
   do
-  rm bin/nabviz;
   make SCRIPT=$s bin/nabviz;
   check_exit;
 done

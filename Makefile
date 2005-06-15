@@ -83,6 +83,7 @@ DEPEND_FILES := $(foreach dir,$(DEPEND_DIRS),$(wildcard $(dir)/*mli)) \
 
 
 ifdef SCRIPT
+  FORCE_MAYBE = FORCE # force recompiling when there is a script file, since it doesn't accounted for properly in the deps.
   ifeq ($(wildcard $(SCRIPT)),$(SCRIPT))
     SIM_SCRIPT = $(SCRIPT)
   else
@@ -259,8 +260,8 @@ SIM_LIB_OBJS = 	 $(SIM_LIB_DIR)/mods$(CMO) \
 alltargets: nab grepviz nab-top nabviz nabviz-top
 allopttargets: nab grepviz nabviz 
 
-nab: bin/nab
-bin/nab: $(SIM_OBJS) $(SIM_SCRIPT)
+nab: bin/nab 
+bin/nab: $(SIM_OBJS) $(SIM_SCRIPT) $(FORCE_MAYBE)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GSL_LIBS) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT) -o $@ 
 
 grepviz: bin/grepviz
@@ -268,16 +269,16 @@ bin/grepviz: $(GUI_OBJS) scripts/grepviz$(CMO)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE)  $(GSL_LIBS) $(GTK_STUFF) $(GUI_OBJS) scripts/grepviz$(CMO) -o $@ 
 
 nab-top: bin/nab-top
-bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT)
+bin/nab-top: $(SIM_OBJS)  $(SIM_SCRIPT) $(FORCE_MAYBE)
 	$(MLTOP) $(INCLUDE) $(GSL_LIBS) $(UNIX_LIB) $(SIM_OBJS)  $(SIM_SCRIPT) -o $@
 
 nabviz: bin/nabviz
-bin/nabviz: $(GUI_OBJS) $(SIM_SCRIPT)
+bin/nabviz: $(GUI_OBJS) $(SIM_SCRIPT) $(FORCE_MAYBE)
 	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GSL_LIBS) $(GTK_STUFF) \
 	$(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 nabviz-top: bin/nabviz-top
-bin/nabviz-top: $(GUI_OBJS) $(SIM_SCRIPT)
+bin/nabviz-top: $(GUI_OBJS) $(SIM_SCRIPT) $(FORCE_MAYBE)
 	$(MLTOP) $(INCLUDE) $(GSL_LIBS) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
 
 
@@ -337,5 +338,7 @@ DEPEND = .depend
 	$(OCAMLDEP) $(INCLUDE_SRC) $(DEPEND_FILES) > $(DEPEND)
 
 depend: .depend
+
+FORCE:
 
 include $(DEPEND)
