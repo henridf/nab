@@ -145,7 +145,7 @@ let is_backward child parent =
 let count_backward_links tree = 
   let ctr = ref 0 in 
   NaryTree.iter2 
-    ~f:(fun ~parent  ~child -> if is_backward child parent then incr ctr)
+    (fun ~parent  ~child -> if is_backward child parent then incr ctr)
     tree;
   !ctr
 

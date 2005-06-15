@@ -302,7 +302,7 @@ val is_backward : Common.nodeid_t -> Common.nodeid_t -> bool =  &lt;fun&gt;
 # let count_backward_links tree =                                     <!--test_keep-->
   let ctr = ref 0 in                                                  <!--test_keep-->
   NaryTree.iter2                                                      <!--test_keep-->
-    ~f:(fun ~parent  ~child -> if is_backward child parent then incr ctr)<!--test_keep-->
+    (fun ~parent  ~child -> if is_backward child parent then incr ctr)<!--test_keep-->
     tree;                                                             <!--test_keep-->
   !ctr;;                                                              <!--test_keep-->
 val count_backward_links : Common.nodeid_t NaryTree.t -> int = &lt;fun&gt;
