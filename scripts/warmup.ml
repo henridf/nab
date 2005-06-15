@@ -26,35 +26,21 @@
 open Misc
 open Script_utils
 
-let dumpfile = Param.stringcreate ~name:"dumpfile" 
-  ~cmdline:true
-  ~notpersist:true
-  ~doc:"File to dump warmup state"
-  ()
-
 let sp = Printf.sprintf
 
-let detach = Param.boolcreate 
-  ~name:"detach" 
-  ~doc:"Detach from terminal"
-  ~cmdline:true
-  ~default:false
-  ~notpersist:true
-  ()
-  
 let () = 
 
   Script_utils.parse_args();
   Arg.current := 0;
 
-  if not (Param.has_value dumpfile) then
+  if not (Param.has_value Script_params.dumpfile) then
     failwith "need to set -dumpfile!!!";
-  
-  let dumpfile = Param.get dumpfile in
   
   Warmup_utils.setup_or_restore();
   
-  if Param.get detach then begin
+  let dumpfile = Param.get Script_params.dumpfile in
+  
+  if Param.get Script_params.detach then begin
     let logname = (Filename.chop_extension dumpfile)^".log" in
     Script_utils.detach_daemon ~outfilename:logname ()end;
 
