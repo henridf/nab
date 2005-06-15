@@ -90,7 +90,9 @@ let has_value param = match param.value with
   | None -> false
   | Some value -> true
 
-let as_string p = p.printer (get p)
+let as_string p = 
+  try p.printer (get p) with 
+      NoParamVal _ -> "< undefined >"
 
 let make_intargspec param =
   ("-"^param.name, 

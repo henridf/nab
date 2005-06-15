@@ -139,7 +139,9 @@ val strset_by_name : string -> string -> unit
     param value. *)
 
 val get : 'a t -> 'a                 
-  (** Returns the value of this parameter. *)
+  (** Returns the value of this parameter.
+    @raise NoParamVal if the parameter's value was not set and it has not default.
+  *)
 
 val as_string : 'a t -> string
   (** Returns a string representation of this parameter. *)
