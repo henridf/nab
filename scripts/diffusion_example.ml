@@ -53,7 +53,7 @@ let setup () = (
 
   (* Set global objects (scheduler and World). This must be done *after* the
      params above have been set. *)
-  Script_utils.init_lazy_world();
+  Script_utils.init_all();
 
   (* Create nodes. *)
   Script_utils.make_nodes();
@@ -74,8 +74,8 @@ let _ =
      locations. *)
   Nodes.iter (fun n -> 
     let p = n#pos in 
-    let discr_p = (Coord.coord_floor p) in
-    n#move discr_p
+    let newpos = (Coord.floor n#pos) in
+    (World.w())#movenode ~nid:n#id ~newpos
   );
   
   (* Attach a periodic_hello_agent to each node, and keep them all the agents 
