@@ -1,0 +1,11 @@
+- if we keep ounit, add README and LICENSE files to contrib dir.
+- document new *mli files in scripts (warmup_utils, ..)
+- update tutorial
+
+
+- why are there any bw links at all with null mac???
+- check if srcdir can be same variable in both scripts
+- make smoke-tutorial more smart - some lessons can be rnu in scripted, some
+  can't (cos they would remain stuck in gui)
+- if smoke-tut running from /home/henridf/work/nab, should not do the sed on
+  ocamlinit, etc.

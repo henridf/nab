@@ -1,0 +1,9 @@
+sent to 
+{mics.faculty,mics.phdstudents,mics.seniors}@epfl.ch
+caml-list@inria.fr
+ocaml_beginners@yahoogroups.com
+manet@ietf.org
+ns-users@isi.edu
+glomosim-users-l@lists.ucla.edu
+ans-research@ietf.org
+nab-users@listes.epfl.ch
