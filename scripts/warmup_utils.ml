@@ -271,25 +271,19 @@ let setup_sim () =
 
 
 
-let setup_or_restore() = 
-  let loadfile = ref "" in
-  let anon_fun s = loadfile := s in
-  Script_utils.parse_args
-    ~anon_fun
-    ();
+let setup_or_restore fname = 
+  if not (Sys.file_exists fname) then (
+    setup_sim ();
   Param.printconfig !Log.ochan;
-  
-  if !loadfile = "" then
-    setup_sim ()
-  else (
-    let ic = Pervasives.open_in !loadfile in
+  ) else (
+    let ic = Pervasives.open_in fname in
     Persistency.restore_sim ic;
     close_in ic;
   )
 
     
     
-let maybe_warmup ~fname = 
+let maybe_warmup fname = 
   if Param.get Config.warmup <> NONE then (
     Log.log#log_always (lazy (sp "Warming up with %s" (Param.as_string Config.warmup)));
     Log.log#log_always (lazy (sp "Will dump to file %s" fname));

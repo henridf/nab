@@ -36,12 +36,12 @@ let () =
   if not (Param.has_value Script_params.dumpfile) then
     failwith "need to set -dumpfile!!!";
   
-  Warmup_utils.setup_or_restore();
-  
   let dumpfile = Param.get Script_params.dumpfile in
+
+  Warmup_utils.setup_or_restore dumpfile;
   
   if Param.get Script_params.detach then begin
     let logname = (Filename.chop_extension dumpfile)^".log" in
     Script_utils.detach_daemon ~outfilename:logname ()end;
 
-  Warmup_utils.maybe_warmup ~fname:dumpfile
+  Warmup_utils.maybe_warmup dumpfile

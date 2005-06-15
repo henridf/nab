@@ -33,7 +33,7 @@ let sp = Printf.sprintf
   
 let () = 
 
-  Warmup_utils.setup_or_restore();
+  Warmup_utils.setup_or_restore (Param.get Script_params.dumpfile);
 
   Pervasives.at_exit (fun () ->
     let stats = Warmup_utils.sprint_added_stats() in

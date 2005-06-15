@@ -61,7 +61,7 @@ let () =
     Script_utils.detach_daemon ~outfilename:logname () end;
   
 
-  Warmup_utils.setup_or_restore();
+  Warmup_utils.setup_or_restore dumpfile;
   
   Pervasives.at_exit (fun () ->
     let stats = Warmup_utils.sprint_added_stats() in
