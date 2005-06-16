@@ -42,6 +42,10 @@ type log_level_t =
       
 
 val set_log_level : log_level_t -> unit
+  (** Set the log level threshold. *)
+
+val get_log_level : unit -> log_level_t 
+  (** Get the current log level threshold. *)
 
 val strset_log_level : string -> unit
   (** Set the log level via a string (for example provided as cmdline argument). *)

@@ -72,6 +72,7 @@ let _ =
   
 let current_log_level = ref LOG_WARNING
 let set_log_level l = current_log_level := l
+let get_log_level () = !current_log_level
 
 let strset_log_level s = current_log_level := loglevel_of_string s
 
