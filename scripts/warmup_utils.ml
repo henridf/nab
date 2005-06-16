@@ -98,7 +98,7 @@ struct
   let agent = Param.create
     ~name:"agent"
     ~cmdline:true
-    ~default:STR_AGE
+    ~default:LER_FRESH
     ~doc:"Routing protocol"
     ~reader:agent_of_string
     ~printer:string_of_agent
@@ -143,7 +143,7 @@ let encounter_ratio() =
 	in
 	(float total_encounters) /. (float ((Param.get Params.nodes)))
     | LER_FRESH | LER_EASE | LER_GREASE -> 
-	Ler_agent.proportion_met_nodes()
+	Ler_utils.proportion_met_nodes()
     | AODV -> failwith "cannot compute encounter ratio"
 
 

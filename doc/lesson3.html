@@ -178,7 +178,7 @@ and repeats if not.
 - : val finished : bool ref = {contents = false}
 # while (not !finished) do                               <!--test_keep-->
       (Sched.s())#run_for ~duration:30.0;                   <!--test_keep-->
-      let p = Ler_agent.proportion_met_nodes() in          <!--test_keep-->
+      let p = Ler_utils.proportion_met_nodes() in          <!--test_keep-->
       Log.log#log_always (lazy (Printf.sprintf "Warming up: encounter ratio %f" p));<!--test_keep-->
       if  (p > enc_ratio) then   finished := true;          <!--test_keep-->
   done;;                                                  <!--test_keep-->

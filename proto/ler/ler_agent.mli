@@ -73,6 +73,7 @@ end
 
 
 val agent : ?stack:int -> Common.nodeid_t -> ler_agent
+val agents : ?stack:int -> unit -> (Common.nodeid_t, ler_agent) Hashtbl.t
 
 val ntargets : int Param.t
   (** The number of nodes that can potentially be routed to as destinations.
@@ -81,11 +82,4 @@ val ntargets : int Param.t
     is kept small. For example, in EASE routing, the size of the
     Last-Encounter table depends on the number of targets value. *)
   
-val proportion_met_nodes : ?stack:int -> unit -> float
-  (** Computes the encounter ratio, ie the proportion of source-dst pairs that
-    have last-encounter entries for each other.
-    This takes into account the value of [ntargets].*)
-
-
-
 module Persist : Persist.t 

@@ -53,14 +53,6 @@ let agent ?(stack=0) i =
 
 
 
-let proportion_met_nodes ?(stack=0) () = 
-  let targets = Param.get ntargets in
-  let total_encounters = 
-    Hashtbl.fold (fun _nid agent encs -> (agent#le_tab#num_encounters) + encs) 
-      (agents ~stack ()) 0
-  in
-  (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
-
 
 
 class ler_agent ?(stack=0) ~proto theowner = 

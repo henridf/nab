@@ -200,6 +200,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
 		$(PROTO_STR_DIR)/str_agent$(CMO) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
+		$(PROTO_LER_DIR)/ler_utils$(CMO) \
 		$(SIM_BASE_DIR)/rt_agent_persist$(CMO) \
 		$(PROTO_MISC_DIR)/hello_agents$(CMO) \
 		$(PROTO_MISC_DIR)/flood_agent$(CMO) \

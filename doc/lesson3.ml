@@ -41,8 +41,8 @@ let nstacks = 3
 let () = 
   Param.set Params.nodes nodes; (* number of nodes *)
 
-  Param.set Params.x_pix_size 800; (* size of gui window *)
-  Param.set Params.y_pix_size 800;
+  Param.set Params.x_pix_size 600; (* size of gui window *)
+  Param.set Params.y_pix_size 600;
 
   Param.set World.world World.Greedy;
 
@@ -111,7 +111,7 @@ let warmup enc_ratio = (
       (* make nodes move for 30 seconds. *)
       (Sched.s())#run_for ~duration:30.0;
       
-      let p = Ler_agent.proportion_met_nodes() in
+      let p = Ler_utils.proportion_met_nodes() in
       Log.log#log_always (lazy (Printf.sprintf "Warming up: enc. ratio %f" p));
       
       if  (p > enc_ratio) then   finished := true;

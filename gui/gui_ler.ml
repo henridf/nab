@@ -47,7 +47,7 @@ let text_entry = ref false
 
 (* Are we displaying the EASE or the GREASE route ? *)
 let proto = ref `GREASE
-let stack_of_proto() = match !proto with `GREASE -> 0 | `EASE -> 1 | `FRESH -> 2
+let stack_of_proto() = match !proto with `FRESH -> 0 | `EASE -> 1 | `GREASE -> 2
 
 (* Destination is 0 by default. Source is chosen by user. *)
 let dst = 0
@@ -109,33 +109,12 @@ let set_src nid = (
     (Coord.sprintf (Nodes.node dst)#pos)));
   
   clear_routes();
-  Ler_hooks.routes_done := 0;
-  let r = [|ref []; ref []; ref []|] in
-  
-  for stack = 0 to nstacks - 1  do
 
-    let in_mhook = 
-      Ler_hooks.ler_route_pktin_mhook ~num:!route_ctr r.(stack) in 
-    let out_mhook = 
-      Ler_hooks.ler_route_pktout_mhook ~num:!route_ctr r.(stack) in
+  let r = Ler_utils.get_route ~nstacks:3 ~src:nid ~dst () in
 
-    Nodes.iter (fun n -> n#clear_pkt_mhooks ~stack ());
-    Nodes.iter (fun n -> n#add_pktin_mhook ~stack in_mhook);
-    Nodes.iter (fun n -> n#add_pktout_mhook ~stack out_mhook);
-
-  done;
-
-  (Nodes.node nid)#originate_app_pkt ~l4pkt:(`APP_PKT !route_ctr) ~dst;
-  incr route_ctr;
-
-  (Sched.s())#run_until 
-  ~continue:(fun () -> 
-    !Ler_hooks.routes_done < nstacks;
-  );
-  
-  routes.(0) <- !(r.(0));
-  routes.(1) <- !(r.(1));
-  routes.(2) <- !(r.(2));
+  routes.(0) <- (r.(0));
+  routes.(1) <- (r.(1));
+  routes.(2) <- (r.(2));
 
   Log.log#log_info  (lazy (Ler_route.sprintnid routes.(stack_of_proto())));
 (*
@@ -172,6 +151,61 @@ let radiobuttonlist = [
   ("FRESH", [`FUNC (fun () -> proto := `FRESH); `FUNC refresh_fun]);
 ]
 
+let graph_gradient() =()
+
+(*  let oc = open_out "/tmp/gradient_fresh.dat" in
+  
+  let cost nid = if nid = 0 then 0.0 else 
+    let str_agent = Hashtbl.find Str_agent.agents_array_.(0) nid in
+      let rt, metric = str_agent#rtab_metric in
+      let ent = Str_rtab.best_invalid_entry rt metric 0 in
+      Str_rtab.cost metric ent
+  in
+  Hashtbl.iter (fun id str_agent -> 
+    let c = cost id
+    and d = (World.w())#dist_nodeids 0 id in 
+    if c < max_float then
+      Printf.fprintf oc "%.2f %.2f\n" d c)
+    Str_agent.agents_array_.(0);
+  close_out oc;
+  if !rt <> None then (
+    let oc = open_out "/tmp/route_fresh.dat" in
+    List.iter (fun h -> 
+      let nid = h.Route.hop in 
+      let c = cost nid 
+      and d = (World.w())#dist_nodeids 0 nid in 
+      assert (c < max_float);
+      if c < max_float then
+	Printf.fprintf oc "%.2f %.2f\n" d c
+    ) (List.rev (o2v !rt));
+    close_out oc;
+    let oc = open_out "/tmp/floods_fresh.dat" in
+    List.iter (fun h -> 
+      begin 
+	match h.Route.info with
+	| None -> ()
+	| Some flood -> 
+	    let cost = cost (NaryTree.root flood) in
+	    let flood_span = ref 0.0 in 
+	    NaryTree.iter 
+	      (fun nid -> if (World.w())#dist_nodeids 0 nid > !flood_span then 
+		flood_span := (World.w())#dist_nodeids 0 nid) 
+	      flood;
+	    let d_root_dest = 
+	      ((World.w())#dist_nodeids 0 (NaryTree.root flood)) in
+	    let lower_bar =  -. !flood_span
+	    and upper_bar =  !flood_span in
+	    if cost < max_float then
+	    Printf.fprintf oc "%.2f %.2f %.2f %.2f\n"
+	      d_root_dest
+	      cost 
+	      (lower_bar +. cost)
+	      (upper_bar +. cost)
+      end;     
+    ) (List.rev (o2v !rt));
+    close_out oc
+  )
+*)
 let buttonlist = [
   ("Move nodes",      `TOGGLE,  [`FUNC start_stop]);
   ("Draw route",      `TOGGLE,  [`FUNC choose_node]);
@@ -180,6 +214,7 @@ let buttonlist = [
   ("Hide Directions", `CHECK,   [`TOGGLE show_route_lines; `FUNC refresh_fun]);
   ("Hide Disks",      `CHECK,   [`TOGGLE show_route_disks; `FUNC refresh_fun]);
   ("Text",            `CHECK,   [`TOGGLE text_entry; `FUNC refresh_fun]);
+  ("Graph Gradient",  `TOGGLE,  [`FUNC graph_gradient]);
 ] 
 
 
