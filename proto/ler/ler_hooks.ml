@@ -34,8 +34,10 @@ let check_route_num l2pkt num_opt =
 	match l4pkt with 
 	  | `APP_PKT n when (num = n) -> true
 	  | `APP_PKT n -> false
-	  | _ -> failwith 
-	      "Ler_hooks.check_route_num: called with inappropriate packet type"
+	  | `EMPTY  -> failwith "Ler_hooks.check_route_num: called with inappropriate packet type (`EMPTY)"
+	  | `HELLO_PKT _  -> failwith "Ler_hooks.check_route_num: called with inappropriate packet type (`HELLO)"
+	  | _ -> failwith "Ler_hooks.check_route_num: called with inappropriate packet type "
+
 
 
 let ler_route_pktin_mhook ?num routeref l2pkt node = (
