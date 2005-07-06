@@ -26,10 +26,13 @@
 
 
 val dist_age_arr : ?dst:Common.nodeid_t -> unit -> (float * float) array
-  (** [dist_age_arr ~dst ()] returns an array of (age, dist) tuples
+  (** [dist_age_arr ~dst ()] returns an array of (dist, age) tuples
     corresponding to the last encounter age and current distance between each
     node and the destination, for those nodes which have met the
     destination. Optional [dst] defaults to 0 if not provided. *)
+
+val dist_age_avg_arr : ?dst:Common.nodeid_t -> npoints:int -> unit -> (float * float) array
+  (** averaged (dist, age) array into [npoints] bins. *)
 
 val get_route :
   ?nstacks:int ->
@@ -45,3 +48,6 @@ val proportion_met_nodes : ?stack:int -> unit -> float
   (** Computes the encounter ratio, ie the proportion of source-dst pairs that
     have last-encounter entries for each other.
     This takes into account the value of [ntargets].*)
+
+
+val dump_gradient : (Common.nodeid_t, Coord.coordf_t) Ler_route.t  -> unit

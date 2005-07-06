@@ -46,7 +46,7 @@ let text_entry = ref false
 
 
 (* Are we displaying the EASE or the GREASE route ? *)
-let proto = ref `GREASE
+let proto = ref `FRESH
 let stack_of_proto() = match !proto with `FRESH -> 0 | `EASE -> 1 | `GREASE -> 2
 
 (* Destination is 0 by default. Source is chosen by user. *)
@@ -133,9 +133,8 @@ let choose_node () = (
      when  !running is false. *)
   Mob_ctl.stop_all();
   
-  if !running then (
-    start_stop();
-  );
+  if !running then start_stop();
+
   if !text_entry then
     Gui_ops.dialog_pick_node ~default:!src ~node_picked_cb:set_src ()
   else
@@ -151,61 +150,7 @@ let radiobuttonlist = [
   ("FRESH", [`FUNC (fun () -> proto := `FRESH); `FUNC refresh_fun]);
 ]
 
-let graph_gradient() =()
 
-(*  let oc = open_out "/tmp/gradient_fresh.dat" in
-  
-  let cost nid = if nid = 0 then 0.0 else 
-    let str_agent = Hashtbl.find Str_agent.agents_array_.(0) nid in
-      let rt, metric = str_agent#rtab_metric in
-      let ent = Str_rtab.best_invalid_entry rt metric 0 in
-      Str_rtab.cost metric ent
-  in
-  Hashtbl.iter (fun id str_agent -> 
-    let c = cost id
-    and d = (World.w())#dist_nodeids 0 id in 
-    if c < max_float then
-      Printf.fprintf oc "%.2f %.2f\n" d c)
-    Str_agent.agents_array_.(0);
-  close_out oc;
-  if !rt <> None then (
-    let oc = open_out "/tmp/route_fresh.dat" in
-    List.iter (fun h -> 
-      let nid = h.Route.hop in 
-      let c = cost nid 
-      and d = (World.w())#dist_nodeids 0 nid in 
-      assert (c < max_float);
-      if c < max_float then
-	Printf.fprintf oc "%.2f %.2f\n" d c
-    ) (List.rev (o2v !rt));
-    close_out oc;
-    let oc = open_out "/tmp/floods_fresh.dat" in
-    List.iter (fun h -> 
-      begin 
-	match h.Route.info with
-	| None -> ()
-	| Some flood -> 
-	    let cost = cost (NaryTree.root flood) in
-	    let flood_span = ref 0.0 in 
-	    NaryTree.iter 
-	      (fun nid -> if (World.w())#dist_nodeids 0 nid > !flood_span then 
-		flood_span := (World.w())#dist_nodeids 0 nid) 
-	      flood;
-	    let d_root_dest = 
-	      ((World.w())#dist_nodeids 0 (NaryTree.root flood)) in
-	    let lower_bar =  -. !flood_span
-	    and upper_bar =  !flood_span in
-	    if cost < max_float then
-	    Printf.fprintf oc "%.2f %.2f %.2f %.2f\n"
-	      d_root_dest
-	      cost 
-	      (lower_bar +. cost)
-	      (upper_bar +. cost)
-      end;     
-    ) (List.rev (o2v !rt));
-    close_out oc
-  )
-*)
 let buttonlist = [
   ("Move nodes",      `TOGGLE,  [`FUNC start_stop]);
   ("Draw route",      `TOGGLE,  [`FUNC choose_node]);
@@ -214,7 +159,7 @@ let buttonlist = [
   ("Hide Directions", `CHECK,   [`TOGGLE show_route_lines; `FUNC refresh_fun]);
   ("Hide Disks",      `CHECK,   [`TOGGLE show_route_disks; `FUNC refresh_fun]);
   ("Text",            `CHECK,   [`TOGGLE text_entry; `FUNC refresh_fun]);
-  ("Graph Gradient",  `TOGGLE,  [`FUNC graph_gradient]);
+  ("Dump Gradient (FRESH)",  `TOGGLE,  [`FUNC (fun () -> Ler_utils.dump_gradient routes.(stack_of_proto()))]);
 ] 
 
 

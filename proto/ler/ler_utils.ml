@@ -32,6 +32,15 @@ let dist_age_arr ?(dst=0) () =
     (List.map (fun (nid, opt) -> nid, 	(now -. (Opt.get opt))) (List.filter (fun (_, o) -> Opt.is_some o) l)) in
   Array.sort (fun (d1, _) (d2, _) -> compare d1 d2)  f; f;;
 
+let dist_age_avg_arr ?(dst=0) ~npoints () = 
+  let a = dist_age_arr ~dst () in
+  let binwid = (Array.length a) / npoints in
+  if npoints == 0 then failwith "Ler_utils.dist_age_avg_arr";
+  Array.init npoints (fun i -> 
+    let sub = Array.sub a (i * binwid) binwid in
+    Gsl_stats.mean (Array.map fst sub), Gsl_stats.mean (Array.map snd sub)
+  )
+
 
 let route_ctr = ref 0
 
@@ -66,4 +75,31 @@ let proportion_met_nodes ?(stack=0) () =
       (Ler_agent.agents ~stack ()) 0
   in
   (float total_encounters) /. (float ((Param.get Params.nodes) * targets))
+
+
+(* this was written for FRESH -- don't know if it makes sense for EASE/GREASe
+   routes... *)
+let dump_gradient route =
+
+  let oc = open_out "/tmp/gradient_fresh.dat" in
+  
+  let a = dist_age_arr () in 
+  Array.iter (fun (d,a) -> Printf.fprintf oc "%f %f\n" d a) a;
+  close_out oc;
+
+  let oc = open_out "/tmp/gradient_fresh_avg.dat" in
+  let a = dist_age_avg_arr ~npoints:50 () in 
+  Array.iter (fun (d,a) -> Printf.fprintf oc "%f %f\n" d a) a;
+  close_out oc;
+
+  let oc = open_out "/tmp/route_fresh.dat" in
+  List.iter (fun h -> 
+
+    let d = (World.w())#dist_nodeids 0 h.Route.hop
+    and a = (Ler_agent.agent h.Route.hop)#le_tab#le_age 0 in
+    if (Opt.get h.Route.info).Ler_route.searchcost <> 0. then
+
+    Printf.fprintf oc "%.2f %.2f\n" d a
+  ) route;
+  close_out oc
 
