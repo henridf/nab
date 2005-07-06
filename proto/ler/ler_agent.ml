@@ -104,7 +104,7 @@ object(s)
     s#recv_ler_pkt_ l3pkt 
 
 
-  (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
+  (* [recv_pkt_app] is the entry point from upper (L4) layers which have a 
      packet to send. We build the L3 header and originate the packet into the
      EASE routing logic. *)
   method recv_pkt_app l4pkt dst = (
@@ -295,8 +295,8 @@ object(s)
 	    s#have_better_anchor dst cur_enc_age
 	  ) then (
 	    (* If we enter this branch, then either 
-	       a) we are have arrived at the anchor, or 
-	       b) we have ourselves a better anchor (and grease is turned on). 
+	       (a) we are have arrived at the anchor, or 
+	       (b) we have ourselves a better anchor (and grease is turned on). 
 	       Either way, we call #find_next_anchor which will either
 	       return the better anchor from our own table (if case b above)
 	       or it will find the closest neighboring node with a better
