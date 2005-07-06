@@ -23,3 +23,12 @@ node_popularity.ml
 
   build: 
   make OPT=y SCRIPT=proto/ler/scripts/node_popularity.ml bin/nab
+
+
+
+eval_gradient.ml
+
+  abstract:
+  unfinished script to compute age gradient (by regression) on each path going 
+  outward from a node.
+
