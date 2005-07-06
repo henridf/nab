@@ -31,7 +31,7 @@
 open Printf
 
 (** A simple agent to emit and receive hello packets and 
-  maintain a last-encounter table. Mostly for illustrational purposes, since
+  maintain a last-encounter table. Mostly for illustrative purposes, since
   these agents do not provide any routing or other capability.
 
   @author Henri Dubois-Ferriere.

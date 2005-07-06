@@ -90,4 +90,4 @@ type mob_t =
 
 
 val mob : [ mob_t | `None] Param.t
-  (** Mob param *)
+  (** Mob param, default is Billiard. *)

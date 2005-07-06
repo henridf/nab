@@ -69,6 +69,9 @@ class virtual contention_frontend : ?stack:int -> bps:float ->
 object
   inherit Log.virtual_loggable 
   inherit [stats] Mac.frontend_t
+  method virtual private backend_xmit_complete : unit
+    (** To be implemented by backend class which is mixed in with this
+      frontend (method documented in {!Mac.backend_t}). *)
 
   (* Instance vars that are exported for inheriting classes. *) 
   val mutable interfering_until : Time.time_t
