@@ -78,6 +78,18 @@ let dist c1 c2 = (
   sqrt  (dist_sq c1 c2)
 )
 
+let angle c = 
+  let a = atan (abs_float ((yy c) /. (xx c))) in 
+  match xx c > 0., yy c > 0.
+  with 
+    | true, true -> a
+    | true, false -> (2. *. pi) -.  a
+    | false, true -> pi -. a
+    | false, false -> pi +. a
+
+  
+let angle_deg c = rad2deg (angle c)
+
 let normalize p = 
   let n = norm p in
   match n with 

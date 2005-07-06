@@ -88,6 +88,10 @@ val dist_sq : coordf_t -> coordf_t -> float
 
 val normalize : coordf_t -> coordf_t
 
+val angle : coordf_t -> float 
+val angle_deg : coordf_t -> float 
+
+
 (** Printing and string representations *)
 
 val print : coordi_t -> unit
