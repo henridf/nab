@@ -61,7 +61,10 @@ let () =
     Script_utils.detach_daemon ~outfilename:logname () end;
   
 
-  Warmup_utils.setup_or_restore dumpfile;
+  if not (Sys.file_exists dumpfile) then 
+    Warmup_utils.setup_sim ()
+  else
+    Warmup_utils.restore_sim dumpfile;
   
   Pervasives.at_exit (fun () ->
     let stats = Warmup_utils.sprint_added_stats() in

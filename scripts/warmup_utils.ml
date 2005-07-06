@@ -269,17 +269,12 @@ let setup_sim () =
   
   Script_utils.install_mobs ()
 
+    
+let restore_sim fname = 
+  let ic = Pervasives.open_in fname in
+  Persistency.restore_sim ic;
+  close_in ic
 
-
-let setup_or_restore fname = 
-  if not (Sys.file_exists fname) then (
-    setup_sim ();
-  Param.printconfig !Log.ochan;
-  ) else (
-    let ic = Pervasives.open_in fname in
-    Persistency.restore_sim ic;
-    close_in ic;
-  )
 
     
     

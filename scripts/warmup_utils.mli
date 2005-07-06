@@ -29,9 +29,12 @@
 val sprint_added_stats : unit -> string
 val sprint_added_jdbstats : unit -> string
 
-val setup_or_restore : string -> unit
-  (** [setup_or_restore fname] restores simulation state using dumpfile
-    [fname] if that file exists; otherwise sets up simulation. *)
+val setup_sim : unit -> unit
+  (** Sets up simulation. *)
+
+val restore_sim : string -> unit
+  (** [restore_sim fname] restores simulation state using dumpfile
+    [fname]. *)
   
 val maybe_warmup : string -> unit
   (** Warmup simulation if -warmup [traffic | mob | none] was passed as
