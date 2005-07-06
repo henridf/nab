@@ -1,0 +1,25 @@
+LER related scripts:
+
+
+viz_routes.ml
+  
+  abstract: 
+  nabviz that shows routes and dumps ages to plot in gnuplot.
+
+  build:
+  make OPT=y SCRIPT=proto/ler/scripts/viz_routes.ml bin/nabviz
+
+  other:
+  after hitting 'Dump gradient', do a gnuplot proto/ler/scripts/plot.gp - to
+  visualize.
+
+
+
+node_popularity.ml
+
+  abstract: 
+  compute histogram of node anchoring frequency to see if a small portion of
+  nodes answer most FRESH queries.
+
+  build: 
+  make OPT=y SCRIPT=proto/ler/scripts/node_popularity.ml bin/nab
