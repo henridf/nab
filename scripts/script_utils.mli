@@ -61,7 +61,8 @@ val init_all : unit -> unit
 
 val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
   (** Returns the side of a square surface to get the required average node
-    degree, given the number of nodes and radio range *)
+    degree, given the number of nodes and radio range. If world is
+    one-dimensional, returns the length of the segment (or ring).*)
     
 val make_nodes :  ?with_positions:bool -> unit -> unit
   (** Create {!Node.node} each with a mac layer of the type

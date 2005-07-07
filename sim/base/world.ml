@@ -32,6 +32,8 @@ type worldtype =
   | Greedy_taurus 
   | Epfl
 
+type world_dim =  One | Two
+
 let (lazy_world_ : Worldt.lazy_world_t option ref) = ref None 
 let w () = try o2v !lazy_world_ with
   | Failure _ -> raise (Failure "World.w() : no instance has been set")
@@ -45,7 +47,10 @@ let set_greedy_world t =
   greedy_world_ := Some t; 
   lazy_world_ := Some (t :> Worldt.lazy_world_t)
 
-let world_of_string = function
+let world_of_string str = 
+  let l = Str.split (Str.regexp ",") str in
+  if List.length l <> 2 then raise (Failure ("Invalid worldtype "^str));
+  let worldtype = begin match List.hd l with
   | "lazy_taurus" |  "taurus_lazy" | "tl" | "lt"
       -> Lazy_taurus
   | "greedy_taurus" |  "taurus_greedy" | "tg" | "gt"
@@ -57,15 +62,38 @@ let world_of_string = function
   | "epfl" 
     -> Epfl
   | s -> raise (Failure ("Invalid worldtype "^s))
+  end 
+  and worlddim = begin match List.nth l 1 with
+    | "1" | "one" | "1d" | "1-d" | "onedim" | "one-dim" | "1dim" | "1-dim" ->
+	One
+    | "2" | "two" | "2d" | "2-d" | "twodim" | "two-dim" | "2dim" | "2-dim" ->
+	Two
+  | s -> raise (Failure ("Invalid worldtype "^s))
+end
+  in 
+  worldtype, worlddim
 
-let string_of_world = function
-  | Greedy -> "greedy"
-  | Lazy -> "lazy"
-  | Lazy_taurus -> "lazy_taurus" 
-  | Greedy_taurus -> "greedy_taurus"
-  | Epfl -> "epfl" 
+let string_of_world (wt, wd) = 
+  begin match wt with
+    | Greedy -> "greedy"
+    | Lazy -> "lazy"
+    | Lazy_taurus -> "lazy_taurus" 
+    | Greedy_taurus -> "greedy_taurus"
+    | Epfl -> "epfl" 
+  end
+  ^ "," ^
+  begin match wd with 
+    | One -> "1"
+    | Two -> "2"
+  end
 
-let world = Param.create ~name:"world" ~default:Lazy ~doc:"World type"
-  ~reader:world_of_string ~printer:string_of_world()
+let world = 
+  Param.create 
+    ~name:"world" 
+    ~cmdline:true
+    ~default:(Lazy, Two) 
+    ~doc:"World type"
+    ~reader:world_of_string 
+    ~printer:string_of_world()
 
 	

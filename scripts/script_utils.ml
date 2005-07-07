@@ -82,13 +82,24 @@ let init_lazy_taurus_world() =
 )
 
 let init_world() = 
-  match Param.get World.world with
-    | World.Greedy -> init_greedy_world()
-    | World.Lazy -> init_lazy_world()
-    | World.Lazy_taurus -> init_lazy_taurus_world()
-    | World.Greedy_taurus -> init_greedy_taurus_world()
-    | World.Epfl -> init_epfl_world()
-
+  match snd (Param.get World.world) with
+    | World.One -> 
+	begin match fst (Param.get World.world) with
+	  | World.Greedy -> init_greedy_world()
+	  | World.Lazy -> init_lazy_world()
+	  | World.Lazy_taurus -> init_lazy_taurus_world()
+	  | World.Greedy_taurus -> init_greedy_taurus_world()
+	  | World.Epfl -> init_epfl_world()
+	end
+    | World.Two -> 
+	begin match fst (Param.get World.world) with
+	  | World.Greedy -> init_greedy_world()
+	  | World.Lazy -> init_lazy_world()
+	  | World.Lazy_taurus -> init_lazy_taurus_world()
+	  | World.Greedy_taurus -> init_greedy_taurus_world()
+	  | World.Epfl -> init_epfl_world()
+	end
+	      
 let init_all() =   (
   Time.set_time 0.0;
   init_sched(); 
@@ -286,11 +297,13 @@ let detach_daemon ?outfilename () = (
   side = sqrt(area)
 *)
 let size 
-  ?(rrange=(Param.get Params.radiorange))  
-  ?(nodes=(Param.get  Params.nodes)) ~avg_degree () = 
+  ?(rrange=(Param.get Params.radiorange))
+  ?(nodes=(Param.get Params.nodes)) ~avg_degree () = 
 
-  sqrt( (float nodes) *. (3.14 *. (rrange *. rrange)) /. 
-    float (avg_degree))
+  match snd (Param.get World.world) with 
+    | World.One -> (rrange *. (float nodes)) /. (float avg_degree)
+    | World.Two ->  
+	sqrt((float nodes) *. (3.14 *. (rrange *. rrange)) /. (float avg_degree))
 
 
 let interactive_print_banner s = 

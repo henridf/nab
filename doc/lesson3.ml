@@ -44,7 +44,7 @@ let () =
   Param.set Params.x_pix_size 600; (* size of gui window *)
   Param.set Params.y_pix_size 600;
 
-  Param.set World.world World.Greedy;
+  Param.set World.world (World.Greedy, World.Two); (* Greedy world with two dimensions*)
 
   (* Set the transmission range (range within which nodes are neighbors). *)
   Param.set Params.radiorange radiorange;

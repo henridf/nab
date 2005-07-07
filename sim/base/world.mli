@@ -32,6 +32,9 @@ val set_lazy_world : Worldt.lazy_world_t -> unit
 val set_greedy_world : Worldt.greedy_world_t -> unit
   (** Sets the global greedy world object. *)
 
+type world_dim =  One | Two
+  (** Dimension of the world that nodes inhabit.*)
+
 type worldtype = 
   | Lazy
   | Greedy
@@ -40,7 +43,7 @@ type worldtype =
   | Epfl
       (** The type of world that can be used (see sim/interfaces/worldt.ml)*)
       
-val world : worldtype Param.t
+val world : (worldtype * world_dim) Param.t
   (** Configuration parameter representing the type of world to use. Default
     is Lazy.*)
 

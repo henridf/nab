@@ -110,7 +110,6 @@ struct
     ~checker:(fun i -> Randoms.change_seed ~newseed:i ())
     ~doc:"Run number" ()
 
-
 end
 
 let sp = Printf.sprintf
@@ -241,7 +240,8 @@ let setup_sim () =
   if agenttype == LER_FRESH || 
     agenttype == LER_EASE || 
     agenttype == LER_GREASE then
-      Param.set World.world World.Greedy;
+      Param.set World.world (World.Greedy, snd (Param.get World.world));
+  (* change greediness but keep dimension *)
 
   Script_utils.init_all();
 
