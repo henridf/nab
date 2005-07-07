@@ -10,6 +10,7 @@ proto/aodv/scripts/test_6_nodes.ml \
 proto/aodv/scripts/test_7_nodes_rerr.ml \
 proto/str/scripts/strtest.ml \
 proto/ler/scripts/eval_gradient.ml \
+sim/mob/test_mob_persist.ml \
 doc/lesson1.ml \
 doc/lesson2.ml \
 "
