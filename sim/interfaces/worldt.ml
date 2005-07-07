@@ -22,9 +22,6 @@
 
 (* $Id$ *)
 
-open Misc
-open Common
-
 (** 
   World: All computation requiring omniscience is done here. 
   Things like:
