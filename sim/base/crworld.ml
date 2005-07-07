@@ -50,7 +50,7 @@ open Graph
 *)
 class virtual world_common ~x ~y ~rrange  = (
   object(s)
-
+    
     val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 ([]:Common.nodeid_t list))
     val mutable node_positions_ =  [|(0., 0.)|]
 
@@ -63,7 +63,7 @@ class virtual world_common ~x ~y ~rrange  = (
     (* We assume that nodes inhabit a rectangular surface.
        We tile that surface into rectangular tiles of which are chosen
        as small as possible (under the constraint that they have both sides
-       bigger than the radio range. 
+       bigger than the radio range). 
        
        So for example, if the world is 15x10, and radio range is 3, we will
        have tiles of size 3x3.3
@@ -103,7 +103,7 @@ class virtual world_common ~x ~y ~rrange  = (
     method virtual are_neighbors : Common.nodeid_t -> Common.nodeid_t -> bool
       (* One-hop neighborhood. *)
     method virtual private neighboring_tiles : int * int -> (int * int) list
-      (* Return the 8 neigboring tiles of a tile. *)
+      (* Return the (max 8) neigboring tiles of a tile. *)
 
 
     initializer (
@@ -114,8 +114,7 @@ class virtual world_common ~x ~y ~rrange  = (
       Log.log#log_notice (lazy 
 	(sprintf "World: %.2f x %.2f [m],  %.2f radio range [m], %d nodes" 
 	  x y rrange (Param.get Params.nodes))
-      );
-      ignore (tile_size_x)
+      )
     )
 
     (* takes a 'real' position  (ie, in meters) and returns the 
@@ -148,11 +147,7 @@ class virtual world_common ~x ~y ~rrange  = (
 	tiles
     )
 
-
-    method random_pos  = (
-      let pos = (Random.float world_size_x, Random.float world_size_y) in
-      pos
-    )
+    method random_pos = (Random.float world_size_x, Random.float world_size_y) 
 
     method dist_nodeids id1 id2 = s#dist_coords (node_positions_.(id1)) (node_positions_.(id2))
 
@@ -238,9 +233,9 @@ class virtual world_common ~x ~y ~rrange  = (
       
       let (newx, newy) = s#pos_in_grid_ newpos in
       
-      let oldpos = (node_positions_.(nid)) in
       node_positions_.(nid) <- newpos;
 
+      let oldpos = (node_positions_.(nid)) in
       let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
       
       if (oldx, oldy) <> (newx, newy) then (
@@ -614,11 +609,11 @@ class virtual reflecting_world ~x ~y ~rrange = (
       if !newx >  world_size_x then 
 	newx := (2.0 *. world_size_x) -. !newx
       else if !newx < 0.0 then
-	newx := (-1.0) *. !newx;
+	newx := -.(!newx);
       if !newy > world_size_y  then  
 	newy := (2.0 *. world_size_y) -. !newy
       else if !newy < 0.0 then
-	newy := (-1.0) *. !newy;
+	newy := -.(!newy);
 
       assert (!newx >= 0.0 && !newx <=  world_size_x && !newy >= 0.0 && !newy <=  world_size_y);
       (!newx, !newy)
