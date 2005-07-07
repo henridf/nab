@@ -22,11 +22,8 @@
 
 (* $Id$ *)
 
-
 open Misc
 open Script_utils
-
-let sp = Printf.sprintf
 
 let () = 
 
@@ -38,7 +35,11 @@ let () =
   
   let dumpfile = Param.get Script_params.dumpfile in
 
-  Warmup_utils.setup_or_restore dumpfile;
+  if not (Sys.file_exists dumpfile) then 
+    Warmup_utils.setup_sim ()
+  else
+    Warmup_utils.restore_sim dumpfile;
+
   
   if Param.get Script_params.detach then begin
     let logname = (Filename.chop_extension dumpfile)^".log" in
