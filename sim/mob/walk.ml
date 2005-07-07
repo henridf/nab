@@ -28,21 +28,25 @@ module Random = Random.State
 
 let sp = Printf.sprintf
 
+type rw_dim = OneD | TwoD
+type other_state = rw_dim
+
 let mobs = Hashtbl.create 64 
 
-class discreteRandomWalk 
+
+class discreteRandomWalk_2d
   (owner:#Node.node) 
   ?gran 
   () = 
 object(s)
 
-  inherit [unit] Mob_base.mobility owner ?gran ()
-  inherit Mob_base.no_other_state_mixin
+  inherit [other_state] Mob_base.mobility owner ?gran ()
 
   initializer 
-    Hashtbl.add mobs owner#id (s :> discreteRandomWalk) 
+    Hashtbl.add mobs owner#id (s :> discreteRandomWalk_2d)
 
-
+  method private dump_other_state() = TwoD
+  method private restore_other_state state = ()
 
   (* ignores gran, meaningless for a discrete mob *)
   method getnewpos ~gran = 
@@ -68,12 +72,46 @@ object(s)
 
 end
 
-let make_discrete_rw ?gran n = ignore (new discreteRandomWalk n ?gran ())
+
+class discreteRandomWalk_1d
+  (owner:#Node.node) 
+  ?gran 
+  () = 
+object(s)
+
+  inherit [other_state] Mob_base.mobility owner ?gran ()
+
+  initializer 
+    Hashtbl.add mobs owner#id (s :> discreteRandomWalk_1d) 
+
+  method private dump_other_state() = OneD
+  method private restore_other_state state = ()
+
+  (* ignores gran, meaningless for a discrete mob *)
+  method getnewpos ~gran = 
+    let oldx = fst ((World.w())#nodepos owner#id) in
+    let step = if Random.int rnd 2 = 0 then gran else -.gran in
+    let newx = ref (oldx +. step) in
+
+    if (!newx < 0.0) then newx := 0.;
+
+    if (!newx > (Param.get Params.x_size)) then newx := ((Param.get
+      Params.x_size) -. 1.);
+
+    (World.w())#boundarize (!newx, 0.)
+
+end
+
+
+
+
+let make_discrete_rw_2d ?gran n = ignore (new discreteRandomWalk_2d n ?gran ())
+let make_discrete_rw_1d ?gran n = ignore (new discreteRandomWalk_1d n ?gran ())
 
 module Persist : Persist.t = 
 struct 
 
-  type state = Mob_base.base_state * unit
+  type state = Mob_base.base_state * other_state
 
   let save oc = 
     let len = Misc.hashlen mobs in
@@ -90,8 +128,11 @@ struct
     for i = 0 to nmobs - 1 do
       let (nid, mob_state) = 
 	(Marshal.from_channel ic : Common.nodeid_t * state) in
-      let mob = new discreteRandomWalk (Nodes.node nid) () in
-      mob#restore_state mob_state;
+      let mob = begin match snd mob_state with 
+	  OneD -> new discreteRandomWalk_1d (Nodes.node nid) () 
+	| TwoD -> new discreteRandomWalk_2d (Nodes.node nid) ()  end 
+      in
+      mob#restore_state mob_state; 
       Log.log#log_info (lazy (sp "Restored random walk for node %d" nid))
     done;
     if nmobs > 0 then

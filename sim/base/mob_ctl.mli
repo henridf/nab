@@ -48,10 +48,11 @@ val make_epfl_waypoint_mobs : unit -> unit
   (** Create {!Mob.t} objects that implement a waypoint mobility model
     over epfl campus, using graph representation of epfl campus (see file [gui/epflcoords.ml]). *)
 
-val make_discrete_randomwalk_mobs : ?gran:float -> unit -> unit
+val make_discrete_randomwalk_mobs : ?gran:float -> ?dim:[`One | `Two ]-> unit -> unit
   (** Create {!Mob.t} objects that implement a discrete random walk 
     mobility model. 
     Optional [gran] indicates the step size.
+    Optional [dim] defaults to two and indicates dimensionality.
   *)
 
 val set_speed : Common.nodeid_t -> float -> unit
@@ -85,7 +86,8 @@ type mob_t =
     [ `Borderwaypoint 
     | `Uniwaypoint 
     | `Epfl_waypoint
-    | `Randomwalk 
+    | `Randomwalk_2d
+    | `Randomwalk_1d
     | `Billiard]
 
 

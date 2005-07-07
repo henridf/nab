@@ -160,7 +160,8 @@ let install_mobs ?gran () =
     | `Borderwaypoint  -> Mob_ctl.make_borderwaypoint_mobs ?gran ()
     | `Epfl_waypoint  -> Mob_ctl.make_epfl_waypoint_mobs ()
     | `Billiard  -> Mob_ctl.make_billiard_mobs ?gran ()
-    | `Randomwalk  -> Mob_ctl.make_discrete_randomwalk_mobs ?gran ()
+    | `Randomwalk_1d  -> Mob_ctl.make_discrete_randomwalk_mobs ?gran ~dim:`One ()
+    | `Randomwalk_2d  -> Mob_ctl.make_discrete_randomwalk_mobs ?gran ~dim:`Two ()
     | `None -> ()
 
 

@@ -23,9 +23,12 @@
 (* $Id$ *)
 
 
-(** Discrete Random Walk, moves by 1.0 in one of 4 cardinal directions at each
+(** Discrete random walk in the plane, moves in one of 4 cardinal directions at each
   step *)
-val make_discrete_rw : ?gran:float -> #Node.node -> unit
+val make_discrete_rw_2d : ?gran:float -> #Node.node -> unit
+
+(** Discrete random walk on a line, moves left or right at each step. *)
+val make_discrete_rw_1d : ?gran:float -> #Node.node -> unit
 
 
 module Persist : Persist.t

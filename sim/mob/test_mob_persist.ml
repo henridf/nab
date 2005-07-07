@@ -2,7 +2,7 @@
    also doesn't test epfl mob yet.
 *)
 
-#use "/home/henridf/.ocamlinit";;
+(*#use "/home/henridf/.ocamlinit";;*)
 
 let moving_nodes = [2; 3]
 let not_moving_nodes = [1; 11; 12; 13]
@@ -22,8 +22,8 @@ Param.set Params.x_size 1000.;
 Script_utils.init_all();
 Script_utils.make_nodes();
 
-Walk.make_discrete_rw (Nodes.node 1);
-Walk.make_discrete_rw (Nodes.node 11);
+Walk.make_discrete_rw_1d (Nodes.node 1);
+Walk.make_discrete_rw_2d (Nodes.node 11);
 Billiard.make_billiard (Nodes.node 2);
 Billiard.make_billiard (Nodes.node 12);
 

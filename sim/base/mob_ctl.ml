@@ -27,7 +27,8 @@ type mob_t =
     [ `Borderwaypoint 
     | `Uniwaypoint 
     | `Epfl_waypoint
-    | `Randomwalk 
+    | `Randomwalk_1d
+    | `Randomwalk_2d
     | `Billiard]
 
 let sp = Printf.sprintf
@@ -36,7 +37,8 @@ let mob_of_string = function
   | "borderwp" | "borderwaypoint" | "border" -> `Borderwaypoint
   | "waypoint" | "uniwaypoint" | "uniwp" -> `Uniwaypoint
   | "epfl" -> `Epfl_waypoint
-  | "rw" | "randomwalk" -> `Randomwalk
+  | "rw_1d" | "randomwalk_1d" -> `Randomwalk_1d
+  | "rw_2d" | "randomwalk_2d" -> `Randomwalk_2d
   | "billiard" -> `Billiard
   | "none" -> `None
   | _ -> raise (Failure "Invalid format for mobility type")
@@ -45,7 +47,8 @@ let string_of_mob = function
   | `Borderwaypoint -> "borderwp" 
   | `Uniwaypoint -> "uniwaypoint"
   | `Epfl_waypoint -> "epfl"
-  | `Randomwalk -> "rw"
+  | `Randomwalk_1d -> "rw_1d"
+  | `Randomwalk_2d -> "rw_2d"
   | `Billiard -> "billiard"
   | `None -> "none"
 
@@ -68,15 +71,18 @@ let make_uniwaypoint_mobs ?gran () =
 
 let make_borderwaypoint_mobs ?gran () =
   (Nodes.iter 
-    (fun n -> Waypoint.make_uniwaypoint ?gran n))
+    (fun n -> Waypoint.make_borderwaypoint ?gran n))
 
 let make_billiard_mobs ?gran () = 
   (Nodes.iter 
     (fun n -> Billiard.make_billiard ?gran n))
 
-let make_discrete_randomwalk_mobs ?gran () = 
-  (Nodes.iter 
-    (fun n -> Walk.make_discrete_rw ?gran n))
+let make_discrete_randomwalk_mobs ?gran ?(dim=`Two) () = 
+  match dim with
+    | `One -> Nodes.iter 
+	  (fun n -> Walk.make_discrete_rw_1d ?gran n)
+    | `Two -> Nodes.iter 
+	  (fun n -> Walk.make_discrete_rw_2d ?gran n)
 
 let make_epfl_waypoint_mobs() = (
   (Nodes.iter 
@@ -93,16 +99,16 @@ let stop_all() = Nodes.iteri (fun i _ -> stop_node i)
 module Persist : Persist.t = 
 struct
 
-type mob_t = 
+type persist_mob_t = 
     [ `Waypoint 
     | `Epfl_waypoint
-    | `Randomwalk 
+    | `Randomwalk
     | `Billiard]
 
 
 let restore_mob ic = 
   let mobtype = 
-    (Marshal.from_channel ic : mob_t) in
+    (Marshal.from_channel ic : persist_mob_t) in
   begin match mobtype with
     | `Waypoint -> Waypoint.Persist.restore ic
     | `Epfl_waypoint -> Epfl_mob.Persist.restore ic
@@ -122,7 +128,7 @@ end
 let save oc = 
   let mobs_to_save = 
     ([ `Waypoint; `Epfl_waypoint;
-    `Randomwalk; `Billiard] : [> mob_t] list) in
+    `Randomwalk; `Billiard] : [> persist_mob_t] list) in
     (* this cast is to 'open' the type, since when it is read back the type may
        have grown. not sure if not doing this would be dangerous, but playing it
        safe anyway...*)
