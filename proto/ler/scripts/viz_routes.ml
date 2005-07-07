@@ -33,7 +33,11 @@ let _ =
   in
   
   
-  Warmup_utils.setup_or_restore dumpfile;
+  if not (Sys.file_exists dumpfile) then 
+    Warmup_utils.setup_sim ()
+  else
+    Warmup_utils.restore_sim dumpfile;
+
   
   
   Nodes.iter (fun n -> n#remove_mac ());
