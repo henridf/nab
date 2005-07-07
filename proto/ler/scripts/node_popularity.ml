@@ -33,7 +33,7 @@ let () =
   in
   
   
-  Warmup_utils.setup_or_restore dumpfile;
+  Warmup_utils.restore_sim dumpfile;
   
 
   (* this was to dump d, a 
