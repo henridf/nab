@@ -208,6 +208,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_MISC_DIR)/bcast_agent$(CMO) \
 		$(SIM_BASE_DIR)/crsearch$(CMO) \
 		$(SIM_BASE_DIR)/crworld$(CMO) \
+		$(SIM_BASE_DIR)/onedim_world$(CMO) \
 		$(SIM_SCRIPT_DIR)/traffic_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/test_utils$(CMO) \
 		$(SIM_SCRIPT_DIR)/script_params$(CMO) \
