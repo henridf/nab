@@ -55,6 +55,7 @@ val create :
   @param name The name of the parameter.
   @param doc A textual description of the parameter.
   @param reader A function which converts a string to the parameter (used by
+  [Param.strset]), should raise any exception if parsing fails.
   @param printer A function which returns a string representing the value of
   the parameter.
   @param default Default value. Optional.
