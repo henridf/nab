@@ -112,7 +112,7 @@ class virtual world_common ~x ~y ~rrange  = (
       node_positions_ <- Array.make (Param.get Params.nodes) initial_pos;
 
       Log.log#log_notice (lazy 
-	(sprintf "World: %.2f x %.2f [m],  %.2f radio range [m], %d nodes" 
+	(sprintf "2D World: %.2f x %.2f [m],  %.2f radio range [m], %d nodes" 
 	  x y rrange (Param.get Params.nodes))
       )
     )
