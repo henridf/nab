@@ -33,7 +33,11 @@ let sp = Printf.sprintf
   
 let () = 
 
-  Warmup_utils.setup_or_restore (Param.get Script_params.dumpfile);
+  let dumpfile = (Param.get Script_params.dumpfile) in
+  if not (Sys.file_exists dumpfile) then 
+    Warmup_utils.setup_sim ()
+  else
+    Warmup_utils.restore_sim dumpfile;
 
   Pervasives.at_exit (fun () ->
     let stats = Warmup_utils.sprint_added_stats() in
