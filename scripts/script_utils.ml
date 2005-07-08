@@ -45,13 +45,13 @@ let parse_args ?(extra_argspec=[]) ?(anon_fun=(fun _ -> ())) () = (
 
 let init_sched() = Sched.makeSchedHeap()
 
-let init_greedy_world() = 
+let init_greedy_world_2d() = 
   World.set_greedy_world (new Crworld.greedy_reflecting_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.radiorange))
 
-let init_greedy_taurus_world() = 
+let init_greedy_taurus_world_2d() = 
   World.set_greedy_world (new Crworld.greedy_taurus_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
@@ -67,17 +67,38 @@ let init_epfl_world() = (
     ~rrange:(Param.get Params.radiorange))
 )
   
-let init_lazy_world() = 
+let init_lazy_world_2d() = 
   World.set_lazy_world (new Crworld.lazy_reflecting_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
     ~rrange:(Param.get Params.radiorange)
 )
 
-let init_lazy_taurus_world() = 
+let init_lazy_taurus_world_2d() = 
   World.set_lazy_world (new Crworld.lazy_taurus_world
     ~x:(Param.get Params.x_size)
     ~y:(Param.get Params.y_size)
+    ~rrange:(Param.get Params.radiorange)
+)
+
+let init_greedy_world_1d() = 
+  World.set_greedy_world (new Onedim_world.greedy_reflecting_world
+    ~x:(Param.get Params.x_size) ~rrange:(Param.get Params.radiorange))
+
+let init_greedy_ring_world_1d() = 
+  World.set_greedy_world (new Onedim_world.greedy_taurus_world
+    ~x:(Param.get Params.x_size)
+    ~rrange:(Param.get Params.radiorange))
+
+let init_lazy_world_1d() = 
+  World.set_lazy_world (new Onedim_world.lazy_reflecting_world
+    ~x:(Param.get Params.x_size)
+    ~rrange:(Param.get Params.radiorange)
+)
+
+let init_lazy_ring_world_1d() = 
+  World.set_lazy_world (new Onedim_world.lazy_taurus_world
+    ~x:(Param.get Params.x_size)
     ~rrange:(Param.get Params.radiorange)
 )
 
@@ -85,18 +106,18 @@ let init_world() =
   match snd (Param.get World.world) with
     | World.One -> 
 	begin match fst (Param.get World.world) with
-	  | World.Greedy -> init_greedy_world()
-	  | World.Lazy -> init_lazy_world()
-	  | World.Lazy_taurus -> init_lazy_taurus_world()
-	  | World.Greedy_taurus -> init_greedy_taurus_world()
-	  | World.Epfl -> init_epfl_world()
+	  | World.Greedy -> init_greedy_world_1d()
+	  | World.Lazy -> init_lazy_world_1d()
+	  | World.Lazy_taurus -> init_lazy_ring_world_1d()
+	  | World.Greedy_taurus -> init_greedy_ring_world_1d()
+	  | World.Epfl -> failwith "Script_utils.init_world : epfl is two-dimensional!"
 	end
     | World.Two -> 
 	begin match fst (Param.get World.world) with
-	  | World.Greedy -> init_greedy_world()
-	  | World.Lazy -> init_lazy_world()
-	  | World.Lazy_taurus -> init_lazy_taurus_world()
-	  | World.Greedy_taurus -> init_greedy_taurus_world()
+	  | World.Greedy -> init_greedy_world_2d()
+	  | World.Lazy -> init_lazy_world_2d()
+	  | World.Lazy_taurus -> init_lazy_taurus_world_2d()
+	  | World.Greedy_taurus -> init_greedy_taurus_world_2d()
 	  | World.Epfl -> init_epfl_world()
 	end
 	      
