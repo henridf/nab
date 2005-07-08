@@ -159,6 +159,9 @@ let set_hellos() =
 
       
 let start_appropriate_nodes() = 
+  let center = 
+    ((Param.get Params.x_size)/. 2., (Param.get Params.y_size)/. 2.) in
+
   let dests = Traffic_utils.all_destinations() 
   and sources = Traffic_utils.all_sources() in
   match Param.get Config.move with
@@ -173,6 +176,7 @@ let start_appropriate_nodes() =
     | `ALLBUTDESTS ->
 	Nodes.iteri (fun nid node -> if not (List.mem nid dests) then
 	  Mob_ctl.start_node nid);
+	(World.w())#movenode (List.hd dests) ~newpos:center;
     | `ALLBUTSOURCES ->
 	Nodes.iteri (fun nid node -> if not (List.mem nid sources) then
 	  Mob_ctl.start_node nid);
