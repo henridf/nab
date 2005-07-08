@@ -20,6 +20,14 @@
  *
  *)
 
+(* quick script for generating warmups. 
+   compile as make SCRIPT=warmup.ml OPT=y bin/nab, then run as
+
+   bin/nab -nodes 10000 -agent ler-fresh -warmup mob -mob rw_1d -run 1 -move all
+   -dumpfile ~/tmp/dump.nab -world greedy,1
+
+*)
+
 (* $Id$ *)
 
 open Misc
@@ -38,7 +46,8 @@ let () =
   if not (Sys.file_exists dumpfile) then 
     Warmup_utils.setup_sim ()
   else
-    Warmup_utils.restore_sim dumpfile;
+    failwith ("Dump file"^dumpfile^"already exists, are you sure you want to overwrite it?");
+
 
   
   if Param.get Script_params.detach then begin
