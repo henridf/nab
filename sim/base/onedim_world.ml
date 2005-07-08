@@ -262,7 +262,7 @@ class virtual onedim_world_common  ~x ~rrange = (
 
 	(* do first tile right around 'pos'*)
 	List.iter check_node grid_of_nodes_.(p);
-	if !c_id = None then raise Exit;
+	if !c_id <> None then raise Exit;
 	
 	(* now do expanding search, taking two tiles on either side of pos, at
 	   increasing distances. *)
@@ -284,7 +284,7 @@ class virtual onedim_world_common  ~x ~rrange = (
       !c_id
     )
 
-    method project_2d ((x, _): float * float ) =  (x /. world_size, 0.)
+    method project_2d ((x, _): float * float ) =  (x /. world_size, 0.5)
 
     method is_connected() = raise Not_Implemented; true
 
