@@ -82,11 +82,34 @@ let paths tree =
   in
   List.map path l
 
-
 let root = function
   | Empty -> raise Empty_error
   | Node (v, _) -> v
 
+let rec is_ancestor ~ancestor ~node tree = (
+  let nodes_belong = ref (belongs ancestor tree) in
+  let h = parent_hash tree in
+  let parent_node = 
+    try (Hashtbl.find h node) with 
+	Not_found -> (
+	  nodes_belong := false;
+	  root tree
+	)
+  in
+  if !nodes_belong = true then (
+    if parent_node = ancestor then true else 
+      if parent_node = (root tree) then false
+      else  is_ancestor ~ancestor ~node:parent_node tree
+  ) else false
+)
+
+let successors node tree = (
+  let succ = ref 0 in
+  iter (fun i -> 
+    if(is_ancestor ~ancestor:node ~node:i tree) then succ := !succ +1;) 
+    tree;
+  !succ
+)
 	
 let rec map ~f = 
   function 

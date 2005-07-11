@@ -44,7 +44,17 @@ val paths : 'a t -> 'a list list
 
 val belongs : 'a -> 'a t -> bool
   (** [NaryTree.belongs n tree] returns [true] if [t] contains node [n],
-    [false] otherwise (using structural equality).
+      [false] otherwise (using structural equality).
+  *)
+  
+val is_ancestor : ancestor:'a -> node:'a -> 'a t -> bool
+  (** [NaryTree.is_ancestor ancestor node  tree] returns [true] if
+      [ancestor] is an ancestor of [node] in [tree] and [false] otherwise.
+  *)
+
+val successors : 'a -> 'a t -> int
+  (** [NaryTree.successors node tree] returns the number of successors
+      of [node] in [tree]. 
   *)
 
 val depth :  'a t -> int
