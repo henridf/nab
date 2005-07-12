@@ -192,9 +192,11 @@ class virtual onedim_world_common  ~x ~rrange = (
 	 then update the node and neighbor node objects *)
       let newgrid = s#pos_in_grid_ newx in
       
+      let oldx = (node_positions_.(nid)) in
+
       node_positions_.(nid) <- newx;
 
-      let oldx = (node_positions_.(nid)) in
+
       let oldgrid = (s#pos_in_grid_ oldx) in
       
       if oldgrid <> newgrid then (

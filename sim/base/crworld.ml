@@ -233,9 +233,11 @@ class virtual world_common ~x ~y ~rrange  = (
       
       let (newx, newy) = s#pos_in_grid_ newpos in
       
+      let oldpos = (node_positions_.(nid)) in
+
       node_positions_.(nid) <- newpos;
 
-      let oldpos = (node_positions_.(nid)) in
+
       let (oldx, oldy) = (s#pos_in_grid_ oldpos) in
       
       if (oldx, oldy) <> (newx, newy) then (
