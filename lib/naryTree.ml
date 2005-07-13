@@ -104,9 +104,10 @@ let rec is_ancestor ~ancestor ~node tree = (
 )
 
 let successors node tree = (
-  let succ = ref 0 in
+  let succ = ref [] in
   iter (fun i -> 
-    if(is_ancestor ~ancestor:node ~node:i tree) then succ := !succ +1;) 
+    if(is_ancestor ~ancestor:node ~node:i tree) then 
+      succ := !succ @ [i];) 
     tree;
   !succ
 )

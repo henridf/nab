@@ -52,8 +52,8 @@ val is_ancestor : ancestor:'a -> node:'a -> 'a t -> bool
       [ancestor] is an ancestor of [node] in [tree] and [false] otherwise.
   *)
 
-val successors : 'a -> 'a t -> int
-  (** [NaryTree.successors node tree] returns the number of successors
+val successors : 'a -> 'a t -> 'a list
+  (** [NaryTree.successors node tree] returns the list of successors
       of [node] in [tree]. 
   *)
 
