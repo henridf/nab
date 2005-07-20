@@ -57,6 +57,11 @@ val successors : 'a -> 'a t -> 'a list
       of [node] in [tree]. 
   *)
 
+val ancestors : 'a -> 'a t -> 'a list
+  (** [NaryTree.ancestors node tree] returns the list of ancestors
+      of [node] in [tree]. 
+  *)
+
 val depth :  'a t -> int
   (** Returns the depth of the tree. 
     @raise Empty_error if the tree is empty.

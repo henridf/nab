@@ -86,30 +86,33 @@ let root = function
   | Empty -> raise Empty_error
   | Node (v, _) -> v
 
-let rec is_ancestor ~ancestor ~node tree = (
-  let nodes_belong = ref (belongs ancestor tree) in
-  let h = parent_hash tree in
-  let parent_node = 
-    try (Hashtbl.find h node) with 
-	Not_found -> (
-	  nodes_belong := false;
-	  root tree
-	)
-  in
-  if !nodes_belong = true then (
-    if parent_node = ancestor then true else 
-      if parent_node = (root tree) then false
-      else  is_ancestor ~ancestor ~node:parent_node tree
-  ) else false
-)
+let rec is_ancestor ~ancestor ~node = function
+  | Empty -> false
+  | Node (parent, children) -> 
+      (
+	((parent = ancestor) && (List.fold_left (fun a b -> a ||
+	  (belongs node b)) false children)) 
+	|| (List.exists (is_ancestor ~ancestor ~node) children)
+      )
 
-let successors node tree = (
-  let succ = ref [] in
+let rec successors node = function
+  | Empty -> []
+  | Node (parent, children) -> 
+      (
+	if parent = node then
+	  List.fold_left (fun a b -> a @ [(root b)] @ (successors (root
+	    b) b) ) []  children
+	else
+	  List.fold_left (fun a b -> a @ (successors node b) ) []  children
+      )
+	
+let ancestors node tree = (
+  let ances = ref [] in
   iter (fun i -> 
-    if(is_ancestor ~ancestor:node ~node:i tree) then 
-      succ := !succ @ [i];) 
+    if(is_ancestor ~ancestor:i ~node:node tree) then 
+      ances := !ances @ [i];) 
     tree;
-  !succ
+  !ances
 )
 	
 let rec map ~f = 
