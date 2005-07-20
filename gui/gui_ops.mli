@@ -50,9 +50,11 @@ val draw_grep_route :
     fraction of the route is to be drawn.
   *)
 
-val draw_tree :   ?col:GDraw.color ->          
+val draw_tree :   
+  ?col:GDraw.color ->          
+  ?thick:int ->
   Coord.coordi_t NaryTree.t -> unit
-  (** Draw a tree. *)
+  (** Draw a tree with segments of color ~col and thickness ~thick *)
 
 val draw_node :  
   ?emphasize:bool ->
@@ -70,19 +72,22 @@ val draw_nodes :
 
 val connect_nodes : 
   ?col:GDraw.color ->          
+  ?thick:int ->
   (Common.nodeid_t * Common.nodeid_t)  list 
   -> unit
-  (** Connect pairs of nodes. *)
+  (** Connect pairs of nodes with a segment of color ~col and
+      thickness ~thick *)
 
 val draw_connectivity : 
-  ?col:GDraw.color -> unit -> unit
-  (** Draw full connectivity mesh using ~col *)
+  ?col:GDraw.color -> ?thick:int -> unit -> unit
+  (** Draw full connectivity mesh using ~col and segment thickness ~thick*)
 
 val draw_all_nodes : 
+  ?col:GDraw.color ->
   unit ->
   unit
-  (** Draw all nodes. *)
-
+    (** Draw all nodes. *)
+    
 val draw_all_nodes_wparam : 
   ?normalize:bool -> 
   ?unit_radio:float ->

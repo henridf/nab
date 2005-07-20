@@ -48,12 +48,14 @@ let draw_nodes nidlist =
   List.iter (fun nid -> draw_node nid) nidlist
 
 
-let draw_all_nodes() = (
+let draw_all_nodes ?(col=(`NAME "blue")) () = (
   let rec rec_ n = 
     match n with 
       |	0  -> ()
       | nid -> (
-	  draw_node (nid - 1);   
+	  let pos = Gui_conv.pos_mtr_to_pix ((World.w())#nodepos
+	    (nid-1)) in
+	  Gui_gtk.draw_node  ~target:true ~col pos;
 	  rec_ (nid - 1)
 	)
   in
@@ -88,7 +90,7 @@ let draw_all_nodes_wparam ?(normalize=false) ?(unit_radio=15.0) nodes_param = (
 )
  
 
-let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
+let connect_nodes ?(col=(`NAME "dim grey")) ?(thick=1) nidlist = (
   let poslist =
   (List.map
     (fun (n1, n2) -> 
@@ -96,10 +98,10 @@ let connect_nodes ?(col=(`NAME "dim grey")) nidlist = (
       (Gui_conv.pos_mtr_to_pix ((World.w())#nodepos n2)))
   ) nidlist
   in
-  Gui_gtk.draw_segments ~col poslist
+  Gui_gtk.draw_segments ~thick ~col poslist
 )
 
-let draw_connectivity ?(col=(`NAME "dim grey")) () = (
+let draw_connectivity ?(col=(`NAME "dim grey")) ?(thick=1) () = (
 
   let neighborlist = 
   Nodes.fold (fun node l ->
@@ -109,7 +111,7 @@ let draw_connectivity ?(col=(`NAME "dim grey")) () = (
     l@ (List.map (fun ngbr -> (nid, ngbr)) ngbrs))
   []
   in
-  connect_nodes ~col neighborlist
+  connect_nodes ~col ~thick neighborlist
 )
 
 let draw_all_boxes() = (
@@ -146,9 +148,9 @@ let draw_all_routes() = (
     ) g
 )
 
-let draw_tree ?(col=(`NAME "light grey")) tree =  
+let draw_tree ?(col=(`NAME "light grey")) ?(thick=1) tree =  
   let connect ~parent ~child = 
-    Gui_gtk.draw_segments ~col [parent, child]
+    Gui_gtk.draw_segments ~col ~thick [parent, child]
   in
   NaryTree.iter2 connect tree
 
