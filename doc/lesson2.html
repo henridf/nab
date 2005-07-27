@@ -66,11 +66,12 @@ val avg_degree : int = 10
 - : unit = ()
 # Param.set Params.radiorange rrange;;
   - : unit = ()
-# let size = Script_utils.size ~rrange ~nodes ~avg_degree ();;
-val size : float = 201.728530456155369
-# Param.set Params.x_size size;;
+# let x_size, y_size = Script_utils.size ~rrange ~nodes ~avg_degree ();;
+val x_size : float = 201.728530456155369
+val y_size : float = 201.728530456155369
+# Param.set Params.x_size x_size;;
 - : unit = ()
-# Param.set Params.y_size size;;
+# Param.set Params.y_size y_size;;
 - : unit = ()
 # Script_utils.init_world();;
 0.000000 /global World: 201.73 x 201.73 [m],  12.00 radio range [m], 800 nodes

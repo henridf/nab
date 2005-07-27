@@ -65,11 +65,11 @@ let encounter_ratio =
 let set_values() = (
   (* Set the appropriate world size to have desired node degree, given the radio
      range *)
-  let size = Script_utils.size ~rrange:radiorange  ~nodes:(Param.get Params.nodes) 
+  let x_size, y_size = Script_utils.size ~rrange:radiorange  ~nodes:(Param.get Params.nodes) 
     ~avg_degree () in
   
-  Param.set Params.x_size size;
-  Param.set Params.y_size size;
+  Param.set Params.x_size x_size;
+  Param.set Params.y_size y_size;
   
   (* The geo-routing algorithm in the EASE agent used here sometimes needs to
      send a packet to a node which is not a physical neighbor (similar to what

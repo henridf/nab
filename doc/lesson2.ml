@@ -46,10 +46,10 @@ let setup() = (
   
   Param.set Params.radiorange rrange;
   
-  let size = Script_utils.size ~rrange ~nodes ~avg_degree () in
+  let x_size, y_size = Script_utils.size ~rrange ~nodes ~avg_degree () in
   
-  Param.set Params.x_size size;
-  Param.set Params.y_size size;
+  Param.set Params.x_size x_size;
+  Param.set Params.y_size y_size;
   
   Script_utils.init_world();
   
