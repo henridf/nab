@@ -3,9 +3,11 @@
 # builds all scripts to check that there is no breakage.
 
 
-nab_scripts="warmup.ml diffusion_example.ml \
+nab_scripts="warmup.ml diffusion_example.ml dumpconf.ml \
 proto/aodv/scripts/test_3_nodes.ml \
 proto/ler/scripts/routecosts.ml \
+proto/ler/scripts/node_popularity.ml \
+proto/ler/scripts/eval_gradient.ml \
 proto/aodv/scripts/test_6_nodes.ml \
 proto/aodv/scripts/test_7_nodes_rerr.ml \
 proto/str/scripts/strtest.ml \
@@ -15,7 +17,8 @@ doc/lesson1.ml \
 doc/lesson2.ml \
 "
 
-nabviz_scripts="doc/lesson3.ml"
+nabviz_scripts="doc/lesson3.ml \
+proto/ler/scripts/viz_routes.ml"
 
 error=0
 
