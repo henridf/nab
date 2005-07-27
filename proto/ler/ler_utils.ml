@@ -32,6 +32,15 @@ let dist_age_arr ?(dst=0) () =
     (List.map (fun (nid, opt) -> nid, 	(now -. (Opt.get opt))) (List.filter (fun (_, o) -> Opt.is_some o) l)) in
   Array.sort (fun (d1, _) (d2, _) -> compare d1 d2)  f; f;;
 
+let pos_age_arr ?(dst=0) () = 
+  let now = Time.time() in
+  let a = Nodes.mapi 
+    (fun nid -> ((World.w())#nodepos nid), (Ler_agent.agent nid)#le_tab#le_time 0) in
+  let l = Array.to_list a in
+  let f = Array.of_list 
+    (List.map (fun (nid, opt) -> nid, 	(now -. (Opt.get opt))) (List.filter (fun (_, o) -> Opt.is_some o) l)) in
+  Array.sort (fun (d1, _) (d2, _) -> compare d1 d2)  f; f;;
+
 let dist_age_avg_arr ?(dst=0) ~npoints () = 
   let a = dist_age_arr ~dst () in
   let binwid = (Array.length a) / npoints in
@@ -102,4 +111,15 @@ let dump_gradient route =
     Printf.fprintf oc "%.2f %.2f\n" d a
   ) route;
   close_out oc
+
+
+(* this was written for FRESH -- don't know if it makes sense for EASE/GREASe
+   routes... *)
+let dump_3d_gradient route =
+
+  let oc = open_out "/tmp/gradient_fresh_3d.dat" in
+  
+  let a = pos_age_arr () in 
+  Array.iter (fun ((x, y),a) -> Printf.fprintf oc "%f %f %f\n" x y a) a;
+  close_out oc;
 

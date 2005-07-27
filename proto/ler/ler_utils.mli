@@ -51,3 +51,5 @@ val proportion_met_nodes : ?stack:int -> unit -> float
 
 
 val dump_gradient : (Common.nodeid_t, Coord.coordf_t) Ler_route.t  -> unit
+
+val dump_3d_gradient : (Common.nodeid_t, Coord.coordf_t) Ler_route.t  -> unit
