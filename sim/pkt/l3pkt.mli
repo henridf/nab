@@ -62,7 +62,7 @@ type l3hdr_ext_t =
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
     | `SIMPLE_HDR of Simple_pkt.t
-    | `DBF_HDR of Dbf_pkt.t
+    | `RWR_HDR of Rwr_pkt.t
     ]
 
 (** A [L3pkt.l3hdr_t] contains a src, dst, ttl and maybe some protocol-specific
@@ -102,9 +102,9 @@ val l3hdr_ext : t -> l3hdr_ext_t
 val ler_hdr : t -> Ler_pkt.t
 val str_hdr : t -> Str_pkt.t
 val aodv_hdr : t -> Aodv_pkt.t
+val rwr_hdr : t -> Rwr_pkt.t
 val diff_hdr : t -> Diff_pkt.t
 val simple_hdr : t -> Simple_pkt.t
-val dbf_hdr : t -> Dbf_pkt.t
 
 (** {2 L3 Header Manipulators} *)
 

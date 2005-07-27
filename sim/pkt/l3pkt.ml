@@ -45,7 +45,7 @@ type l3hdr_ext_t =
     | `AODV_HDR of Aodv_pkt.t
     | `DIFF_HDR of Diff_pkt.t
     | `SIMPLE_HDR of Simple_pkt.t
-    | `DBF_HDR of Dbf_pkt.t
+    | `RWR_HDR of Rwr_pkt.t
     ]
 
 let clone_l3hdr_ext = function
@@ -55,7 +55,7 @@ let clone_l3hdr_ext = function
   | `AODV_HDR e -> `AODV_HDR (Aodv_pkt.clone e)
   | `DIFF_HDR e -> `DIFF_HDR (Diff_pkt.clone e)
   | `SIMPLE_HDR e -> `SIMPLE_HDR (Simple_pkt.clone e)
-  | `DBF_HDR e -> `DBF_HDR (Dbf_pkt.clone e)
+  | `RWR_HDR e -> `RWR_HDR (Rwr_pkt.clone e)
 
 
 (* note on TTL:
@@ -82,7 +82,8 @@ let l3hdr_ext_size = function
   | `AODV_HDR hdr ->  Aodv_pkt.hdr_size hdr 
   | `DIFF_HDR hdr ->  Diff_pkt.hdr_size hdr 
   | `SIMPLE_HDR hdr ->  Simple_pkt.hdr_size hdr 
-  | `DBF_HDR hdr ->  Dbf_pkt.hdr_size hdr 
+  | `RWR_HDR hdr ->  Rwr_pkt.hdr_size hdr
+
 
 
  
@@ -137,6 +138,11 @@ let aodv_hdr l3pkt =
     | `AODV_HDR e -> e
     | _ -> raise (Failure "L3pkt.aodv_hdr")
 
+let rwr_hdr l3pkt = 
+  match l3pkt.l3hdr.ext with
+    | `RWR_HDR e -> e
+    | _ -> raise (Failure "L3pkt.rwr_hdr")
+
 let diff_hdr l3pkt = 
   match l3pkt.l3hdr.ext with
     | `DIFF_HDR e -> e
@@ -147,10 +153,6 @@ let simple_hdr l3pkt =
     | `SIMPLE_HDR e -> e
     | _ -> raise (Failure "L3pkt.simple_hdr")
 
-let dbf_hdr l3pkt = 
-  match l3pkt.l3hdr.ext with
-    | `DBF_HDR e -> e
-    | _ -> raise (Failure "L3pkt.simple_hdr")
 
 
 let get_ler_l3ext (l3hdr:l3hdr_t) = 
