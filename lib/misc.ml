@@ -197,9 +197,11 @@ let o2v = function
 
 (** Hashes *)
 
-let listofhash h = 
-  let f _key data l = data::l in
-  Hashtbl.fold f h []
+let hash_values h = 
+  Hashtbl.fold (fun k v l -> v::l) h []
+
+let hash_keys h = 
+  Hashtbl.fold (fun k v l -> k::l) h []
 
 let hashlen h = Hashtbl.fold (fun _ _ l -> l + 1) h 0
 
