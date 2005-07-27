@@ -52,14 +52,14 @@ module Persist_Nodes : Persist.t = struct
 	(Param.get Params.nodes) n_nodes));
       exit (-1));
     
-    Script_utils.make_nodes ~with_positions:false ();
+    Script_utils.make_nodes ();
     for nid = 0 to n_nodes - 1 do
       let node_state = (Marshal.from_channel ic : Node.node_state_t) in
-      (World.w())#init_pos ~nid ~pos:(Node.state_pos node_state)
+      (World.w())#movenode ~nid ~newpos:(Node.state_pos node_state)
     done;
     assert ((World.w())#neighbors_consistent);
     Log.log#log_notice (lazy "Done (restoring node state).")
-
+      
 end
 
 module Persist_World : Persist.t = struct
@@ -92,7 +92,6 @@ let save_item oc item =
     | `Rt_agents -> Rt_agent_persist.Persist.save oc
   end
   
-
 let restore_item ic = 
   let item = 
     (Marshal.from_channel ic : persistable_item) in
@@ -129,3 +128,15 @@ let restore_sim ?(verbose=true) ic =
   done
     
 
+let get_config ic = 
+  let n_items = (Marshal.from_channel ic : int) in
+  let item = 
+    (Marshal.from_channel ic : persistable_item) in
+  begin
+    match item with
+      | `Params -> 
+	  Param.Persist.restore ic;
+	  (* cmdline args overwrite config state*)
+      | _ -> failwith "Persistency.getconfig: Expected to find Params item first"
+  end
+  

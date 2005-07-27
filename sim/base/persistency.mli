@@ -32,3 +32,4 @@
 
 val save_sim : out_channel -> unit
 val restore_sim : ?verbose:bool -> in_channel -> unit
+val get_config : in_channel -> unit
