@@ -39,6 +39,7 @@ let mob_of_string = function
   | "epfl" -> `Epfl_waypoint
   | "rw_1d" | "randomwalk_1d" -> `Randomwalk_1d
   | "rw_2d" | "randomwalk_2d" -> `Randomwalk_2d
+  | "rw" | "randomwalk" -> `Randomwalk_2d
   | "billiard" -> `Billiard
   | "none" -> `None
   | _ -> raise (Failure "Invalid format for mobility type")
