@@ -24,7 +24,7 @@
 
 open Printf
 open Misc
-open Coord
+
 
 let set_debug_level s = 
   let level = 
@@ -186,21 +186,19 @@ let install_mobs ?gran () =
     | `None -> ()
 
 
-let make_naked_nodes ?(with_positions=true) () = (
+let make_naked_nodes () = (
   Nodes.set_nodes [||]; (* in case this is being called a second time in the same script *)
   Nodes.set_nodes 
     (Array.init (Param.get Params.nodes)
       (fun i -> (new Node.node i)));
 
-  if with_positions then begin
-    (* set up initial node position in internal structures of World object *)
-    Nodes.iteri (fun nid _ -> (World.w())#init_pos ~nid ~pos:(World.w())#random_pos);
-    assert ((World.w())#neighbors_consistent);
-  end
+  (* set up initial node position in internal structures of World object *)
+  Nodes.iteri (fun nid _ -> (World.w())#init_pos ~nid ~pos:(World.w())#random_pos);
+  assert ((World.w())#neighbors_consistent);
 )
 
-let make_nodes ?(with_positions=true) () = (
-  make_naked_nodes ~with_positions ();
+let make_nodes () = (
+  make_naked_nodes ();
   install_macs ();
 )
     
@@ -209,6 +207,16 @@ let place_nodes_on_line () =
   Nodes.iteri (fun nid _ -> 
     let newpos = ((float nid) *. x_incr, 0.0) in
     (World.w())#movenode ~nid ~newpos)
+
+let place_nodes_on_grid () = 
+
+  let x_incr = (Param.get Params.x_size) /.  sqrt (float (Param.get Params.nodes)) in
+  let y_incr = (Param.get Params.y_size) /.  sqrt (float (Param.get Params.nodes)) in
+  let n_nodes_x = int (floor ((Param.get Params.x_size) /. x_incr)) in
+  Nodes.iteri (fun nid _ -> 
+    let newpos = ((float (nid mod n_nodes_x)) *. x_incr, (float (nid / n_nodes_x)) *. y_incr)  in
+    (World.w())#movenode ~nid ~newpos)
+  
 
 
 let install_ler_agents ?(stack=0) proto = (
@@ -321,12 +329,18 @@ let detach_daemon ?outfilename () = (
 let size 
   ?(rrange=(Param.get Params.radiorange))
   ?(nodes=(Param.get Params.nodes)) ~avg_degree () = 
-
-  match snd (Param.get World.world) with 
-    | World.One -> (rrange *. (float nodes)) /. (float avg_degree)
-    | World.Two ->  
-	sqrt((float nodes) *. (3.14 *. (rrange *. rrange)) /. (float avg_degree))
-
+  
+  let x = 
+    match snd (Param.get World.world) with 
+      | World.One -> (rrange *. (float nodes)) /. (float avg_degree)
+      | World.Two ->  
+	  sqrt((float nodes) *. (3.14 *. (rrange *. rrange)) /. (float avg_degree))
+  and y = 
+    match snd (Param.get World.world) with 
+      | World.One -> 0.
+      | World.Two ->  
+	  sqrt((float nodes) *. (3.14 *. (rrange *. rrange)) /. (float avg_degree))
+  in x, y
 
 let interactive_print_banner s = 
   print_endline s

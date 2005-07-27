@@ -59,29 +59,26 @@ val init_all : unit -> unit
   (** Instantiates the global world object, the global
     scheduler object, and sets the time to 0.0 *)
 
-val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float
-  (** Returns the side of a square surface to get the required average node
+val size : ?rrange:float -> ?nodes:int -> avg_degree:int -> unit -> float * float
+  (** Returns the sides of a square surface as (x, x) to get the required average node
     degree, given the number of nodes and radio range. If world is
-    one-dimensional, returns the length of the segment (or ring).*)
+    one-dimensional, returns the length of the segment (or ring), ie (x, 0).*)
     
-val make_nodes :  ?with_positions:bool -> unit -> unit
+val make_nodes : unit -> unit
   (** Create {!Node.node} each with a mac layer of the type
     specified in {!Params.mac}.
 
     Number of nodes {!Params.nodes} should be set before calling this.
 
-    Optional [with_positions] (true by default) determines whether to initialize nodes with
-    (randomly generated) positions. It can be passed as [false]
-    for example if node positions are being restored from a prior run.
+    Nodes are initially placed at uniform random positions.
  *)
 
-val make_naked_nodes : ?with_positions:bool -> unit -> unit
+val make_naked_nodes : unit -> unit
   (** Create {!Node.node} nodes with no routing agents or MAC layers.
 
     Number of nodes {!Params.nodes} should be set before calling this.
-    Optional [with_positions] (true by default) determines whether to initialize nodes with
-    (randomly generated) positions. It can be passed as [false]
-    for example if node positions are being restored from a prior run.
+
+    Nodes are initially placed at uniform random positions.
  *)
 
 val make_aodv_nodes : ?localrepair:bool -> ?dstonly:bool -> unit -> unit 
@@ -163,6 +160,10 @@ val install_mobs : ?gran:float -> unit -> unit
 val place_nodes_on_line : unit -> unit
   (** Places all nodes on a horizontal line, evenly spaced so as to use 
     the whole width {!Params.x_size}*)
+
+val place_nodes_on_grid : unit -> unit
+  (** Places all nodes on a grid line, evenly spaced so as to use 
+    the whole plane. *)
 
 (** Stats *)
 
