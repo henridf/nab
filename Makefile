@@ -32,8 +32,9 @@ PROTO_STR_DIR = $(PROTO_DIR)/str
 PROTO_AODV_DIR = $(PROTO_DIR)/aodv
 PROTO_DIFF_DIR = $(PROTO_DIR)/diff
 PROTO_MISC_DIR = $(PROTO_DIR)/misc
+PROTO_RWR_DIR = $(PROTO_DIR)/rwr
 PROTO_DIRS = $(PROTO_STR_DIR) $(PROTO_AODV_DIR) $(PROTO_DIFF_DIR) \
-	$(PROTO_MISC_DIR) $(PROTO_LER_DIR) 
+	$(PROTO_MISC_DIR) $(PROTO_LER_DIR) $(PROTO_RWR_DIR) 
 
 SIM_LIB_DIR = lib
 SIM_LIB_CONTRIB_DIR = $(SIM_LIB_DIR)/contrib
@@ -148,7 +149,7 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_AODV_DIR)/aodv_pkt$(CMO) \
 		$(PROTO_DIFF_DIR)/diff_pkt$(CMO) \
 		$(PROTO_MISC_DIR)/simple_pkt$(CMO) \
-		$(PROTO_MISC_DIR)/dbf_pkt$(CMO) \
+		$(PROTO_RWR_DIR)/rwr_pkt$(CMO) \
 		$(SIM_PKT_DIR)/l3pkt$(CMO) \
 		$(SIM_MAC_DIR)/macaw_pkt$(CMO) \
 		$(SIM_MAC_DIR)/tdack_pkt$(CMO) \
@@ -198,6 +199,8 @@ SIM_OBJS = 	$(STR_LIB) \
 		$(PROTO_AODV_DIR)/aodv_defaults$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_rtab$(CMO) \
 		$(PROTO_AODV_DIR)/aodv_agent$(CMO) \
+		$(PROTO_RWR_DIR)/rwr_defaults$(CMO) \
+		$(PROTO_RWR_DIR)/rwr_agent$(CMO) \
 		$(PROTO_STR_DIR)/str_agent$(CMO) \
 		$(PROTO_LER_DIR)/ler_agent$(CMO) \
 		$(PROTO_LER_DIR)/ler_utils$(CMO) \
@@ -282,6 +285,10 @@ bin/nabviz: $(GUI_OBJS) $(SIM_SCRIPT) $(FORCE_MAYBE)
 nabviz-top: bin/nabviz-top
 bin/nabviz-top: $(GUI_OBJS) $(SIM_SCRIPT) $(FORCE_MAYBE)
 	$(MLTOP) $(INCLUDE) $(GSL_LIBS) $(GTK_STUFF) $(GUI_OBJS) $(SIM_SCRIPT) -o $@ 
+
+dumpconf: bin/dumpconf
+bin/dumpconf: $(SIM_OBJS) $(SIM_SCRIPT_DIR)/dumpconf.ml
+	$(MLCOMP) $(MLFLAGS) $(INCLUDE) $(GSL_LIBS) $(UNIX_LIB) $(SIM_OBJS) $(SIM_SCRIPT_DIR)/dumpconf.ml -o $@ 
 
 
 ODOC_FHTML_OBJ = $(SIM_LIB_CONTRIB_DIR)/odoc_fhtml$(CMO)
