@@ -93,8 +93,7 @@ object(s)
   )
 
     (* [app_recv_l4pkt] is the entry point from upper (L4) layers which have a 
-       packet to send. We build the L3 header and originate the packet into the
-       EASE logic. *)
+       packet to send. We build the L3 header and broadcast the packet. *)
   method private recv_pkt_app l4pkt dst = (
 
     s#log_info (lazy (sprintf "Received packet from upper-layer packet for dst %d" dst));
