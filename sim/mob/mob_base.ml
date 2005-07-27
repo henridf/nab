@@ -89,7 +89,7 @@ object(s)
   ) 
 
   method start = (
-    s#log_info (lazy "Starting.");
+    s#log_info (lazy (sp "Starting mob for node %d." owner#id));
     if (not moving) then (
       moving <- true;
       s#move !seqno
