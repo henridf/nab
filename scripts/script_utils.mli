@@ -112,6 +112,11 @@ val install_ler_agents : ?stack:int -> Ler_agent.ler_proto_t -> unit
     position aware nodes (see [make_nodes] and [make_naked_nodes] above).
 *)
 
+val install_rwr_agents : ?stack:int -> unit -> unit
+  (** Creates and adds a RWR agent to each node, on [stack]
+    (default stack 0). See {!Rwr_agent.rwr_agent}.
+    Nodes should be created before calling this.*)
+
 val install_macs : ?stack:int ->  ?bps:float ->  unit -> unit
   (** Installs a Mac layer of type {!Params.mac} on each node.
     Nodes should be created before calling this.

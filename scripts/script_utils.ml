@@ -249,6 +249,13 @@ let install_flood_agents ?(stack=0) () = (
     n#install_rt_agent ~stack (agent :> Rt_agent.t));
 )
 
+let install_rwr_agents ?(stack=0) () = (
+  
+  Nodes.iteri (fun nid n -> 
+    let agent = Rwr_agent.make_rwr_agent ~stack n in
+    n#install_rt_agent ~stack (agent :> Rt_agent.t));
+)
+
 
 let avg_neighbors_per_node() = 
   let total_neighbors = 
