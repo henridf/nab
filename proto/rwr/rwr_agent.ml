@@ -90,8 +90,25 @@ let total_stats ?(stack=0) () =
     (S.create_stats())
 
 
-type neighborstate = cost_t * int (* cost, distance in hops *)
+type neighborstate = Rwr_pkt.radv 
 
+let null_metric = {hop_dist = 0; lpl_rwr_cost=0.; lpl_cost=0.}
+
+let hop_dist s = s.hop_dist
+and lpl_rwr_cost s = s.lpl_rwr_cost
+and lpl_cost s = s.lpl_cost
+ 
+let sorted_cost 
+  ?( filter : neighborstate -> bool  = (fun _ -> true))
+  ( select : neighborstate -> 'a ) 
+  ( neighbors : (Common.nodeid_t, neighborstate) Hashtbl.t) = 
+
+  let cmp a b = compare (select a) (select b) in
+  Array.of_list (
+    List.sort cmp (Hashtbl.fold 
+      (fun nid state l -> if filter state then state::l else l) neighbors []))
+
+    
 
 (** @param owner a [Node.node] object representing the node on which
   this agent is running *)
@@ -103,8 +120,9 @@ object(s)
 
   val mutable stats = S.create_stats()
 
-  val mutable self_cost = if theowner#id = 0 then 0. else max_float;
-  val mutable self_dist = if theowner#id = 0 then 0 else max_int;
+  val mutable self_hop_dist = if theowner#id = 0 then 0 else max_int;
+  val mutable self_lpl_rwr_cost = if theowner#id = 0 then 0. else max_float;
+  val mutable self_lpl_cost = if theowner#id = 0 then 0. else max_float;
 
   val neighbors : (Common.nodeid_t, neighborstate) Hashtbl.t = 
     Hashtbl.create 10 
@@ -116,18 +134,25 @@ object(s)
     (Sched.s())#sched_in ~f:s#send_hello  ~t:(Random.float rwr_HELLO_INTERVAL);
   )
 
-
-  (* returns sorted (known) distances of neighbors. *)
-  method private sorted_ngbr_cost = 
-    let cmpsnd a b = compare (fst a) (fst b) in
-    Array.of_list (List.sort cmpsnd (hash_values neighbors)) 
     
-  method private sorted_ngbr_dist = 
-    let cmpsnd a b = compare (snd a) (snd b) in
-    Array.of_list (List.sort cmpsnd (hash_values neighbors)) 
+  method neighbors = neighbors 
 
 
-  method self_state = self_cost, self_dist
+  method private ngbrs_by_hop_dist = 
+    sorted_cost hop_dist neighbors
+      
+  method private ngbrs_by_lpl_rwr_cost = 
+    sorted_cost lpl_rwr_cost neighbors
+      
+  method private ngbrs_by_lpl_cost = 
+    let filter ngbrcost = ngbrcost.hop_dist < self_hop_dist in
+    sorted_cost ~filter lpl_cost neighbors
+
+  method self_state = {
+    hop_dist = self_hop_dist;           
+    lpl_rwr_cost = self_lpl_rwr_cost;
+    lpl_cost = self_lpl_cost
+}
 
   method private make_l3pkt ?(ttl=L3pkt.default_ttl) ?(l4pkt=`EMPTY) ~dst rwrhdr = 
     L3pkt.make_l3pkt 
@@ -138,7 +163,7 @@ object(s)
   method private send_hello() = (
     let now = Time.time() in
 
-    let radv = Rwr_pkt.make_adv_hdr self_dist self_cost in
+    let radv = Rwr_pkt.make_adv_hdr s#self_state in
     s#send_out (s#make_l3pkt ~dst:L3pkt.l3_bcast_addr ~ttl:1 radv);
     
     (Sched.s())#sched_in ~f:s#send_hello ~t:rwr_HELLO_INTERVAL;
@@ -157,44 +182,82 @@ object(s)
     end
   )
 
-  method private process_adv_pkt src adv = 
-    Hashtbl.replace neighbors src (adv.cost, adv.sp_dist);
-    if adv.sp_dist < max_int then 
-      (* will need to add same check for cost when we use it *)
-      if adv.sp_dist + 1 < self_dist then (
-	s#log_info (lazy (sp "Changing hop distance from %d to %d" self_dist (adv.sp_dist + 1)));
-	self_dist <- adv.sp_dist + 1
-      );
-    
-    let sorted_costs = s#sorted_ngbr_cost in
+  method private update_lpl_rwr_metric = 
+    let sorted_costs = s#ngbrs_by_lpl_rwr_cost  in
     let mincost = ref max_float in
 
     (* compute cost when taking into account the [n] best neighbors *)
     let cost n = 
       let tot = ref 0. in
       for i = 1 to n do
-	tot := !tot +. (fst sorted_costs.(n-1));
+	tot := !tot +. (lpl_rwr_cost sorted_costs.(i-1));
       done;
       (1. +. !tot) /. (float n)
     in
     
-    if adv.cost < max_float && Array.length sorted_costs > 0 then (
+    if Array.length sorted_costs > 0 then (
       
       for i = 1 to Array.length sorted_costs do 
-	if cost i < !mincost then mincost := cost i;
+	let c = cost i in 
+	if c < !mincost then mincost := c;
       done;
 
-      if !mincost < self_cost then (
-	s#log_info (lazy (sp "Changing cost distance from %f to %f" self_cost !mincost));
-	self_cost <- !mincost
+      if !mincost < self_lpl_rwr_cost then (
+	s#log_info (lazy (sp "Changing cost distance from %f to %f" self_lpl_rwr_cost !mincost));
+	self_lpl_rwr_cost <- !mincost
       )
     )
-      
 
-
-
+  method private update_lpl_metric = 
     
+    let sorted_costs = s#ngbrs_by_lpl_cost  in
+    let mincost = ref max_float in
 
+    (* compute cost when taking into account the [n] best neighbors *)
+    let cost n = 
+      let tot = ref 0. in
+      for i = 1 to n do
+	tot := !tot +. (lpl_cost sorted_costs.(i-1));
+      done;
+      (1. +. !tot) /. (float n)
+    in
+    
+    if Array.length sorted_costs > 0 then (
+      
+      for i = 1 to Array.length sorted_costs do 
+	let c = cost i in 
+	if c < !mincost then mincost := c;
+      done;
+
+      (* unlike for other metrics, we must *always* take the best one,
+	 because this of the following sequence of events:
+	 - hops has not yet converged, we currently think we are at 7 hops
+	 away, this allows us to use several neighbors
+	 - now hops converges to 6 hops and we can use fewer neighbors; our
+	 converged lpl metric should therefore be higher.
+	 
+	 In other words, this lpl metric depends on another metric (hops)
+	 which is monotonically decreasing (assuming of course static
+	 connectivity etc), where as lpl is not a monotonic function of
+	 hops.
+      *)
+      self_lpl_cost <- !mincost 
+
+
+  method private process_adv_pkt src adv = 
+
+    Hashtbl.replace neighbors src adv;
+    if owner#id <> 0 then (
+    if adv.hop_dist < max_int then 
+      (* will need to add same check for cost when we use it *)
+      if adv.hop_dist + 1 < self_hop_dist then (
+	s#log_info (lazy (sp "Changing hop distance from %d to %d" self_hop_dist (adv.hop_dist + 1)));
+	self_hop_dist <- adv.hop_dist + 1
+      );
+
+      if adv.lpl_cost < max_float then s#update_lpl_metric;
+      if adv.lpl_rwr_cost < max_float then   s#update_lpl_rwr_metric;
+    )
 
   method private send_out l3pkt = (
     
@@ -206,7 +269,7 @@ object(s)
     (* a few sanity checks *)
     begin match rwr_hdr with
       | ADV adv -> assert (dst = L3pkt.l3_bcast_addr); 
-	  assert(if owner#id = 0 then adv = {sp_dist = 0; cost=0.} else adv <> {sp_dist = 0; cost=0.});
+	  assert(if owner#id = 0 then adv = null_metric else adv <> null_metric);
       | DATA -> ()
     end;
 
@@ -231,12 +294,13 @@ object(s)
 end
 
 let run_until_convergence ?(stack=0) () = 
+  let niter = ref 0 in
 
-  let a = Array.init (Param.get Params.nodes) (fun _ -> (0., 0)) in
-  
+  let a = Array.init (Param.get Params.nodes) (fun _ -> null_metric) in
+
+  begin
   try 
     while true do
-      
       let changed = 
 	Hashtbl.fold 
 	  (fun nid agent changed -> changed || agent#self_state <> a.(nid))
@@ -250,9 +314,43 @@ let run_until_convergence ?(stack=0) () =
       
       (Sched.s())#run_for ~duration:rwr_HELLO_INTERVAL;
       
+      incr niter;
     done;
   with Break -> ()
+  end;
+  Log.log#log_notice (lazy (sp "Converged in %d iterations\n" !niter))
+
+
+let dump_neighbortable ?(stack=0) nid = 
+  let agent = Hashtbl.find agents_array_.(stack) nid in
+  let neighbors = agent#neighbors in
+  let s = agent#self_state in 
+  Printf.printf "Metrics for %d: %d hops, %.2f lpl/rwr, %.2f lpl\n" 
+    nid
+    (hop_dist s)
+    (lpl_rwr_cost s)
+    (lpl_cost  s);
+  Hashtbl.iter (fun ngbr s -> 
+    Printf.printf "\tneighbor %d: %d hops, %.2f lpl/rwr, %.2f lpl\n" 
+    ngbr
+    (hop_dist s)
+    (lpl_rwr_cost s)
+    (lpl_cost  s)
+  ) neighbors;
+  print_newline();
+  flush stdout
+
+let dump_metrics ?(stack=0) () = 
+  Nodes.iteri (fun nid _ -> 
+    let agent = Hashtbl.find agents_array_.(stack) nid in
+    let s = agent#self_state in 
+    Printf.printf "%d -> %.2f %.2f %.2f\n" nid (float s.hop_dist)
+      s.lpl_rwr_cost s.lpl_cost
+  );
+  flush stdout
     
-    
+
+
+
 let make_rwr_agent ?(stack=0) n  = 
   ((new rwr_agent ~stack n) :> Rt_agent.t)

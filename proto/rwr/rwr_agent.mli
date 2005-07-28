@@ -62,7 +62,11 @@ val total_stats : ?stack:int -> unit -> Rwr_stats.stats
   (** Return the sum of statistics for all nodes running on a given stack
     (default stack is 0). *)
 
+val dump_neighbortable :  ?stack:int -> Common.nodeid_t -> unit
+  (** Dump to stdout the full state of given node. *)
 
+val dump_metrics : ?stack:int -> unit -> unit
+  (** Dump to stdout the routing metrics of all nodes. *)
 
 val run_until_convergence : ?stack:int -> unit -> unit
   (** Run the distributed bellmann-ford computation of the RWR metric until it
