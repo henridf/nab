@@ -26,8 +26,9 @@ let cost_size = 2
 
 
 type radv = {
-  sp_dist : int;
-  cost : cost_t
+  hop_dist : int;           (* # hops *)
+  lpl_rwr_cost : cost_t;    (* cost with lpl, RWR *)
+  lpl_cost : cost_t         (* cost with lpl, shortest path *)
 }
 
 (* must change clone if any mutables get introduced!! *)
@@ -43,4 +44,4 @@ let hdr_size  = function
 let clone rwr_pkt = rwr_pkt 
 
 
-let make_adv_hdr sp_dist cost = ADV { sp_dist = sp_dist; cost = cost }
+let make_adv_hdr radv =  ADV radv

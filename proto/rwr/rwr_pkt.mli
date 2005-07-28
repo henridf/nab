@@ -32,8 +32,9 @@ type cost_t = float
 
 
 type radv = {
-  sp_dist : int; (* cost with shortest-path metric (hops) *)
-  cost : cost_t; (* cost with rwr metric. *)
+  hop_dist : int;           (* # hops *)
+  lpl_rwr_cost : cost_t;    (* cost with lpl, RWR *)
+  lpl_cost : cost_t         (* cost with lpl, shortest path *)
 }
 
 type t =  
@@ -45,7 +46,8 @@ val hdr_size : t -> int
 
 val clone : t -> t
 
-val make_adv_hdr : int -> cost_t -> t
+(* int -> lpl_rwr_cost:cost_t ->  lpl_cost:cost_t -> *)
+val make_adv_hdr : radv -> t
   
 
 
