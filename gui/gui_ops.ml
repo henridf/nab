@@ -47,6 +47,13 @@ let draw_node ?(emphasize=false) nid =
 let draw_nodes nidlist = 
   List.iter (fun nid -> draw_node nid) nidlist
 
+let annotate_nodes f = 
+  Nodes.iteri (fun nid _ -> 
+    let s = f nid in
+    let pos = Gui_conv.pos_mtr_to_pix 
+      ((World.w())#nodepos nid) in
+      Gui_gtk.draw_text pos s
+  )
 
 let draw_all_nodes ?(col=(`NAME "blue")) () = (
   let rec rec_ n = 

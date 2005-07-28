@@ -73,6 +73,11 @@ val draw_node :
   unit
   (** Draw a node. *)
 
+val draw_text : 
+  Coord.coordi_t -> 
+  string ->
+  unit
+  (** [draw_text coord text] writes a text [text] at given coordinates. *)
 
 val draw_cross :
   ?diag:bool ->

@@ -76,7 +76,16 @@ val connect_nodes :
   (Common.nodeid_t * Common.nodeid_t)  list 
   -> unit
   (** Connect pairs of nodes with a segment of color ~col and
-      thickness ~thick *)
+    thickness ~thick *)
+
+val annotate_nodes : 
+  (Common.nodeid_t -> string) -> unit
+  (** [annotate_nodes f] Annotates each node [nid] on the display with the
+    text that is given by calling the provided function with [nid] as
+    argument. The function [f] can simply return the empty string for nodes
+    that need no annotations. *)
+
+
 
 val draw_connectivity : 
   ?col:GDraw.color -> ?thick:int -> unit -> unit

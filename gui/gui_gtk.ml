@@ -190,6 +190,10 @@ let draw_segments_taur ?(col=cl_fg) ?(thick=1) l = (
   (drawing())#set_line_attributes ~width:1 ();
 )
 
+let draw_text (x, y) text = 
+  let font = Gdk.Font.load "6x13" in
+  (drawing())#string text ~font ~x ~y
+
 let draw_cross ?(diag=true) ?(col=cl_fg) ?(target=false) (x, y) = (
   let (pixwid, thick) = if target then (4, 2) else (2, 1) in
   let segs = if diag then 
