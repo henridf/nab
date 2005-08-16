@@ -18,7 +18,7 @@ CMA		= $(CMAS)
 #*************************************************************#
 COMPTYPE	= opt
 MLWARN		= -w Al 
-MLFAST		= -unsafe -inline 10 -noassert
+MLFAST		= -inline 10 -noassert
 ifdef PROF
 	PROFILE	= 	 -p
 endif
