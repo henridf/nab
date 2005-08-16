@@ -75,10 +75,10 @@ val avg_degree : int = 10
 - : unit = ()
 # Param.set radiorange range;;
 - : unit = ()
-# let x_size, y_size = Script_utils.size ~rrange:range  ~nodes:(Param.get nodes) ~avg_degree ();; 
-  val x_size : float = 212.640541760032193
-  val y_size : float = 212.640541760032193
-# Param.set x_size x_size; Param.set y_size y_size;;
+# let x, y = Script_utils.size ~rrange:range  ~nodes:(Param.get nodes) ~avg_degree ();; 
+  val x : float = 212.640541760032193
+  val y : float = 212.640541760032193
+# Param.set x_size x; Param.set y_size y;;
 - : unit = ()
 # Param.set World.world (World.Greedy, World.Two);
 - : unit = ()

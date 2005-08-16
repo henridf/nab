@@ -35,10 +35,10 @@ let setup() = (
   (* Set the transmission range (range within which nodes are neighbors). *)
   Param.set Params.radiorange range;
 
-  let x_size, y_size = Script_utils.size ~rrange:range ~nodes:n ~avg_degree () in
+  let x, y = Script_utils.size ~rrange:range ~nodes:n ~avg_degree () in
 
-  Param.set Params.x_size x_size;
-  Param.set Params.y_size y_size;
+  Param.set Params.x_size x;
+  Param.set Params.y_size y;
 
   Script_utils.init_world();
 
