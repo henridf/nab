@@ -25,14 +25,25 @@
 
 
 
-(* 
-   str_agent 'enhancements' :
+(*
 
 
-tests:
+While implementing AODV (RFC 3561) within the NAB network simulator
+(http://nab.epfl.ch), i came across a few 'gray' zones where, if the RFC is
+followed literally, may lead to behavior which is not intended. 
+Any clarifications would be welcome.
 
-   do a random mix of mobility and traffic, and check that ttl drops on data
-   packets don't happen (would indicate a loooop), and that asserts don't happen
+- HELLO messages.
+
+  Assume a deployment where HELLO message broadcasting is enabled.
+  A node will then send a HELLO message when it is part of an active route.
+
+  Consider a network with two nodes S and D in range of each other. S
+  establishes a route to D. Now, both S and D are part of an active route. 
+  So, for the next ACTIVE_ROUTE_TIMEOUT interval, they will both broadcast
+  periodic HELLOs.
+
+
 
 
  *)
