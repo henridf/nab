@@ -187,6 +187,7 @@ let mob_warmup() =
 
   start_appropriate_nodes();
   set_hellos();
+
   begin try
     while true do
       (Sched.s())#run_for ~duration:((Param.get Params.x_size) /. 4.);
@@ -236,10 +237,12 @@ let setup_sim () =
   and rrange = (Param.get Params.radiorange)
   in
   
-  Param.set Params.x_size 
-    (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
-  Param.set Params.y_size 
-    (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ());
+  let x, y = 
+    (Script_utils.size ~rrange ~avg_degree ~nodes:(Param.get Params.nodes) ()) in 
+  
+  Param.set Params.x_size x;
+  Param.set Params.y_size y;
+
 
   if agenttype == LER_FRESH || 
     agenttype == LER_EASE || 
