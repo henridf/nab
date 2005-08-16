@@ -242,7 +242,7 @@ object(s)
 	 hops.
       *)
       self_lpl_cost <- !mincost 
-
+    )
 
   method private process_adv_pkt src adv = 
 
