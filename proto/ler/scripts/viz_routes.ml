@@ -43,8 +43,6 @@ let _ =
   Nodes.iter (fun n -> n#remove_mac ());
   Script_utils.install_cheat_macs();
   
-  Log.set_log_level Log.LOG_DEBUG;
-
   Mob_ctl.stop_all ();
   Param.set Params.x_pix_size 700; (* size of gui window *)
   Param.set Params.y_pix_size 700;
