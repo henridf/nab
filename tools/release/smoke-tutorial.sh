@@ -5,7 +5,7 @@
 # takes as parameter the html (e.g. lesson1.html) file from which to extract toplevel
 # ocaml commands and looks for it in ./doc (so you should run this from ./nab).
 #
-lessons="1 "
+lessons="1 2 3"
 
 error=0
 
