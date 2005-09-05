@@ -57,13 +57,15 @@ object(s)
   (* This is called from the underlying MAC each time we receive a packet. *)
   method recv_pkt_mac ~l2src ~l2dst l3pkt = (
 
-    let src = (L3pkt.l3src l3pkt) in
+    let src = (L3pkt.l3src l3pkt) 
+    and dst = (L3pkt.l3dst l3pkt) 
+    and seqno = Simple_pkt.seqno (L3pkt.simple_hdr l3pkt) in
     s#log_debug (lazy (sprintf "Received flood packet from src %d" src));
     (* If we've haven't already received this packet, we add to our hashtbl
        and reforward. *)
-    if not (Hashtbl.mem pkt_hash l3pkt) then (
+    if not (Hashtbl.mem pkt_hash (src, dst, seqno)) then (
 
-      Hashtbl.add pkt_hash l3pkt ();
+      Hashtbl.add pkt_hash (src, dst, seqno) ();
       if L3pkt.l3ttl l3pkt > 0 then 
 	let l3pkt = L3pkt.clone_l3pkt (L3pkt.decr_l3ttl l3pkt) in begin
 	  s#log_debug (lazy (sprintf "Packet received (orig %d) for first time;  reforwarding." src));
@@ -98,6 +100,7 @@ object(s)
 
     s#log_info (lazy (sprintf "Received packet from upper-layer packet for dst %d" dst));
     if  (dst <> myid) then (
+      Hashtbl.add pkt_hash (myid, dst, seqno) ();
       let l3pkt = s#construct_flood_pkt l4pkt dst in
       s#mac_bcast_pkt l3pkt;
       s#log_debug (lazy "Incrementing sequence number after originating a flood packet");
