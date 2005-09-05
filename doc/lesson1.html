@@ -271,7 +271,7 @@ interrupt)!
 <pre class=example>
 # Log.set_log_level Log.LOG_DEBUG;;
 - : unit = ()
-# (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+# (Nodes.node originator)#originate_app_pkt t ~l4pkt:`EMPTY ~dst:L3pkt.l3_bcast_addr;;
 0.062878 /node/397/Flood_Agent Received packet from upper-layer packet for broadcast
 - : unit = ()
 # (Sched.s())#run();;
@@ -372,7 +372,7 @@ invoke each time a packet is <i>received</i> at a node.
 </pre>
 
 <pre class=example>
-# (Nodes.node originator)#originate_app_pkt ~dst:L3pkt.l3_bcast_addr;;
+# (Nodes.node originator)#originate_app_pkt ~l4pkt:`EMPTY ~dst:L3pkt.l3_bcast_addr;;
 0.0.092467 /node/397/Flood_Agent Received packet from upper-layer packet for broadcast
 # (Sched.s())#run();;
 - : unit = ()
