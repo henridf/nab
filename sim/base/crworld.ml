@@ -49,6 +49,11 @@ open Graph
   of the discrete grid (quantification) of node positions.
 *)
 class virtual world_common ~x ~y ~rrange  = (
+  let grid_size_x = max 1 (f2i (floor (x /. rrange)))
+  and grid_size_y = max 1 (f2i (floor (y /. rrange))) in
+  let tile_size_x = x /. (float grid_size_x)
+  and tile_size_y = y /. (float grid_size_y) in
+
   object(s)
     
     val mutable grid_of_nodes_ =  (Array.make_matrix 1 1 ([]:Common.nodeid_t list))
@@ -69,10 +74,10 @@ class virtual world_common ~x ~y ~rrange  = (
        have tiles of size 3x3.3
     *)
 
-    val grid_size_x = f2i (floor (x /. rrange));
-    val grid_size_y = f2i (floor (y /. rrange));
-    val tile_size_x = x /. (floor (x /. rrange));
-    val tile_size_y = y /. (floor (y /. rrange));
+    val grid_size_x = grid_size_x
+    val grid_size_y = grid_size_y
+    val tile_size_x = tile_size_x
+    val tile_size_y = tile_size_y
 
 
 
