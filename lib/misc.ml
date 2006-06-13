@@ -197,11 +197,14 @@ let o2v = function
 
 (** Hashes *)
 
+let hash_tuple_list h = 
+  Hashtbl.fold (fun k v l -> (k, v)::l) h []
+
 let hash_values h = 
-  Hashtbl.fold (fun k v l -> v::l) h []
+  Hashtbl.fold (fun _ v l -> v::l) h []
 
 let hash_keys h = 
-  Hashtbl.fold (fun k v l -> k::l) h []
+  Hashtbl.fold (fun k _ l -> k::l) h []
 
 let hashlen h = Hashtbl.fold (fun _ _ l -> l + 1) h 0
 
