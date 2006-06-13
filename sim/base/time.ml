@@ -26,6 +26,9 @@ type time_t = float
 type t = time_t
 type dtime_t = int
 type abs_or_rel_t = ABS of time_t | REL of time_t
+type timekeeping_t = SIM | CPU 
+
+let tk = ref SIM
 
 let sp = Printf.sprintf
 
@@ -43,11 +46,18 @@ let set_time t =
   if !maintain_discrete_time_ then 
     dtime_ := truncate !time_
 
-let get_time () = !time_
-  
+let get_time () = 
+  match !tk with 
+    | SIM -> !time_
+    | CPU -> Sys.time()
+
 let dtime() = !dtime_
 
 
+let set_timekeeping thetk = 
+  tk := thetk  
+
+  
 
 let time = get_time
 
