@@ -167,6 +167,8 @@ let array_mem arr v = Array.fold_left
   false
   arr
 
+let int_of_bool = function true -> 1 | false -> 0
+
 (* val array_count : 'a -> 'a array -> int = <fun> *)
 let array_count elt a = array_count_filt (fun x -> x = elt) a
 
