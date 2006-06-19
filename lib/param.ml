@@ -231,7 +231,7 @@ let configlist_doc () =
     (List.map (fun f -> f()) !params_configlist_doc)
     
   
-let sprintconfig () = 
+let sprintconfig ?(comment="") () = 
   let l = configlist_doc () in
   
   let max_width = 
@@ -244,14 +244,14 @@ let sprintconfig () =
   
   let stringlist = 
     List.map (fun (name, value) ->
-      (Misc.padto name (max_width + 4))^value^"\n"
+      comment^(Misc.padto name (max_width + 4))^value^"\n"
     ) l
   in
   List.fold_left (^) "" stringlist
 
 
-let printconfig outchan = 
-  let s = sprintconfig() in
+let printconfig ?(comment="") outchan = 
+  let s = sprintconfig  ~comment () in
   output_string outchan s
 
 

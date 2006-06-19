@@ -160,14 +160,17 @@ val argspeclist : unit -> (string * Arg.spec * string) list
     to call the standard library's Arg.parse with, in order to set Param
     values from the command line. *)
 
-val sprintconfig : unit -> string
+val sprintconfig : ?comment:string -> unit -> string
   (** Returns a string representation of all registered Param (not only those
     from params.ml) and their values.
+    Optional "comment" string is prepended before each line, i.e. can use "#"
+    if dumping configuration into a data file.
+
     Right now only those params that are command-line settable are dumped (ie
     created with ~cmdline=true).*)
   (* maybe need an option to require *all* parameters to be returned *)
 
-val printconfig : out_channel -> unit
+val printconfig : ?comment:string -> out_channel -> unit
   (** Prints a string representation of all registered Param (not only those
     from params.ml) and their values.
     Right now only those params that are command-line settable are dumped (ie
