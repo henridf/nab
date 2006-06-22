@@ -151,23 +151,24 @@ let array_rev_iteri f a =
 let array_rev_iter f a = 
   for i = Array.length a - 1 downto 0 do f (Array.unsafe_get a i) done
 
-(*val array_count_filt : ('a -> bool) -> 'a array -> int = <fun> *)
-let array_count_filt f a = (
-  let c = ref 0 in 
-    Array.iter (fun el -> if (f el) then incr c) a; 
-    !c
-)
 
 let mapi2 f arr1 arr2 = Array.mapi (fun i v -> f v arr2.(i)) arr1
 let (|+|) = mapi2 (+)
 let (|+.|) = mapi2 (+.)
+
+let int_of_bool = function true -> 1 | false -> 0
 
 let array_mem arr v = Array.fold_left 
   (fun boolean item -> boolean || (item = v)) 
   false
   arr
 
-let int_of_bool = function true -> 1 | false -> 0
+(* count the number of elements e for which (f e) is true *)
+let array_count_filt f a = Array.fold_left 
+  (fun c item -> c + int_of_bool (f item)) 
+  0
+  a
+
 
 (* val array_count : 'a -> 'a array -> int = <fun> *)
 let array_count elt a = array_count_filt (fun x -> x = elt) a
