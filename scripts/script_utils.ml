@@ -356,6 +356,11 @@ let abort_on_kill _ =
   print_endline " \n ***\n *** Killed by SIGINT!\n ***\n";
   exit (-1)
 
+let cmdline = 
+  Sys.executable_name 
+  ^" "^
+  (Array.fold_left (fun s1 s2 -> s1^" "^s2) "" Sys.argv)
+
 let _ = 
   if !Sys.interactive then 
     print_endline ("\n     Network in a Box (nab) version "^Common.nab_release);

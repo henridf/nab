@@ -46,6 +46,9 @@ val parse_args :
 
 val print_header : unit -> unit
 
+(** The command line (executable + options) used to invoke this program. *)
+val cmdline : string
+
 (** Setup/Initialization/Cleanup *) 
 
 val init_world : unit -> unit
