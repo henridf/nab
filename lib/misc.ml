@@ -90,6 +90,16 @@ let facto n =
 
 let binomial ~pick ~outof = (facto outof) / ((facto pick)  * (facto (outof - pick)))
 
+let facto_f n = 
+  let rec tailrec x n = 
+    match x with
+      | 0. -> n
+      | _ -> tailrec (x -. 1.) (x *. n)
+  in
+  tailrec n 1.
+
+let binomial_f ~pick ~outof = (facto_f outof) /. ((facto_f pick)  *. (facto_f (outof -. pick)))
+
 let pi = 4. *. atan 1.
 
 let rad2deg rad = (rad /. pi) *. 180.
@@ -210,6 +220,7 @@ let hash_keys h =
   Hashtbl.fold (fun k _ l -> k::l) h []
 
 let hashlen h = Hashtbl.fold (fun _ _ l -> l + 1) h 0
+
 
 (** Error Handling and Exceptions *)
 
